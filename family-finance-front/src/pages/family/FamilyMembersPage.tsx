@@ -8,6 +8,9 @@ import {
   Phone,
   Calendar,
   User,
+  Copy,
+  Check,
+  KeyRound,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { familyMembersApi } from '../../api/family-members.api';
@@ -19,6 +22,7 @@ import { PermissionGate } from '../../components/common/PermissionGate';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { Select } from '../../components/ui/Select';
 import type {
+  CredentialsInfo,
   FamilyMember,
   FamilyMemberRequest,
   FamilyRole,
@@ -44,6 +48,10 @@ export function FamilyMembersPage() {
     avatar: '',
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Credentials modal
+  const [credentialsInfo, setCredentialsInfo] = useState<CredentialsInfo | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Delete confirmation
   const [deletingMemberId, setDeletingMemberId] = useState<number | null>(null);
@@ -84,6 +92,7 @@ export function FamilyMembersPage() {
       phone: '',
       birthDate: '',
       avatar: '',
+      createAccount: false,
     });
     setShowModal(true);
   };
@@ -112,7 +121,11 @@ export function FamilyMembersPage() {
       if (editingMember) {
         await familyMembersApi.update(editingMember.id, form);
       } else {
-        await familyMembersApi.create(form);
+        const res = await familyMembersApi.create(form);
+        const created = res.data.data as FamilyMember;
+        if (created.credentials) {
+          setCredentialsInfo(created.credentials);
+        }
       }
       handleCloseModal();
       void loadMembers();
@@ -120,6 +133,16 @@ export function FamilyMembersPage() {
       console.error('Failed to save family member:', error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleCopyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      console.error('Failed to copy to clipboard');
     }
   };
 
@@ -419,6 +442,26 @@ export function FamilyMembersPage() {
                   placeholder="https://..."
                 />
               </label>
+
+              {/* Create Account Toggle — faqat yangi a'zo uchun */}
+              {!editingMember && (
+                <div className="form-control">
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-primary toggle-sm"
+                      checked={form.createAccount || false}
+                      onChange={(e) => setForm((prev) => ({ ...prev, createAccount: e.target.checked }))}
+                    />
+                    <div>
+                      <span className="label-text font-medium">Tizimga kirish imkoniyati</span>
+                      <p className="text-xs text-base-content/50 mt-0.5">
+                        Avtomatik login va vaqtinchalik parol yaratiladi
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
@@ -465,6 +508,76 @@ export function FamilyMembersPage() {
                 onClick={handleDelete}
               >
                 O'chirish
+              </button>
+            </div>
+          </div>
+        </div>
+      </ModalPortal>
+
+      {/* Credentials Modal */}
+      <ModalPortal isOpen={!!credentialsInfo} onClose={() => setCredentialsInfo(null)}>
+        <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl">
+          <div className="p-4 sm:p-6">
+            <div className="text-center mb-6">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success/10">
+                <KeyRound className="h-7 w-7 text-success" />
+              </div>
+              <h3 className="text-xl font-semibold">Kirish ma'lumotlari</h3>
+              <p className="text-sm text-base-content/60 mt-1">
+                {credentialsInfo?.message}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Username */}
+              <div className="bg-base-200 rounded-lg p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-base-content/50 font-medium">Login</p>
+                  <p className="font-mono font-semibold text-lg">{credentialsInfo?.username}</p>
+                </div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleCopyToClipboard(credentialsInfo?.username || '', 'username')}
+                  title="Nusxa olish"
+                >
+                  {copiedField === 'username' ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              {/* Password */}
+              <div className="bg-base-200 rounded-lg p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-base-content/50 font-medium">Vaqtinchalik parol</p>
+                  <p className="font-mono font-semibold text-lg">{credentialsInfo?.temporaryPassword}</p>
+                </div>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleCopyToClipboard(credentialsInfo?.temporaryPassword || '', 'password')}
+                  title="Nusxa olish"
+                >
+                  {copiedField === 'password' ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="alert alert-warning mt-4">
+              <span className="text-sm">Bu ma'lumotlar faqat bir marta ko'rsatiladi. Oila a'zosiga yetkazing!</span>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                className="btn btn-primary"
+                onClick={() => setCredentialsInfo(null)}
+              >
+                Tushunarli
               </button>
             </div>
           </div>

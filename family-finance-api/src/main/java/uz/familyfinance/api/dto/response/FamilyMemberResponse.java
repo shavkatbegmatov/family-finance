@@ -1,5 +1,6 @@
 package uz.familyfinance.api.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import uz.familyfinance.api.enums.FamilyRole;
 import java.time.LocalDate;
@@ -17,4 +18,7 @@ public class FamilyMemberResponse {
     private Long userId;
     private String userName;
     private LocalDateTime createdAt;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private CredentialsInfo credentials;
 }

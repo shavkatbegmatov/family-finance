@@ -153,6 +153,7 @@ export interface FamilyMember {
   userId?: number;
   userName?: string;
   createdAt: string;
+  credentials?: CredentialsInfo;
 }
 
 export interface FamilyMemberRequest {
@@ -162,6 +163,7 @@ export interface FamilyMemberRequest {
   phone?: string;
   avatar?: string;
   userId?: number;
+  createAccount?: boolean;
 }
 
 // Account Types

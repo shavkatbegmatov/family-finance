@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
+import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.User;
@@ -24,6 +25,7 @@ public class FamilyMemberService {
 
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @Transactional(readOnly = true)
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable) {
@@ -60,7 +62,20 @@ public class FamilyMemberService {
             member.setUser(user);
         }
 
-        return toResponse(familyMemberRepository.save(member));
+        FamilyMember saved = familyMemberRepository.save(member);
+
+        // Avtomatik user account yaratish
+        if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
+            CredentialsInfo credentials = userService.createUserForFamilyMember(saved, "MEMBER");
+            // Yaratilgan user'ni member'ga biriktirish
+            User createdUser = userRepository.findByUsername(credentials.getUsername())
+                    .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
+            saved.setUser(createdUser);
+            familyMemberRepository.save(saved);
+            return toResponse(saved, credentials);
+        }
+
+        return toResponse(saved);
     }
 
     @Transactional
@@ -101,6 +116,10 @@ public class FamilyMemberService {
     }
 
     private FamilyMemberResponse toResponse(FamilyMember m) {
+        return toResponse(m, null);
+    }
+
+    private FamilyMemberResponse toResponse(FamilyMember m, CredentialsInfo credentials) {
         FamilyMemberResponse r = new FamilyMemberResponse();
         r.setId(m.getId());
         r.setFullName(m.getFullName());
@@ -114,6 +133,7 @@ public class FamilyMemberService {
             r.setUserId(m.getUser().getId());
             r.setUserName(m.getUser().getUsername());
         }
+        r.setCredentials(credentials);
         return r;
     }
 }

@@ -14,4 +14,5 @@ public class FamilyMemberRequest {
     private String phone;
     private String avatar;
     private Long userId;
+    private Boolean createAccount;
 }
