@@ -25,6 +25,7 @@ import { DataTable, Column } from '../../components/ui/DataTable';
 import { DateInput } from '../../components/ui/DateInput';
 import { TextArea } from '../../components/ui/TextArea';
 import { Select } from '../../components/ui/Select';
+import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -681,21 +682,12 @@ export function TransactionsPage() {
               </div>
 
               {/* Amount */}
-              <div className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Summa *
-                </span>
-                <input
-                  type="number"
-                  className="input input-bordered w-full"
-                  placeholder="0"
-                  min={0}
-                  value={form.amount || ''}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, amount: Number(e.target.value) }))
-                  }
-                />
-              </div>
+              <CurrencyInput
+                label="Summa *"
+                value={form.amount}
+                onChange={(val) => setForm((prev) => ({ ...prev, amount: val }))}
+                showQuickButtons
+              />
 
               {/* Account */}
               <Select
