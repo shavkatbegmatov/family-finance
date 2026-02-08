@@ -11,6 +11,7 @@ import {
   Copy,
   Check,
   KeyRound,
+  Link,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { familyMembersApi } from '../../api/family-members.api';
@@ -20,6 +21,9 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { SearchInput } from '../../components/ui/SearchInput';
+import { TextInput } from '../../components/ui/TextInput';
+import { PhoneInput } from '../../components/ui/PhoneInput';
+import { DateInput } from '../../components/ui/DateInput';
 import { Select } from '../../components/ui/Select';
 import type {
   CredentialsInfo,
@@ -373,18 +377,14 @@ export function FamilyMembersPage() {
 
             <div className="mt-6 space-y-4">
               {/* Full Name */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  To'liq ism <span className="text-error">*</span>
-                </span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={form.fullName}
-                  onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                  placeholder="Ism familiya"
-                />
-              </label>
+              <TextInput
+                label="To'liq ism"
+                required
+                value={form.fullName}
+                onChange={(val) => setForm((prev) => ({ ...prev, fullName: val }))}
+                placeholder="Ism familiya"
+                leadingIcon={<User className="h-5 w-5" />}
+              />
 
               {/* Role */}
               <Select
@@ -403,45 +403,29 @@ export function FamilyMembersPage() {
               />
 
               {/* Phone */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Telefon raqami
-                </span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={form.phone || ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+998 90 123 45 67"
-                />
-              </label>
+              <PhoneInput
+                label="Telefon raqami"
+                value={form.phone || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, phone: val }))}
+              />
 
               {/* Birth Date */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Tug'ilgan sana
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={form.birthDate || ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, birthDate: e.target.value }))}
-                />
-              </label>
+              <DateInput
+                label="Tug'ilgan sana"
+                value={form.birthDate || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, birthDate: val }))}
+                max={new Date().toISOString().slice(0, 10)}
+              />
 
               {/* Avatar URL */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Avatar URL
-                </span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={form.avatar || ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, avatar: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </label>
+              <TextInput
+                label="Avatar URL"
+                value={form.avatar || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, avatar: val }))}
+                placeholder="https://..."
+                type="url"
+                leadingIcon={<Link className="h-5 w-5" />}
+              />
 
               {/* Create Account Toggle — faqat yangi a'zo uchun */}
               {!editingMember && (

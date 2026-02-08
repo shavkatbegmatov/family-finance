@@ -22,6 +22,8 @@ import {
   TRANSACTION_TYPES,
 } from '../../config/constants';
 import { DataTable, Column } from '../../components/ui/DataTable';
+import { DateInput } from '../../components/ui/DateInput';
+import { TextArea } from '../../components/ui/TextArea';
 import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
@@ -462,36 +464,28 @@ export function TransactionsPage() {
           <div className="border-b border-base-200 p-4 surface-soft">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-4">
               {/* Date from */}
-              <div className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Boshlanish sanasi
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full lg:w-40"
-                  value={filterFrom}
-                  onChange={(e) => {
-                    setFilterFrom(e.target.value);
-                    setPage(0);
-                  }}
-                />
-              </div>
+              <DateInput
+                label="Boshlanish sanasi"
+                value={filterFrom}
+                onChange={(val) => {
+                  setFilterFrom(val);
+                  setPage(0);
+                }}
+                showTodayButton={false}
+                className="lg:w-48"
+              />
 
               {/* Date to */}
-              <div className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Tugash sanasi
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full lg:w-40"
-                  value={filterTo}
-                  onChange={(e) => {
-                    setFilterTo(e.target.value);
-                    setPage(0);
-                  }}
-                />
-              </div>
+              <DateInput
+                label="Tugash sanasi"
+                value={filterTo}
+                onChange={(val) => {
+                  setFilterTo(val);
+                  setPage(0);
+                }}
+                showTodayButton={false}
+                className="lg:w-48"
+              />
 
               {/* Account filter */}
               <Select
@@ -762,35 +756,25 @@ export function TransactionsPage() {
               />
 
               {/* Transaction date */}
-              <div className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Sana *
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={form.transactionDate}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, transactionDate: e.target.value }))
-                  }
-                />
-              </div>
+              <DateInput
+                label="Sana"
+                required
+                value={form.transactionDate}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, transactionDate: val }))
+                }
+              />
 
               {/* Description */}
-              <div className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Tavsif
-                </span>
-                <textarea
-                  className="textarea textarea-bordered w-full"
-                  rows={2}
-                  placeholder="Qo'shimcha ma'lumot..."
-                  value={form.description ?? ''}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                />
-              </div>
+              <TextArea
+                label="Tavsif"
+                value={form.description ?? ''}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, description: val }))
+                }
+                placeholder="Qo'shimcha ma'lumot..."
+                rows={2}
+              />
             </div>
 
             {/* Actions */}

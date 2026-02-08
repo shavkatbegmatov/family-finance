@@ -5,6 +5,7 @@ import { budgetsApi } from '../../api/budgets.api';
 import { categoriesApi } from '../../api/categories.api';
 import { formatCurrency, BUDGET_PERIODS, MONTHS_UZ } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
+import { DateInput } from '../../components/ui/DateInput';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
@@ -416,30 +417,22 @@ export function BudgetPage() {
               </label>
 
               {/* Start date */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Boshlanish sanasi *
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={form.startDate}
-                  onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                />
-              </label>
+              <DateInput
+                label="Boshlanish sanasi"
+                required
+                value={form.startDate}
+                onChange={(val) => setForm((prev) => ({ ...prev, startDate: val }))}
+                showTodayButton={false}
+              />
 
               {/* End date */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Tugash sanasi *
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={form.endDate}
-                  onChange={(e) => setForm((prev) => ({ ...prev, endDate: e.target.value }))}
-                />
-              </label>
+              <DateInput
+                label="Tugash sanasi"
+                required
+                value={form.endDate}
+                onChange={(val) => setForm((prev) => ({ ...prev, endDate: val }))}
+                showTodayButton={false}
+              />
             </div>
 
             {/* Modal footer */}

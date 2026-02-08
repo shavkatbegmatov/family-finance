@@ -10,6 +10,7 @@ import {
   CreditCard,
   ArrowUpCircle,
   Filter,
+  User,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { familyDebtsApi } from '../../api/family-debts.api';
@@ -21,6 +22,10 @@ import {
   FAMILY_DEBT_STATUSES,
 } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
+import { TextInput } from '../../components/ui/TextInput';
+import { PhoneInput } from '../../components/ui/PhoneInput';
+import { DateInput } from '../../components/ui/DateInput';
+import { TextArea } from '../../components/ui/TextArea';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { Select } from '../../components/ui/Select';
 import { DataTable, Column } from '../../components/ui/DataTable';
@@ -820,36 +825,25 @@ export function DebtsPage() {
               />
 
               {/* Person Name */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Shaxs ismi <span className="text-error">*</span>
-                </span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={debtForm.personName}
-                  onChange={(e) =>
-                    setDebtForm((prev) => ({ ...prev, personName: e.target.value }))
-                  }
-                  placeholder="To'liq ism"
-                />
-              </label>
+              <TextInput
+                label="Shaxs ismi"
+                required
+                value={debtForm.personName}
+                onChange={(val) =>
+                  setDebtForm((prev) => ({ ...prev, personName: val }))
+                }
+                placeholder="To'liq ism"
+                leadingIcon={<User className="h-5 w-5" />}
+              />
 
               {/* Person Phone */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Telefon raqami
-                </span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={debtForm.personPhone || ''}
-                  onChange={(e) =>
-                    setDebtForm((prev) => ({ ...prev, personPhone: e.target.value }))
-                  }
-                  placeholder="+998 90 123 45 67"
-                />
-              </label>
+              <PhoneInput
+                label="Telefon raqami"
+                value={debtForm.personPhone || ''}
+                onChange={(val) =>
+                  setDebtForm((prev) => ({ ...prev, personPhone: val }))
+                }
+              />
 
               {/* Amount */}
               <CurrencyInput
@@ -860,35 +854,25 @@ export function DebtsPage() {
               />
 
               {/* Due Date */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Muddat
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={debtForm.dueDate || ''}
-                  onChange={(e) =>
-                    setDebtForm((prev) => ({ ...prev, dueDate: e.target.value }))
-                  }
-                />
-              </label>
+              <DateInput
+                label="Muddat"
+                value={debtForm.dueDate || ''}
+                onChange={(val) =>
+                  setDebtForm((prev) => ({ ...prev, dueDate: val }))
+                }
+                min={getTashkentToday()}
+              />
 
               {/* Description */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Tavsif
-                </span>
-                <textarea
-                  className="textarea textarea-bordered w-full"
-                  rows={2}
-                  value={debtForm.description || ''}
-                  onChange={(e) =>
-                    setDebtForm((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  placeholder="Qo'shimcha ma'lumot..."
-                />
-              </label>
+              <TextArea
+                label="Tavsif"
+                value={debtForm.description || ''}
+                onChange={(val) =>
+                  setDebtForm((prev) => ({ ...prev, description: val }))
+                }
+                placeholder="Qo'shimcha ma'lumot..."
+                rows={2}
+              />
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
@@ -941,34 +925,24 @@ export function DebtsPage() {
                   showQuickButtons
                 />
 
-                <label className="form-control">
-                  <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                    To'lov sanasi <span className="text-error">*</span>
-                  </span>
-                  <input
-                    type="date"
-                    className="input input-bordered w-full"
-                    value={paymentForm.paymentDate}
-                    onChange={(e) =>
-                      setPaymentForm((prev) => ({ ...prev, paymentDate: e.target.value }))
-                    }
-                  />
-                </label>
+                <DateInput
+                  label="To'lov sanasi"
+                  required
+                  value={paymentForm.paymentDate}
+                  onChange={(val) =>
+                    setPaymentForm((prev) => ({ ...prev, paymentDate: val }))
+                  }
+                />
 
-                <label className="form-control">
-                  <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                    Izoh
-                  </span>
-                  <textarea
-                    className="textarea textarea-bordered w-full"
-                    rows={2}
-                    value={paymentForm.note || ''}
-                    onChange={(e) =>
-                      setPaymentForm((prev) => ({ ...prev, note: e.target.value }))
-                    }
-                    placeholder="Qo'shimcha ma'lumot..."
-                  />
-                </label>
+                <TextArea
+                  label="Izoh"
+                  value={paymentForm.note || ''}
+                  onChange={(val) =>
+                    setPaymentForm((prev) => ({ ...prev, note: val }))
+                  }
+                  placeholder="Qo'shimcha ma'lumot..."
+                  rows={2}
+                />
               </div>
 
               <div className="mt-6 flex justify-end gap-2">

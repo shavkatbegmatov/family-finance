@@ -4,6 +4,9 @@ import clsx from 'clsx';
 import { savingsApi } from '../../api/savings.api';
 import { formatCurrency, formatDate } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
+import { TextInput } from '../../components/ui/TextInput';
+import { DateInput } from '../../components/ui/DateInput';
+import { TextArea } from '../../components/ui/TextArea';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
@@ -571,18 +574,14 @@ export function SavingsPage() {
             {/* Form */}
             <div className="space-y-4">
               {/* Name */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Nomi *
-                </span>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  placeholder="Masalan: Yangi uy uchun"
-                  value={goalForm.name}
-                  onChange={(e) => setGoalForm((prev) => ({ ...prev, name: e.target.value }))}
-                />
-              </label>
+              <TextInput
+                label="Nomi"
+                required
+                value={goalForm.name}
+                onChange={(val) => setGoalForm((prev) => ({ ...prev, name: val }))}
+                placeholder="Masalan: Yangi uy uchun"
+                leadingIcon={<Target className="h-5 w-5" />}
+              />
 
               {/* Target amount */}
               <CurrencyInput
@@ -593,17 +592,12 @@ export function SavingsPage() {
               />
 
               {/* Deadline */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Muddat (ixtiyoriy)
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={goalForm.deadline}
-                  onChange={(e) => setGoalForm((prev) => ({ ...prev, deadline: e.target.value }))}
-                />
-              </label>
+              <DateInput
+                label="Muddat (ixtiyoriy)"
+                value={goalForm.deadline}
+                onChange={(val) => setGoalForm((prev) => ({ ...prev, deadline: val }))}
+                min={new Date().toISOString().slice(0, 10)}
+              />
 
               {/* Icon picker */}
               <label className="form-control">
@@ -697,31 +691,21 @@ export function SavingsPage() {
               />
 
               {/* Date */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Sana *
-                </span>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  value={contribForm.contributionDate}
-                  onChange={(e) => setContribForm((prev) => ({ ...prev, contributionDate: e.target.value }))}
-                />
-              </label>
+              <DateInput
+                label="Sana"
+                required
+                value={contribForm.contributionDate}
+                onChange={(val) => setContribForm((prev) => ({ ...prev, contributionDate: val }))}
+              />
 
               {/* Note */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Izoh (ixtiyoriy)
-                </span>
-                <textarea
-                  className="textarea textarea-bordered w-full"
-                  rows={2}
-                  value={contribForm.note}
-                  onChange={(e) => setContribForm((prev) => ({ ...prev, note: e.target.value }))}
-                  placeholder="Qo'shimcha ma'lumot..."
-                />
-              </label>
+              <TextArea
+                label="Izoh (ixtiyoriy)"
+                value={contribForm.note}
+                onChange={(val) => setContribForm((prev) => ({ ...prev, note: val }))}
+                placeholder="Qo'shimcha ma'lumot..."
+                rows={2}
+              />
             </div>
 
             {/* Modal footer */}
