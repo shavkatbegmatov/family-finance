@@ -25,8 +25,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   'more-horizontal': MoreHorizontal,
 };
 
-export function getCategoryIcon(name?: string | null, className = 'h-4 w-4') {
+export function getCategoryIcon(name?: string | null, color?: string | null, className = 'h-4 w-4') {
   if (!name) return null;
   const Icon = ICON_MAP[name] || HelpCircle;
-  return <Icon className={className} />;
+  return <Icon className={className} style={color ? { color } : undefined} />;
 }

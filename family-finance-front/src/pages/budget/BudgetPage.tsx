@@ -377,7 +377,7 @@ export function BudgetPage() {
                 options={categories.map((cat) => ({
                   value: cat.id,
                   label: cat.name,
-                  icon: getCategoryIcon(cat.icon),
+                  icon: getCategoryIcon(cat.icon, cat.color),
                 }))}
               />
 
