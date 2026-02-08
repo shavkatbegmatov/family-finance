@@ -206,7 +206,7 @@ export function Select({
       <div
         ref={triggerRef}
         className={clsx(
-          'relative flex items-center rounded-xl border bg-base-100 transition-all duration-200 h-12 cursor-pointer select-none',
+          'relative flex items-center rounded-xl border bg-base-200/50 transition-all duration-200 h-12 cursor-pointer select-none',
           isFocused || isOpen
             ? 'border-primary ring-2 ring-primary/20'
             : error

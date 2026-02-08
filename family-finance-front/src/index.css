@@ -107,11 +107,11 @@
   /* Base input, select, and textarea styling */
   .input,
   .select {
-    @apply h-12 rounded-xl bg-base-100 transition-all duration-200;
+    @apply h-12 rounded-xl bg-base-200/50 transition-all duration-200;
   }
 
   .textarea {
-    @apply rounded-xl bg-base-100 transition-all duration-200;
+    @apply rounded-xl bg-base-200/50 transition-all duration-200;
   }
 
   /* Focus states */
@@ -138,7 +138,7 @@
 
   /* Form control wrapper for custom components */
   .form-control-wrapper {
-    @apply relative flex items-center h-12 rounded-xl border border-base-300 bg-base-100 transition-all duration-200;
+    @apply relative flex items-center h-12 rounded-xl border border-base-300 bg-base-200/50 transition-all duration-200;
   }
 
   .form-control-wrapper:hover {
