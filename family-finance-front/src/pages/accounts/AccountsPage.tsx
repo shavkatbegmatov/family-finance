@@ -16,6 +16,7 @@ import { accountsApi } from '../../api/accounts.api';
 import type { Account, AccountRequest, AccountType, ApiResponse, PagedResponse } from '../../types';
 import { formatCurrency, ACCOUNT_TYPES } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
+import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -388,24 +389,15 @@ export function AccountsPage() {
             </div>
 
             {/* Type */}
-            <div className="form-control">
-              <label className="label py-1">
-                <span className="label-text text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Hisob turi
-                </span>
-              </label>
-              <select
-                className="select select-bordered w-full"
-                value={formType}
-                onChange={(e) => setFormType(e.target.value as AccountType)}
-              >
-                {Object.values(ACCOUNT_TYPES).map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Hisob turi"
+              value={formType}
+              onChange={(val) => setFormType(val as AccountType)}
+              options={Object.values(ACCOUNT_TYPES).map((t) => ({
+                value: t.value,
+                label: t.label,
+              }))}
+            />
 
             {/* Balance */}
             <CurrencyInput

@@ -11,6 +11,7 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { LoadingOverlay } from '../../components/common/LoadingOverlay';
 import { AuditLogExpandableRow } from '../../components/audit-logs/AuditLogExpandableRow';
 import { AuditLogMobileCard } from '../../components/audit-logs/AuditLogMobileCard';
+import { Select } from '../../components/ui/Select';
 
 export function ActivityHistoryTab() {
   const [activities, setActivities] = useState<UserActivity[]>([]);
@@ -165,36 +166,36 @@ export function ActivityHistoryTab() {
           <span className="text-sm font-medium">Filtrlar</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <select
-            className="select select-bordered w-full select-sm"
+          <Select
+            placeholder="Barcha obyektlar"
             value={entityTypeFilter}
-            onChange={(e) => {
-              setEntityTypeFilter(e.target.value);
+            onChange={(val) => {
+              setEntityTypeFilter(val as string ?? '');
               setCurrentPage(0);
             }}
-          >
-            <option value="">Barcha obyektlar</option>
-            <option value="Product">Mahsulotlar</option>
-            <option value="Sale">Sotuvlar</option>
-            <option value="Customer">Mijozlar</option>
-            <option value="PurchaseOrder">Xaridlar</option>
-            <option value="Payment">To'lovlar</option>
-            <option value="User">Foydalanuvchilar</option>
-          </select>
+            options={[
+              { value: 'Product', label: 'Mahsulotlar' },
+              { value: 'Sale', label: 'Sotuvlar' },
+              { value: 'Customer', label: 'Mijozlar' },
+              { value: 'PurchaseOrder', label: 'Xaridlar' },
+              { value: 'Payment', label: "To'lovlar" },
+              { value: 'User', label: 'Foydalanuvchilar' },
+            ]}
+          />
 
-          <select
-            className="select select-bordered w-full select-sm"
+          <Select
+            placeholder="Barcha harakatlar"
             value={actionFilter}
-            onChange={(e) => {
-              setActionFilter(e.target.value);
+            onChange={(val) => {
+              setActionFilter(val as string ?? '');
               setCurrentPage(0);
             }}
-          >
-            <option value="">Barcha harakatlar</option>
-            <option value="CREATE">Yaratildi</option>
-            <option value="UPDATE">O'zgartirildi</option>
-            <option value="DELETE">O'chirildi</option>
-          </select>
+            options={[
+              { value: 'CREATE', label: 'Yaratildi' },
+              { value: 'UPDATE', label: "O'zgartirildi" },
+              { value: 'DELETE', label: "O'chirildi" },
+            ]}
+          />
 
           {(entityTypeFilter || actionFilter) && (
             <button className="btn btn-ghost btn-sm" onClick={resetFilters}>

@@ -6,6 +6,7 @@ import { categoriesApi } from '../../api/categories.api';
 import { formatCurrency, BUDGET_PERIODS, MONTHS_UZ } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { DateInput } from '../../components/ui/DateInput';
+import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
@@ -366,25 +367,17 @@ export function BudgetPage() {
             {/* Form */}
             <div className="space-y-4">
               {/* Category select */}
-              <label className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Kategoriya *
-                </span>
-                <select
-                  className="select select-bordered w-full"
-                  value={form.categoryId || ''}
-                  onChange={(e) => setForm((prev) => ({ ...prev, categoryId: Number(e.target.value) }))}
-                >
-                  <option value="" disabled>
-                    Kategoriyani tanlang
-                  </option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.icon ? `${cat.icon} ` : ''}{cat.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select
+                label="Kategoriya"
+                required
+                placeholder="Kategoriyani tanlang"
+                value={form.categoryId || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, categoryId: Number(val) }))}
+                options={categories.map((cat) => ({
+                  value: cat.id,
+                  label: cat.icon ? `${cat.icon} ${cat.name}` : cat.name,
+                }))}
+              />
 
               {/* Amount */}
               <CurrencyInput

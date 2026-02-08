@@ -15,6 +15,7 @@ import { CATEGORY_TYPES, CATEGORY_COLORS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { Select } from '../../components/ui/Select';
 import type {
   FinanceCategory,
   FinanceCategoryRequest,
@@ -397,49 +398,40 @@ export function CategoriesPage() {
               </label>
 
               {/* Type select */}
-              <label className="form-control">
-                <span className="label-text">Turi *</span>
-                <select
-                  className="select select-bordered"
-                  value={formData.type}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      type: e.target.value as CategoryType,
-                      parentId: undefined,
-                    })
-                  }
-                  disabled={!!editingCategory}
-                >
-                  {Object.values(CATEGORY_TYPES).map((ct) => (
-                    <option key={ct.value} value={ct.value}>
-                      {ct.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select
+                label="Turi"
+                required
+                value={formData.type}
+                onChange={(val) =>
+                  setFormData({
+                    ...formData,
+                    type: val as CategoryType,
+                    parentId: undefined,
+                  })
+                }
+                options={Object.values(CATEGORY_TYPES).map((ct) => ({
+                  value: ct.value,
+                  label: ct.label,
+                }))}
+                disabled={!!editingCategory}
+              />
 
               {/* Parent category select */}
-              <label className="form-control">
-                <span className="label-text">Ota kategoriya</span>
-                <select
-                  className="select select-bordered"
-                  value={formData.parentId ?? ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      parentId: e.target.value ? Number(e.target.value) : undefined,
-                    })
-                  }
-                >
-                  <option value="">Asosiy kategoriya</option>
-                  {parentOptions.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select
+                label="Ota kategoriya"
+                value={formData.parentId ?? ''}
+                onChange={(val) =>
+                  setFormData({
+                    ...formData,
+                    parentId: val ? Number(val) : undefined,
+                  })
+                }
+                placeholder="Asosiy kategoriya"
+                options={parentOptions.map((cat) => ({
+                  value: cat.id,
+                  label: cat.name,
+                }))}
+              />
 
               {/* Icon input */}
               <label className="form-control">
