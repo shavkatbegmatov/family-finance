@@ -10,6 +10,7 @@ import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
+import { getCategoryIcon } from '../../utils/icons';
 import type { Budget, BudgetRequest, BudgetPeriod, FinanceCategory, ApiResponse, PagedResponse } from '../../types';
 
 interface BudgetFormState {
@@ -375,7 +376,8 @@ export function BudgetPage() {
                 onChange={(val) => setForm((prev) => ({ ...prev, categoryId: Number(val) }))}
                 options={categories.map((cat) => ({
                   value: cat.id,
-                  label: cat.icon ? `${cat.icon} ${cat.name}` : cat.name,
+                  label: cat.name,
+                  icon: getCategoryIcon(cat.icon),
                 }))}
               />
 

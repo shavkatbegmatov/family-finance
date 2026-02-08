@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { ChevronDown, Check } from 'lucide-react';
@@ -6,6 +6,7 @@ import { ChevronDown, Check } from 'lucide-react';
 export interface SelectOption {
   value: string | number;
   label: string;
+  icon?: ReactNode;
   disabled?: boolean;
 }
 
@@ -233,10 +234,15 @@ export function Select({
 
         {/* Selected value or placeholder */}
         <div className={clsx(
-          'flex-1 min-w-0 px-3 truncate',
+          'flex-1 min-w-0 px-3 flex items-center gap-2',
           selectedOption ? 'text-base-content font-medium' : 'text-base-content/40'
         )}>
-          {selectedOption ? selectedOption.label : placeholder}
+          {selectedOption ? (
+            <>
+              {selectedOption.icon && <span className="flex-shrink-0 text-base-content/60">{selectedOption.icon}</span>}
+              <span className="truncate">{selectedOption.label}</span>
+            </>
+          ) : <span className="truncate">{placeholder}</span>}
         </div>
 
         {/* Chevron */}
@@ -291,6 +297,7 @@ export function Select({
                 aria-selected={option.value === value}
                 aria-disabled={option.disabled}
               >
+                {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
                 <span className="flex-1 truncate">{option.label}</span>
                 {option.value === value && (
                   <Check className="h-4 w-4 flex-shrink-0" />
