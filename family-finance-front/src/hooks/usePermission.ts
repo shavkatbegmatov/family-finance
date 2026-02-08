@@ -1,24 +1,24 @@
 import { useCallback, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
 
-/**
- * Permission codes matching backend PermissionCode enum
- */
 export const PermissionCode = {
   // DASHBOARD
   DASHBOARD_VIEW: 'DASHBOARD_VIEW',
 
-  // PRODUCTS
-  PRODUCTS_VIEW: 'PRODUCTS_VIEW',
-  PRODUCTS_CREATE: 'PRODUCTS_CREATE',
-  PRODUCTS_UPDATE: 'PRODUCTS_UPDATE',
-  PRODUCTS_DELETE: 'PRODUCTS_DELETE',
+  // TRANSACTIONS
+  TRANSACTIONS_VIEW: 'TRANSACTIONS_VIEW',
+  TRANSACTIONS_CREATE: 'TRANSACTIONS_CREATE',
+  TRANSACTIONS_UPDATE: 'TRANSACTIONS_UPDATE',
+  TRANSACTIONS_DELETE: 'TRANSACTIONS_DELETE',
+  TRANSACTIONS_EXPORT: 'TRANSACTIONS_EXPORT',
 
-  // BRANDS
-  BRANDS_VIEW: 'BRANDS_VIEW',
-  BRANDS_CREATE: 'BRANDS_CREATE',
-  BRANDS_UPDATE: 'BRANDS_UPDATE',
-  BRANDS_DELETE: 'BRANDS_DELETE',
+  // ACCOUNTS
+  ACCOUNTS_VIEW: 'ACCOUNTS_VIEW',
+  ACCOUNTS_CREATE: 'ACCOUNTS_CREATE',
+  ACCOUNTS_UPDATE: 'ACCOUNTS_UPDATE',
+  ACCOUNTS_DELETE: 'ACCOUNTS_DELETE',
+  ACCOUNTS_TRANSFER: 'ACCOUNTS_TRANSFER',
+  ACCOUNTS_EXPORT: 'ACCOUNTS_EXPORT',
 
   // CATEGORIES
   CATEGORIES_VIEW: 'CATEGORIES_VIEW',
@@ -26,18 +26,20 @@ export const PermissionCode = {
   CATEGORIES_UPDATE: 'CATEGORIES_UPDATE',
   CATEGORIES_DELETE: 'CATEGORIES_DELETE',
 
-  // SALES
-  SALES_VIEW: 'SALES_VIEW',
-  SALES_CREATE: 'SALES_CREATE',
-  SALES_UPDATE: 'SALES_UPDATE',
-  SALES_DELETE: 'SALES_DELETE',
-  SALES_REFUND: 'SALES_REFUND',
+  // BUDGETS
+  BUDGETS_VIEW: 'BUDGETS_VIEW',
+  BUDGETS_CREATE: 'BUDGETS_CREATE',
+  BUDGETS_UPDATE: 'BUDGETS_UPDATE',
+  BUDGETS_DELETE: 'BUDGETS_DELETE',
+  BUDGETS_EXPORT: 'BUDGETS_EXPORT',
 
-  // CUSTOMERS
-  CUSTOMERS_VIEW: 'CUSTOMERS_VIEW',
-  CUSTOMERS_CREATE: 'CUSTOMERS_CREATE',
-  CUSTOMERS_UPDATE: 'CUSTOMERS_UPDATE',
-  CUSTOMERS_DELETE: 'CUSTOMERS_DELETE',
+  // SAVINGS
+  SAVINGS_VIEW: 'SAVINGS_VIEW',
+  SAVINGS_CREATE: 'SAVINGS_CREATE',
+  SAVINGS_UPDATE: 'SAVINGS_UPDATE',
+  SAVINGS_DELETE: 'SAVINGS_DELETE',
+  SAVINGS_CONTRIBUTE: 'SAVINGS_CONTRIBUTE',
+  SAVINGS_EXPORT: 'SAVINGS_EXPORT',
 
   // DEBTS
   DEBTS_VIEW: 'DEBTS_VIEW',
@@ -45,41 +47,18 @@ export const PermissionCode = {
   DEBTS_UPDATE: 'DEBTS_UPDATE',
   DEBTS_DELETE: 'DEBTS_DELETE',
   DEBTS_PAY: 'DEBTS_PAY',
+  DEBTS_EXPORT: 'DEBTS_EXPORT',
 
-  // WAREHOUSE
-  WAREHOUSE_VIEW: 'WAREHOUSE_VIEW',
-  WAREHOUSE_CREATE: 'WAREHOUSE_CREATE',
-  WAREHOUSE_UPDATE: 'WAREHOUSE_UPDATE',
-  WAREHOUSE_DELETE: 'WAREHOUSE_DELETE',
-  WAREHOUSE_ADJUST: 'WAREHOUSE_ADJUST',
-
-  // SUPPLIERS
-  SUPPLIERS_VIEW: 'SUPPLIERS_VIEW',
-  SUPPLIERS_CREATE: 'SUPPLIERS_CREATE',
-  SUPPLIERS_UPDATE: 'SUPPLIERS_UPDATE',
-  SUPPLIERS_DELETE: 'SUPPLIERS_DELETE',
-
-  // PURCHASES
-  PURCHASES_VIEW: 'PURCHASES_VIEW',
-  PURCHASES_CREATE: 'PURCHASES_CREATE',
-  PURCHASES_UPDATE: 'PURCHASES_UPDATE',
-  PURCHASES_DELETE: 'PURCHASES_DELETE',
-  PURCHASES_RECEIVE: 'PURCHASES_RECEIVE',
-  PURCHASES_RETURN: 'PURCHASES_RETURN',
+  // FAMILY MEMBERS
+  FAMILY_VIEW: 'FAMILY_VIEW',
+  FAMILY_CREATE: 'FAMILY_CREATE',
+  FAMILY_UPDATE: 'FAMILY_UPDATE',
+  FAMILY_DELETE: 'FAMILY_DELETE',
+  FAMILY_EXPORT: 'FAMILY_EXPORT',
 
   // REPORTS
-  REPORTS_VIEW_SALES: 'REPORTS_VIEW_SALES',
-  REPORTS_VIEW_WAREHOUSE: 'REPORTS_VIEW_WAREHOUSE',
-  REPORTS_VIEW_DEBTS: 'REPORTS_VIEW_DEBTS',
+  REPORTS_VIEW: 'REPORTS_VIEW',
   REPORTS_EXPORT: 'REPORTS_EXPORT',
-
-  // EMPLOYEES
-  EMPLOYEES_VIEW: 'EMPLOYEES_VIEW',
-  EMPLOYEES_CREATE: 'EMPLOYEES_CREATE',
-  EMPLOYEES_UPDATE: 'EMPLOYEES_UPDATE',
-  EMPLOYEES_DELETE: 'EMPLOYEES_DELETE',
-  EMPLOYEES_CHANGE_ROLE: 'EMPLOYEES_CHANGE_ROLE',
-  EMPLOYEES_MANAGE_ACCESS: 'EMPLOYEES_MANAGE_ACCESS',
 
   // USERS
   USERS_VIEW: 'USERS_VIEW',
@@ -105,15 +84,10 @@ export const PermissionCode = {
 
 export type PermissionCodeType = (typeof PermissionCode)[keyof typeof PermissionCode];
 
-/**
- * Hook for checking user permissions
- */
 export function usePermission() {
-  // ✅ Use Zustand selectors to subscribe to specific state
   const permissions = useAuthStore((state) => state.permissions);
   const roles = useAuthStore((state) => state.roles);
 
-  // ✅ Memoize functions with permissions/roles dependencies
   const hasPermission = useCallback(
     (permission: string) => permissions.has(permission),
     [permissions]
@@ -134,462 +108,95 @@ export function usePermission() {
     [roles]
   );
 
-  // ✅ Use useMemo for all convenience permission checks
-  const canViewDashboard = useMemo(
-    () => permissions.has(PermissionCode.DASHBOARD_VIEW),
-    [permissions]
-  );
+  // Dashboard
+  const canViewDashboard = useMemo(() => permissions.has(PermissionCode.DASHBOARD_VIEW), [permissions]);
 
-  // Products
-  const canViewProducts = useMemo(
-    () => permissions.has(PermissionCode.PRODUCTS_VIEW),
-    [permissions]
-  );
+  // Transactions
+  const canViewTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_VIEW), [permissions]);
+  const canCreateTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_CREATE), [permissions]);
+  const canUpdateTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_UPDATE), [permissions]);
+  const canDeleteTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_DELETE), [permissions]);
+  const canExportTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_EXPORT), [permissions]);
 
-  const canCreateProducts = useMemo(
-    () => permissions.has(PermissionCode.PRODUCTS_CREATE),
-    [permissions]
-  );
-
-  const canUpdateProducts = useMemo(
-    () => permissions.has(PermissionCode.PRODUCTS_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteProducts = useMemo(
-    () => permissions.has(PermissionCode.PRODUCTS_DELETE),
-    [permissions]
-  );
-
-  // Brands
-  const canViewBrands = useMemo(
-    () => permissions.has(PermissionCode.BRANDS_VIEW),
-    [permissions]
-  );
-
-  const canCreateBrands = useMemo(
-    () => permissions.has(PermissionCode.BRANDS_CREATE),
-    [permissions]
-  );
-
-  const canUpdateBrands = useMemo(
-    () => permissions.has(PermissionCode.BRANDS_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteBrands = useMemo(
-    () => permissions.has(PermissionCode.BRANDS_DELETE),
-    [permissions]
-  );
+  // Accounts
+  const canViewAccounts = useMemo(() => permissions.has(PermissionCode.ACCOUNTS_VIEW), [permissions]);
+  const canCreateAccounts = useMemo(() => permissions.has(PermissionCode.ACCOUNTS_CREATE), [permissions]);
+  const canUpdateAccounts = useMemo(() => permissions.has(PermissionCode.ACCOUNTS_UPDATE), [permissions]);
+  const canDeleteAccounts = useMemo(() => permissions.has(PermissionCode.ACCOUNTS_DELETE), [permissions]);
+  const canTransferAccounts = useMemo(() => permissions.has(PermissionCode.ACCOUNTS_TRANSFER), [permissions]);
 
   // Categories
-  const canViewCategories = useMemo(
-    () => permissions.has(PermissionCode.CATEGORIES_VIEW),
-    [permissions]
-  );
+  const canViewCategories = useMemo(() => permissions.has(PermissionCode.CATEGORIES_VIEW), [permissions]);
+  const canCreateCategories = useMemo(() => permissions.has(PermissionCode.CATEGORIES_CREATE), [permissions]);
+  const canUpdateCategories = useMemo(() => permissions.has(PermissionCode.CATEGORIES_UPDATE), [permissions]);
+  const canDeleteCategories = useMemo(() => permissions.has(PermissionCode.CATEGORIES_DELETE), [permissions]);
 
-  const canCreateCategories = useMemo(
-    () => permissions.has(PermissionCode.CATEGORIES_CREATE),
-    [permissions]
-  );
+  // Budgets
+  const canViewBudgets = useMemo(() => permissions.has(PermissionCode.BUDGETS_VIEW), [permissions]);
+  const canCreateBudgets = useMemo(() => permissions.has(PermissionCode.BUDGETS_CREATE), [permissions]);
+  const canUpdateBudgets = useMemo(() => permissions.has(PermissionCode.BUDGETS_UPDATE), [permissions]);
+  const canDeleteBudgets = useMemo(() => permissions.has(PermissionCode.BUDGETS_DELETE), [permissions]);
 
-  const canUpdateCategories = useMemo(
-    () => permissions.has(PermissionCode.CATEGORIES_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteCategories = useMemo(
-    () => permissions.has(PermissionCode.CATEGORIES_DELETE),
-    [permissions]
-  );
-
-  // Sales
-  const canViewSales = useMemo(
-    () => permissions.has(PermissionCode.SALES_VIEW),
-    [permissions]
-  );
-
-  const canCreateSales = useMemo(
-    () => permissions.has(PermissionCode.SALES_CREATE),
-    [permissions]
-  );
-
-  const canUpdateSales = useMemo(
-    () => permissions.has(PermissionCode.SALES_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteSales = useMemo(
-    () => permissions.has(PermissionCode.SALES_DELETE),
-    [permissions]
-  );
-
-  const canRefundSales = useMemo(
-    () => permissions.has(PermissionCode.SALES_REFUND),
-    [permissions]
-  );
-
-  // Customers
-  const canViewCustomers = useMemo(
-    () => permissions.has(PermissionCode.CUSTOMERS_VIEW),
-    [permissions]
-  );
-
-  const canCreateCustomers = useMemo(
-    () => permissions.has(PermissionCode.CUSTOMERS_CREATE),
-    [permissions]
-  );
-
-  const canUpdateCustomers = useMemo(
-    () => permissions.has(PermissionCode.CUSTOMERS_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteCustomers = useMemo(
-    () => permissions.has(PermissionCode.CUSTOMERS_DELETE),
-    [permissions]
-  );
+  // Savings
+  const canViewSavings = useMemo(() => permissions.has(PermissionCode.SAVINGS_VIEW), [permissions]);
+  const canCreateSavings = useMemo(() => permissions.has(PermissionCode.SAVINGS_CREATE), [permissions]);
+  const canUpdateSavings = useMemo(() => permissions.has(PermissionCode.SAVINGS_UPDATE), [permissions]);
+  const canDeleteSavings = useMemo(() => permissions.has(PermissionCode.SAVINGS_DELETE), [permissions]);
+  const canContributeSavings = useMemo(() => permissions.has(PermissionCode.SAVINGS_CONTRIBUTE), [permissions]);
 
   // Debts
-  const canViewDebts = useMemo(
-    () => permissions.has(PermissionCode.DEBTS_VIEW),
-    [permissions]
-  );
+  const canViewDebts = useMemo(() => permissions.has(PermissionCode.DEBTS_VIEW), [permissions]);
+  const canCreateDebts = useMemo(() => permissions.has(PermissionCode.DEBTS_CREATE), [permissions]);
+  const canUpdateDebts = useMemo(() => permissions.has(PermissionCode.DEBTS_UPDATE), [permissions]);
+  const canDeleteDebts = useMemo(() => permissions.has(PermissionCode.DEBTS_DELETE), [permissions]);
+  const canPayDebts = useMemo(() => permissions.has(PermissionCode.DEBTS_PAY), [permissions]);
 
-  const canCreateDebts = useMemo(
-    () => permissions.has(PermissionCode.DEBTS_CREATE),
-    [permissions]
-  );
-
-  const canUpdateDebts = useMemo(
-    () => permissions.has(PermissionCode.DEBTS_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteDebts = useMemo(
-    () => permissions.has(PermissionCode.DEBTS_DELETE),
-    [permissions]
-  );
-
-  const canPayDebts = useMemo(
-    () => permissions.has(PermissionCode.DEBTS_PAY),
-    [permissions]
-  );
-
-  // Warehouse
-  const canViewWarehouse = useMemo(
-    () => permissions.has(PermissionCode.WAREHOUSE_VIEW),
-    [permissions]
-  );
-
-  const canCreateWarehouse = useMemo(
-    () => permissions.has(PermissionCode.WAREHOUSE_CREATE),
-    [permissions]
-  );
-
-  const canUpdateWarehouse = useMemo(
-    () => permissions.has(PermissionCode.WAREHOUSE_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteWarehouse = useMemo(
-    () => permissions.has(PermissionCode.WAREHOUSE_DELETE),
-    [permissions]
-  );
-
-  const canAdjustWarehouse = useMemo(
-    () => permissions.has(PermissionCode.WAREHOUSE_ADJUST),
-    [permissions]
-  );
-
-  // Suppliers
-  const canViewSuppliers = useMemo(
-    () => permissions.has(PermissionCode.SUPPLIERS_VIEW),
-    [permissions]
-  );
-
-  const canCreateSuppliers = useMemo(
-    () => permissions.has(PermissionCode.SUPPLIERS_CREATE),
-    [permissions]
-  );
-
-  const canUpdateSuppliers = useMemo(
-    () => permissions.has(PermissionCode.SUPPLIERS_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteSuppliers = useMemo(
-    () => permissions.has(PermissionCode.SUPPLIERS_DELETE),
-    [permissions]
-  );
-
-  // Purchases
-  const canViewPurchases = useMemo(
-    () => permissions.has(PermissionCode.PURCHASES_VIEW),
-    [permissions]
-  );
-
-  const canCreatePurchases = useMemo(
-    () => permissions.has(PermissionCode.PURCHASES_CREATE),
-    [permissions]
-  );
-
-  const canUpdatePurchases = useMemo(
-    () => permissions.has(PermissionCode.PURCHASES_UPDATE),
-    [permissions]
-  );
-
-  const canDeletePurchases = useMemo(
-    () => permissions.has(PermissionCode.PURCHASES_DELETE),
-    [permissions]
-  );
-
-  const canReceivePurchases = useMemo(
-    () => permissions.has(PermissionCode.PURCHASES_RECEIVE),
-    [permissions]
-  );
-
-  const canReturnPurchases = useMemo(
-    () => permissions.has(PermissionCode.PURCHASES_RETURN),
-    [permissions]
-  );
+  // Family
+  const canViewFamily = useMemo(() => permissions.has(PermissionCode.FAMILY_VIEW), [permissions]);
+  const canCreateFamily = useMemo(() => permissions.has(PermissionCode.FAMILY_CREATE), [permissions]);
+  const canUpdateFamily = useMemo(() => permissions.has(PermissionCode.FAMILY_UPDATE), [permissions]);
+  const canDeleteFamily = useMemo(() => permissions.has(PermissionCode.FAMILY_DELETE), [permissions]);
 
   // Reports
-  const canViewSalesReports = useMemo(
-    () => permissions.has(PermissionCode.REPORTS_VIEW_SALES),
-    [permissions]
-  );
-
-  const canViewWarehouseReports = useMemo(
-    () => permissions.has(PermissionCode.REPORTS_VIEW_WAREHOUSE),
-    [permissions]
-  );
-
-  const canViewDebtsReports = useMemo(
-    () => permissions.has(PermissionCode.REPORTS_VIEW_DEBTS),
-    [permissions]
-  );
-
-  const canExportReports = useMemo(
-    () => permissions.has(PermissionCode.REPORTS_EXPORT),
-    [permissions]
-  );
-
-  const canViewReports = useMemo(
-    () =>
-      permissions.has(PermissionCode.REPORTS_VIEW_SALES) ||
-      permissions.has(PermissionCode.REPORTS_VIEW_WAREHOUSE) ||
-      permissions.has(PermissionCode.REPORTS_VIEW_DEBTS),
-    [permissions]
-  );
-
-  // Employees
-  const canViewEmployees = useMemo(
-    () => permissions.has(PermissionCode.EMPLOYEES_VIEW),
-    [permissions]
-  );
-
-  const canCreateEmployees = useMemo(
-    () => permissions.has(PermissionCode.EMPLOYEES_CREATE),
-    [permissions]
-  );
-
-  const canUpdateEmployees = useMemo(
-    () => permissions.has(PermissionCode.EMPLOYEES_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteEmployees = useMemo(
-    () => permissions.has(PermissionCode.EMPLOYEES_DELETE),
-    [permissions]
-  );
-
-  const canChangeEmployeeRole = useMemo(
-    () => permissions.has(PermissionCode.EMPLOYEES_CHANGE_ROLE),
-    [permissions]
-  );
-
-  const canManageEmployeeAccess = useMemo(
-    () => permissions.has(PermissionCode.EMPLOYEES_MANAGE_ACCESS),
-    [permissions]
-  );
+  const canViewReports = useMemo(() => permissions.has(PermissionCode.REPORTS_VIEW), [permissions]);
+  const canExportReports = useMemo(() => permissions.has(PermissionCode.REPORTS_EXPORT), [permissions]);
 
   // Users
-  const canViewUsers = useMemo(
-    () => permissions.has(PermissionCode.USERS_VIEW),
-    [permissions]
-  );
-
-  const canCreateUsers = useMemo(
-    () => permissions.has(PermissionCode.USERS_CREATE),
-    [permissions]
-  );
-
-  const canUpdateUsers = useMemo(
-    () => permissions.has(PermissionCode.USERS_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteUsers = useMemo(
-    () => permissions.has(PermissionCode.USERS_DELETE),
-    [permissions]
-  );
-
-  const canChangeUserRole = useMemo(
-    () => permissions.has(PermissionCode.USERS_CHANGE_ROLE),
-    [permissions]
-  );
+  const canViewUsers = useMemo(() => permissions.has(PermissionCode.USERS_VIEW), [permissions]);
+  const canCreateUsers = useMemo(() => permissions.has(PermissionCode.USERS_CREATE), [permissions]);
+  const canUpdateUsers = useMemo(() => permissions.has(PermissionCode.USERS_UPDATE), [permissions]);
+  const canDeleteUsers = useMemo(() => permissions.has(PermissionCode.USERS_DELETE), [permissions]);
+  const canChangeUserRole = useMemo(() => permissions.has(PermissionCode.USERS_CHANGE_ROLE), [permissions]);
 
   // Settings
-  const canViewSettings = useMemo(
-    () => permissions.has(PermissionCode.SETTINGS_VIEW),
-    [permissions]
-  );
-
-  const canUpdateSettings = useMemo(
-    () => permissions.has(PermissionCode.SETTINGS_UPDATE),
-    [permissions]
-  );
+  const canViewSettings = useMemo(() => permissions.has(PermissionCode.SETTINGS_VIEW), [permissions]);
+  const canUpdateSettings = useMemo(() => permissions.has(PermissionCode.SETTINGS_UPDATE), [permissions]);
 
   // Notifications
-  const canViewNotifications = useMemo(
-    () => permissions.has(PermissionCode.NOTIFICATIONS_VIEW),
-    [permissions]
-  );
-
-  const canManageNotifications = useMemo(
-    () => permissions.has(PermissionCode.NOTIFICATIONS_MANAGE),
-    [permissions]
-  );
+  const canViewNotifications = useMemo(() => permissions.has(PermissionCode.NOTIFICATIONS_VIEW), [permissions]);
+  const canManageNotifications = useMemo(() => permissions.has(PermissionCode.NOTIFICATIONS_MANAGE), [permissions]);
 
   // Roles
-  const canViewRoles = useMemo(
-    () => permissions.has(PermissionCode.ROLES_VIEW),
-    [permissions]
-  );
-
-  const canCreateRoles = useMemo(
-    () => permissions.has(PermissionCode.ROLES_CREATE),
-    [permissions]
-  );
-
-  const canUpdateRoles = useMemo(
-    () => permissions.has(PermissionCode.ROLES_UPDATE),
-    [permissions]
-  );
-
-  const canDeleteRoles = useMemo(
-    () => permissions.has(PermissionCode.ROLES_DELETE),
-    [permissions]
-  );
+  const canViewRoles = useMemo(() => permissions.has(PermissionCode.ROLES_VIEW), [permissions]);
+  const canCreateRoles = useMemo(() => permissions.has(PermissionCode.ROLES_CREATE), [permissions]);
+  const canUpdateRoles = useMemo(() => permissions.has(PermissionCode.ROLES_UPDATE), [permissions]);
+  const canDeleteRoles = useMemo(() => permissions.has(PermissionCode.ROLES_DELETE), [permissions]);
 
   return {
-    // Core permission checks
-    hasPermission,
-    hasAnyPermission,
-    hasAllPermissions,
-    hasRole,
-
-    // All permissions and roles
-    permissions,
-    roles,
-
-    // Convenience checks for common permissions
+    hasPermission, hasAnyPermission, hasAllPermissions, hasRole,
+    permissions, roles,
     canViewDashboard,
-
-    // Products
-    canViewProducts,
-    canCreateProducts,
-    canUpdateProducts,
-    canDeleteProducts,
-
-    // Brands
-    canViewBrands,
-    canCreateBrands,
-    canUpdateBrands,
-    canDeleteBrands,
-
-    // Categories
-    canViewCategories,
-    canCreateCategories,
-    canUpdateCategories,
-    canDeleteCategories,
-
-    // Sales
-    canViewSales,
-    canCreateSales,
-    canUpdateSales,
-    canDeleteSales,
-    canRefundSales,
-
-    // Customers
-    canViewCustomers,
-    canCreateCustomers,
-    canUpdateCustomers,
-    canDeleteCustomers,
-
-    // Debts
-    canViewDebts,
-    canCreateDebts,
-    canUpdateDebts,
-    canDeleteDebts,
-    canPayDebts,
-
-    // Warehouse
-    canViewWarehouse,
-    canCreateWarehouse,
-    canUpdateWarehouse,
-    canDeleteWarehouse,
-    canAdjustWarehouse,
-
-    // Suppliers
-    canViewSuppliers,
-    canCreateSuppliers,
-    canUpdateSuppliers,
-    canDeleteSuppliers,
-
-    // Purchases
-    canViewPurchases,
-    canCreatePurchases,
-    canUpdatePurchases,
-    canDeletePurchases,
-    canReceivePurchases,
-    canReturnPurchases,
-
-    // Reports
-    canViewSalesReports,
-    canViewWarehouseReports,
-    canViewDebtsReports,
-    canExportReports,
-    canViewReports,
-
-    // Employees
-    canViewEmployees,
-    canCreateEmployees,
-    canUpdateEmployees,
-    canDeleteEmployees,
-    canChangeEmployeeRole,
-    canManageEmployeeAccess,
-
-    // Users
-    canViewUsers,
-    canCreateUsers,
-    canUpdateUsers,
-    canDeleteUsers,
-    canChangeUserRole,
-
-    // Settings
-    canViewSettings,
-    canUpdateSettings,
-
-    // Notifications
-    canViewNotifications,
-    canManageNotifications,
-
-    // Roles
-    canViewRoles,
-    canCreateRoles,
-    canUpdateRoles,
-    canDeleteRoles,
+    canViewTransactions, canCreateTransactions, canUpdateTransactions, canDeleteTransactions, canExportTransactions,
+    canViewAccounts, canCreateAccounts, canUpdateAccounts, canDeleteAccounts, canTransferAccounts,
+    canViewCategories, canCreateCategories, canUpdateCategories, canDeleteCategories,
+    canViewBudgets, canCreateBudgets, canUpdateBudgets, canDeleteBudgets,
+    canViewSavings, canCreateSavings, canUpdateSavings, canDeleteSavings, canContributeSavings,
+    canViewDebts, canCreateDebts, canUpdateDebts, canDeleteDebts, canPayDebts,
+    canViewFamily, canCreateFamily, canUpdateFamily, canDeleteFamily,
+    canViewReports, canExportReports,
+    canViewUsers, canCreateUsers, canUpdateUsers, canDeleteUsers, canChangeUserRole,
+    canViewSettings, canUpdateSettings,
+    canViewNotifications, canManageNotifications,
+    canViewRoles, canCreateRoles, canUpdateRoles, canDeleteRoles,
   };
 }

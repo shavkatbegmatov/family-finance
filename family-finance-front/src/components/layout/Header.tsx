@@ -13,9 +13,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-  Package,
-  CreditCard,
-  Users,
+  ArrowLeftRight,
+  PieChart,
+  HandMetal,
 } from 'lucide-react';
 import { useMatches, useNavigate, Link } from 'react-router-dom';
 import clsx from 'clsx';
@@ -34,12 +34,12 @@ const getNotificationIcon = (type: Notification['type']) => {
       return <AlertTriangle className="h-4 w-4 text-warning" />;
     case 'success':
       return <CheckCircle className="h-4 w-4 text-success" />;
-    case 'order':
-      return <Package className="h-4 w-4 text-primary" />;
-    case 'payment':
-      return <CreditCard className="h-4 w-4 text-success" />;
-    case 'customer':
-      return <Users className="h-4 w-4 text-info" />;
+    case 'transaction':
+      return <ArrowLeftRight className="h-4 w-4 text-primary" />;
+    case 'budget':
+      return <PieChart className="h-4 w-4 text-info" />;
+    case 'debt':
+      return <HandMetal className="h-4 w-4 text-error" />;
     case 'info':
     default:
       return <Info className="h-4 w-4 text-info" />;
@@ -51,11 +51,12 @@ const getNotificationBorderColor = (type: Notification['type']) => {
     case 'warning':
       return 'border-warning';
     case 'success':
-    case 'payment':
       return 'border-success';
-    case 'order':
+    case 'transaction':
       return 'border-primary';
-    case 'customer':
+    case 'debt':
+      return 'border-error';
+    case 'budget':
     case 'info':
     default:
       return 'border-info';

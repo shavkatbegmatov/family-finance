@@ -1,0 +1,18 @@
+package uz.familyfinance.api.dto.request;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.Data;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Data
+public class SavingsGoalRequest {
+    @NotBlank private String name;
+    @NotNull @Positive private BigDecimal targetAmount;
+    private LocalDate deadline;
+    private Long accountId;
+    private String icon;
+    private String color;
+}

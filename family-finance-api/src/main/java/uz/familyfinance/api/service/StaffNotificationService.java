@@ -167,68 +167,43 @@ public class StaffNotificationService {
 
     // ===== Yordamchi metodlar (boshqa service'lardan chaqirish uchun) =====
 
-    /**
-     * Yangi buyurtma bildirishnomasi
-     */
-    public void notifyNewOrder(String invoiceNumber, String customerName, Long saleId) {
+    public void notifyBudgetWarning(String categoryName, double percentage, Long budgetId) {
         createGlobalNotification(
-                "Yangi buyurtma",
-                String.format("%s buyurtmasi yaratildi. Mijoz: %s", invoiceNumber, customerName),
-                StaffNotificationType.ORDER,
-                "SALE",
-                saleId
+                "Byudjet ogohlantirishi",
+                String.format("%s kategoriyasi byudjeti %.0f%% sarflandi", categoryName, percentage),
+                StaffNotificationType.BUDGET_WARNING,
+                "BUDGET",
+                budgetId
         );
     }
 
-    /**
-     * To'lov bildirishnomasi
-     */
-    public void notifyPaymentReceived(String customerName, String amount, Long debtId) {
+    public void notifyBudgetExceeded(String categoryName, double percentage, Long budgetId) {
         createGlobalNotification(
-                "To'lov qabul qilindi",
-                String.format("Mijoz %s %s so'm to'ladi", customerName, amount),
-                StaffNotificationType.PAYMENT,
-                "DEBT",
-                debtId
+                "Byudjet oshib ketdi!",
+                String.format("%s kategoriyasi byudjeti %.0f%% sarflandi!", categoryName, percentage),
+                StaffNotificationType.BUDGET_EXCEEDED,
+                "BUDGET",
+                budgetId
         );
     }
 
-    /**
-     * Kam zaxira ogohlantirishi
-     */
-    public void notifyLowStock(String productName, int quantity, Long productId) {
-        createGlobalNotification(
-                "Kam zaxira ogohlantirishi",
-                String.format("%s - Zaxirada faqat %d ta qoldi", productName, quantity),
-                StaffNotificationType.WARNING,
-                "PRODUCT",
-                productId
-        );
-    }
-
-    /**
-     * Yangi mijoz bildirishnomasi
-     */
-    public void notifyNewCustomer(String customerName, String phone, Long customerId) {
-        createGlobalNotification(
-                "Yangi mijoz",
-                String.format("%s ro'yxatdan o'tdi. Telefon: %s", customerName, phone),
-                StaffNotificationType.CUSTOMER,
-                "CUSTOMER",
-                customerId
-        );
-    }
-
-    /**
-     * Qarz eslatmasi
-     */
-    public void notifyDebtReminder(String customerName, String amount, int daysLeft, Long debtId) {
+    public void notifyDebtReminder(String personName, String amount, int daysLeft, Long debtId) {
         createGlobalNotification(
                 "Qarz eslatmasi",
-                String.format("%s ning qarzi %s so'm. Muddat: %d kun qoldi", customerName, amount, daysLeft),
-                StaffNotificationType.WARNING,
+                String.format("%s ning qarzi %s so'm. Muddat: %d kun qoldi", personName, amount, daysLeft),
+                StaffNotificationType.DEBT_REMINDER,
                 "DEBT",
                 debtId
+        );
+    }
+
+    public void notifySavingsMilestone(String goalName, Long goalId) {
+        createGlobalNotification(
+                "Jamg'arma maqsadi bajarildi!",
+                String.format("\"%s\" maqsadi to'liq bajarildi!", goalName),
+                StaffNotificationType.SAVINGS_MILESTONE,
+                "SAVINGS_GOAL",
+                goalId
         );
     }
 }

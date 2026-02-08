@@ -4,35 +4,34 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search,
   X,
-  Package,
-  Users,
-  CreditCard,
   LayoutDashboard,
-  ShoppingCart,
-  Warehouse,
+  ArrowLeftRight,
+  Wallet,
+  Tags,
+  PieChart,
+  Target,
+  HandMetal,
+  Users,
   BarChart3,
+  Bell,
   Settings,
+  Shield,
+  FileText,
   Clock,
   ArrowRight,
   Loader2,
-  Wallet,
-  Truck,
-  UserCog,
-  Shield,
+  UserCircle,
   type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { productsApi } from '../../api/products.api';
-import { customersApi } from '../../api/customers.api';
-import { salesApi } from '../../api/sales.api';
-import { debtsApi } from '../../api/debts.api';
-import { purchasesApi } from '../../api/purchases.api';
-import { suppliersApi } from '../../api/suppliers.api';
-import { employeesApi } from '../../api/employees.api';
+import { transactionsApi } from '../../api/transactions.api';
+import { accountsApi } from '../../api/accounts.api';
+import { familyMembersApi } from '../../api/family-members.api';
+import { familyDebtsApi } from '../../api/family-debts.api';
 import { formatCurrency } from '../../config/constants';
-import type { Product, Customer, Sale, Debt, PurchaseOrder, Supplier, Employee } from '../../types';
+import type { Transaction, Account, FamilyMember, FamilyDebt } from '../../types';
 
-type ResultType = 'product' | 'customer' | 'sale' | 'debt' | 'purchase' | 'supplier' | 'employee' | 'page';
+type ResultType = 'transaction' | 'account' | 'member' | 'debt' | 'page';
 
 interface SearchResult {
   id: string;
@@ -43,55 +42,51 @@ interface SearchResult {
   meta?: string;
 }
 
-// Icon mapping by type
 const ICON_MAP: Record<ResultType, LucideIcon> = {
-  product: Package,
-  customer: Users,
-  sale: CreditCard,
-  debt: Wallet,
-  purchase: Truck,
-  supplier: Truck,
-  employee: UserCog,
+  transaction: ArrowLeftRight,
+  account: Wallet,
+  member: Users,
+  debt: HandMetal,
   page: LayoutDashboard,
 };
 
-// Page-specific icons
 const PAGE_ICONS: Record<string, LucideIcon> = {
   'page-dashboard': LayoutDashboard,
-  'page-pos': ShoppingCart,
-  'page-products': Package,
-  'page-customers': Users,
-  'page-sales': CreditCard,
-  'page-debts': Wallet,
-  'page-purchases': Truck,
-  'page-suppliers': Truck,
-  'page-warehouse': Warehouse,
-  'page-employees': UserCog,
-  'page-roles': Shield,
+  'page-transactions': ArrowLeftRight,
+  'page-accounts': Wallet,
+  'page-categories': Tags,
+  'page-budget': PieChart,
+  'page-savings': Target,
+  'page-debts': HandMetal,
+  'page-family': Users,
   'page-reports': BarChart3,
+  'page-notifications': Bell,
+  'page-roles': Shield,
+  'page-audit-logs': FileText,
   'page-settings': Settings,
+  'page-profile': UserCircle,
 };
 
 const QUICK_ACTIONS: SearchResult[] = [
-  { id: 'page-dashboard', type: 'page', title: 'Dashboard', href: '/' },
-  { id: 'page-pos', type: 'page', title: 'Kassa (POS)', subtitle: 'Yangi sotuv qilish', href: '/pos' },
-  { id: 'page-products', type: 'page', title: 'Mahsulotlar', href: '/products' },
-  { id: 'page-customers', type: 'page', title: 'Mijozlar', href: '/customers' },
-  { id: 'page-sales', type: 'page', title: 'Sotuvlar', href: '/sales' },
+  { id: 'page-dashboard', type: 'page', title: 'Bosh sahifa', href: '/' },
+  { id: 'page-transactions', type: 'page', title: 'Tranzaksiyalar', subtitle: 'Daromad va xarajatlar', href: '/transactions' },
+  { id: 'page-accounts', type: 'page', title: 'Hisoblar', subtitle: 'Hisob raqamlar', href: '/accounts' },
+  { id: 'page-categories', type: 'page', title: 'Kategoriyalar', subtitle: 'Daromad/Xarajat kategoriyalari', href: '/categories' },
+  { id: 'page-budget', type: 'page', title: 'Byudjet', subtitle: 'Oylik byudjet rejasi', href: '/budget' },
+  { id: 'page-savings', type: 'page', title: "Jamg'armalar", subtitle: "Tejash maqsadlari", href: '/savings' },
   { id: 'page-debts', type: 'page', title: 'Qarzlar', subtitle: 'Qarzdorlik nazorati', href: '/debts' },
-  { id: 'page-purchases', type: 'page', title: 'Xaridlar', subtitle: 'Kirim hujjatlari', href: '/purchases' },
-  { id: 'page-suppliers', type: 'page', title: "Ta'minotchilar", href: '/suppliers' },
-  { id: 'page-warehouse', type: 'page', title: 'Ombor', subtitle: 'Zaxira nazorati', href: '/warehouse' },
-  { id: 'page-employees', type: 'page', title: 'Xodimlar', href: '/employees' },
+  { id: 'page-family', type: 'page', title: "Oila a'zolari", subtitle: "Oila a'zolarini boshqarish", href: '/family' },
+  { id: 'page-reports', type: 'page', title: 'Hisobotlar', subtitle: 'Moliyaviy hisobotlar', href: '/reports' },
+  { id: 'page-notifications', type: 'page', title: 'Bildirishnomalar', href: '/notifications' },
   { id: 'page-roles', type: 'page', title: 'Rollar', subtitle: 'Ruxsatlar boshqaruvi', href: '/roles' },
-  { id: 'page-reports', type: 'page', title: 'Hisobotlar', href: '/reports' },
+  { id: 'page-audit-logs', type: 'page', title: 'Audit loglar', href: '/audit-logs' },
   { id: 'page-settings', type: 'page', title: 'Sozlamalar', href: '/settings' },
+  { id: 'page-profile', type: 'page', title: 'Profil', href: '/profile' },
 ];
 
 const RECENT_SEARCHES_KEY = 'search_recent';
 const MAX_RECENT = 5;
 
-// Get icon for a result
 function getResultIcon(result: SearchResult): LucideIcon {
   if (result.type === 'page' && PAGE_ICONS[result.id]) {
     return PAGE_ICONS[result.id];
@@ -99,17 +94,18 @@ function getResultIcon(result: SearchResult): LucideIcon {
   return ICON_MAP[result.type] || LayoutDashboard;
 }
 
-// Get icon color classes
 function getIconColorClass(type: ResultType, isSelected: boolean): string {
   if (isSelected) return 'bg-primary-content/20';
 
   switch (type) {
-    case 'product':
+    case 'transaction':
       return 'bg-info/10 text-info';
-    case 'customer':
+    case 'account':
       return 'bg-success/10 text-success';
-    case 'sale':
+    case 'debt':
       return 'bg-warning/10 text-warning';
+    case 'member':
+      return 'bg-secondary/10 text-secondary';
     default:
       return 'bg-base-200 text-base-content/70';
   }
@@ -129,7 +125,6 @@ export function SearchCommand() {
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  // Load recent searches from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(RECENT_SEARCHES_KEY);
     if (saved) {
@@ -141,7 +136,6 @@ export function SearchCommand() {
     }
   }, []);
 
-  // Save recent search
   const saveRecentSearch = useCallback((result: SearchResult) => {
     setRecentSearches((prev) => {
       const filtered = prev.filter((r) => r.id !== result.id);
@@ -151,7 +145,6 @@ export function SearchCommand() {
     });
   }, []);
 
-  // Calculate dropdown position
   const updatePosition = useCallback(() => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
@@ -163,7 +156,6 @@ export function SearchCommand() {
     }
   }, []);
 
-  // Global keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -179,7 +171,6 @@ export function SearchCommand() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [open]);
 
-  // Focus input and update position when opened
   useEffect(() => {
     if (open) {
       updatePosition();
@@ -190,7 +181,6 @@ export function SearchCommand() {
     }
   }, [open, updatePosition]);
 
-  // Update position on resize
   useEffect(() => {
     if (open) {
       window.addEventListener('resize', updatePosition);
@@ -198,7 +188,6 @@ export function SearchCommand() {
     }
   }, [open, updatePosition]);
 
-  // Search function
   const performSearch = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
@@ -207,14 +196,11 @@ export function SearchCommand() {
 
     setLoading(true);
     try {
-      const [productsRes, customersRes, salesRes, debtsRes, purchasesRes, suppliersRes, employeesRes] = await Promise.all([
-        productsApi.getAll({ search: searchQuery, size: 5 }),
-        customersApi.getAll({ search: searchQuery, size: 5 }),
-        salesApi.getAll({ page: 0, size: 5 }),
-        debtsApi.getAll({ page: 0, size: 5 }),
-        purchasesApi.getAll({ page: 0, size: 5 }),
-        suppliersApi.getAll({ search: searchQuery, size: 5 }),
-        employeesApi.getAll({ search: searchQuery, size: 5 }),
+      const [transactionsRes, accountsRes, membersRes, debtsRes] = await Promise.all([
+        transactionsApi.getAll(0, 5),
+        accountsApi.getAll(0, 5),
+        familyMembersApi.getAll(0, 5),
+        familyDebtsApi.getAll(0, 5),
       ]);
 
       const searchResults: SearchResult[] = [];
@@ -227,99 +213,71 @@ export function SearchCommand() {
       );
       searchResults.push(...matchedPages);
 
-      // Products
-      productsRes.content.forEach((product: Product) => {
-        searchResults.push({
-          id: `product-${product.id}`,
-          type: 'product',
-          title: product.name,
-          subtitle: product.sku,
-          href: `/products?highlight=${product.id}`,
-          meta: formatCurrency(product.sellingPrice),
-        });
-      });
-
-      // Customers
-      customersRes.content.forEach((customer: Customer) => {
-        searchResults.push({
-          id: `customer-${customer.id}`,
-          type: 'customer',
-          title: customer.fullName,
-          subtitle: customer.phone,
-          href: `/customers?highlight=${customer.id}`,
-          meta: customer.balance < 0 ? `Qarz: ${formatCurrency(Math.abs(customer.balance))}` : undefined,
-        });
-      });
-
-      // Sales (filter by invoice number)
-      salesRes.content
-        .filter((sale: Sale) => sale.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()))
-        .forEach((sale: Sale) => {
+      // Transactions
+      (transactionsRes.data as any).data.content
+        .filter((t: Transaction) =>
+          t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          t.accountName?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .forEach((t: Transaction) => {
           searchResults.push({
-            id: `sale-${sale.id}`,
-            type: 'sale',
-            title: sale.invoiceNumber,
-            subtitle: sale.customerName || "Noma'lum mijoz",
-            href: `/sales?highlight=${sale.id}`,
-            meta: formatCurrency(sale.totalAmount),
+            id: `transaction-${t.id}`,
+            type: 'transaction',
+            title: t.description || t.categoryName || t.type,
+            subtitle: `${t.accountName} • ${t.transactionDate}`,
+            href: `/transactions?highlight=${t.id}`,
+            meta: formatCurrency(t.amount),
           });
         });
 
-      // Debts (filter by customer name or phone)
-      debtsRes.content
-        .filter((debt: Debt) =>
-          debt.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          debt.customerPhone.includes(searchQuery)
+      // Accounts
+      (accountsRes.data as any).data.content
+        .filter((a: Account) =>
+          a.name.toLowerCase().includes(searchQuery.toLowerCase())
         )
-        .forEach((debt: Debt) => {
+        .forEach((a: Account) => {
           searchResults.push({
-            id: `debt-${debt.id}`,
+            id: `account-${a.id}`,
+            type: 'account',
+            title: a.name,
+            subtitle: a.type,
+            href: `/accounts?highlight=${a.id}`,
+            meta: formatCurrency(a.balance),
+          });
+        });
+
+      // Family members
+      (membersRes.data as any).data.content
+        .filter((m: FamilyMember) =>
+          m.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .forEach((m: FamilyMember) => {
+          searchResults.push({
+            id: `member-${m.id}`,
+            type: 'member',
+            title: m.fullName,
+            subtitle: m.role,
+            href: `/family?highlight=${m.id}`,
+          });
+        });
+
+      // Debts
+      (debtsRes.data as any).data.content
+        .filter((d: FamilyDebt) =>
+          d.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          d.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .forEach((d: FamilyDebt) => {
+          searchResults.push({
+            id: `debt-${d.id}`,
             type: 'debt',
-            title: debt.customerName,
-            subtitle: debt.invoiceNumber || debt.customerPhone,
-            href: `/debts?highlight=${debt.id}`,
-            meta: `Qarz: ${formatCurrency(debt.remainingAmount)}`,
+            title: d.personName,
+            subtitle: d.type === 'GIVEN' ? 'Berilgan qarz' : 'Olingan qarz',
+            href: `/debts?highlight=${d.id}`,
+            meta: formatCurrency(d.remainingAmount),
           });
         });
-
-      // Purchases (filter by order number or supplier)
-      purchasesRes.content
-        .filter((purchase: PurchaseOrder) =>
-          purchase.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          purchase.supplierName?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .forEach((purchase: PurchaseOrder) => {
-          searchResults.push({
-            id: `purchase-${purchase.id}`,
-            type: 'purchase',
-            title: purchase.orderNumber || `Xarid #${purchase.id}`,
-            subtitle: purchase.supplierName || "Noma'lum ta'minotchi",
-            href: `/purchases?highlight=${purchase.id}`,
-            meta: formatCurrency(purchase.totalAmount),
-          });
-        });
-
-      // Suppliers
-      suppliersRes.content.forEach((supplier: Supplier) => {
-        searchResults.push({
-          id: `supplier-${supplier.id}`,
-          type: 'supplier',
-          title: supplier.name,
-          subtitle: supplier.phone || supplier.contactPerson,
-          href: `/suppliers?highlight=${supplier.id}`,
-        });
-      });
-
-      // Employees
-      employeesRes.content.forEach((employee: Employee) => {
-        searchResults.push({
-          id: `employee-${employee.id}`,
-          type: 'employee',
-          title: employee.fullName,
-          subtitle: employee.phone || employee.position,
-          href: `/employees?highlight=${employee.id}`,
-        });
-      });
 
       setResults(searchResults);
       setSelectedIndex(0);
@@ -330,7 +288,6 @@ export function SearchCommand() {
     }
   }, []);
 
-  // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
       performSearch(query);
@@ -339,7 +296,6 @@ export function SearchCommand() {
     return () => clearTimeout(timer);
   }, [query, performSearch]);
 
-  // Handle selection
   const handleSelect = useCallback(
     (result: SearchResult) => {
       saveRecentSearch(result);
@@ -349,7 +305,6 @@ export function SearchCommand() {
     [navigate, saveRecentSearch]
   );
 
-  // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const recentIdsSet = new Set(recentSearches.map((r) => r.id));
     const filteredActions = QUICK_ACTIONS.filter((action) => !recentIdsSet.has(action.id));
@@ -367,13 +322,11 @@ export function SearchCommand() {
     }
   };
 
-  // Scroll selected item into view
   useEffect(() => {
     const selectedEl = listRef.current?.querySelector(`[data-index="${selectedIndex}"]`);
     selectedEl?.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex]);
 
-  // Filter out QUICK_ACTIONS that are already in recentSearches to avoid duplicate keys
   const recentIds = new Set(recentSearches.map((r) => r.id));
   const filteredQuickActions = QUICK_ACTIONS.filter((action) => !recentIds.has(action.id));
   const displayItems = query ? results : [...recentSearches, ...filteredQuickActions];
@@ -441,7 +394,7 @@ export function SearchCommand() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Mahsulot, mijoz yoki sahifa qidiring..."
+                  placeholder="Sahifa, hisob yoki tranzaksiya qidiring..."
                   className="flex-1 bg-transparent py-3 text-base outline-none placeholder:text-base-content/40"
                 />
                 <button

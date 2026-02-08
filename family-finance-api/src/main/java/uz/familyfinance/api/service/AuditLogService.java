@@ -21,7 +21,6 @@ import uz.familyfinance.api.entity.AuditLog;
 import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.AuditLogRepository;
-import uz.familyfinance.api.repository.EmployeeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
 import java.math.BigDecimal;
@@ -39,7 +38,6 @@ public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
-    private final EmployeeRepository employeeRepository;
     private final ObjectMapper objectMapper;
     private final FieldLabelService fieldLabelService;
 
@@ -529,32 +527,19 @@ public class AuditLogService {
                 .map(AuditLog::getAction)
                 .collect(Collectors.toSet());
 
-        // Check for payment + debt combination (debt payment)
-        if (entityTypes.contains("Payment") && entityTypes.contains("Debt")) {
+        // Check for debt payment combination
+        if (entityTypes.contains("DebtPayment") && entityTypes.contains("Debt")) {
             return "Qarz to'lash";
         }
 
-        // Check for sale creation
-        if (entityTypes.contains("Sale") && actions.contains("CREATE")) {
-            if (entityTypes.contains("Payment") || entityTypes.contains("Debt")) {
-                return "Sotuv yaratish";
-            }
-            return "Sotuv yaratish";
+        // Check for transaction + account combination (transfer)
+        if (entityTypes.contains("Transaction") && entityTypes.contains("Account")) {
+            return "Tranzaksiya amalga oshirish";
         }
 
-        // Check for purchase order creation
-        if (entityTypes.contains("PurchaseOrder") && actions.contains("CREATE")) {
-            return "Xarid yaratish";
-        }
-
-        // Check for purchase payment
-        if (entityTypes.contains("PurchasePayment")) {
-            return "Xarid to'lovi";
-        }
-
-        // Check for stock movement
-        if (entityTypes.contains("StockMovement")) {
-            return "Ombor harakati";
+        // Check for savings contribution
+        if (entityTypes.contains("SavingsContribution") && entityTypes.contains("SavingsGoal")) {
+            return "Jamg'armaga pul qo'shish";
         }
 
         // Single entity type operations
@@ -563,28 +548,46 @@ public class AuditLogService {
             String action = logs.get(0).getAction();
 
             return switch (entityType) {
-                case "Product" -> switch (action) {
-                    case "CREATE" -> "Mahsulot qo'shish";
-                    case "UPDATE" -> "Mahsulot tahrirlash";
-                    case "DELETE" -> "Mahsulot o'chirish";
+                case "Transaction" -> switch (action) {
+                    case "CREATE" -> "Tranzaksiya yaratish";
+                    case "UPDATE" -> "Tranzaksiya tahrirlash";
+                    case "DELETE" -> "Tranzaksiya o'chirish";
                     default -> entityType + " " + action;
                 };
-                case "Customer" -> switch (action) {
-                    case "CREATE" -> "Mijoz qo'shish";
-                    case "UPDATE" -> "Mijoz tahrirlash";
-                    case "DELETE" -> "Mijoz o'chirish";
+                case "Account" -> switch (action) {
+                    case "CREATE" -> "Hisob qo'shish";
+                    case "UPDATE" -> "Hisob tahrirlash";
+                    case "DELETE" -> "Hisob o'chirish";
                     default -> entityType + " " + action;
                 };
-                case "Employee" -> switch (action) {
-                    case "CREATE" -> "Xodim qo'shish";
-                    case "UPDATE" -> "Xodim tahrirlash";
-                    case "DELETE" -> "Xodim o'chirish";
+                case "Category" -> switch (action) {
+                    case "CREATE" -> "Kategoriya qo'shish";
+                    case "UPDATE" -> "Kategoriya tahrirlash";
+                    case "DELETE" -> "Kategoriya o'chirish";
                     default -> entityType + " " + action;
                 };
-                case "Supplier" -> switch (action) {
-                    case "CREATE" -> "Ta'minotchi qo'shish";
-                    case "UPDATE" -> "Ta'minotchi tahrirlash";
-                    case "DELETE" -> "Ta'minotchi o'chirish";
+                case "Budget" -> switch (action) {
+                    case "CREATE" -> "Byudjet yaratish";
+                    case "UPDATE" -> "Byudjet tahrirlash";
+                    case "DELETE" -> "Byudjet o'chirish";
+                    default -> entityType + " " + action;
+                };
+                case "SavingsGoal" -> switch (action) {
+                    case "CREATE" -> "Jamg'arma yaratish";
+                    case "UPDATE" -> "Jamg'arma tahrirlash";
+                    case "DELETE" -> "Jamg'arma o'chirish";
+                    default -> entityType + " " + action;
+                };
+                case "Debt" -> switch (action) {
+                    case "CREATE" -> "Qarz yaratish";
+                    case "UPDATE" -> "Qarz tahrirlash";
+                    case "DELETE" -> "Qarz o'chirish";
+                    default -> entityType + " " + action;
+                };
+                case "FamilyMember" -> switch (action) {
+                    case "CREATE" -> "Oila a'zosi qo'shish";
+                    case "UPDATE" -> "Oila a'zosi tahrirlash";
+                    case "DELETE" -> "Oila a'zosi o'chirish";
                     default -> entityType + " " + action;
                 };
                 case "User" -> switch (action) {
@@ -597,18 +600,6 @@ public class AuditLogService {
                     case "CREATE" -> "Rol yaratish";
                     case "UPDATE" -> "Rol tahrirlash";
                     case "DELETE" -> "Rol o'chirish";
-                    default -> entityType + " " + action;
-                };
-                case "Brand" -> switch (action) {
-                    case "CREATE" -> "Brend qo'shish";
-                    case "UPDATE" -> "Brend tahrirlash";
-                    case "DELETE" -> "Brend o'chirish";
-                    default -> entityType + " " + action;
-                };
-                case "Category" -> switch (action) {
-                    case "CREATE" -> "Kategoriya qo'shish";
-                    case "UPDATE" -> "Kategoriya tahrirlash";
-                    case "DELETE" -> "Kategoriya o'chirish";
                     default -> entityType + " " + action;
                 };
                 default -> getEntityTypeLabel(entityType) + " " + getActionLabel(action);
@@ -640,21 +631,17 @@ public class AuditLogService {
      */
     private String getEntityTypeLabel(String entityType) {
         return switch (entityType) {
-            case "Product" -> "Mahsulot";
-            case "Sale" -> "Sotuv";
-            case "Customer" -> "Mijoz";
-            case "Payment" -> "To'lov";
+            case "Transaction" -> "Tranzaksiya";
+            case "Account" -> "Hisob";
+            case "Category" -> "Kategoriya";
+            case "Budget" -> "Byudjet";
+            case "SavingsGoal" -> "Jamg'arma";
+            case "SavingsContribution" -> "Jamg'arma to'lovi";
             case "Debt" -> "Qarz";
-            case "PurchaseOrder" -> "Xarid";
-            case "PurchasePayment" -> "Xarid to'lovi";
-            case "PurchaseReturn" -> "Xarid qaytarish";
-            case "Supplier" -> "Ta'minotchi";
-            case "Employee" -> "Xodim";
+            case "DebtPayment" -> "Qarz to'lovi";
+            case "FamilyMember" -> "Oila a'zosi";
             case "User" -> "Foydalanuvchi";
             case "Role" -> "Rol";
-            case "Brand" -> "Brend";
-            case "Category" -> "Kategoriya";
-            case "StockMovement" -> "Ombor harakati";
             default -> entityType;
         };
     }
@@ -1175,14 +1162,13 @@ public class AuditLogService {
         }
 
         return switch (entityType) {
-            case "Product" -> "/products/" + entityId;
-            case "Customer" -> "/customers/" + entityId;
-            case "Employee" -> "/employees/" + entityId;
-            case "Supplier" -> "/suppliers/" + entityId;
-            case "Sale" -> "/sales/" + entityId;
-            case "PurchaseOrder" -> "/purchases/" + entityId;
-            case "Brand" -> "/settings#brands";
-            case "Category" -> "/settings#categories";
+            case "Transaction" -> "/transactions";
+            case "Account" -> "/accounts";
+            case "Category" -> "/categories";
+            case "Budget" -> "/budget";
+            case "SavingsGoal" -> "/savings";
+            case "Debt" -> "/debts";
+            case "FamilyMember" -> "/family";
             default -> null;
         };
     }
@@ -1195,9 +1181,8 @@ public class AuditLogService {
             return null;
         }
 
-        return employeeRepository.findByUserId(userId)
-            .map(employee -> "/employees/" + employee.getId())
-            .orElse(null);
+        // Family finance tizimida operator profil sahifasiga yo'naltiriladi
+        return "/profile";
     }
 
     /**

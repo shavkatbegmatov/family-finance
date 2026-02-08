@@ -32,4 +32,8 @@ public class PagedResponse<T> {
                 .first(page.isFirst())
                 .build();
     }
+
+    public static <T> PagedResponse<T> of(Page<T> page) {
+        return from(page);
+    }
 }

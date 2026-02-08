@@ -25,7 +25,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService staffUserDetailsService;
-    private final CustomerUserDetailsService customerUserDetailsService;
     private final SessionService sessionService;
 
     @Override
@@ -45,9 +44,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = getJwtFromRequest(request);
 
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                // Check if session is still active in database (only for staff tokens)
-                boolean isCustomerToken = tokenProvider.isCustomerToken(jwt);
-                if (!isCustomerToken && !sessionService.isSessionValid(jwt)) {
+                // Check if session is still active in database
+                if (!sessionService.isSessionValid(jwt)) {
                     log.warn("JWT is valid but session has been revoked");
                     filterChain.doFilter(request, response);
                     return;
@@ -55,14 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String username = tokenProvider.getUsernameFromToken(jwt);
 
-                UserDetails userDetails;
-                if (isCustomerToken) {
-                    // Mijoz tokeni - phone orqali yuklash
-                    userDetails = customerUserDetailsService.loadUserByUsername(username);
-                } else {
-                    // Staff tokeni - username orqali yuklash
-                    userDetails = staffUserDetailsService.loadUserByUsername(username);
-                }
+                UserDetails userDetails = staffUserDetailsService.loadUserByUsername(username);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
@@ -77,13 +68,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                // Update last activity for staff sessions
-                if (!isCustomerToken) {
-                    try {
-                        sessionService.updateLastActivity(jwt);
-                    } catch (Exception e) {
-                        log.warn("Failed to update session activity", e);
-                    }
+                // Update last activity for sessions
+                try {
+                    sessionService.updateLastActivity(jwt);
+                } catch (Exception e) {
+                    log.warn("Failed to update session activity", e);
                 }
             }
         } catch (Exception ex) {

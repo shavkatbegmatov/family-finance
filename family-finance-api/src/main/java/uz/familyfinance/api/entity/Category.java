@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.audit.AuditEntityListener;
 import uz.familyfinance.api.entity.base.BaseEntity;
+import uz.familyfinance.api.enums.CategoryType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,24 +28,31 @@ public class Category extends BaseEntity implements Auditable {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 500)
-    private String description;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CategoryType type;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Category parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Category> children = new ArrayList<>();
 
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean active = true;
+    @Column(length = 50)
+    private String icon;
 
-    // ============================================
-    // Auditable Interface Implementation
-    // ============================================
+    @Column(length = 20)
+    private String color;
+
+    @Column(name = "is_system", nullable = false)
+    @Builder.Default
+    private Boolean isSystem = false;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     @Override
     public String getEntityName() {
@@ -57,22 +65,19 @@ public class Category extends BaseEntity implements Auditable {
         Map<String, Object> map = new HashMap<>();
         map.put("id", getId());
         map.put("name", this.name);
-        map.put("description", this.description);
-        map.put("active", this.active);
-
-        // Avoid lazy loading
+        map.put("type", this.type);
+        map.put("icon", this.icon);
+        map.put("color", this.color);
+        map.put("isSystem", this.isSystem);
+        map.put("isActive", this.isActive);
         if (this.parent != null) {
             map.put("parentId", this.parent.getId());
         }
-        if (this.children != null) {
-            map.put("childrenCount", this.children.size());
-        }
-
         return map;
     }
 
     @Override
     public Set<String> getSensitiveFields() {
-        return Set.of(); // No sensitive fields
+        return Set.of();
     }
 }

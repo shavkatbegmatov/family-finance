@@ -1,2 +1,59 @@
-/family-finance-api/nul
-/.idea
+# =============================================
+# IDE
+# =============================================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# =============================================
+# OS
+# =============================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+nul
+extglob.*
+
+# =============================================
+# Backend - Java / Spring Boot / Maven
+# =============================================
+family-finance-api/target/
+family-finance-api/.mvn/wrapper/maven-wrapper.jar
+*.jar
+*.war
+*.class
+*.log
+
+# Application config (secrets)
+family-finance-api/src/main/resources/application-local.yml
+family-finance-api/src/main/resources/application-local.properties
+
+# =============================================
+# Frontend - Node / React / Vite
+# =============================================
+family-finance-front/node_modules/
+family-finance-front/dist/
+family-finance-front/tsconfig.tsbuildinfo
+family-finance-front/.env
+family-finance-front/.env.local
+family-finance-front/.env.*.local
+
+# =============================================
+# Claude Code
+# =============================================
+.claude/
+
+# =============================================
+# Misc
+# =============================================
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.orig

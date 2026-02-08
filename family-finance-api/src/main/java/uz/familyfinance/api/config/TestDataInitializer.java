@@ -4,60 +4,78 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uz.familyfinance.api.entity.Customer;
-import uz.familyfinance.api.enums.CustomerType;
-import uz.familyfinance.api.repository.CustomerRepository;
+import uz.familyfinance.api.entity.Account;
+import uz.familyfinance.api.entity.FamilyMember;
+import uz.familyfinance.api.enums.AccountType;
+import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.repository.AccountRepository;
+import uz.familyfinance.api.repository.FamilyMemberRepository;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
-/**
- * Test muhiti uchun test mijozni yaratadi yoki yangilaydi.
- * Faqat "dev" profilida ishlaydi.
- */
 @Component
 @Profile("dev")
 @RequiredArgsConstructor
 @Slf4j
 public class TestDataInitializer implements CommandLineRunner {
 
-    private final CustomerRepository customerRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    private static final String TEST_PHONE = "+998901234567";
-    private static final String TEST_PIN = "1234";
+    private final FamilyMemberRepository familyMemberRepository;
+    private final AccountRepository accountRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
-        setupTestCustomer();
+        if (familyMemberRepository.count() == 0) {
+            setupTestData();
+        }
     }
 
-    private void setupTestCustomer() {
-        Customer customer = customerRepository.findByPhone(TEST_PHONE)
-                .orElseGet(() -> {
-                    log.info("Creating test customer with phone: {}", TEST_PHONE);
-                    return Customer.builder()
-                            .fullName("Test Mijoz")
-                            .phone(TEST_PHONE)
-                            .customerType(CustomerType.INDIVIDUAL)
-                            .balance(BigDecimal.valueOf(100000))
-                            .active(true)
-                            .build();
-                });
+    private void setupTestData() {
+        log.info("Creating test family members and accounts...");
 
-        // Portal kirishini yoqish va PIN o'rnatish
-        customer.setPortalEnabled(true);
-        customer.setPinHash(passwordEncoder.encode(TEST_PIN));
-        customer.setPinSetAt(LocalDateTime.now());
-        customer.setPinAttempts(0);
-        customer.setPinLockedUntil(null);
-        customer.setPreferredLanguage("uz");
+        familyMemberRepository.save(FamilyMember.builder()
+                .fullName("Otabek (Ota)")
+                .role(FamilyRole.FATHER)
+                .phone("+998901234567")
+                .build());
 
-        customerRepository.save(customer);
-        log.info("Test customer portal enabled - Phone: {}, PIN: {}", TEST_PHONE, TEST_PIN);
+        familyMemberRepository.save(FamilyMember.builder()
+                .fullName("Nilufar (Ona)")
+                .role(FamilyRole.MOTHER)
+                .phone("+998901234568")
+                .build());
+
+        familyMemberRepository.save(FamilyMember.builder()
+                .fullName("Jasur (Farzand)")
+                .role(FamilyRole.CHILD)
+                .build());
+
+        accountRepository.save(Account.builder()
+                .name("Asosiy hamyon")
+                .type(AccountType.CASH)
+                .balance(BigDecimal.valueOf(500000))
+                .color("#22c55e")
+                .icon("Wallet")
+                .build());
+
+        accountRepository.save(Account.builder()
+                .name("Humo karta")
+                .type(AccountType.BANK_CARD)
+                .balance(BigDecimal.valueOf(2500000))
+                .color("#3b82f6")
+                .icon("CreditCard")
+                .build());
+
+        accountRepository.save(Account.builder()
+                .name("Jamg'arma")
+                .type(AccountType.SAVINGS)
+                .balance(BigDecimal.valueOf(10000000))
+                .color("#f59e0b")
+                .icon("PiggyBank")
+                .build());
+
+        log.info("Test data created successfully");
     }
 }

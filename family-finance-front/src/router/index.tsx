@@ -12,39 +12,20 @@ import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 
 // Lazy-loaded main app pages
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const ProductsPage = lazy(() => import('../pages/products/ProductsPage').then(m => ({ default: m.ProductsPage })));
-const ProductDetailPage = lazy(() => import('../pages/products/ProductDetailPage').then(m => ({ default: m.ProductDetailPage })));
-const CustomersPage = lazy(() => import('../pages/customers/CustomersPage').then(m => ({ default: m.CustomersPage })));
-const CustomerDetailPage = lazy(() => import('../pages/customers/CustomerDetailPage').then(m => ({ default: m.CustomerDetailPage })));
-const POSPage = lazy(() => import('../pages/sales/POSPage').then(m => ({ default: m.POSPage })));
-const SalesPage = lazy(() => import('../pages/sales/SalesPage').then(m => ({ default: m.SalesPage })));
-const SaleDetailPage = lazy(() => import('../pages/sales/SaleDetailPage').then(m => ({ default: m.SaleDetailPage })));
+const TransactionsPage = lazy(() => import('../pages/transactions/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
+const AccountsPage = lazy(() => import('../pages/accounts/AccountsPage').then(m => ({ default: m.AccountsPage })));
+const CategoriesPage = lazy(() => import('../pages/categories/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
+const BudgetPage = lazy(() => import('../pages/budget/BudgetPage').then(m => ({ default: m.BudgetPage })));
+const SavingsPage = lazy(() => import('../pages/savings/SavingsPage').then(m => ({ default: m.SavingsPage })));
 const DebtsPage = lazy(() => import('../pages/debts/DebtsPage').then(m => ({ default: m.DebtsPage })));
-const WarehousePage = lazy(() => import('../pages/warehouse/WarehousePage').then(m => ({ default: m.WarehousePage })));
-const SuppliersPage = lazy(() => import('../pages/suppliers/SuppliersPage').then(m => ({ default: m.SuppliersPage })));
-const SupplierDetailPage = lazy(() => import('../pages/suppliers/SupplierDetailPage').then(m => ({ default: m.SupplierDetailPage })));
-const PurchasesPage = lazy(() => import('../pages/purchases/PurchasesPage').then(m => ({ default: m.PurchasesPage })));
-const PurchaseDetailPage = lazy(() => import('../pages/purchases/PurchaseDetailPage').then(m => ({ default: m.PurchaseDetailPage })));
+const FamilyMembersPage = lazy(() => import('../pages/family/FamilyMembersPage').then(m => ({ default: m.FamilyMembersPage })));
+const ReportsPage = lazy(() => import('../pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const SettingsPage = lazy(() => import('../pages/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const NotificationsPage = lazy(() => import('../pages/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
-const ReportsPage = lazy(() => import('../pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })));
-const EmployeesPage = lazy(() => import('../pages/employees/EmployeesPage').then(m => ({ default: m.EmployeesPage })));
-const EmployeeDetailPage = lazy(() => import('../pages/employees/EmployeeDetailPage').then(m => ({ default: m.EmployeeDetailPage })));
 const RolesPage = lazy(() => import('../pages/roles/RolesPage').then(m => ({ default: m.RolesPage })));
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const AuditLogsPage = lazy(() => import('../pages/audit-logs/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
 
-// Lazy-loaded portal pages
-const PortalLayout = lazy(() => import('../portal/components/layout/PortalLayout'));
-const PortalLoginPage = lazy(() => import('../portal/pages/LoginPage'));
-const PortalDashboardPage = lazy(() => import('../portal/pages/DashboardPage'));
-const PortalPurchasesPage = lazy(() => import('../portal/pages/PurchasesPage'));
-const PortalPurchaseDetailPage = lazy(() => import('../portal/pages/PurchaseDetailPage'));
-const PortalDebtsPage = lazy(() => import('../portal/pages/DebtsPage'));
-const PortalProfilePage = lazy(() => import('../portal/pages/ProfilePage'));
-const PortalNotificationsPage = lazy(() => import('../portal/pages/NotificationsPage'));
-
-// Helper component for lazy routes with Suspense
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
@@ -73,169 +54,79 @@ export const router = createBrowserRouter([
         index: true,
         element: (
           <ProtectedRoute permission={PermissionCode.DASHBOARD_VIEW}>
-            <LazyRoute>
-              <DashboardPage />
-            </LazyRoute>
+            <LazyRoute><DashboardPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Dashboard' },
+        handle: { title: 'Bosh sahifa' },
       },
       {
-        path: 'products',
+        path: 'transactions',
         element: (
-          <ProtectedRoute permission={PermissionCode.PRODUCTS_VIEW}>
-            <LazyRoute>
-              <ProductsPage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.TRANSACTIONS_VIEW}>
+            <LazyRoute><TransactionsPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Mahsulotlar' },
+        handle: { title: 'Tranzaksiyalar' },
       },
       {
-        path: 'products/:id',
+        path: 'accounts',
         element: (
-          <ProtectedRoute permission={PermissionCode.PRODUCTS_VIEW}>
-            <LazyRoute>
-              <ProductDetailPage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.ACCOUNTS_VIEW}>
+            <LazyRoute><AccountsPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Mahsulot tafsiloti' },
+        handle: { title: 'Hisoblar' },
       },
       {
-        path: 'pos',
+        path: 'categories',
         element: (
-          <ProtectedRoute permission={PermissionCode.SALES_CREATE}>
-            <LazyRoute>
-              <POSPage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.CATEGORIES_VIEW}>
+            <LazyRoute><CategoriesPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Kassa (POS)' },
+        handle: { title: 'Kategoriyalar' },
       },
       {
-        path: 'sales',
+        path: 'budget',
         element: (
-          <ProtectedRoute permission={PermissionCode.SALES_VIEW}>
-            <LazyRoute>
-              <SalesPage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.BUDGETS_VIEW}>
+            <LazyRoute><BudgetPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Sotuvlar' },
+        handle: { title: 'Byudjet' },
       },
       {
-        path: 'sales/:id',
+        path: 'savings',
         element: (
-          <ProtectedRoute permission={PermissionCode.SALES_VIEW}>
-            <LazyRoute>
-              <SaleDetailPage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.SAVINGS_VIEW}>
+            <LazyRoute><SavingsPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Sotuv tafsiloti' },
-      },
-      {
-        path: 'customers',
-        element: (
-          <ProtectedRoute permission={PermissionCode.CUSTOMERS_VIEW}>
-            <LazyRoute>
-              <CustomersPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: 'Mijozlar' },
-      },
-      {
-        path: 'customers/:id',
-        element: (
-          <ProtectedRoute permission={PermissionCode.CUSTOMERS_VIEW}>
-            <LazyRoute>
-              <CustomerDetailPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: 'Mijoz tafsiloti' },
+        handle: { title: "Jamg'armalar" },
       },
       {
         path: 'debts',
         element: (
           <ProtectedRoute permission={PermissionCode.DEBTS_VIEW}>
-            <LazyRoute>
-              <DebtsPage />
-            </LazyRoute>
+            <LazyRoute><DebtsPage /></LazyRoute>
           </ProtectedRoute>
         ),
         handle: { title: 'Qarzlar' },
       },
       {
-        path: 'warehouse',
+        path: 'family',
         element: (
-          <ProtectedRoute permission={PermissionCode.WAREHOUSE_VIEW}>
-            <LazyRoute>
-              <WarehousePage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.FAMILY_VIEW}>
+            <LazyRoute><FamilyMembersPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Ombor' },
-      },
-      {
-        path: 'suppliers',
-        element: (
-          <ProtectedRoute permission={PermissionCode.SUPPLIERS_VIEW}>
-            <LazyRoute>
-              <SuppliersPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: "Ta'minotchilar" },
-      },
-      {
-        path: 'suppliers/:id',
-        element: (
-          <ProtectedRoute permission={PermissionCode.SUPPLIERS_VIEW}>
-            <LazyRoute>
-              <SupplierDetailPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: "Ta'minotchi tafsiloti" },
-      },
-      {
-        path: 'purchases',
-        element: (
-          <ProtectedRoute permission={PermissionCode.PURCHASES_VIEW}>
-            <LazyRoute>
-              <PurchasesPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: 'Xaridlar' },
-      },
-      {
-        path: 'purchases/:id',
-        element: (
-          <ProtectedRoute permission={PermissionCode.PURCHASES_VIEW}>
-            <LazyRoute>
-              <PurchaseDetailPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: 'Xarid tafsiloti' },
+        handle: { title: "Oila a'zolari" },
       },
       {
         path: 'reports',
         element: (
-          <ProtectedRoute
-            permission={[
-              PermissionCode.REPORTS_VIEW_SALES,
-              PermissionCode.REPORTS_VIEW_WAREHOUSE,
-              PermissionCode.REPORTS_VIEW_DEBTS,
-            ]}
-          >
-            <LazyRoute>
-              <ReportsPage />
-            </LazyRoute>
+          <ProtectedRoute permission={PermissionCode.REPORTS_VIEW}>
+            <LazyRoute><ReportsPage /></LazyRoute>
           </ProtectedRoute>
         ),
         handle: { title: 'Hisobotlar' },
@@ -244,42 +135,16 @@ export const router = createBrowserRouter([
         path: 'settings',
         element: (
           <ProtectedRoute permission={PermissionCode.SETTINGS_VIEW}>
-            <LazyRoute>
-              <SettingsPage />
-            </LazyRoute>
+            <LazyRoute><SettingsPage /></LazyRoute>
           </ProtectedRoute>
         ),
         handle: { title: 'Sozlamalar' },
       },
       {
-        path: 'employees',
-        element: (
-          <ProtectedRoute permission={PermissionCode.EMPLOYEES_VIEW}>
-            <LazyRoute>
-              <EmployeesPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: 'Xodimlar' },
-      },
-      {
-        path: 'employees/:id',
-        element: (
-          <ProtectedRoute permission={PermissionCode.EMPLOYEES_VIEW}>
-            <LazyRoute>
-              <EmployeeDetailPage />
-            </LazyRoute>
-          </ProtectedRoute>
-        ),
-        handle: { title: 'Xodim tafsiloti' },
-      },
-      {
         path: 'roles',
         element: (
           <ProtectedRoute permission={PermissionCode.ROLES_VIEW}>
-            <LazyRoute>
-              <RolesPage />
-            </LazyRoute>
+            <LazyRoute><RolesPage /></LazyRoute>
           </ProtectedRoute>
         ),
         handle: { title: 'Rollar' },
@@ -288,9 +153,7 @@ export const router = createBrowserRouter([
         path: 'notifications',
         element: (
           <ProtectedRoute permission={PermissionCode.NOTIFICATIONS_VIEW}>
-            <LazyRoute>
-              <NotificationsPage />
-            </LazyRoute>
+            <LazyRoute><NotificationsPage /></LazyRoute>
           </ProtectedRoute>
         ),
         handle: { title: 'Bildirishnomalar' },
@@ -299,94 +162,15 @@ export const router = createBrowserRouter([
         path: 'audit-logs',
         element: (
           <ProtectedRoute permission={PermissionCode.SETTINGS_VIEW}>
-            <LazyRoute>
-              <AuditLogsPage />
-            </LazyRoute>
+            <LazyRoute><AuditLogsPage /></LazyRoute>
           </ProtectedRoute>
         ),
         handle: { title: 'Audit Loglar' },
       },
       {
         path: 'profile',
-        // Profile page - no permission required, all authenticated users can access
         element: (
-          <LazyRoute>
-            <ProfilePage />
-          </LazyRoute>
-        ),
-        handle: { title: 'Profil' },
-      },
-    ],
-  },
-  // Customer Portal Routes
-  {
-    path: '/kabinet/kirish',
-    element: (
-      <LazyRoute>
-        <PortalLoginPage />
-      </LazyRoute>
-    ),
-    handle: { title: 'Mijoz Portali - Kirish' },
-  },
-  {
-    path: '/kabinet',
-    element: (
-      <LazyRoute>
-        <PortalLayout />
-      </LazyRoute>
-    ),
-    children: [
-      {
-        index: true,
-        element: (
-          <LazyRoute>
-            <PortalDashboardPage />
-          </LazyRoute>
-        ),
-        handle: { title: 'Bosh sahifa' },
-      },
-      {
-        path: 'xaridlar',
-        element: (
-          <LazyRoute>
-            <PortalPurchasesPage />
-          </LazyRoute>
-        ),
-        handle: { title: 'Xaridlar' },
-      },
-      {
-        path: 'xaridlar/:id',
-        element: (
-          <LazyRoute>
-            <PortalPurchaseDetailPage />
-          </LazyRoute>
-        ),
-        handle: { title: 'Xarid tafsilotlari' },
-      },
-      {
-        path: 'qarzlar',
-        element: (
-          <LazyRoute>
-            <PortalDebtsPage />
-          </LazyRoute>
-        ),
-        handle: { title: 'Qarzlar' },
-      },
-      {
-        path: 'bildirishnomalar',
-        element: (
-          <LazyRoute>
-            <PortalNotificationsPage />
-          </LazyRoute>
-        ),
-        handle: { title: 'Bildirishnomalar' },
-      },
-      {
-        path: 'profil',
-        element: (
-          <LazyRoute>
-            <PortalProfilePage />
-          </LazyRoute>
+          <LazyRoute><ProfilePage /></LazyRoute>
         ),
         handle: { title: 'Profil' },
       },

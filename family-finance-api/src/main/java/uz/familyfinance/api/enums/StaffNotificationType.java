@@ -1,14 +1,13 @@
 package uz.familyfinance.api.enums;
 
-/**
- * Xodimlar bildirishnomasi turlari
- */
 public enum StaffNotificationType {
-    ORDER,              // Yangi buyurtma
-    PAYMENT,            // To'lov qabul qilindi
-    WARNING,            // Ogohlantirish (kam zaxira, qarz muddati)
-    CUSTOMER,           // Yangi mijoz
-    INFO,               // Ma'lumot (mahsulot qo'shildi, ta'minotchi)
-    SUCCESS,            // Muvaffaqiyat (sotuv yakunlandi)
-    PERMISSION_UPDATE   // Foydalanuvchi huquqlari yangilandi
+    TRANSACTION,
+    BUDGET_WARNING,
+    BUDGET_EXCEEDED,
+    DEBT_REMINDER,
+    SAVINGS_MILESTONE,
+    WARNING,
+    INFO,
+    SUCCESS,
+    PERMISSION_UPDATE
 }

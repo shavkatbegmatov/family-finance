@@ -45,14 +45,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/v1/auth/**").permitAll()
-                        .requestMatchers("/v1/customer-auth/**").permitAll()
+                        // .requestMatchers("/v1/customer-auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         // WebSocket endpoint (JWT token interceptor'da tekshiriladi)
                         .requestMatchers("/v1/ws/**").permitAll()
-
-                        // Customer Portal - faqat CUSTOMER roli uchun (saqlanadi)
-                        .requestMatchers("/v1/portal/**").hasRole("CUSTOMER")
 
                         // All other requests require authentication
                         // Permissions checked at method level via @RequiresPermission

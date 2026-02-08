@@ -1,190 +1,166 @@
 package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.DebtPaymentRequest;
+import uz.familyfinance.api.dto.request.DebtRequest;
+import uz.familyfinance.api.dto.response.DebtPaymentResponse;
 import uz.familyfinance.api.dto.response.DebtResponse;
-import uz.familyfinance.api.dto.response.PaymentResponse;
-import uz.familyfinance.api.entity.Customer;
 import uz.familyfinance.api.entity.Debt;
-import uz.familyfinance.api.entity.Payment;
-import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.entity.DebtPayment;
 import uz.familyfinance.api.enums.DebtStatus;
-import uz.familyfinance.api.enums.PaymentType;
+import uz.familyfinance.api.enums.DebtType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
-import uz.familyfinance.api.repository.CustomerRepository;
+import uz.familyfinance.api.repository.DebtPaymentRepository;
 import uz.familyfinance.api.repository.DebtRepository;
-import uz.familyfinance.api.repository.PaymentRepository;
-import uz.familyfinance.api.repository.UserRepository;
-import uz.familyfinance.api.security.CustomUserDetails;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DebtService {
 
     private final DebtRepository debtRepository;
-    private final PaymentRepository paymentRepository;
-    private final CustomerRepository customerRepository;
-    private final UserRepository userRepository;
-    private final StaffNotificationService staffNotificationService;
-    private final NotificationService customerNotificationService;
+    private final DebtPaymentRepository debtPaymentRepository;
 
-    public Page<DebtResponse> getAllDebts(DebtStatus status, Pageable pageable) {
-        Page<Debt> debts;
-        if (status != null) {
-            debts = debtRepository.findByStatus(status, pageable);
-        } else {
-            debts = debtRepository.findAll(pageable);
-        }
-        return debts.map(DebtResponse::from);
+    @Transactional(readOnly = true)
+    public Page<DebtResponse> getAll(DebtType type, DebtStatus status, String search, Pageable pageable) {
+        return debtRepository.findWithFilters(type, status, search, pageable).map(this::toResponse);
     }
 
-    public List<DebtResponse> getActiveDebts() {
-        return debtRepository.findActiveDebts().stream()
-                .map(DebtResponse::from)
-                .collect(Collectors.toList());
-    }
-
-    public List<DebtResponse> getOverdueDebts() {
-        return debtRepository.findOverdueDebts(LocalDate.now()).stream()
-                .map(DebtResponse::from)
-                .collect(Collectors.toList());
-    }
-
-    public DebtResponse getDebtById(Long id) {
-        Debt debt = debtRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Qarz", "id", id));
-        return DebtResponse.from(debt);
-    }
-
-    public List<DebtResponse> getCustomerDebts(Long customerId) {
-        return debtRepository.findByCustomerId(customerId).stream()
-                .map(DebtResponse::from)
-                .collect(Collectors.toList());
-    }
-
-    public List<PaymentResponse> getDebtPayments(Long debtId) {
-        Debt debt = debtRepository.findById(debtId)
-                .orElseThrow(() -> new ResourceNotFoundException("Qarz", "id", debtId));
-
-        return paymentRepository.findByCustomerIdAndPaymentType(
-                        debt.getCustomer().getId(), PaymentType.DEBT_PAYMENT).stream()
-                .map(PaymentResponse::from)
-                .collect(Collectors.toList());
-    }
-
-    public Page<PaymentResponse> getCustomerPayments(Long customerId, Pageable pageable) {
-        return paymentRepository.findByCustomerId(customerId, pageable)
-                .map(PaymentResponse::from);
+    @Transactional(readOnly = true)
+    public DebtResponse getById(Long id) {
+        return toResponse(findById(id));
     }
 
     @Transactional
-    public DebtResponse makePayment(Long debtId, DebtPaymentRequest request) {
-        Debt debt = debtRepository.findById(debtId)
-                .orElseThrow(() -> new ResourceNotFoundException("Qarz", "id", debtId));
-
-        if (debt.getStatus() == DebtStatus.PAID) {
-            throw new BadRequestException("Bu qarz allaqachon to'langan");
-        }
-
-        BigDecimal paymentAmount = request.getAmount();
-        BigDecimal remainingAmount = debt.getRemainingAmount();
-
-        if (paymentAmount.compareTo(remainingAmount) > 0) {
-            throw new BadRequestException(
-                    String.format("To'lov summasi qarz qoldig'idan (%s) ko'p bo'lishi mumkin emas",
-                            remainingAmount.toString()));
-        }
-
-        User currentUser = getCurrentUser();
-        Customer customer = debt.getCustomer();
-
-        // Create payment record
-        Payment payment = Payment.builder()
-                .sale(debt.getSale())
-                .customer(customer)
-                .amount(paymentAmount)
-                .method(request.getMethod())
-                .paymentType(PaymentType.DEBT_PAYMENT)
-                .referenceNumber(request.getReferenceNumber())
-                .notes(request.getNotes())
-                .paymentDate(LocalDateTime.now())
-                .receivedBy(currentUser)
+    public DebtResponse create(DebtRequest request) {
+        Debt debt = Debt.builder()
+                .type(request.getType())
+                .personName(request.getPersonName())
+                .personPhone(request.getPersonPhone())
+                .amount(request.getAmount())
+                .remainingAmount(request.getAmount())
+                .dueDate(request.getDueDate())
+                .description(request.getDescription())
+                .status(DebtStatus.ACTIVE)
                 .build();
-        paymentRepository.save(payment);
-
-        // Update debt
-        BigDecimal newRemainingAmount = remainingAmount.subtract(paymentAmount);
-        debt.setRemainingAmount(newRemainingAmount);
-
-        if (newRemainingAmount.compareTo(BigDecimal.ZERO) == 0) {
-            debt.setStatus(DebtStatus.PAID);
-        }
-
-        // Update customer balance
-        customer.setBalance(customer.getBalance().add(paymentAmount));
-        customerRepository.save(customer);
-
-        // Send notification about payment received
-        String formattedAmount = String.format("%,.0f", paymentAmount);
-
-        // Notify staff about payment
-        staffNotificationService.notifyPaymentReceived(customer.getFullName(), formattedAmount, debtId);
-
-        // Notify customer about payment
-        String amountInfo = formattedAmount + " so'm";
-        customerNotificationService.sendPaymentReceived(
-                customer.getId(),
-                amountInfo,
-                "{\"debtId\":" + debtId + ",\"amount\":" + paymentAmount + "}"
-        );
-
-        // Update sale paid amount if linked
-        if (debt.getSale() != null) {
-            var sale = debt.getSale();
-            sale.setPaidAmount(sale.getPaidAmount().add(paymentAmount));
-            sale.setDebtAmount(sale.getDebtAmount().subtract(paymentAmount));
-            if (sale.getDebtAmount().compareTo(BigDecimal.ZERO) <= 0) {
-                sale.setPaymentStatus(uz.familyfinance.api.enums.PaymentStatus.PAID);
-            }
-        }
-
-        return DebtResponse.from(debtRepository.save(debt));
+        return toResponse(debtRepository.save(debt));
     }
 
     @Transactional
-    public DebtResponse makeFullPayment(Long debtId, DebtPaymentRequest request) {
-        Debt debt = debtRepository.findById(debtId)
-                .orElseThrow(() -> new ResourceNotFoundException("Qarz", "id", debtId));
-
-        // Set amount to remaining amount for full payment
-        request.setAmount(debt.getRemainingAmount());
-        return makePayment(debtId, request);
+    public DebtResponse update(Long id, DebtRequest request) {
+        Debt debt = findById(id);
+        debt.setType(request.getType());
+        debt.setPersonName(request.getPersonName());
+        debt.setPersonPhone(request.getPersonPhone());
+        debt.setDueDate(request.getDueDate());
+        debt.setDescription(request.getDescription());
+        return toResponse(debtRepository.save(debt));
     }
 
-    public BigDecimal getTotalActiveDebt() {
-        return debtRepository.getTotalActiveDebt();
+    @Transactional
+    public void delete(Long id) {
+        if (!debtRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Qarz topilmadi: " + id);
+        }
+        debtRepository.deleteById(id);
     }
 
-    public BigDecimal getCustomerTotalDebt(Long customerId) {
-        return debtRepository.getCustomerTotalDebt(customerId);
+    @Transactional
+    public DebtPaymentResponse addPayment(Long debtId, DebtPaymentRequest request) {
+        Debt debt = findById(debtId);
+
+        if (request.getAmount().compareTo(debt.getRemainingAmount()) > 0) {
+            throw new BadRequestException("To'lov summasi qoldiq summadan oshmasligi kerak");
+        }
+
+        DebtPayment payment = DebtPayment.builder()
+                .debt(debt)
+                .amount(request.getAmount())
+                .paymentDate(request.getPaymentDate())
+                .note(request.getNote())
+                .build();
+        debtPaymentRepository.save(payment);
+
+        debt.setRemainingAmount(debt.getRemainingAmount().subtract(request.getAmount()));
+        if (debt.getRemainingAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            debt.setStatus(DebtStatus.PAID);
+        } else {
+            debt.setStatus(DebtStatus.PARTIALLY_PAID);
+        }
+        debtRepository.save(debt);
+
+        return toPaymentResponse(payment);
     }
 
-    private User getCurrentUser() {
-        CustomUserDetails userDetails = (CustomUserDetails) SecurityContextHolder
-                .getContext().getAuthentication().getPrincipal();
-        return userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi", "id", userDetails.getId()));
+    @Transactional(readOnly = true)
+    public List<DebtPaymentResponse> getPayments(Long debtId) {
+        return debtPaymentRepository.findByDebtIdOrderByPaymentDateDesc(debtId).stream()
+                .map(this::toPaymentResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalGiven() {
+        return debtRepository.sumRemainingByType(DebtType.GIVEN);
+    }
+
+    @Transactional(readOnly = true)
+    public BigDecimal getTotalTaken() {
+        return debtRepository.sumRemainingByType(DebtType.TAKEN);
+    }
+
+    private Debt findById(Long id) {
+        return debtRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Qarz topilmadi: " + id));
+    }
+
+    private DebtResponse toResponse(Debt d) {
+        DebtResponse r = new DebtResponse();
+        r.setId(d.getId());
+        r.setType(d.getType());
+        r.setPersonName(d.getPersonName());
+        r.setPersonPhone(d.getPersonPhone());
+        r.setAmount(d.getAmount());
+        r.setRemainingAmount(d.getRemainingAmount());
+        r.setPaidAmount(d.getAmount().subtract(d.getRemainingAmount()));
+        r.setDueDate(d.getDueDate());
+        r.setStatus(d.getStatus());
+        r.setDescription(d.getDescription());
+        r.setCreatedAt(d.getCreatedAt());
+        r.setIsOverdue(d.getDueDate() != null && d.getDueDate().isBefore(LocalDate.now())
+                && d.getStatus() != DebtStatus.PAID);
+        if (d.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+            r.setPaidPercentage(d.getAmount().subtract(d.getRemainingAmount())
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(d.getAmount(), 2, RoundingMode.HALF_UP).doubleValue());
+        } else {
+            r.setPaidPercentage(0.0);
+        }
+        return r;
+    }
+
+    private DebtPaymentResponse toPaymentResponse(DebtPayment p) {
+        DebtPaymentResponse r = new DebtPaymentResponse();
+        r.setId(p.getId());
+        r.setAmount(p.getAmount());
+        r.setPaymentDate(p.getPaymentDate());
+        r.setNote(p.getNote());
+        r.setCreatedAt(p.getCreatedAt());
+        if (p.getDebt() != null) {
+            r.setDebtId(p.getDebt().getId());
+            r.setDebtPersonName(p.getDebt().getPersonName());
+        }
+        return r;
     }
 }

@@ -1,19 +1,13 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useState, useCallback } from 'react';
 import {
-  ShoppingCart,
-  Package,
-  Users,
-  TrendingUp,
-  DollarSign,
-  CreditCard,
   Wallet,
-  BarChart3,
-  PieChart,
-  Clock,
-  Calendar,
-  ArrowUpRight,
-  ArrowDownRight,
+  TrendingUp,
+  TrendingDown,
+  PiggyBank,
+  Target,
+  HandMetal,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
@@ -25,16 +19,14 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Cell,
   PieChart as RechartsPie,
   Pie,
+  Cell,
   Legend,
 } from 'recharts';
-import { dashboardApi } from '../../api/dashboard.api';
-import { formatCurrency, formatNumber } from '../../config/constants';
-import type { DashboardStats, ChartData } from '../../types';
+import { familyDashboardApi } from '../../api/family-dashboard.api';
+import { formatCurrency, MONTHS_UZ } from '../../config/constants';
+import type { FamilyDashboardStats, FamilyChartData, Transaction } from '../../types';
 import { useNotificationsStore } from '../../store/notificationsStore';
 
 // Professional rang palitrasi
@@ -67,8 +59,6 @@ function KPICard({
   title,
   value,
   icon: Icon,
-  trend,
-  trendLabel,
   color = 'primary',
   className,
   style,
@@ -76,8 +66,6 @@ function KPICard({
   title: string;
   value: string | number;
   icon: React.ElementType;
-  trend?: number;
-  trendLabel?: string;
   color?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'secondary';
   className?: string;
   style?: CSSProperties;
@@ -90,8 +78,6 @@ function KPICard({
     info: 'bg-info/10 text-info border-info/20',
     secondary: 'bg-secondary/10 text-secondary border-secondary/20',
   };
-
-  const isPositive = trend !== undefined && trend >= 0;
 
   return (
     <div
@@ -106,26 +92,6 @@ function KPICard({
           <div className="flex-1">
             <p className="text-sm font-medium text-base-content/60">{title}</p>
             <p className="mt-2 text-2xl font-bold tracking-tight lg:text-3xl">{value}</p>
-            {trend !== undefined && (
-              <div className="mt-3 flex items-center gap-1.5">
-                <span
-                  className={clsx(
-                    'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold',
-                    isPositive ? 'bg-success/10 text-success' : 'bg-error/10 text-error'
-                  )}
-                >
-                  {isPositive ? (
-                    <ArrowUpRight className="h-3 w-3" />
-                  ) : (
-                    <ArrowDownRight className="h-3 w-3" />
-                  )}
-                  {Math.abs(trend).toFixed(1)}%
-                </span>
-                {trendLabel && (
-                  <span className="text-xs text-base-content/50">{trendLabel}</span>
-                )}
-              </div>
-            )}
           </div>
           <div
             className={clsx(
@@ -190,7 +156,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         <p className="mb-2 font-medium">{label}</p>
         {payload.map((entry: TooltipPayloadEntry, index: number) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {entry.name.includes('Daromad') ? formatCurrency(entry.value) : entry.value}
+            {entry.name}: {formatCurrency(entry.value)}
           </p>
         ))}
       </div>
@@ -199,31 +165,44 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
+// Transaction type helpers
+const transactionTypeConfig: Record<string, { label: string; color: string; sign: string }> = {
+  INCOME: { label: 'Daromad', color: 'text-success', sign: '+' },
+  EXPENSE: { label: 'Xarajat', color: 'text-error', sign: '-' },
+  TRANSFER: { label: "O'tkazma", color: 'text-info', sign: '' },
+};
+
 export function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [stats, setStats] = useState<FamilyDashboardStats | null>(null);
+  const [charts, setCharts] = useState<FamilyChartData | null>(null);
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [period, setPeriod] = useState<7 | 30>(30);
   const { notifications } = useNotificationsStore();
+
   const loadData = useCallback(async (isInitial = false) => {
     try {
       if (!isInitial) {
         setRefreshing(true);
       }
-      const [statsData, chartsData] = await Promise.all([
-        dashboardApi.getStats(),
-        dashboardApi.getChartData(period),
+      const [statsRes, chartsRes, recentRes] = await Promise.all([
+        familyDashboardApi.getStats(),
+        familyDashboardApi.getCharts(),
+        familyDashboardApi.getRecentTransactions(),
       ]);
+      const statsData: FamilyDashboardStats = statsRes.data.data;
+      const chartsData: FamilyChartData = chartsRes.data.data;
+      const recentData: Transaction[] = recentRes.data.data;
       setStats(statsData);
-      setChartData(chartsData);
+      setCharts(chartsData);
+      setRecentTransactions(recentData);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
     }
-  }, [period]);
+  }, []);
 
   useEffect(() => {
     loadData(true);
@@ -235,6 +214,16 @@ export function DashboardPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length]);
+
+  // Oylik trend uchun oxirgi 6 oyni formatlash
+  const formattedMonthlyTrend = (charts?.monthlyTrend || []).slice(-6).map((item) => {
+    const [, monthStr] = item.month.split('-');
+    const monthIndex = parseInt(monthStr, 10) - 1;
+    return {
+      ...item,
+      monthLabel: MONTHS_UZ[monthIndex] || item.month,
+    };
+  });
 
   if (initialLoading) {
     return (
@@ -254,12 +243,28 @@ export function DashboardPage() {
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="surface-card p-5">
-            <div className="skeleton h-64 w-full" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="surface-card p-5">
+              <div className="skeleton h-4 w-24" />
+              <div className="skeleton mt-3 h-8 w-32" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="surface-card p-5 lg:col-span-2">
+            <div className="skeleton h-72 w-full" />
           </div>
           <div className="surface-card p-5">
-            <div className="skeleton h-64 w-full" />
+            <div className="skeleton h-72 w-full" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="surface-card p-5">
+            <div className="skeleton h-48 w-full" />
+          </div>
+          <div className="surface-card p-5">
+            <div className="skeleton h-48 w-full" />
           </div>
         </div>
       </div>
@@ -280,113 +285,66 @@ export function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold lg:text-3xl">Dashboard</h1>
+          <h1 className="text-2xl font-bold lg:text-3xl">Bosh sahifa</h1>
           <p className="mt-1 text-base-content/60">
-            Biznesingiz haqida real vaqtda ma'lumotlar
+            Oilaviy moliya boshqaruvi
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Period selector */}
-          <div className="join">
-            <button
-              className={clsx('join-item btn btn-sm', period === 7 && 'btn-primary')}
-              onClick={() => setPeriod(7)}
-            >
-              7 kun
-            </button>
-            <button
-              className={clsx('join-item btn btn-sm', period === 30 && 'btn-primary')}
-              onClick={() => setPeriod(30)}
-            >
-              30 kun
-            </button>
-          </div>
-          <Link to="/pos" className="btn btn-primary">
-            <ShoppingCart className="h-4 w-4" />
-            Yangi sotuv
-          </Link>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Bugungi sotuvlar"
-          value={stats?.todaySalesCount || 0}
-          icon={ShoppingCart}
+          title="Umumiy balans"
+          value={formatCurrency(stats?.totalBalance || 0)}
+          icon={Wallet}
           color="primary"
-          trend={chartData?.salesGrowthPercent}
-          trendLabel="o'tgan haftaga nisbatan"
           style={{ '--i': 0 } as CSSProperties}
         />
         <KPICard
-          title="Bugungi daromad"
-          value={formatCurrency(stats?.todayRevenue || 0)}
-          icon={DollarSign}
+          title="Bu oylik daromad"
+          value={formatCurrency(stats?.totalIncome || 0)}
+          icon={TrendingUp}
           color="success"
-          trend={chartData?.revenueGrowthPercent}
-          trendLabel="o'tgan haftaga nisbatan"
           style={{ '--i': 1 } as CSSProperties}
         />
         <KPICard
-          title="Jami mahsulotlar"
-          value={formatNumber(stats?.totalProducts || 0)}
-          icon={Package}
-          color="info"
+          title="Bu oylik xarajat"
+          value={formatCurrency(stats?.totalExpense || 0)}
+          icon={TrendingDown}
+          color="error"
           style={{ '--i': 2 } as CSSProperties}
         />
         <KPICard
-          title="Mijozlar soni"
-          value={formatNumber(stats?.totalCustomers || 0)}
-          icon={Users}
-          color="secondary"
+          title="Jamg'armalar"
+          value={formatCurrency(stats?.totalSavings || 0)}
+          icon={PiggyBank}
+          color="info"
           style={{ '--i': 3 } as CSSProperties}
         />
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="surface-soft rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-success/10 p-2">
-              <TrendingUp className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-xs text-base-content/60">Bu hafta</p>
-              <p className="font-bold">{formatCompactCurrency(chartData?.thisWeekRevenue || 0)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="surface-soft rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-info/10 p-2">
-              <Calendar className="h-5 w-5 text-info" />
-            </div>
-            <div>
-              <p className="text-xs text-base-content/60">Bu oy</p>
-              <p className="font-bold">{formatCompactCurrency(chartData?.thisMonthRevenue || 0)}</p>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="surface-soft rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-warning/10 p-2">
-              <Package className="h-5 w-5 text-warning" />
+              <HandMetal className="h-5 w-5 text-warning" />
             </div>
             <div>
-              <p className="text-xs text-base-content/60">Omborda</p>
-              <p className="font-bold">{formatNumber(stats?.totalStock || 0)} dona</p>
+              <p className="text-xs text-base-content/60">Berilgan qarzlar</p>
+              <p className="font-bold">{formatCurrency(stats?.totalDebtsGiven || 0)}</p>
             </div>
           </div>
         </div>
         <div className="surface-soft rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-error/10 p-2">
-              <Wallet className="h-5 w-5 text-error" />
+              <HandMetal className="h-5 w-5 text-error" />
             </div>
             <div>
-              <p className="text-xs text-base-content/60">Jami qarz</p>
-              <p className="font-bold text-error">{formatCompactCurrency(stats?.totalDebt || 0)}</p>
+              <p className="text-xs text-base-content/60">Olingan qarzlar</p>
+              <p className="font-bold text-error">{formatCurrency(stats?.totalDebtsTaken || 0)}</p>
             </div>
           </div>
         </div>
@@ -394,29 +352,33 @@ export function DashboardPage() {
 
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Sales Trend - Takes 2 columns */}
+        {/* Income vs Expense Trend - Takes 2 columns */}
         <ChartCard
-          title="Sotuvlar dinamikasi"
+          title="Daromad vs Xarajat"
           icon={TrendingUp}
           className="lg:col-span-2"
           action={
             <span className="text-xs text-base-content/50">
-              Oxirgi {period} kun
+              Oxirgi 6 oy
             </span>
           }
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData?.salesTrend || []}>
+              <AreaChart data={formattedMonthlyTrend}>
                 <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0} />
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.success} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={COLORS.success} stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={COLORS.error} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={COLORS.error} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
                 <XAxis
-                  dataKey="date"
+                  dataKey="monthLabel"
                   tick={{ fontSize: 12 }}
                   tickLine={false}
                   axisLine={false}
@@ -430,171 +392,51 @@ export function DashboardPage() {
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
-                  dataKey="revenue"
+                  dataKey="income"
                   name="Daromad"
-                  stroke={COLORS.primary}
+                  stroke={COLORS.success}
                   strokeWidth={2}
                   fillOpacity={1}
-                  fill="url(#colorRevenue)"
+                  fill="url(#colorIncome)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="expense"
+                  name="Xarajat"
+                  stroke={COLORS.error}
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorExpense)"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </ChartCard>
 
-        {/* Payment Methods - Donut Chart */}
-        <ChartCard title="To'lov usullari" icon={CreditCard}>
+        {/* Expense by Category - Pie Chart */}
+        <ChartCard title="Xarajat kategoriyalari" icon={Target}>
           <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsPie>
-                <Pie
-                  data={chartData?.paymentMethods || []}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={2}
-                  dataKey="amount"
-                  nameKey="methodLabel"
-                  label={({ methodLabel, percentage }) =>
-                    `${methodLabel} ${percentage.toFixed(0)}%`
-                  }
-                  labelLine={false}
-                >
-                  {(chartData?.paymentMethods || []).map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS.chart[index % COLORS.chart.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                />
-              </RechartsPie>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* Second Charts Row */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Top Products */}
-        <ChartCard title="Top mahsulotlar" icon={BarChart3}>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData?.topProducts?.slice(0, 5) || []}
-                layout="vertical"
-                margin={{ left: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => formatCompactCurrency(value)}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="productName"
-                  tick={{ fontSize: 11 }}
-                  width={120}
-                  tickFormatter={(value) =>
-                    value.length > 18 ? `${value.slice(0, 18)}...` : value
-                  }
-                />
-                <Tooltip
-                  formatter={(value: number) => formatCurrency(value)}
-                  labelFormatter={(label) => `Mahsulot: ${label}`}
-                />
-                <Bar dataKey="revenue" name="Daromad" fill={COLORS.success} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Hourly Sales */}
-        <ChartCard
-          title="Bugungi sotuvlar (soatlik)"
-          icon={Clock}
-          action={
-            <span className="text-xs text-base-content/50">
-              08:00 - 22:00
-            </span>
-          }
-        >
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData?.hourlySales || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-                <XAxis dataKey="hourLabel" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip
-                  formatter={(value: number, name: string) =>
-                    name === 'Daromad' ? formatCurrency(value) : value
-                  }
-                />
-                <Bar
-                  dataKey="salesCount"
-                  name="Sotuvlar"
-                  fill={COLORS.info}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* Third Row - Weekday and Category */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Weekday Sales */}
-        <ChartCard title="Hafta kunlari bo'yicha" icon={Calendar}>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData?.weekdaySales || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatCompactCurrency(v)} />
-                <Tooltip
-                  formatter={(value: number, name: string) =>
-                    name === 'Daromad' ? formatCurrency(value) : value
-                  }
-                />
-                <Bar dataKey="revenue" name="Daromad" radius={[4, 4, 0, 0]}>
-                  {(chartData?.weekdaySales || []).map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.dayOfWeek === 0 || entry.dayOfWeek === 6 ? COLORS.warning : COLORS.primary}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </ChartCard>
-
-        {/* Category Sales */}
-        <ChartCard title="Kategoriyalar bo'yicha" icon={PieChart}>
-          <div className="h-64">
-            {chartData?.categorySales && chartData.categorySales.length > 0 ? (
+            {charts?.expenseByCategory && charts.expenseByCategory.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPie>
                   <Pie
-                    data={chartData.categorySales}
+                    data={charts.expenseByCategory}
                     cx="50%"
                     cy="50%"
+                    innerRadius={50}
                     outerRadius={80}
-                    dataKey="revenue"
-                    nameKey="categoryName"
-                    label={({ categoryName, percentage }) =>
-                      percentage > 5 ? `${categoryName} ${percentage.toFixed(0)}%` : ''
+                    paddingAngle={2}
+                    dataKey="amount"
+                    nameKey="name"
+                    label={({ name, percentage }) =>
+                      percentage > 5 ? `${name} ${percentage.toFixed(0)}%` : ''
                     }
+                    labelLine={false}
                   >
-                    {chartData.categorySales.map((_, index) => (
+                    {charts.expenseByCategory.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={COLORS.chart[index % COLORS.chart.length]}
+                        fill={entry.color || COLORS.chart[index % COLORS.chart.length]}
                       />
                     ))}
                   </Pie>
@@ -611,25 +453,154 @@ export function DashboardPage() {
         </ChartCard>
       </div>
 
+      {/* Budget & Savings Progress */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Budget Progress */}
+        <ChartCard title="Byudjet bajarilishi" icon={Target}>
+          {stats?.budgetProgress && stats.budgetProgress.length > 0 ? (
+            <div className="space-y-4">
+              {stats.budgetProgress.map((item, index) => {
+                const percentage = Math.min(item.percentage, 100);
+                const isOver = item.percentage > 100;
+                return (
+                  <div key={index}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium">{item.categoryName}</span>
+                      <span className={clsx('text-xs', isOver ? 'text-error font-semibold' : 'text-base-content/60')}>
+                        {formatCompactCurrency(item.spentAmount)} / {formatCompactCurrency(item.budgetAmount)}
+                        <span className="ml-1">({item.percentage.toFixed(0)}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-base-200">
+                      <div
+                        className={clsx(
+                          'h-full rounded-full transition-all duration-500',
+                          isOver ? 'bg-error' : item.percentage > 80 ? 'bg-warning' : 'bg-success'
+                        )}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex h-32 items-center justify-center text-base-content/50">
+              Byudjet belgilanmagan
+            </div>
+          )}
+        </ChartCard>
+
+        {/* Savings Progress */}
+        <ChartCard title="Jamg'arma maqsadlari" icon={PiggyBank}>
+          {stats?.savingsProgress && stats.savingsProgress.length > 0 ? (
+            <div className="space-y-4">
+              {stats.savingsProgress.map((item, index) => {
+                const percentage = Math.min(item.percentage, 100);
+                const isComplete = item.percentage >= 100;
+                return (
+                  <div key={index}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium">{item.goalName}</span>
+                      <span className={clsx('text-xs', isComplete ? 'text-success font-semibold' : 'text-base-content/60')}>
+                        {formatCompactCurrency(item.currentAmount)} / {formatCompactCurrency(item.targetAmount)}
+                        <span className="ml-1">({item.percentage.toFixed(0)}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-base-200">
+                      <div
+                        className={clsx(
+                          'h-full rounded-full transition-all duration-500',
+                          isComplete ? 'bg-success' : item.percentage > 60 ? 'bg-info' : 'bg-primary'
+                        )}
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex h-32 items-center justify-center text-base-content/50">
+              Jamg'arma maqsadlari yo'q
+            </div>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Recent Transactions */}
+      <ChartCard title="Oxirgi tranzaksiyalar" icon={ArrowLeftRight}>
+        {recentTransactions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="table table-sm w-full">
+              <thead>
+                <tr>
+                  <th>Sana</th>
+                  <th>Turi</th>
+                  <th>Kategoriya</th>
+                  <th>Izoh</th>
+                  <th className="text-right">Summa</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentTransactions.slice(0, 5).map((tx) => {
+                  const config = transactionTypeConfig[tx.type] || { label: tx.type, color: '', sign: '' };
+                  return (
+                    <tr key={tx.id} className="hover">
+                      <td className="whitespace-nowrap text-sm text-base-content/70">
+                        {new Date(tx.transactionDate).toLocaleDateString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td>
+                        <span
+                          className={clsx(
+                            'badge badge-sm',
+                            tx.type === 'INCOME' && 'badge-success badge-outline',
+                            tx.type === 'EXPENSE' && 'badge-error badge-outline',
+                            tx.type === 'TRANSFER' && 'badge-info badge-outline'
+                          )}
+                        >
+                          {config.label}
+                        </span>
+                      </td>
+                      <td className="text-sm">{tx.categoryName || '—'}</td>
+                      <td className="max-w-[200px] truncate text-sm text-base-content/60">
+                        {tx.description || '—'}
+                      </td>
+                      <td className={clsx('text-right font-semibold whitespace-nowrap', config.color)}>
+                        {config.sign}{formatCurrency(tx.amount)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex h-32 items-center justify-center text-base-content/50">
+            Tranzaksiyalar mavjud emas
+          </div>
+        )}
+      </ChartCard>
+
       {/* Quick Links */}
       <div className="surface-card p-5">
         <h3 className="mb-4 font-semibold">Tez havolalar</h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Link to="/pos" className="btn btn-primary">
-            <ShoppingCart className="h-4 w-4" />
-            Kassa
-          </Link>
-          <Link to="/products" className="btn btn-outline">
-            <Package className="h-4 w-4" />
-            Mahsulotlar
-          </Link>
-          <Link to="/customers" className="btn btn-outline">
-            <Users className="h-4 w-4" />
-            Mijozlar
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Link to="/transactions" className="btn btn-primary">
+            <ArrowLeftRight className="h-4 w-4" />
+            Tranzaksiyalar
           </Link>
           <Link to="/reports" className="btn btn-outline">
-            <BarChart3 className="h-4 w-4" />
+            <TrendingUp className="h-4 w-4" />
             Hisobotlar
+          </Link>
+          <Link to="/budget" className="btn btn-outline">
+            <Target className="h-4 w-4" />
+            Byudjet
           </Link>
         </div>
       </div>

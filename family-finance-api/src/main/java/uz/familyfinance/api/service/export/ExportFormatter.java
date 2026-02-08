@@ -52,83 +52,54 @@ public class ExportFormatter {
     }
 
     private String formatEnum(Object value) {
-        if (value instanceof Season season) {
-            return switch (season) {
-                case SUMMER -> "Yoz";
-                case WINTER -> "Qish";
-                case ALL_SEASON -> "Barcha fasl";
-            };
-        }
-        if (value instanceof CustomerType customerType) {
-            return switch (customerType) {
-                case INDIVIDUAL -> "Jismoniy shaxs";
-                case BUSINESS -> "Yuridik shaxs";
-            };
-        }
-        if (value instanceof EmployeeStatus employeeStatus) {
-            return switch (employeeStatus) {
-                case ACTIVE -> "Faol";
-                case ON_LEAVE -> "Ta'tilda";
-                case TERMINATED -> "Ishdan bo'shatilgan";
-            };
-        }
-        if (value instanceof PurchaseOrderStatus status) {
-            return switch (status) {
-                case DRAFT -> "Qoralama";
-                case ORDERED -> "Buyurtma berilgan";
-                case PARTIAL -> "Qisman qabul qilingan";
-                case RECEIVED -> "To'liq qabul qilingan";
-                case CANCELLED -> "Bekor qilingan";
-            };
-        }
-        if (value instanceof PaymentStatus status) {
-            return switch (status) {
-                case PAID -> "To'liq to'langan";
-                case PARTIAL -> "Qisman to'langan";
-                case UNPAID -> "To'lanmagan";
-            };
-        }
-        if (value instanceof PaymentMethod method) {
-            return switch (method) {
-                case CASH -> "Naqd";
-                case CARD -> "Plastik karta";
-                case TRANSFER -> "Bank o'tkazmasi";
-                case MIXED -> "Aralash";
-            };
-        }
-        if (value instanceof PaymentType type) {
-            return switch (type) {
-                case SALE_PAYMENT -> "Sotuv uchun to'lov";
-                case DEBT_PAYMENT -> "Qarz uchun to'lov";
-            };
-        }
-        if (value instanceof SaleStatus status) {
-            return switch (status) {
-                case COMPLETED -> "Yakunlangan";
-                case CANCELLED -> "Bekor qilingan";
-                case REFUNDED -> "Qaytarilgan";
-            };
-        }
         if (value instanceof DebtStatus status) {
             return switch (status) {
                 case ACTIVE -> "Faol";
+                case PARTIALLY_PAID -> "Qisman to'langan";
                 case PAID -> "To'langan";
                 case OVERDUE -> "Muddati o'tgan";
             };
         }
-        if (value instanceof MovementType type) {
+        if (value instanceof DebtType type) {
             return switch (type) {
-                case IN -> "Kirim";
-                case OUT -> "Chiqim";
-                case ADJUSTMENT -> "Tuzatish";
+                case GIVEN -> "Berilgan";
+                case TAKEN -> "Olingan";
             };
         }
-        if (value instanceof PurchaseReturnStatus status) {
-            return switch (status) {
-                case PENDING -> "Kutilmoqda";
-                case APPROVED -> "Tasdiqlangan";
-                case COMPLETED -> "Yakunlangan";
-                case REJECTED -> "Rad etilgan";
+        if (value instanceof TransactionType type) {
+            return switch (type) {
+                case INCOME -> "Kirim";
+                case EXPENSE -> "Chiqim";
+                case TRANSFER -> "O'tkazma";
+            };
+        }
+        if (value instanceof AccountType type) {
+            return switch (type) {
+                case CASH -> "Naqd pul";
+                case BANK_CARD -> "Bank kartasi";
+                case SAVINGS -> "Jamg'arma";
+                case E_WALLET -> "Elektron hamyon";
+            };
+        }
+        if (value instanceof CategoryType type) {
+            return switch (type) {
+                case INCOME -> "Kirim";
+                case EXPENSE -> "Chiqim";
+            };
+        }
+        if (value instanceof BudgetPeriod period) {
+            return switch (period) {
+                case WEEKLY -> "Haftalik";
+                case MONTHLY -> "Oylik";
+                case YEARLY -> "Yillik";
+            };
+        }
+        if (value instanceof FamilyRole role) {
+            return switch (role) {
+                case FATHER -> "Ota";
+                case MOTHER -> "Ona";
+                case CHILD -> "Farzand";
+                case OTHER -> "Boshqa";
             };
         }
         // Default fallback for unknown enums

@@ -1,55 +1,21 @@
 package uz.familyfinance.api.dto.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import uz.familyfinance.api.annotation.ExportColumn;
-import uz.familyfinance.api.annotation.ExportColumn.ColumnType;
-import uz.familyfinance.api.annotation.ExportEntity;
-import uz.familyfinance.api.entity.Category;
-
+import uz.familyfinance.api.enums.CategoryType;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@ExportEntity(sheetName = "Kategoriyalar", title = "Kategoriyalar Hisoboti")
 public class CategoryResponse {
-    @ExportColumn(header = "ID", order = 1, type = ColumnType.NUMBER)
     private Long id;
-
-    @ExportColumn(header = "Nomi", order = 2)
     private String name;
-
-    @ExportColumn(header = "Tavsif", order = 3)
-    private String description;
-
-    private Long parentId; // Not exported
-
-    @ExportColumn(header = "Asosiy kategoriya", order = 4)
+    private CategoryType type;
+    private Long parentId;
     private String parentName;
-
-    private List<CategoryResponse> children; // Not exported (complex type)
-
-    @ExportColumn(header = "Faol", order = 5, type = ColumnType.BOOLEAN)
-    private Boolean active;
-
-    public static CategoryResponse from(Category category) {
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .description(category.getDescription())
-                .parentId(category.getParent() != null ? category.getParent().getId() : null)
-                .parentName(category.getParent() != null ? category.getParent().getName() : null)
-                .children(category.getChildren() != null && !category.getChildren().isEmpty() ?
-                        category.getChildren().stream()
-                                .filter(Category::getActive)
-                                .map(CategoryResponse::from)
-                                .collect(Collectors.toList()) : null)
-                .active(category.getActive())
-                .build();
-    }
+    private String icon;
+    private String color;
+    private Boolean isSystem;
+    private Boolean isActive;
+    private List<CategoryResponse> children;
+    private LocalDateTime createdAt;
 }

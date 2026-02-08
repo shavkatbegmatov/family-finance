@@ -4,9 +4,10 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-  Package,
-  CreditCard,
-  Users,
+  ArrowLeftRight,
+  PieChart,
+  HandMetal,
+  Target,
   CheckCheck,
   Trash2,
   Filter,
@@ -25,12 +26,14 @@ const getNotificationIcon = (type: NotificationType) => {
       return <AlertTriangle className="h-5 w-5 text-warning" />;
     case 'success':
       return <CheckCircle className="h-5 w-5 text-success" />;
-    case 'order':
-      return <Package className="h-5 w-5 text-primary" />;
-    case 'payment':
-      return <CreditCard className="h-5 w-5 text-success" />;
-    case 'customer':
-      return <Users className="h-5 w-5 text-info" />;
+    case 'transaction':
+      return <ArrowLeftRight className="h-5 w-5 text-primary" />;
+    case 'budget':
+      return <PieChart className="h-5 w-5 text-info" />;
+    case 'debt':
+      return <HandMetal className="h-5 w-5 text-error" />;
+    case 'savings':
+      return <Target className="h-5 w-5 text-success" />;
     case 'info':
     default:
       return <Info className="h-5 w-5 text-info" />;
@@ -42,11 +45,13 @@ const getNotificationBorderColor = (type: NotificationType) => {
     case 'warning':
       return 'border-l-warning';
     case 'success':
-    case 'payment':
+    case 'savings':
       return 'border-l-success';
-    case 'order':
+    case 'transaction':
       return 'border-l-primary';
-    case 'customer':
+    case 'debt':
+      return 'border-l-error';
+    case 'budget':
     case 'info':
     default:
       return 'border-l-info';
@@ -75,7 +80,7 @@ const formatTimeAgo = (dateString: string) => {
   }
 };
 
-type FilterType = 'all' | 'unread' | 'warning' | 'order' | 'payment';
+type FilterType = 'all' | 'unread' | 'warning' | 'transaction' | 'budget' | 'debt' | 'savings';
 
 export function NotificationsPage() {
   const {
@@ -142,8 +147,10 @@ export function NotificationsPage() {
             { key: 'all', label: 'Barchasi' },
             { key: 'unread', label: "O'qilmagan" },
             { key: 'warning', label: 'Ogohlantirishlar' },
-            { key: 'order', label: 'Buyurtmalar' },
-            { key: 'payment', label: "To'lovlar" },
+            { key: 'transaction', label: 'Tranzaksiyalar' },
+            { key: 'budget', label: 'Byudjet' },
+            { key: 'debt', label: 'Qarzlar' },
+            { key: 'savings', label: "Jamg'armalar" },
           ].map((item) => (
             <button
               key={item.key}

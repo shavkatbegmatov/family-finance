@@ -7,7 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
-import uz.familyfinance.api.entity.Employee;
+import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.RoleEntity;
 import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.Role;
@@ -44,16 +44,16 @@ public class UserService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     /**
-     * Creates a user account for an employee with auto-generated credentials.
+     * Creates a user account for a family member with auto-generated credentials.
      *
-     * @param employee The employee to create user for
-     * @param roleCode The role code to assign (e.g., "SELLER", "MANAGER")
+     * @param member The family member to create user for
+     * @param roleCode The role code to assign (e.g., "ADMIN", "MEMBER")
      * @return CredentialsInfo containing username and temporary password
      */
     @Transactional
-    public CredentialsInfo createUserForEmployee(Employee employee, String roleCode) {
+    public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode) {
         // Generate unique username
-        String username = generateUsername(employee.getFullName());
+        String username = generateUsername(member.getFullName());
 
         // Generate temporary password
         String temporaryPassword = generateTemporaryPassword();
@@ -70,9 +70,8 @@ public class UserService {
         User user = User.builder()
                 .username(username)
                 .password(passwordEncoder.encode(temporaryPassword))
-                .fullName(employee.getFullName())
-                .email(employee.getEmail())
-                .phone(employee.getPhone())
+                .fullName(member.getFullName())
+                .phone(member.getPhone())
                 .role(legacyRole) // Legacy field
                 .active(true)
                 .mustChangePassword(true)
@@ -91,16 +90,16 @@ public class UserService {
                 user.getId(),
                 "USER_CREATED",
                 null,
-                String.format("User '%s' yaratildi (xodim: %s)", username, employee.getFullName()),
+                String.format("User '%s' yaratildi (oila a'zosi: %s)", username, member.getFullName()),
                 creatorId
         );
 
-        log.info("User created for employee: {} with username: {}", employee.getFullName(), username);
+        log.info("User created for family member: {} with username: {}", member.getFullName(), username);
 
         return CredentialsInfo.builder()
                 .username(username)
                 .temporaryPassword(temporaryPassword)
-                .message("Ushbu parol faqat bir marta ko'rsatiladi. Xodimga yetkazing!")
+                .message("Ushbu parol faqat bir marta ko'rsatiladi. Oila a'zosiga yetkazing!")
                 .mustChangePassword(true)
                 .build();
     }

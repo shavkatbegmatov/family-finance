@@ -1,287 +1,143 @@
 package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.response.ChartDataResponse;
-import uz.familyfinance.api.dto.response.ChartDataResponse.*;
 import uz.familyfinance.api.dto.response.DashboardStatsResponse;
+import uz.familyfinance.api.entity.Budget;
+import uz.familyfinance.api.entity.Category;
+import uz.familyfinance.api.entity.SavingsGoal;
+import uz.familyfinance.api.enums.CategoryType;
+import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.repository.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.Date;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAdjusters;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DashboardService {
 
-    private final SaleRepository saleRepository;
-    private final SaleItemRepository saleItemRepository;
-    private final ProductRepository productRepository;
-    private final CustomerRepository customerRepository;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+    private final BudgetRepository budgetRepository;
+    private final SavingsGoalRepository savingsGoalRepository;
     private final DebtRepository debtRepository;
+    private final CategoryRepository categoryRepository;
 
-    private static final Map<String, String> PAYMENT_LABELS = Map.of(
-            "CASH", "Naqd pul",
-            "CARD", "Plastik karta",
-            "TRANSFER", "Bank o'tkazmasi",
-            "MIXED", "Aralash",
-            "DEBT", "Qarzga"
-    );
-
-    private static final String[] WEEKDAY_NAMES = {"Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"};
-
+    @Transactional(readOnly = true)
     public DashboardStatsResponse getStats() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
+        LocalDate now = LocalDate.now();
+        LocalDateTime monthStart = now.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime monthEnd = now.plusMonths(1).withDayOfMonth(1).atStartOfDay().minusSeconds(1);
 
-        long todaySalesCount = saleRepository.countTodaySales(startOfDay, endOfDay);
-        BigDecimal todayRevenue = saleRepository.getTodayRevenue(startOfDay, endOfDay);
-        BigDecimal totalRevenue = saleRepository.getTotalRevenue();
-        long totalProducts = productRepository.countActiveProducts();
-        Long totalStock = productRepository.getTotalStock();
-        long lowStockCount = productRepository.findLowStockProducts().size();
-        long totalCustomers = customerRepository.countActiveCustomers();
-        BigDecimal totalDebt = debtRepository.getTotalActiveDebt();
+        BigDecimal totalIncome = transactionRepository.sumByTypeAndDateRange(TransactionType.INCOME, monthStart, monthEnd);
+        BigDecimal totalExpense = transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, monthStart, monthEnd);
+
+        List<Budget> activeBudgets = budgetRepository.findActiveByDate(now);
+        List<DashboardStatsResponse.BudgetProgress> budgetProgress = activeBudgets.stream()
+                .map(b -> {
+                    BigDecimal spent = transactionRepository.sumExpenseByCategoryAndDateRange(
+                            b.getCategory().getId(), b.getStartDate().atStartOfDay(), b.getEndDate().atTime(23, 59, 59));
+                    double pct = b.getAmount().compareTo(BigDecimal.ZERO) > 0
+                            ? spent.multiply(BigDecimal.valueOf(100)).divide(b.getAmount(), 2, RoundingMode.HALF_UP).doubleValue() : 0;
+                    return DashboardStatsResponse.BudgetProgress.builder()
+                            .categoryName(b.getCategory().getName())
+                            .budgetAmount(b.getAmount())
+                            .spentAmount(spent)
+                            .percentage(pct)
+                            .build();
+                }).toList();
+
+        List<SavingsGoal> activeGoals = savingsGoalRepository.findByIsCompletedFalse();
+        List<DashboardStatsResponse.SavingsProgress> savingsProgress = activeGoals.stream()
+                .map(g -> {
+                    double pct = g.getTargetAmount().compareTo(BigDecimal.ZERO) > 0
+                            ? g.getCurrentAmount().multiply(BigDecimal.valueOf(100)).divide(g.getTargetAmount(), 2, RoundingMode.HALF_UP).doubleValue() : 0;
+                    return DashboardStatsResponse.SavingsProgress.builder()
+                            .goalName(g.getName())
+                            .targetAmount(g.getTargetAmount())
+                            .currentAmount(g.getCurrentAmount())
+                            .percentage(pct)
+                            .build();
+                }).toList();
 
         return DashboardStatsResponse.builder()
-                .todaySalesCount(todaySalesCount)
-                .todayRevenue(todayRevenue != null ? todayRevenue : BigDecimal.ZERO)
-                .totalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
-                .totalProducts(totalProducts)
-                .totalStock(totalStock != null ? totalStock : 0L)
-                .lowStockCount(lowStockCount)
-                .totalCustomers(totalCustomers)
-                .totalDebt(totalDebt != null ? totalDebt.abs() : BigDecimal.ZERO)
+                .totalBalance(accountRepository.getTotalBalance())
+                .totalIncome(totalIncome)
+                .totalExpense(totalExpense)
+                .totalSavings(savingsGoalRepository.getTotalSavings())
+                .totalDebtsGiven(debtRepository.sumRemainingByType(uz.familyfinance.api.enums.DebtType.GIVEN))
+                .totalDebtsTaken(debtRepository.sumRemainingByType(uz.familyfinance.api.enums.DebtType.TAKEN))
+                .activeGoals(activeGoals.size())
+                .activeBudgets(activeBudgets.size())
+                .budgetProgress(budgetProgress)
+                .savingsProgress(savingsProgress)
                 .build();
     }
 
-    public ChartDataResponse getChartData(int days) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime startDate = now.minusDays(days).toLocalDate().atStartOfDay();
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfToday = LocalDate.now().atTime(LocalTime.MAX);
+    @Transactional(readOnly = true)
+    public ChartDataResponse getCharts() {
+        LocalDate now = LocalDate.now();
+        List<ChartDataResponse.MonthlyData> monthlyTrend = new ArrayList<>();
 
-        // Hafta boshi va oxiri
-        LocalDateTime thisWeekStart = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).toLocalDate().atStartOfDay();
-        LocalDateTime lastWeekStart = thisWeekStart.minusWeeks(1);
-        LocalDateTime lastWeekEnd = thisWeekStart;
+        // Last 6 months trend
+        for (int i = 5; i >= 0; i--) {
+            LocalDate month = now.minusMonths(i);
+            LocalDateTime from = month.withDayOfMonth(1).atStartOfDay();
+            LocalDateTime to = month.plusMonths(1).withDayOfMonth(1).atStartOfDay().minusSeconds(1);
+            BigDecimal income = transactionRepository.sumByTypeAndDateRange(TransactionType.INCOME, from, to);
+            BigDecimal expense = transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, from, to);
+            monthlyTrend.add(ChartDataResponse.MonthlyData.builder()
+                    .month(month.getMonth().name())
+                    .income(income)
+                    .expense(expense)
+                    .build());
+        }
 
-        // Oy boshi va oxiri
-        LocalDateTime thisMonthStart = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
-        LocalDateTime lastMonthStart = thisMonthStart.minusMonths(1);
-        LocalDateTime lastMonthEnd = thisMonthStart;
+        // Expense by category (current month)
+        LocalDateTime monthStart = now.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime monthEnd = now.plusMonths(1).withDayOfMonth(1).atStartOfDay().minusSeconds(1);
 
-        // 1. Sotuvlar trendi
-        List<SalesTrendItem> salesTrend = buildSalesTrend(startDate, days);
+        List<Category> expenseCategories = categoryRepository.findByTypeAndIsActiveTrue(CategoryType.EXPENSE);
+        BigDecimal totalExpense = transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, monthStart, monthEnd);
 
-        // 2. Top mahsulotlar
-        List<TopProductItem> topProducts = buildTopProducts(startDate, 10);
+        List<ChartDataResponse.CategoryData> expenseByCategory = expenseCategories.stream()
+                .map(c -> {
+                    BigDecimal amount = transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), monthStart, monthEnd);
+                    double pct = totalExpense.compareTo(BigDecimal.ZERO) > 0
+                            ? amount.multiply(BigDecimal.valueOf(100)).divide(totalExpense, 2, RoundingMode.HALF_UP).doubleValue() : 0;
+                    return ChartDataResponse.CategoryData.builder()
+                            .name(c.getName()).amount(amount).color(c.getColor()).percentage(pct).build();
+                })
+                .filter(d -> d.getAmount().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
 
-        // 3. To'lov usullari
-        List<PaymentMethodItem> paymentMethods = buildPaymentMethodStats(startDate);
+        List<Category> incomeCategories = categoryRepository.findByTypeAndIsActiveTrue(CategoryType.INCOME);
+        BigDecimal totalIncome = transactionRepository.sumByTypeAndDateRange(TransactionType.INCOME, monthStart, monthEnd);
 
-        // 4. Kategoriyalar bo'yicha
-        List<CategorySalesItem> categorySales = buildCategorySales(startDate);
-
-        // 5. Hafta kunlari bo'yicha
-        List<WeekdaySalesItem> weekdaySales = buildWeekdaySales(startDate);
-
-        // 6. Soatlar bo'yicha (bugungi)
-        List<HourlySalesItem> hourlySales = buildHourlySales(startOfToday, endOfToday);
-
-        // 7. Daromad statistikasi
-        BigDecimal thisWeekRevenue = saleRepository.getRevenueForPeriod(thisWeekStart, now);
-        BigDecimal lastWeekRevenue = saleRepository.getRevenueForPeriod(lastWeekStart, lastWeekEnd);
-        BigDecimal thisMonthRevenue = saleRepository.getRevenueForPeriod(thisMonthStart, now);
-        BigDecimal lastMonthRevenue = saleRepository.getRevenueForPeriod(lastMonthStart, lastMonthEnd);
-
-        // O'sish foizlari
-        Double revenueGrowthPercent = calculateGrowthPercent(thisWeekRevenue, lastWeekRevenue);
-
-        Long thisWeekSales = saleRepository.getSalesCountForPeriod(thisWeekStart, now);
-        Long lastWeekSales = saleRepository.getSalesCountForPeriod(lastWeekStart, lastWeekEnd);
-        Double salesGrowthPercent = calculateGrowthPercent(
-                BigDecimal.valueOf(thisWeekSales != null ? thisWeekSales : 0),
-                BigDecimal.valueOf(lastWeekSales != null ? lastWeekSales : 0)
-        );
+        List<ChartDataResponse.CategoryData> incomeByCategory = incomeCategories.stream()
+                .map(c -> {
+                    BigDecimal amount = transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), monthStart, monthEnd);
+                    double pct = totalIncome.compareTo(BigDecimal.ZERO) > 0
+                            ? amount.multiply(BigDecimal.valueOf(100)).divide(totalIncome, 2, RoundingMode.HALF_UP).doubleValue() : 0;
+                    return ChartDataResponse.CategoryData.builder()
+                            .name(c.getName()).amount(amount).color(c.getColor()).percentage(pct).build();
+                })
+                .filter(d -> d.getAmount().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
 
         return ChartDataResponse.builder()
-                .salesTrend(salesTrend)
-                .topProducts(topProducts)
-                .paymentMethods(paymentMethods)
-                .categorySales(categorySales)
-                .weekdaySales(weekdaySales)
-                .hourlySales(hourlySales)
-                .thisWeekRevenue(thisWeekRevenue != null ? thisWeekRevenue : BigDecimal.ZERO)
-                .lastWeekRevenue(lastWeekRevenue != null ? lastWeekRevenue : BigDecimal.ZERO)
-                .thisMonthRevenue(thisMonthRevenue != null ? thisMonthRevenue : BigDecimal.ZERO)
-                .lastMonthRevenue(lastMonthRevenue != null ? lastMonthRevenue : BigDecimal.ZERO)
-                .revenueGrowthPercent(revenueGrowthPercent)
-                .salesGrowthPercent(salesGrowthPercent)
+                .monthlyTrend(monthlyTrend)
+                .expenseByCategory(expenseByCategory)
+                .incomeByCategory(incomeByCategory)
                 .build();
-    }
-
-    private List<SalesTrendItem> buildSalesTrend(LocalDateTime startDate, int days) {
-        List<Object[]> rawData = saleRepository.getSalesTrend(startDate);
-        Map<LocalDate, Object[]> dataMap = new HashMap<>();
-
-        for (Object[] row : rawData) {
-            LocalDate date;
-            if (row[0] instanceof Date) {
-                date = ((Date) row[0]).toLocalDate();
-            } else {
-                date = (LocalDate) row[0];
-            }
-            dataMap.put(date, row);
-        }
-
-        List<SalesTrendItem> result = new ArrayList<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MMM", new Locale("uz"));
-
-        for (int i = days - 1; i >= 0; i--) {
-            LocalDate date = LocalDate.now().minusDays(i);
-            Object[] data = dataMap.get(date);
-
-            result.add(SalesTrendItem.builder()
-                    .date(date.format(formatter))
-                    .salesCount(data != null ? ((Number) data[1]).longValue() : 0L)
-                    .revenue(data != null ? (BigDecimal) data[2] : BigDecimal.ZERO)
-                    .build());
-        }
-
-        return result;
-    }
-
-    private List<TopProductItem> buildTopProducts(LocalDateTime startDate, int limit) {
-        List<Object[]> rawData = saleItemRepository.getTopProductsByRevenue(startDate, PageRequest.of(0, limit));
-
-        return rawData.stream()
-                .map(row -> TopProductItem.builder()
-                        .productId(((Number) row[0]).longValue())
-                        .productName((String) row[1])
-                        .productSku((String) row[2])
-                        .quantitySold(((Number) row[3]).longValue())
-                        .revenue((BigDecimal) row[4])
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    private List<PaymentMethodItem> buildPaymentMethodStats(LocalDateTime startDate) {
-        List<Object[]> rawData = saleRepository.getPaymentMethodStats(startDate);
-        BigDecimal totalAmount = rawData.stream()
-                .map(row -> (BigDecimal) row[2])
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return rawData.stream()
-                .map(row -> {
-                    String method = (String) row[0];
-                    BigDecimal amount = (BigDecimal) row[2];
-                    double percentage = totalAmount.compareTo(BigDecimal.ZERO) > 0
-                            ? amount.divide(totalAmount, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue()
-                            : 0.0;
-
-                    return PaymentMethodItem.builder()
-                            .method(method)
-                            .methodLabel(PAYMENT_LABELS.getOrDefault(method, method))
-                            .count(((Number) row[1]).longValue())
-                            .amount(amount)
-                            .percentage(percentage)
-                            .build();
-                })
-                .collect(Collectors.toList());
-    }
-
-    private List<CategorySalesItem> buildCategorySales(LocalDateTime startDate) {
-        List<Object[]> rawData = saleItemRepository.getCategorySales(startDate);
-        BigDecimal totalRevenue = rawData.stream()
-                .map(row -> (BigDecimal) row[3])
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        return rawData.stream()
-                .map(row -> {
-                    BigDecimal revenue = (BigDecimal) row[3];
-                    double percentage = totalRevenue.compareTo(BigDecimal.ZERO) > 0
-                            ? revenue.divide(totalRevenue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).doubleValue()
-                            : 0.0;
-
-                    return CategorySalesItem.builder()
-                            .categoryId(((Number) row[0]).longValue())
-                            .categoryName((String) row[1])
-                            .quantitySold(((Number) row[2]).longValue())
-                            .revenue(revenue)
-                            .percentage(percentage)
-                            .build();
-                })
-                .collect(Collectors.toList());
-    }
-
-    private List<WeekdaySalesItem> buildWeekdaySales(LocalDateTime startDate) {
-        List<Object[]> rawData = saleRepository.getWeekdaySales(startDate);
-        Map<Integer, Object[]> dataMap = new HashMap<>();
-
-        for (Object[] row : rawData) {
-            int dayOfWeek = ((Number) row[0]).intValue();
-            dataMap.put(dayOfWeek, row);
-        }
-
-        List<WeekdaySalesItem> result = new ArrayList<>();
-        // PostgreSQL DOW: 0=Sunday, 1=Monday, ..., 6=Saturday
-        for (int i = 0; i < 7; i++) {
-            Object[] data = dataMap.get(i);
-            result.add(WeekdaySalesItem.builder()
-                    .day(WEEKDAY_NAMES[i])
-                    .dayOfWeek(i)
-                    .salesCount(data != null ? ((Number) data[1]).longValue() : 0L)
-                    .revenue(data != null ? (BigDecimal) data[2] : BigDecimal.ZERO)
-                    .build());
-        }
-
-        return result;
-    }
-
-    private List<HourlySalesItem> buildHourlySales(LocalDateTime startOfToday, LocalDateTime endOfToday) {
-        List<Object[]> rawData = saleRepository.getHourlySales(startOfToday, endOfToday);
-        Map<Integer, Object[]> dataMap = new HashMap<>();
-
-        for (Object[] row : rawData) {
-            int hour = ((Number) row[0]).intValue();
-            dataMap.put(hour, row);
-        }
-
-        List<HourlySalesItem> result = new ArrayList<>();
-        for (int hour = 8; hour <= 22; hour++) {  // 08:00 - 22:00 ish vaqti
-            Object[] data = dataMap.get(hour);
-            result.add(HourlySalesItem.builder()
-                    .hour(hour)
-                    .hourLabel(String.format("%02d:00", hour))
-                    .salesCount(data != null ? ((Number) data[1]).longValue() : 0L)
-                    .revenue(data != null ? (BigDecimal) data[2] : BigDecimal.ZERO)
-                    .build());
-        }
-
-        return result;
-    }
-
-    private Double calculateGrowthPercent(BigDecimal current, BigDecimal previous) {
-        if (previous == null || previous.compareTo(BigDecimal.ZERO) == 0) {
-            return current != null && current.compareTo(BigDecimal.ZERO) > 0 ? 100.0 : 0.0;
-        }
-        if (current == null) {
-            return -100.0;
-        }
-        return current.subtract(previous)
-                .divide(previous, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100))
-                .doubleValue();
     }
 }

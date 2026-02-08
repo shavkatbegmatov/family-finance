@@ -8,10 +8,13 @@ import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.audit.AuditEntityListener;
 import uz.familyfinance.api.entity.base.BaseEntity;
 import uz.familyfinance.api.enums.DebtStatus;
+import uz.familyfinance.api.enums.DebtType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,18 +28,20 @@ import java.util.Set;
 @Builder
 public class Debt extends BaseEntity implements Auditable {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private DebtType type;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sale_id")
-    private Sale sale;
+    @Column(name = "person_name", nullable = false, length = 100)
+    private String personName;
 
-    @Column(name = "original_amount", nullable = false, precision = 15, scale = 2)
-    private BigDecimal originalAmount;
+    @Column(name = "person_phone", length = 20)
+    private String personPhone;
 
-    @Column(name = "remaining_amount", nullable = false, precision = 15, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
+
+    @Column(name = "remaining_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal remainingAmount;
 
     @Column(name = "due_date")
@@ -48,11 +53,11 @@ public class Debt extends BaseEntity implements Auditable {
     private DebtStatus status = DebtStatus.ACTIVE;
 
     @Column(length = 500)
-    private String notes;
+    private String description;
 
-    // ============================================
-    // Auditable Interface Implementation
-    // ============================================
+    @OneToMany(mappedBy = "debt", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<DebtPayment> payments = new ArrayList<>();
 
     @Override
     public String getEntityName() {
@@ -64,25 +69,19 @@ public class Debt extends BaseEntity implements Auditable {
     public Map<String, Object> toAuditMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", getId());
-        map.put("originalAmount", this.originalAmount);
+        map.put("type", this.type);
+        map.put("personName", this.personName);
+        map.put("personPhone", this.personPhone);
+        map.put("amount", this.amount);
         map.put("remainingAmount", this.remainingAmount);
         map.put("dueDate", this.dueDate);
         map.put("status", this.status);
-        map.put("notes", this.notes);
-
-        // Avoid lazy loading
-        if (this.customer != null) {
-            map.put("customerId", this.customer.getId());
-        }
-        if (this.sale != null) {
-            map.put("saleId", this.sale.getId());
-        }
-
+        map.put("description", this.description);
         return map;
     }
 
     @Override
     public Set<String> getSensitiveFields() {
-        return Set.of(); // No sensitive fields
+        return Set.of();
     }
 }

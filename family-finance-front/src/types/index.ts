@@ -5,7 +5,7 @@ export interface User {
   fullName: string;
   email?: string;
   phone?: string;
-  role: string; // Changed to string to support custom RBAC roles
+  role: string;
   active: boolean;
   mustChangePassword?: boolean;
 }
@@ -56,7 +56,7 @@ export interface Permission {
   description?: string;
 }
 
-// Simple User Type (for role users list)
+// Simple User Type
 export interface SimpleUser {
   id: number;
   username: string;
@@ -105,7 +105,6 @@ export interface AuditLog {
   createdAt: string;
 }
 
-// Audit Log Group Types (for grouped view)
 export interface AuditLogGroup {
   correlationId: string | null;
   groupKey: string;
@@ -136,646 +135,312 @@ export interface PagedResponse<T> {
   first: boolean;
 }
 
-// Product Types
-export type Season = 'SUMMER' | 'WINTER' | 'ALL_SEASON';
+// ============================================
+// FAMILY FINANCE TYPES
+// ============================================
 
-export interface Brand {
+// Family Member Types
+export type FamilyRole = 'FATHER' | 'MOTHER' | 'CHILD' | 'OTHER';
+
+export interface FamilyMember {
   id: number;
-  name: string;
-  country?: string;
-  logoUrl?: string;
-  active: boolean;
+  fullName: string;
+  role: FamilyRole;
+  birthDate?: string;
+  phone?: string;
+  avatar?: string;
+  isActive: boolean;
+  userId?: number;
+  userName?: string;
+  createdAt: string;
 }
 
-export interface Category {
+export interface FamilyMemberRequest {
+  fullName: string;
+  role: FamilyRole;
+  birthDate?: string;
+  phone?: string;
+  avatar?: string;
+  userId?: number;
+}
+
+// Account Types
+export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'E_WALLET';
+
+export interface Account {
   id: number;
   name: string;
-  description?: string;
+  type: AccountType;
+  currency: string;
+  balance: number;
+  color?: string;
+  icon?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface AccountRequest {
+  name: string;
+  type: AccountType;
+  currency?: string;
+  balance?: number;
+  color?: string;
+  icon?: string;
+}
+
+// Category Types
+export type CategoryType = 'INCOME' | 'EXPENSE';
+
+export interface FinanceCategory {
+  id: number;
+  name: string;
+  type: CategoryType;
   parentId?: number;
   parentName?: string;
-  children?: Category[];
-  active: boolean;
+  icon?: string;
+  color?: string;
+  isSystem: boolean;
+  isActive: boolean;
+  children?: FinanceCategory[];
+  createdAt: string;
 }
 
-export interface Product {
-  id: number;
-  sku: string;
+export interface FinanceCategoryRequest {
   name: string;
-  brandName?: string;
-  brandId?: number;
+  type: CategoryType;
+  parentId?: number;
+  icon?: string;
+  color?: string;
+}
+
+// Transaction Types
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type RecurringPattern = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export interface Transaction {
+  id: number;
+  type: TransactionType;
+  amount: number;
+  accountId: number;
+  accountName: string;
+  toAccountId?: number;
+  toAccountName?: string;
+  categoryId?: number;
   categoryName?: string;
-  categoryId?: number;
-  width?: number;
-  profile?: number;
-  diameter?: number;
-  sizeString?: string;
-  loadIndex?: string;
-  speedRating?: string;
-  season?: Season;
-  purchasePrice?: number;
-  sellingPrice: number;
-  quantity: number;
-  minStockLevel: number;
-  lowStock: boolean;
+  familyMemberId?: number;
+  familyMemberName?: string;
+  transactionDate: string;
   description?: string;
-  imageUrl?: string;
-  active: boolean;
+  isRecurring: boolean;
+  recurringPattern?: RecurringPattern;
+  tags?: string;
+  createdAt: string;
 }
 
-export interface ProductRequest {
-  sku: string;
+export interface TransactionRequest {
+  type: TransactionType;
+  amount: number;
+  accountId: number;
+  toAccountId?: number;
+  categoryId?: number;
+  familyMemberId?: number;
+  transactionDate: string;
+  description?: string;
+  isRecurring?: boolean;
+  recurringPattern?: RecurringPattern;
+  tags?: string;
+}
+
+export interface TransactionFilters {
+  type?: TransactionType;
+  accountId?: number;
+  categoryId?: number;
+  memberId?: number;
+  from?: string;
+  to?: string;
+}
+
+// Budget Types
+export type BudgetPeriod = 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export interface Budget {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  categoryIcon?: string;
+  categoryColor?: string;
+  amount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  percentage: number;
+  period: BudgetPeriod;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface BudgetRequest {
+  categoryId: number;
+  amount: number;
+  period: BudgetPeriod;
+  startDate: string;
+  endDate: string;
+}
+
+// Savings Goal Types
+export interface SavingsGoal {
+  id: number;
   name: string;
-  brandId?: number;
-  categoryId?: number;
-  width?: number;
-  profile?: number;
-  diameter?: number;
-  loadIndex?: string;
-  speedRating?: string;
-  season?: Season;
-  purchasePrice?: number;
-  sellingPrice: number;
-  quantity?: number;
-  minStockLevel?: number;
-  description?: string;
-  imageUrl?: string;
+  targetAmount: number;
+  currentAmount: number;
+  percentage: number;
+  deadline?: string;
+  accountId?: number;
+  accountName?: string;
+  icon?: string;
+  color?: string;
+  isCompleted: boolean;
+  createdAt: string;
 }
 
-// Customer Types
-export type CustomerType = 'INDIVIDUAL' | 'BUSINESS';
+export interface SavingsGoalRequest {
+  name: string;
+  targetAmount: number;
+  deadline?: string;
+  accountId?: number;
+  icon?: string;
+  color?: string;
+}
 
-export interface Customer {
+export interface GoalContribution {
   id: number;
-  fullName: string;
-  phone: string;
-  phone2?: string;
-  address?: string;
-  companyName?: string;
-  customerType: CustomerType;
-  balance: number;
-  hasDebt: boolean;
-  notes?: string;
-  active: boolean;
+  savingsGoalId: number;
+  savingsGoalName: string;
+  amount: number;
+  contributionDate: string;
+  note?: string;
+  createdAt: string;
 }
 
-export interface CustomerRequest {
-  fullName: string;
-  phone: string;
-  phone2?: string;
-  address?: string;
-  companyName?: string;
-  customerType?: CustomerType;
-  notes?: string;
-}
-
-// Sale Types
-export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
-export type PaymentStatus = 'PAID' | 'PARTIAL' | 'UNPAID';
-export type SaleStatus = 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
-
-export interface SaleItem {
-  id?: number;
-  productId: number;
-  productName?: string;
-  productSku?: string;
-  sizeString?: string;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  totalPrice: number;
-}
-
-export interface Sale {
-  id: number;
-  invoiceNumber: string;
-  customerId?: number;
-  customerName?: string;
-  customerPhone?: string;
-  saleDate: string;
-  subtotal: number;
-  discountAmount: number;
-  discountPercent: number;
-  totalAmount: number;
-  paidAmount: number;
-  debtAmount: number;
-  paymentMethod: PaymentMethod;
-  paymentStatus: PaymentStatus;
-  status: SaleStatus;
-  notes?: string;
-  createdByName?: string;
-  items?: SaleItem[];
-}
-
-export interface SaleItemRequest {
-  productId: number;
-  quantity: number;
-  discount?: number;
-  customPrice?: number;
-}
-
-export interface SaleRequest {
-  customerId?: number;
-  items: SaleItemRequest[];
-  discountAmount?: number;
-  discountPercent?: number;
-  paidAmount: number;
-  paymentMethod: PaymentMethod;
-  notes?: string;
+export interface GoalContributionRequest {
+  amount: number;
+  contributionDate: string;
+  note?: string;
 }
 
 // Debt Types
-export type DebtStatus = 'ACTIVE' | 'PAID' | 'OVERDUE';
-export type PaymentType = 'SALE_PAYMENT' | 'DEBT_PAYMENT';
+export type DebtType = 'GIVEN' | 'TAKEN';
+export type DebtStatus = 'ACTIVE' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
 
-export interface Debt {
+export interface FamilyDebt {
   id: number;
-  customerId: number;
-  customerName: string;
-  customerPhone: string;
-  saleId?: number;
-  invoiceNumber?: string;
-  originalAmount: number;
+  type: DebtType;
+  personName: string;
+  personPhone?: string;
+  amount: number;
   remainingAmount: number;
   paidAmount: number;
+  paidPercentage: number;
   dueDate?: string;
   status: DebtStatus;
-  overdue: boolean;
-  notes?: string;
+  description?: string;
+  isOverdue: boolean;
+  createdAt: string;
+}
+
+export interface FamilyDebtRequest {
+  type: DebtType;
+  personName: string;
+  personPhone?: string;
+  amount: number;
+  dueDate?: string;
+  description?: string;
+}
+
+export interface DebtPayment {
+  id: number;
+  debtId: number;
+  debtPersonName: string;
+  amount: number;
+  paymentDate: string;
+  note?: string;
   createdAt: string;
 }
 
 export interface DebtPaymentRequest {
   amount: number;
-  method: PaymentMethod;
-  referenceNumber?: string;
-  notes?: string;
-}
-
-export interface Payment {
-  id: number;
-  saleId?: number;
-  invoiceNumber?: string;
-  customerId?: number;
-  customerName?: string;
-  amount: number;
-  method: PaymentMethod;
-  paymentType: PaymentType;
-  referenceNumber?: string;
-  notes?: string;
   paymentDate: string;
-  receivedByName: string;
+  note?: string;
 }
 
 // Dashboard Types
-export interface DashboardStats {
-  todaySalesCount: number;
-  todayRevenue: number;
-  totalRevenue: number;
-  totalProducts: number;
-  totalStock: number;
-  lowStockCount: number;
-  totalCustomers: number;
-  totalDebt: number;
+export interface FamilyDashboardStats {
+  totalBalance: number;
+  totalIncome: number;
+  totalExpense: number;
+  totalSavings: number;
+  totalDebtsGiven: number;
+  totalDebtsTaken: number;
+  activeGoals: number;
+  activeBudgets: number;
+  budgetProgress: BudgetProgressItem[];
+  savingsProgress: SavingsProgressItem[];
+}
+
+export interface BudgetProgressItem {
+  categoryName: string;
+  budgetAmount: number;
+  spentAmount: number;
+  percentage: number;
+}
+
+export interface SavingsProgressItem {
+  goalName: string;
+  targetAmount: number;
+  currentAmount: number;
+  percentage: number;
 }
 
 // Chart Data Types
-export interface ChartData {
-  salesTrend: SalesTrendItem[];
-  topProducts: TopProductItem[];
-  paymentMethods: PaymentMethodItem[];
-  categorySales: CategorySalesItem[];
-  weekdaySales: WeekdaySalesItem[];
-  hourlySales: HourlySalesItem[];
-  thisWeekRevenue: number;
-  lastWeekRevenue: number;
-  thisMonthRevenue: number;
-  lastMonthRevenue: number;
-  revenueGrowthPercent: number;
-  salesGrowthPercent: number;
+export interface FamilyChartData {
+  monthlyTrend: MonthlyTrendItem[];
+  expenseByCategory: CategoryChartItem[];
+  incomeByCategory: CategoryChartItem[];
 }
 
-export interface SalesTrendItem {
-  date: string;
-  salesCount: number;
-  revenue: number;
+export interface MonthlyTrendItem {
+  month: string;
+  income: number;
+  expense: number;
 }
 
-export interface TopProductItem {
-  productId: number;
-  productName: string;
-  productSku: string;
-  quantitySold: number;
-  revenue: number;
-}
-
-export interface PaymentMethodItem {
-  method: string;
-  methodLabel: string;
-  count: number;
+export interface CategoryChartItem {
+  name: string;
   amount: number;
+  color?: string;
   percentage: number;
-}
-
-export interface CategorySalesItem {
-  categoryId: number;
-  categoryName: string;
-  quantitySold: number;
-  revenue: number;
-  percentage: number;
-}
-
-export interface WeekdaySalesItem {
-  day: string;
-  dayOfWeek: number;
-  salesCount: number;
-  revenue: number;
-}
-
-export interface HourlySalesItem {
-  hour: number;
-  hourLabel: string;
-  salesCount: number;
-  revenue: number;
-}
-
-// Cart Types (for POS)
-export interface CartItem {
-  product: Product;
-  quantity: number;
-  discount: number;
-}
-
-// Warehouse Types
-export type MovementType = 'IN' | 'OUT' | 'ADJUSTMENT';
-
-export interface StockMovement {
-  id: number;
-  productId: number;
-  productName: string;
-  productSku: string;
-  movementType: MovementType;
-  quantity: number;
-  previousStock: number;
-  newStock: number;
-  referenceType: string;
-  referenceId?: number;
-  notes?: string;
-  createdByName: string;
-  createdAt: string;
-}
-
-export interface StockAdjustmentRequest {
-  productId: number;
-  movementType: MovementType;
-  quantity: number;
-  referenceType?: string;
-  notes?: string;
-}
-
-export interface WarehouseStats {
-  totalProducts: number;
-  totalStock: number;
-  lowStockCount: number;
-  todayIncoming: number;
-  todayOutgoing: number;
-  todayInMovements: number;
-  todayOutMovements: number;
 }
 
 // Report Types
-export interface SalesReport {
-  totalRevenue: number;
-  totalProfit: number;
-  totalSalesCount: number;
-  completedSalesCount: number;
-  cancelledSalesCount: number;
-  averageSaleAmount: number;
-  cashTotal: number;
-  cardTotal: number;
-  transferTotal: number;
-  debtTotal: number;
-  dailyData: DailySalesData[];
-  topProducts: TopSellingProduct[];
-  topCustomers: TopCustomer[];
+export interface IncomeExpenseReport {
+  totalIncome: number;
+  totalExpense: number;
+  from: string;
+  to: string;
 }
 
-export interface DailySalesData {
-  date: string;
-  revenue: number;
-  salesCount: number;
-}
-
-export interface TopSellingProduct {
-  productId: number;
-  productName: string;
-  productSku: string;
-  quantitySold: number;
-  totalRevenue: number;
-}
-
-export interface TopCustomer {
-  customerId: number;
-  customerName: string;
-  customerPhone: string;
-  purchaseCount: number;
-  totalSpent: number;
-}
-
-// Warehouse Report Types
-export interface WarehouseReport {
-  totalProducts: number;
-  totalStock: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-  totalStockValue: number;
-  totalPotentialRevenue: number;
-  totalIncoming: number;
-  totalOutgoing: number;
-  inMovementsCount: number;
-  outMovementsCount: number;
-  stockByCategory: StockByCategory[];
-  stockByBrand: StockByBrand[];
-  lowStockProducts: LowStockProduct[];
-  recentMovements: MovementSummary[];
-}
-
-export interface StockByCategory {
+export interface CategoryReport {
   categoryId: number;
   categoryName: string;
-  productCount: number;
-  totalStock: number;
-  stockValue: number;
-}
-
-export interface StockByBrand {
-  brandId: number;
-  brandName: string;
-  productCount: number;
-  totalStock: number;
-  stockValue: number;
-}
-
-export interface LowStockProduct {
-  productId: number;
-  productName: string;
-  productSku: string;
-  currentStock: number;
-  minStockLevel: number;
-  sellingPrice: number;
-}
-
-export interface MovementSummary {
-  date: string;
-  inCount: number;
-  outCount: number;
-  inQuantity: number;
-  outQuantity: number;
-}
-
-// Debts Report Types
-export interface DebtsReport {
-  totalActiveDebt: number;
-  totalPaidDebt: number;
-  totalOverdueDebt: number;
-  activeDebtsCount: number;
-  paidDebtsCount: number;
-  overdueDebtsCount: number;
-  totalPaymentsReceived: number;
-  paymentsCount: number;
-  averageDebtAmount: number;
-  topDebtors: CustomerDebtSummary[];
-  debtAging: DebtAging[];
-  recentPayments: PaymentSummaryItem[];
-  overdueDebts: OverdueDebtItem[];
-}
-
-export interface CustomerDebtSummary {
-  customerId: number;
-  customerName: string;
-  customerPhone: string;
-  totalDebt: number;
-  debtsCount: number;
-  overdueCount: number;
-}
-
-export interface DebtAging {
-  period: string;
-  count: number;
   amount: number;
+  percentage: number;
 }
 
-export interface PaymentSummaryItem {
-  date: string;
-  count: number;
-  amount: number;
-}
-
-export interface OverdueDebtItem {
-  debtId: number;
-  customerId: number;
-  customerName: string;
-  customerPhone: string;
-  remainingAmount: number;
-  dueDate: string;
-  daysOverdue: number;
-}
-
-// Supplier Types
-export interface Supplier {
-  id: number;
-  name: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  bankDetails?: string;
-  balance: number;
-  hasDebt: boolean;
-  notes?: string;
-  active: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface SupplierRequest {
-  name: string;
-  contactPerson?: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  bankDetails?: string;
-  notes?: string;
-}
-
-// Purchase Order Types
-export type PurchaseStatus = 'DRAFT' | 'RECEIVED' | 'CANCELLED';
-export type PurchaseReturnStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
-
-export interface PurchaseOrderItem {
-  id: number;
-  productId: number;
-  productName: string;
-  productSku: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-export interface PurchaseOrder {
-  id: number;
-  orderNumber: string;
-  supplierId: number;
-  supplierName: string;
-  orderDate: string;
-  dueDate?: string;
-  totalAmount: number;
-  paidAmount: number;
-  debtAmount: number;
-  status: PurchaseStatus;
-  paymentStatus: PaymentStatus;
-  notes?: string;
-  items: PurchaseOrderItem[];
-  itemCount: number;
-  totalQuantity: number;
-  paymentCount: number;
-  returnCount: number;
-  createdAt: string;
-  createdByName: string;
-}
-
-export interface PurchaseItemRequest {
-  productId: number;
-  quantity: number;
-  unitPrice: number;
-}
-
-export interface PurchaseRequest {
-  supplierId: number;
-  orderDate: string;
-  paidAmount: number;
-  notes?: string;
-  items: PurchaseItemRequest[];
-}
-
-export interface PurchaseStats {
-  totalPurchases: number;
-  todayPurchases: number;
-  monthPurchases: number;
-  totalAmount: number;
-  totalDebt: number;
-  pendingReturns: number;
-}
-
-// Purchase Payment Types
-export interface PurchasePayment {
-  id: number;
-  purchaseOrderId: number;
-  amount: number;
-  paymentDate: string;
-  paymentMethod: PaymentMethod;
-  referenceNumber?: string;
-  notes?: string;
-  receivedByName: string;
-  createdAt: string;
-}
-
-export interface PurchasePaymentRequest {
-  amount: number;
-  paymentDate: string;
-  paymentMethod: PaymentMethod;
-  referenceNumber?: string;
-  notes?: string;
-}
-
-// Purchase Return Types
-export interface PurchaseReturnItem {
-  id: number;
-  productId: number;
-  productName: string;
-  productSku: string;
-  returnedQuantity: number;
-  unitPrice: number;
-  totalPrice: number;
-}
-
-export interface PurchaseReturn {
-  id: number;
-  returnNumber: string;
-  purchaseOrderId: number;
-  purchaseOrderNumber: string;
-  supplierId: number;
-  supplierName: string;
-  returnDate: string;
-  reason: string;
-  status: PurchaseReturnStatus;
-  refundAmount: number;
-  items: PurchaseReturnItem[];
-  createdByName: string;
-  approvedByName?: string;
-  approvedAt?: string;
-  createdAt: string;
-}
-
-export interface PurchaseReturnItemRequest {
-  productId: number;
-  quantity: number;
-}
-
-export interface PurchaseReturnRequest {
-  returnDate: string;
-  reason: string;
-  items: PurchaseReturnItemRequest[];
-}
-
-// Employee Types
-export type EmployeeStatus = 'ACTIVE' | 'ON_LEAVE' | 'TERMINATED';
-
-export interface Employee {
-  id: number;
-  // Asosiy maydonlar
-  fullName: string;
-  phone: string;
-  email?: string;
-  position: string;
-  department?: string;
-  salary?: number;
-  hireDate: string;
-  status: EmployeeStatus;
-  // Kengaytirilgan maydonlar
-  birthDate?: string;
-  passportNumber?: string;
-  address?: string;
-  bankAccountNumber?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  // User ma'lumotlari
-  userId?: number;
-  username?: string;
-  userRole?: string;
-  hasUserAccount: boolean;
-  // Yangi yaratilgan credential'lar (faqat bir marta ko'rsatiladi)
-  newCredentials?: CredentialsInfo;
-}
-
-export interface EmployeeRequest {
-  fullName: string;
-  phone: string;
-  email?: string;
-  position: string;
-  department?: string;
-  salary?: number;
-  hireDate: string;
-  status?: EmployeeStatus;
-  birthDate?: string;
-  passportNumber?: string;
-  address?: string;
-  bankAccountNumber?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  userId?: number;
-  // User yaratish
-  createUserAccount?: boolean;
-  roleCode?: string;
+export interface MemberReport {
+  memberId: number;
+  memberName: string;
+  totalExpense: number;
 }
 
 // Audit Log Detail Types

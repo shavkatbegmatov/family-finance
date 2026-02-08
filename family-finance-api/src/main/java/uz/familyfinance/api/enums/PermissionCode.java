@@ -3,106 +3,84 @@ package uz.familyfinance.api.enums;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Type-safe permission codes enum.
- * Must match the codes in the permissions database table.
- */
 @Getter
 @RequiredArgsConstructor
 public enum PermissionCode {
 
-    // DASHBOARD module
+    // DASHBOARD
     DASHBOARD_VIEW("DASHBOARD", "VIEW"),
 
-    // PRODUCTS module
-    PRODUCTS_VIEW("PRODUCTS", "VIEW"),
-    PRODUCTS_CREATE("PRODUCTS", "CREATE"),
-    PRODUCTS_UPDATE("PRODUCTS", "UPDATE"),
-    PRODUCTS_DELETE("PRODUCTS", "DELETE"),
+    // TRANSACTIONS
+    TRANSACTIONS_VIEW("TRANSACTIONS", "VIEW"),
+    TRANSACTIONS_CREATE("TRANSACTIONS", "CREATE"),
+    TRANSACTIONS_UPDATE("TRANSACTIONS", "UPDATE"),
+    TRANSACTIONS_DELETE("TRANSACTIONS", "DELETE"),
+    TRANSACTIONS_EXPORT("TRANSACTIONS", "EXPORT"),
 
-    // BRANDS module
-    BRANDS_VIEW("BRANDS", "VIEW"),
-    BRANDS_CREATE("BRANDS", "CREATE"),
-    BRANDS_UPDATE("BRANDS", "UPDATE"),
-    BRANDS_DELETE("BRANDS", "DELETE"),
+    // ACCOUNTS
+    ACCOUNTS_VIEW("ACCOUNTS", "VIEW"),
+    ACCOUNTS_CREATE("ACCOUNTS", "CREATE"),
+    ACCOUNTS_UPDATE("ACCOUNTS", "UPDATE"),
+    ACCOUNTS_DELETE("ACCOUNTS", "DELETE"),
+    ACCOUNTS_TRANSFER("ACCOUNTS", "TRANSFER"),
+    ACCOUNTS_EXPORT("ACCOUNTS", "EXPORT"),
 
-    // CATEGORIES module
+    // CATEGORIES
     CATEGORIES_VIEW("CATEGORIES", "VIEW"),
     CATEGORIES_CREATE("CATEGORIES", "CREATE"),
     CATEGORIES_UPDATE("CATEGORIES", "UPDATE"),
     CATEGORIES_DELETE("CATEGORIES", "DELETE"),
 
-    // SALES module
-    SALES_VIEW("SALES", "VIEW"),
-    SALES_CREATE("SALES", "CREATE"),
-    SALES_UPDATE("SALES", "UPDATE"),
-    SALES_DELETE("SALES", "DELETE"),
-    SALES_REFUND("SALES", "REFUND"),
+    // BUDGETS
+    BUDGETS_VIEW("BUDGETS", "VIEW"),
+    BUDGETS_CREATE("BUDGETS", "CREATE"),
+    BUDGETS_UPDATE("BUDGETS", "UPDATE"),
+    BUDGETS_DELETE("BUDGETS", "DELETE"),
+    BUDGETS_EXPORT("BUDGETS", "EXPORT"),
 
-    // CUSTOMERS module
-    CUSTOMERS_VIEW("CUSTOMERS", "VIEW"),
-    CUSTOMERS_CREATE("CUSTOMERS", "CREATE"),
-    CUSTOMERS_UPDATE("CUSTOMERS", "UPDATE"),
-    CUSTOMERS_DELETE("CUSTOMERS", "DELETE"),
+    // SAVINGS
+    SAVINGS_VIEW("SAVINGS", "VIEW"),
+    SAVINGS_CREATE("SAVINGS", "CREATE"),
+    SAVINGS_UPDATE("SAVINGS", "UPDATE"),
+    SAVINGS_DELETE("SAVINGS", "DELETE"),
+    SAVINGS_CONTRIBUTE("SAVINGS", "CONTRIBUTE"),
+    SAVINGS_EXPORT("SAVINGS", "EXPORT"),
 
-    // DEBTS module
+    // DEBTS
     DEBTS_VIEW("DEBTS", "VIEW"),
     DEBTS_CREATE("DEBTS", "CREATE"),
     DEBTS_UPDATE("DEBTS", "UPDATE"),
     DEBTS_DELETE("DEBTS", "DELETE"),
     DEBTS_PAY("DEBTS", "PAY"),
+    DEBTS_EXPORT("DEBTS", "EXPORT"),
 
-    // WAREHOUSE module
-    WAREHOUSE_VIEW("WAREHOUSE", "VIEW"),
-    WAREHOUSE_CREATE("WAREHOUSE", "CREATE"),
-    WAREHOUSE_UPDATE("WAREHOUSE", "UPDATE"),
-    WAREHOUSE_DELETE("WAREHOUSE", "DELETE"),
-    WAREHOUSE_ADJUST("WAREHOUSE", "ADJUST"),
+    // FAMILY MEMBERS
+    FAMILY_VIEW("FAMILY", "VIEW"),
+    FAMILY_CREATE("FAMILY", "CREATE"),
+    FAMILY_UPDATE("FAMILY", "UPDATE"),
+    FAMILY_DELETE("FAMILY", "DELETE"),
+    FAMILY_EXPORT("FAMILY", "EXPORT"),
 
-    // SUPPLIERS module
-    SUPPLIERS_VIEW("SUPPLIERS", "VIEW"),
-    SUPPLIERS_CREATE("SUPPLIERS", "CREATE"),
-    SUPPLIERS_UPDATE("SUPPLIERS", "UPDATE"),
-    SUPPLIERS_DELETE("SUPPLIERS", "DELETE"),
-
-    // PURCHASES module
-    PURCHASES_VIEW("PURCHASES", "VIEW"),
-    PURCHASES_CREATE("PURCHASES", "CREATE"),
-    PURCHASES_UPDATE("PURCHASES", "UPDATE"),
-    PURCHASES_DELETE("PURCHASES", "DELETE"),
-    PURCHASES_RECEIVE("PURCHASES", "RECEIVE"),
-    PURCHASES_RETURN("PURCHASES", "RETURN"),
-
-    // REPORTS module
-    REPORTS_VIEW_SALES("REPORTS", "VIEW_SALES"),
-    REPORTS_VIEW_WAREHOUSE("REPORTS", "VIEW_WAREHOUSE"),
-    REPORTS_VIEW_DEBTS("REPORTS", "VIEW_DEBTS"),
+    // REPORTS
+    REPORTS_VIEW("REPORTS", "VIEW"),
     REPORTS_EXPORT("REPORTS", "EXPORT"),
 
-    // EMPLOYEES module
-    EMPLOYEES_VIEW("EMPLOYEES", "VIEW"),
-    EMPLOYEES_CREATE("EMPLOYEES", "CREATE"),
-    EMPLOYEES_UPDATE("EMPLOYEES", "UPDATE"),
-    EMPLOYEES_DELETE("EMPLOYEES", "DELETE"),
-    EMPLOYEES_CHANGE_ROLE("EMPLOYEES", "CHANGE_ROLE"),
-    EMPLOYEES_MANAGE_ACCESS("EMPLOYEES", "MANAGE_ACCESS"),
-
-    // USERS module
+    // USERS
     USERS_VIEW("USERS", "VIEW"),
     USERS_CREATE("USERS", "CREATE"),
     USERS_UPDATE("USERS", "UPDATE"),
     USERS_DELETE("USERS", "DELETE"),
     USERS_CHANGE_ROLE("USERS", "CHANGE_ROLE"),
 
-    // SETTINGS module
+    // SETTINGS
     SETTINGS_VIEW("SETTINGS", "VIEW"),
     SETTINGS_UPDATE("SETTINGS", "UPDATE"),
 
-    // NOTIFICATIONS module
+    // NOTIFICATIONS
     NOTIFICATIONS_VIEW("NOTIFICATIONS", "VIEW"),
     NOTIFICATIONS_MANAGE("NOTIFICATIONS", "MANAGE"),
 
-    // ROLES module
+    // ROLES
     ROLES_VIEW("ROLES", "VIEW"),
     ROLES_CREATE("ROLES", "CREATE"),
     ROLES_UPDATE("ROLES", "UPDATE"),
@@ -111,16 +89,10 @@ public enum PermissionCode {
     private final String module;
     private final String action;
 
-    /**
-     * Get permission code as string (e.g., "PRODUCTS_VIEW")
-     */
     public String getCode() {
         return this.name();
     }
 
-    /**
-     * Find PermissionCode by string code
-     */
     public static PermissionCode fromCode(String code) {
         for (PermissionCode permission : values()) {
             if (permission.name().equals(code)) {
@@ -130,9 +102,6 @@ public enum PermissionCode {
         throw new IllegalArgumentException("Unknown permission code: " + code);
     }
 
-    /**
-     * Check if a string code is a valid permission
-     */
     public static boolean isValidCode(String code) {
         for (PermissionCode permission : values()) {
             if (permission.name().equals(code)) {

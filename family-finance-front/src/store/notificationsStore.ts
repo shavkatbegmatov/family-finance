@@ -5,7 +5,7 @@ import { webSocketService, type WebSocketNotification, type PermissionUpdateMess
 import { useAuthStore } from './authStore';
 
 // Frontend uchun notification type mapping
-type FrontendNotificationType = 'warning' | 'success' | 'info' | 'order' | 'payment' | 'customer';
+type FrontendNotificationType = 'warning' | 'success' | 'info' | 'transaction' | 'budget' | 'debt' | 'savings';
 
 export interface Notification {
   id: number;
@@ -21,10 +21,12 @@ export interface Notification {
 // Backend type -> Frontend type
 const mapNotificationType = (backendType: StaffNotificationType): FrontendNotificationType => {
   const mapping: Record<StaffNotificationType, FrontendNotificationType> = {
-    ORDER: 'order',
-    PAYMENT: 'payment',
+    TRANSACTION: 'transaction',
+    BUDGET_WARNING: 'budget',
+    BUDGET_EXCEEDED: 'warning',
+    DEBT_REMINDER: 'debt',
+    SAVINGS_MILESTONE: 'savings',
     WARNING: 'warning',
-    CUSTOMER: 'customer',
     INFO: 'info',
     SUCCESS: 'success',
     PERMISSION_UPDATE: 'info',

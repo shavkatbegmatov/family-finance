@@ -2,18 +2,17 @@ import type { CSSProperties } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Package,
-  ShoppingCart,
+  ArrowLeftRight,
+  Wallet,
+  Tags,
+  PieChart,
+  Target,
+  HandMetal,
   Users,
-  CreditCard,
-  Warehouse,
-  TruckIcon,
-  ShoppingBag,
   BarChart3,
   Bell,
   Settings,
   X,
-  UserCog,
   Shield,
   FileText,
 } from 'lucide-react';
@@ -22,27 +21,23 @@ import { useUIStore } from '../../store/uiStore';
 import { PermissionCode } from '../../hooks/usePermission';
 import clsx from 'clsx';
 
-// Menu items with permission-based visibility
 const menuItems = [
-  { path: '/', icon: LayoutDashboard, label: 'Dashboard', permission: PermissionCode.DASHBOARD_VIEW },
-  { path: '/products', icon: Package, label: 'Mahsulotlar', permission: PermissionCode.PRODUCTS_VIEW },
-  { path: '/pos', icon: ShoppingCart, label: 'Kassa (POS)', permission: PermissionCode.SALES_CREATE },
-  { path: '/sales', icon: CreditCard, label: 'Sotuvlar', permission: PermissionCode.SALES_VIEW },
-  { path: '/customers', icon: Users, label: 'Mijozlar', permission: PermissionCode.CUSTOMERS_VIEW },
-  { path: '/debts', icon: CreditCard, label: 'Qarzlar', permission: PermissionCode.DEBTS_VIEW },
-  { path: '/warehouse', icon: Warehouse, label: 'Ombor', permission: PermissionCode.WAREHOUSE_VIEW },
-  { path: '/suppliers', icon: TruckIcon, label: "Ta'minotchilar", permission: PermissionCode.SUPPLIERS_VIEW },
-  { path: '/purchases', icon: ShoppingBag, label: 'Xaridlar', permission: PermissionCode.PURCHASES_VIEW },
-  { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW_SALES },
+  { path: '/', icon: LayoutDashboard, label: 'Bosh sahifa', permission: PermissionCode.DASHBOARD_VIEW },
+  { path: '/transactions', icon: ArrowLeftRight, label: 'Tranzaksiyalar', permission: PermissionCode.TRANSACTIONS_VIEW },
+  { path: '/accounts', icon: Wallet, label: 'Hisoblar', permission: PermissionCode.ACCOUNTS_VIEW },
+  { path: '/categories', icon: Tags, label: 'Kategoriyalar', permission: PermissionCode.CATEGORIES_VIEW },
+  { path: '/budget', icon: PieChart, label: 'Byudjet', permission: PermissionCode.BUDGETS_VIEW },
+  { path: '/savings', icon: Target, label: "Jamg'armalar", permission: PermissionCode.SAVINGS_VIEW },
+  { path: '/debts', icon: HandMetal, label: 'Qarzlar', permission: PermissionCode.DEBTS_VIEW },
+  { path: '/family', icon: Users, label: "Oila a'zolari", permission: PermissionCode.FAMILY_VIEW },
+  { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW },
   { path: '/notifications', icon: Bell, label: 'Bildirishnomalar', permission: PermissionCode.NOTIFICATIONS_VIEW },
-  { path: '/employees', icon: UserCog, label: 'Xodimlar', permission: PermissionCode.EMPLOYEES_VIEW },
   { path: '/roles', icon: Shield, label: 'Rollar', permission: PermissionCode.ROLES_VIEW },
-  { path: '/audit-logs', icon: FileText, label: 'Audit Loglar', permission: PermissionCode.SETTINGS_VIEW },
+  { path: '/audit-logs', icon: FileText, label: 'Audit loglar', permission: PermissionCode.SETTINGS_VIEW },
   { path: '/settings', icon: Settings, label: 'Sozlamalar', permission: PermissionCode.SETTINGS_VIEW },
 ];
 
 export function Sidebar() {
-  // Use Zustand selector to subscribe to permissions specifically
   const permissions = useAuthStore((state) => state.permissions);
   const { sidebarOpen, setSidebarOpen } = useUIStore();
 
@@ -52,7 +47,6 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
@@ -62,7 +56,6 @@ export function Sidebar() {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={clsx(
           'fixed left-0 top-0 z-50 flex h-screen w-72 flex-col bg-base-100/95 backdrop-blur transition-transform lg:sticky lg:translate-x-0',
