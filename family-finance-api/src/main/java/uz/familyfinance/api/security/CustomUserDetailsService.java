@@ -1,0 +1,40 @@
+package uz.familyfinance.api.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.repository.UserRepository;
+
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final UserRepository userRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // Fetch user with roles and permissions eagerly loaded
+        User user = userRepository.findByUsernameWithRolesAndPermissions(username)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Foydalanuvchi topilmadi: " + username
+                ));
+
+        return new CustomUserDetails(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserDetails loadUserById(Long id) {
+        // Fetch user with roles and permissions eagerly loaded
+        User user = userRepository.findByIdWithRolesAndPermissions(id)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Foydalanuvchi topilmadi: " + id
+                ));
+
+        return new CustomUserDetails(user);
+    }
+}

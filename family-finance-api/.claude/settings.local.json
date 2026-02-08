@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(ren:*)",
+      "Bash(.mvnw.cmd clean compile:*)",
+      "Bash(cmd /c \"cd /d D:\\\\Projects\\\\FAMILY_FINANCE\\\\family-finance\\\\family-finance-api && mvnw.cmd clean compile -DskipTests\")"
+    ]
+  }
+}
