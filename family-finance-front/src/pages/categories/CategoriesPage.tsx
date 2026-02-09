@@ -16,6 +16,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { Select } from '../../components/ui/Select';
+import { getCategoryIcon } from '../../utils/icons';
 import type {
   FinanceCategory,
   FinanceCategoryRequest,
@@ -210,7 +211,7 @@ export function CategoriesPage() {
         />
         {/* Icon */}
         {category.icon && (
-          <span className="text-base-content/70 text-sm shrink-0">{category.icon}</span>
+          <span className="shrink-0">{getCategoryIcon(category.icon, category.color)}</span>
         )}
         {/* Name */}
         <span className="font-medium truncate">{category.name}</span>
