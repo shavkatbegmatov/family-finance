@@ -71,9 +71,9 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
         onKeyDown={(e) => { if (e.key === 'Enter' && onClick) onClick(member); }}
       >
         {/* Relation label */}
-        {relationLabel && (
+        {(relationLabel || isRoot) && (
           <div className="text-[10px] font-medium text-base-content/50 mb-1">
-            {relationLabel}
+            {isRoot ? "O'zim" : relationLabel}
           </div>
         )}
 
@@ -89,8 +89,7 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
           className={clsx(
             'rounded-full flex items-center justify-center text-white font-bold mb-2',
             getGenderColor(member.gender),
-            avatarSizes[size],
-            isRoot && 'mt-1'
+            avatarSizes[size]
           )}
         >
           {member.avatar ? (
