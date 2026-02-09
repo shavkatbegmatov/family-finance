@@ -25,14 +25,28 @@ interface AddRelationModalProps {
 
 type ModalMode = 'new' | 'existing';
 
-// Category bo'yicha guruhlangan relationship type'lar
-const groupedRelationTypes = () => {
+import type { SelectOption } from '../ui/Select';
+
+// Category bo'yicha guruhlangan relationship type'larni yassi optionlar ro'yxatiga aylantirish
+const buildRelationshipOptions = (): SelectOption[] => {
   const groups: Record<string, { value: string; label: string }[]> = {};
   Object.entries(RELATIONSHIP_TYPES).forEach(([key, { label, category }]) => {
     if (!groups[category]) groups[category] = [];
     groups[category].push({ value: key, label });
   });
-  return groups;
+
+  const options: SelectOption[] = [];
+  Object.entries(groups).forEach(([cat, items]) => {
+    options.push({
+      value: `__group_${cat}`,
+      label: `── ${RELATIONSHIP_CATEGORIES[cat] || cat} ──`,
+      disabled: true,
+    });
+    items.forEach(item => {
+      options.push({ value: item.value, label: item.label });
+    });
+  });
+  return options;
 };
 
 export function AddRelationModal({
@@ -135,7 +149,12 @@ export function AddRelationModal({
     return !!selectedMemberId;
   };
 
-  const groups = groupedRelationTypes();
+  const relationshipOptions = buildRelationshipOptions();
+
+  const memberOptions: SelectOption[] = existingMembers.map(m => ({
+    value: m.id,
+    label: m.fullName,
+  }));
 
   return (
     <ModalPortal isOpen={isOpen} onClose={handleClose}>
@@ -182,26 +201,15 @@ export function AddRelationModal({
               </div>
             )}
 
-            {/* Relationship Type — grouped select */}
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Munosabat turi <span className="text-error">*</span></span>
-              </label>
-              <select
-                className="select select-bordered w-full"
-                value={relationshipType}
-                onChange={(e) => setRelationshipType(e.target.value as RelationshipType)}
-              >
-                <option value="">Tanlang...</option>
-                {Object.entries(groups).map(([cat, items]) => (
-                  <optgroup key={cat} label={RELATIONSHIP_CATEGORIES[cat] || cat}>
-                    {items.map(item => (
-                      <option key={item.value} value={item.value}>{item.label}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
+            {/* Relationship Type */}
+            <Select
+              label="Munosabat turi"
+              required
+              value={relationshipType || undefined}
+              onChange={(val) => setRelationshipType((val as RelationshipType) || '')}
+              options={relationshipOptions}
+              placeholder="Tanlang..."
+            />
 
             {mode === 'new' ? (
               <>
@@ -283,24 +291,15 @@ export function AddRelationModal({
                 </div>
               </>
             ) : (
-              <>
-                {/* Select existing member */}
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium">Oila a&apos;zosi <span className="text-error">*</span></span>
-                  </label>
-                  <select
-                    className="select select-bordered w-full"
-                    value={selectedMemberId}
-                    onChange={(e) => setSelectedMemberId(Number(e.target.value) || '')}
-                  >
-                    <option value="">Tanlang...</option>
-                    {existingMembers.map(m => (
-                      <option key={m.id} value={m.id}>{m.fullName}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
+              <Select
+                label="Oila a'zosi"
+                required
+                value={selectedMemberId || undefined}
+                onChange={(val) => setSelectedMemberId(typeof val === 'number' ? val : Number(val) || '')}
+                options={memberOptions}
+                placeholder="Tanlang..."
+                icon={<Users className="h-4 w-4" />}
+              />
             )}
           </div>
 
