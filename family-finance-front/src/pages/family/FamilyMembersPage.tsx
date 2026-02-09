@@ -12,6 +12,8 @@ import {
   Check,
   KeyRound,
   Link,
+  List,
+  TreePine,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { familyMembersApi } from '../../api/family-members.api';
@@ -20,6 +22,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { FamilyTreeView } from '../../components/family/FamilyTreeView';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -34,6 +37,7 @@ import type {
 } from '../../types';
 
 export function FamilyMembersPage() {
+  const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -231,130 +235,166 @@ export function FamilyMembersPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="surface-card p-4">
-        <SearchInput
-          value={searchQuery}
-          onValueChange={(val) => {
-            setSearchQuery(val);
-            setPage(0);
-          }}
-          placeholder="Ism bo'yicha qidirish..."
-          hideLabel
-          ariaLabel="Qidirish"
-          className="max-w-sm"
-        />
+      {/* Tabs */}
+      <div className="flex gap-1 bg-base-200 rounded-lg p-1 w-fit">
+        <button
+          className={clsx(
+            'btn btn-sm gap-2',
+            activeTab === 'list' ? 'btn-primary' : 'btn-ghost'
+          )}
+          onClick={() => setActiveTab('list')}
+        >
+          <List className="h-4 w-4" />
+          Ro'yxat
+        </button>
+        <button
+          className={clsx(
+            'btn btn-sm gap-2',
+            activeTab === 'tree' ? 'btn-primary' : 'btn-ghost'
+          )}
+          onClick={() => setActiveTab('tree')}
+        >
+          <TreePine className="h-4 w-4" />
+          Oila daraxti
+        </button>
       </div>
 
-      {/* Members Grid */}
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
+      {/* ============ TREE VIEW ============ */}
+      {activeTab === 'tree' && (
+        <div className="surface-card p-4 sm:p-6 overflow-x-auto">
+          <FamilyTreeView onEdit={handleOpenEditModal} onAdd={handleOpenAddModal} />
         </div>
-      ) : members.length === 0 ? (
-        <div className="surface-card p-12 text-center">
-          <Users className="h-16 w-16 mx-auto mb-4 text-base-content/20" />
-          <h3 className="text-lg font-semibold mb-2">Oila a'zolari topilmadi</h3>
-          <p className="text-sm text-base-content/60 mb-4">
-            {searchQuery
-              ? `"${searchQuery}" bo'yicha natijalar topilmadi`
-              : "Birinchi oila a'zosini qo'shing"}
-          </p>
-          {!searchQuery && (
-            <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
-              <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal}>
-                <Plus className="h-4 w-4" />
-                Yangi a'zo qo'shish
-              </button>
-            </PermissionGate>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {members.map((member) => (
-            <div
-              key={member.id}
-              className={clsx(
-                'surface-card p-5 flex flex-col items-center text-center relative group transition-shadow hover:shadow-md',
-                !member.isActive && 'opacity-60'
-              )}
-            >
-              {/* Active indicator */}
-              <div
-                className={clsx(
-                  'absolute top-3 right-3 h-2.5 w-2.5 rounded-full',
-                  member.isActive ? 'bg-success' : 'bg-base-content/20'
-                )}
-                title={member.isActive ? 'Faol' : 'Nofaol'}
-              />
+      )}
 
-              {/* Avatar */}
-              <div
-                className={clsx(
-                  'h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-3',
-                  getRoleColor(member.role)
-                )}
-              >
-                {member.avatar ? (
-                  <img
-                    src={member.avatar}
-                    alt={member.fullName}
-                    className="h-16 w-16 rounded-full object-cover"
-                  />
-                ) : (
-                  getInitial(member.fullName)
-                )}
-              </div>
+      {/* ============ LIST VIEW ============ */}
+      {activeTab === 'list' && (
+        <>
+          {/* Search */}
+          <div className="surface-card p-4">
+            <SearchInput
+              value={searchQuery}
+              onValueChange={(val) => {
+                setSearchQuery(val);
+                setPage(0);
+              }}
+              placeholder="Ism bo'yicha qidirish..."
+              hideLabel
+              ariaLabel="Qidirish"
+              className="max-w-sm"
+            />
+          </div>
 
-              {/* Name */}
-              <h3 className="font-semibold text-base mb-1">{member.fullName}</h3>
-
-              {/* Role */}
-              <span className="badge badge-sm badge-outline mb-3">
-                {FAMILY_ROLES[member.role]?.label || member.role}
-              </span>
-
-              {/* Info */}
-              <div className="w-full space-y-1.5 text-sm text-base-content/70">
-                {member.phone && (
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 text-base-content/40" />
-                    <span>{member.phone}</span>
-                  </div>
-                )}
-                {member.birthDate && (
-                  <div className="flex items-center justify-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5 text-base-content/40" />
-                    <span>{formatDate(member.birthDate)}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
-                  <button
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => handleOpenEditModal(member)}
-                    title="Tahrirlash"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Tahrirlash
-                  </button>
-                </PermissionGate>
-                <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
-                  <button
-                    className="btn btn-ghost btn-xs text-error"
-                    onClick={() => setDeletingMemberId(member.id)}
-                    title="O'chirish"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </PermissionGate>
-              </div>
+          {/* Members Grid */}
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
-          ))}
-        </div>
+          ) : members.length === 0 ? (
+            <div className="surface-card p-12 text-center">
+              <Users className="h-16 w-16 mx-auto mb-4 text-base-content/20" />
+              <h3 className="text-lg font-semibold mb-2">Oila a'zolari topilmadi</h3>
+              <p className="text-sm text-base-content/60 mb-4">
+                {searchQuery
+                  ? `"${searchQuery}" bo'yicha natijalar topilmadi`
+                  : "Birinchi oila a'zosini qo'shing"}
+              </p>
+              {!searchQuery && (
+                <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
+                  <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal}>
+                    <Plus className="h-4 w-4" />
+                    Yangi a'zo qo'shish
+                  </button>
+                </PermissionGate>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className={clsx(
+                    'surface-card p-5 flex flex-col items-center text-center relative group transition-shadow hover:shadow-md',
+                    !member.isActive && 'opacity-60'
+                  )}
+                >
+                  {/* Active indicator */}
+                  <div
+                    className={clsx(
+                      'absolute top-3 right-3 h-2.5 w-2.5 rounded-full',
+                      member.isActive ? 'bg-success' : 'bg-base-content/20'
+                    )}
+                    title={member.isActive ? 'Faol' : 'Nofaol'}
+                  />
+
+                  {/* Avatar */}
+                  <div
+                    className={clsx(
+                      'h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-3',
+                      getRoleColor(member.role)
+                    )}
+                  >
+                    {member.avatar ? (
+                      <img
+                        src={member.avatar}
+                        alt={member.fullName}
+                        className="h-16 w-16 rounded-full object-cover"
+                      />
+                    ) : (
+                      getInitial(member.fullName)
+                    )}
+                  </div>
+
+                  {/* Name */}
+                  <h3 className="font-semibold text-base mb-1">{member.fullName}</h3>
+
+                  {/* Role */}
+                  <span className="badge badge-sm badge-outline mb-3">
+                    {FAMILY_ROLES[member.role]?.label || member.role}
+                  </span>
+
+                  {/* Info */}
+                  <div className="w-full space-y-1.5 text-sm text-base-content/70">
+                    {member.phone && (
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-base-content/40" />
+                        <span>{member.phone}</span>
+                      </div>
+                    )}
+                    {member.birthDate && (
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-base-content/40" />
+                        <span>{formatDate(member.birthDate)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={() => handleOpenEditModal(member)}
+                        title="Tahrirlash"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                        Tahrirlash
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
+                      <button
+                        className="btn btn-ghost btn-xs text-error"
+                        onClick={() => setDeletingMemberId(member.id)}
+                        title="O'chirish"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </PermissionGate>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Add/Edit Modal */}
