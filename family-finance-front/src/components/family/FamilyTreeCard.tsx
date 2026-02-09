@@ -56,12 +56,12 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
   const age = getAge(member.birthDate);
 
   return (
-    <div className="relative group">
+    <div className={clsx('relative group', onAddRelation && 'pb-2')}>
       <div
         className={clsx(
           'relative flex flex-col items-center rounded-xl border-2 bg-base-100 p-3 text-center',
-          'transition-all duration-200 hover:shadow-lg',
-          onClick && 'cursor-pointer hover:scale-[1.03]',
+          'transition-shadow duration-200 hover:shadow-lg',
+          onClick && 'cursor-pointer',
           getGenderBorderColor(member.gender, isRoot),
           sizeClasses[size]
         )}
@@ -128,16 +128,19 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
 
       {/* Add relation button */}
       {onAddRelation && (
-        <button
-          className="absolute -bottom-3 left-1/2 -translate-x-1/2 btn btn-circle btn-xs btn-primary opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        <div
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-content opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer hover:brightness-90 active:brightness-75"
           onClick={(e) => {
             e.stopPropagation();
             onAddRelation(member.id);
           }}
           title="Qarindosh qo'shish"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onAddRelation(member.id); } }}
         >
           <Plus className="h-3 w-3" />
-        </button>
+        </div>
       )}
     </div>
   );
