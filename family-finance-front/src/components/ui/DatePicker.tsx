@@ -37,7 +37,6 @@ const MONTHS_SHORT = [
 
 const WEEKDAYS = ['Du', 'Se', 'Cho', 'Pa', 'Ju', 'Sha', 'Ya'];
 
-const DROPDOWN_OFFSET = 2;
 const VIEWPORT_MARGIN = 8;
 
 type ViewMode = 'days' | 'months' | 'years';
@@ -136,8 +135,8 @@ export function DatePicker({
   const [dropdownPosition, setDropdownPosition] = useState({
     top: 0,
     left: 0,
-    width: 0,
   });
+  const [openUp, setOpenUp] = useState(false);
 
   const today = parseDate(getTashkentToday()) || new Date();
   const selectedDate = parseDate(value);
@@ -150,22 +149,20 @@ export function DatePicker({
 
     const rect = triggerRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
-    const dropdownHeight = 360;
+    const dropdownHeight = 308;
     const spaceBelow = viewportHeight - rect.bottom - VIEWPORT_MARGIN;
     const spaceAbove = rect.top - VIEWPORT_MARGIN;
 
-    const openUp = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
-    const top = openUp
-      ? rect.top - dropdownHeight - DROPDOWN_OFFSET
-      : rect.bottom + DROPDOWN_OFFSET;
+    const flipped = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+    const top = flipped ? rect.top : rect.bottom;
 
-    const width = Math.max(rect.width, 300);
     const left = Math.min(
       Math.max(rect.left, VIEWPORT_MARGIN),
-      Math.max(VIEWPORT_MARGIN, window.innerWidth - width - VIEWPORT_MARGIN)
+      Math.max(VIEWPORT_MARGIN, window.innerWidth - 280 - VIEWPORT_MARGIN)
     );
 
-    setDropdownPosition({ top, left, width });
+    setOpenUp(flipped);
+    setDropdownPosition({ top, left });
   }, []);
 
   // ==================== OPEN/CLOSE ====================
@@ -301,11 +298,11 @@ export function DatePicker({
     return (
       <>
         {/* Weekday headers */}
-        <div className="grid grid-cols-7 mb-1">
+        <div className="grid grid-cols-7">
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="flex h-8 items-center justify-center text-xs font-semibold text-primary/60"
+              className="flex h-6 items-center justify-center text-[10px] font-semibold text-primary/60"
             >
               {day}
             </div>
@@ -327,7 +324,7 @@ export function DatePicker({
                 disabled={isDisabled}
                 onClick={() => handleDayClick(date)}
                 className={clsx(
-                  'flex h-9 w-full items-center justify-center rounded-lg text-sm transition-all duration-150',
+                  'flex h-8 w-full items-center justify-center rounded-lg text-xs transition-all duration-150',
                   isDisabled && 'cursor-not-allowed opacity-30',
                   !isDisabled && !isSelected && 'hover:bg-base-200',
                   !isCurrentMonth && !isSelected && 'text-base-content/25',
@@ -352,32 +349,32 @@ export function DatePicker({
     return (
       <>
         {/* Year navigation header */}
-        <div className="flex items-center justify-between px-2 mb-3">
+        <div className="flex items-center justify-between mb-2">
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => setCurrentMonth((prev) => setYear(prev, getYear(prev) - 1))}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
           <button
             type="button"
-            className="text-sm font-bold text-base-content hover:text-primary transition-colors"
+            className="text-xs font-bold text-base-content hover:text-primary transition-colors"
             onClick={handleHeaderYearClick}
           >
             {currentYear}
           </button>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => setCurrentMonth((prev) => setYear(prev, getYear(prev) + 1))}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Month grid */}
-        <div className="grid grid-cols-4 gap-2 px-1">
+        <div className="grid grid-cols-4 gap-1.5">
           {MONTHS_SHORT.map((monthName, idx) => {
             const isCurrentMonthSelected = idx === currentMonthIdx;
 
@@ -387,7 +384,7 @@ export function DatePicker({
                 type="button"
                 onClick={() => handleMonthSelect(idx)}
                 className={clsx(
-                  'flex h-10 items-center justify-center rounded-lg text-sm transition-all duration-150',
+                  'flex h-8 items-center justify-center rounded-lg text-xs transition-all duration-150',
                   'hover:bg-base-200',
                   isCurrentMonthSelected && 'bg-primary text-primary-content font-semibold shadow-sm',
                   !isCurrentMonthSelected && 'text-base-content',
@@ -409,28 +406,28 @@ export function DatePicker({
     return (
       <>
         {/* Year range navigation */}
-        <div className="flex items-center justify-between px-2 mb-3">
+        <div className="flex items-center justify-between mb-2">
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => setYearRangeStart((prev) => prev - 12)}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
-          <span className="text-sm font-bold text-base-content">
+          <span className="text-xs font-bold text-base-content">
             {yearRangeStart} – {yearRangeStart + 11}
           </span>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
             onClick={() => setYearRangeStart((prev) => prev + 12)}
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Year grid */}
-        <div className="grid grid-cols-4 gap-2 px-1">
+        <div className="grid grid-cols-4 gap-1.5">
           {years.map((year) => {
             const isCurrentYear = year === currentYearValue;
 
@@ -440,7 +437,7 @@ export function DatePicker({
                 type="button"
                 onClick={() => handleYearSelect(year)}
                 className={clsx(
-                  'flex h-10 items-center justify-center rounded-lg text-sm transition-all duration-150',
+                  'flex h-8 items-center justify-center rounded-lg text-xs transition-all duration-150',
                   'hover:bg-base-200',
                   isCurrentYear && 'bg-primary text-primary-content font-semibold shadow-sm',
                   !isCurrentYear && 'text-base-content',
@@ -469,12 +466,14 @@ export function DatePicker({
       <div
         ref={triggerRef}
         className={clsx(
-          'relative flex items-center rounded-xl border bg-base-200/50 transition-all duration-200 h-12 cursor-pointer select-none',
+          'relative flex items-center border bg-base-200/50 transition-all duration-200 h-12 cursor-pointer select-none',
           isFocused
-            ? 'border-primary ring-2 ring-primary/20'
+            ? openUp
+              ? 'rounded-b-xl rounded-t-none border-primary/30 ring-0'
+              : 'rounded-t-xl rounded-b-none border-primary/30 ring-0'
             : error
-              ? 'border-error'
-              : 'border-base-300 hover:border-base-content/30',
+              ? 'rounded-xl border-error'
+              : 'rounded-xl border-base-300 hover:border-base-content/30',
           disabled && 'opacity-50 pointer-events-none bg-base-200'
         )}
         onClick={toggleDropdown}
@@ -520,35 +519,39 @@ export function DatePicker({
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
-          className="fixed z-[9999] animate-datepicker-in rounded-xl border border-primary/20 bg-base-100 shadow-[0_8px_30px_rgba(0,0,0,0.12)] ring-1 ring-primary/10 p-3"
+          className={clsx(
+            'fixed z-[9999] border border-primary/30 bg-base-100 shadow-[0_12px_28px_rgba(0,0,0,0.14)] p-2',
+            openUp
+              ? 'animate-datepicker-up rounded-t-xl rounded-b-none border-b-0'
+              : 'animate-datepicker-down rounded-b-xl rounded-t-none border-t-0'
+          )}
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
-            width: dropdownPosition.width,
-            minWidth: 300,
+            width: 280,
           }}
         >
           {/* Days View Header */}
           {viewMode === 'days' && (
-            <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center justify-between mb-1">
               <button
                 type="button"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 onClick={handlePrevMonth}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-3.5 w-3.5" />
               </button>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <button
                   type="button"
-                  className="rounded-md px-2 py-0.5 text-sm font-bold text-primary hover:bg-primary/10 transition-colors"
+                  className="rounded-md px-1.5 py-0.5 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
                   onClick={handleHeaderMonthClick}
                 >
                   {MONTHS_UZ[getMonth(currentMonth)]}
                 </button>
                 <button
                   type="button"
-                  className="rounded-md px-2 py-0.5 text-sm font-bold text-primary hover:bg-primary/10 transition-colors"
+                  className="rounded-md px-1.5 py-0.5 text-xs font-bold text-primary hover:bg-primary/10 transition-colors"
                   onClick={handleHeaderYearClick}
                 >
                   {getYear(currentMonth)}
@@ -556,10 +559,10 @@ export function DatePicker({
               </div>
               <button
                 type="button"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
                 onClick={handleNextMonth}
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
@@ -571,7 +574,7 @@ export function DatePicker({
 
           {/* Footer */}
           {viewMode === 'days' && (
-            <div className="mt-2 flex items-center justify-between border-t border-base-200 pt-2">
+            <div className="mt-1.5 flex items-center justify-between border-t border-base-200 pt-1.5">
               {showTodayButton ? (
                 <button
                   type="button"
