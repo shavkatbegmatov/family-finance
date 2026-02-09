@@ -17,12 +17,13 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { familyMembersApi } from '../../api/family-members.api';
-import { formatDate, FAMILY_ROLES } from '../../config/constants';
+import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
+import { AddRelationModal } from '../../components/family/AddRelationModal';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -33,6 +34,7 @@ import type {
   FamilyMember,
   FamilyMemberRequest,
   FamilyRole,
+  Gender,
   PagedResponse,
 } from '../../types';
 
@@ -51,6 +53,7 @@ export function FamilyMembersPage() {
   const [form, setForm] = useState<FamilyMemberRequest>({
     fullName: '',
     role: 'OTHER',
+    gender: undefined,
     phone: '',
     birthDate: '',
     avatar: '',
@@ -63,6 +66,11 @@ export function FamilyMembersPage() {
 
   // Delete confirmation
   const [deletingMemberId, setDeletingMemberId] = useState<number | null>(null);
+
+  // AddRelationModal
+  const [addRelationFromId, setAddRelationFromId] = useState<number | null>(null);
+  const [addRelationFromName, setAddRelationFromName] = useState<string>('');
+  const [treeRefreshKey, setTreeRefreshKey] = useState(0);
 
   // ==================== DATA LOADING ====================
 
@@ -97,6 +105,7 @@ export function FamilyMembersPage() {
     setForm({
       fullName: '',
       role: 'OTHER',
+      gender: undefined,
       phone: '',
       birthDate: '',
       avatar: '',
@@ -110,6 +119,7 @@ export function FamilyMembersPage() {
     setForm({
       fullName: member.fullName,
       role: member.role,
+      gender: member.gender,
       phone: member.phone || '',
       birthDate: member.birthDate || '',
       avatar: member.avatar || '',
@@ -137,6 +147,7 @@ export function FamilyMembersPage() {
       }
       handleCloseModal();
       void loadMembers();
+      setTreeRefreshKey(k => k + 1);
     } catch (error) {
       console.error('Failed to save family member:', error);
     } finally {
@@ -162,6 +173,7 @@ export function FamilyMembersPage() {
       await familyMembersApi.delete(deletingMemberId);
       setDeletingMemberId(null);
       void loadMembers();
+      setTreeRefreshKey(k => k + 1);
     } catch (error) {
       console.error('Failed to delete family member:', error);
     }
@@ -189,6 +201,20 @@ export function FamilyMembersPage() {
     } catch (error) {
       console.error('Failed to export:', error);
     }
+  };
+
+  // ==================== ADD RELATION ====================
+
+  const handleAddRelation = (fromMemberId: number) => {
+    // fromMemberName ni topish
+    const member = members.find(m => m.id === fromMemberId);
+    setAddRelationFromId(fromMemberId);
+    setAddRelationFromName(member?.fullName || '');
+  };
+
+  const handleRelationSuccess = () => {
+    setTreeRefreshKey(k => k + 1);
+    void loadMembers();
   };
 
   // ==================== HELPERS ====================
@@ -262,7 +288,10 @@ export function FamilyMembersPage() {
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
         <div className="surface-card p-4 sm:p-6 overflow-x-auto">
-          <FamilyTreeView onEdit={handleOpenEditModal} onAdd={handleOpenAddModal} />
+          <FamilyTreeView
+            onAddRelation={handleAddRelation}
+            refreshKey={treeRefreshKey}
+          />
         </div>
       )}
 
@@ -347,10 +376,20 @@ export function FamilyMembersPage() {
                   {/* Name */}
                   <h3 className="font-semibold text-base mb-1">{member.fullName}</h3>
 
-                  {/* Role */}
-                  <span className="badge badge-sm badge-outline mb-3">
-                    {FAMILY_ROLES[member.role]?.label || member.role}
-                  </span>
+                  {/* Role & Gender */}
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <span className="badge badge-sm badge-outline">
+                      {FAMILY_ROLES[member.role]?.label || member.role}
+                    </span>
+                    {member.gender && (
+                      <span className={clsx(
+                        'badge badge-sm',
+                        member.gender === 'MALE' ? 'badge-info' : 'badge-secondary'
+                      )}>
+                        {GENDERS[member.gender]?.label}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Info */}
                   <div className="w-full space-y-1.5 text-sm text-base-content/70">
@@ -440,6 +479,20 @@ export function FamilyMembersPage() {
                 }))}
                 placeholder="Rolni tanlang"
                 icon={<User className="h-4 w-4" />}
+              />
+
+              {/* Gender */}
+              <Select
+                label="Jinsi"
+                value={form.gender || ''}
+                onChange={(val) =>
+                  setForm((prev) => ({ ...prev, gender: (val as Gender) || undefined }))
+                }
+                options={Object.entries(GENDERS).map(([key, { label }]) => ({
+                  value: key,
+                  label,
+                }))}
+                placeholder="Tanlanmagan"
               />
 
               {/* Phone */}
@@ -607,6 +660,15 @@ export function FamilyMembersPage() {
           </div>
         </div>
       </ModalPortal>
+
+      {/* Add Relation Modal */}
+      <AddRelationModal
+        isOpen={!!addRelationFromId}
+        onClose={() => setAddRelationFromId(null)}
+        fromMemberId={addRelationFromId}
+        fromMemberName={addRelationFromName}
+        onSuccess={handleRelationSuccess}
+      />
     </div>
   );
 }

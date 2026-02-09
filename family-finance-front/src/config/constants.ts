@@ -57,6 +57,51 @@ export const FAMILY_ROLES = {
   OTHER: { label: 'Boshqa', value: 'OTHER' },
 } as const;
 
+export const GENDERS = {
+  MALE: { label: 'Erkak', value: 'MALE' },
+  FEMALE: { label: 'Ayol', value: 'FEMALE' },
+} as const;
+
+export const RELATIONSHIP_TYPES: Record<string, { label: string; category: string }> = {
+  OTA: { label: 'Otam', category: 'parents' },
+  ONA: { label: 'Onam', category: 'parents' },
+  OGIL: { label: "O'g'lim", category: 'children' },
+  QIZ: { label: 'Qizim', category: 'children' },
+  ER: { label: 'Erim', category: 'spouse' },
+  XOTIN: { label: 'Xotinim', category: 'spouse' },
+  AKA: { label: 'Akam', category: 'siblings' },
+  UKA: { label: 'Ukam', category: 'siblings' },
+  OPA: { label: 'Opam', category: 'siblings' },
+  SINGIL: { label: 'Singlim', category: 'siblings' },
+  BOBO: { label: 'Bobom', category: 'grandparents' },
+  BUVI: { label: 'Buvim', category: 'grandparents' },
+  NEVARA_OGIL: { label: "Nevaram (o'g'il)", category: 'grandchildren' },
+  NEVARA_QIZ: { label: 'Nevaram (qiz)', category: 'grandchildren' },
+  AMAKI: { label: 'Ammakim', category: 'extended' },
+  TOGHA: { label: "Tog'am", category: 'extended' },
+  AMMA: { label: 'Ammam', category: 'extended' },
+  XOLA: { label: 'Xolam', category: 'extended' },
+  JIYAN_OGIL: { label: "Jiyanim (o'g'il)", category: 'extended' },
+  JIYAN_QIZ: { label: 'Jiyanim (qiz)', category: 'extended' },
+  KUYOV: { label: 'Kuyovim', category: 'in-laws' },
+  KELIN: { label: 'Kelinim', category: 'in-laws' },
+  QAYIN_OTA: { label: 'Qayin otam', category: 'in-laws' },
+  QAYIN_ONA: { label: 'Qayin onam', category: 'in-laws' },
+  BOSHQA: { label: 'Boshqa', category: 'other' },
+} as const;
+
+export const RELATIONSHIP_CATEGORIES: Record<string, string> = {
+  parents: 'Ota-onam',
+  spouse: "Turmush o'rtog'im",
+  children: 'Farzandlarim',
+  siblings: "Aka-uka, opa-singillarim",
+  grandparents: 'Bobo-buvim',
+  grandchildren: 'Nevaralarim',
+  'in-laws': 'Quda-andalar',
+  extended: 'Yaqin qarindoshlar',
+  other: 'Boshqalar',
+} as const;
+
 export const FAMILY_DEBT_TYPES = {
   GIVEN: { label: 'Berilgan qarz', value: 'GIVEN' },
   TAKEN: { label: 'Olingan qarz', value: 'TAKEN' },

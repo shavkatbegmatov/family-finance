@@ -51,6 +51,7 @@ public class FamilyMemberService {
         FamilyMember member = FamilyMember.builder()
                 .fullName(request.getFullName())
                 .role(request.getRole())
+                .gender(request.getGender())
                 .birthDate(request.getBirthDate())
                 .phone(request.getPhone())
                 .avatar(request.getAvatar())
@@ -83,6 +84,7 @@ public class FamilyMemberService {
         FamilyMember member = findById(id);
         member.setFullName(request.getFullName());
         member.setRole(request.getRole());
+        member.setGender(request.getGender());
         member.setBirthDate(request.getBirthDate());
         member.setPhone(request.getPhone());
         member.setAvatar(request.getAvatar());
@@ -124,6 +126,7 @@ public class FamilyMemberService {
         r.setId(m.getId());
         r.setFullName(m.getFullName());
         r.setRole(m.getRole());
+        r.setGender(m.getGender());
         r.setBirthDate(m.getBirthDate());
         r.setPhone(m.getPhone());
         r.setAvatar(m.getAvatar());

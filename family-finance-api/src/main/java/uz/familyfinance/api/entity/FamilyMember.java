@@ -8,6 +8,7 @@ import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.audit.AuditEntityListener;
 import uz.familyfinance.api.entity.base.BaseEntity;
 import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.enums.Gender;
 
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -30,6 +31,10 @@ public class FamilyMember extends BaseEntity implements Auditable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private FamilyRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Gender gender;
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
@@ -60,6 +65,7 @@ public class FamilyMember extends BaseEntity implements Auditable {
         map.put("id", getId());
         map.put("fullName", this.fullName);
         map.put("role", this.role);
+        map.put("gender", this.gender);
         map.put("birthDate", this.birthDate);
         map.put("phone", this.phone);
         map.put("isActive", this.isActive);
