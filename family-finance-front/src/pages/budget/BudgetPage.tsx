@@ -267,7 +267,7 @@ export function BudgetPage() {
                         color: budget.categoryColor || 'oklch(var(--p))',
                       }}
                     >
-                      {budget.categoryIcon || <PieChart className="h-5 w-5" />}
+                      {getCategoryIcon(budget.categoryIcon, budget.categoryColor, 'h-5 w-5') || <PieChart className="h-5 w-5" />}
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-semibold truncate">{budget.categoryName}</h3>
