@@ -217,6 +217,18 @@ export function FamilyMembersPage() {
     void loadMembers();
   };
 
+  // ==================== EDIT FROM TREE ====================
+
+  const handleEditFromTree = async (memberId: number) => {
+    try {
+      const res = await familyMembersApi.getById(memberId);
+      const member = res.data.data as FamilyMember;
+      handleOpenEditModal(member);
+    } catch (error) {
+      console.error('Failed to load member for edit:', error);
+    }
+  };
+
   // ==================== HELPERS ====================
 
   const getInitial = (name: string) => {
@@ -290,6 +302,7 @@ export function FamilyMembersPage() {
         <div className="surface-card p-4 sm:p-6 overflow-x-auto">
           <FamilyTreeView
             onAddRelation={handleAddRelation}
+            onEditMember={handleEditFromTree}
             refreshKey={treeRefreshKey}
           />
         </div>

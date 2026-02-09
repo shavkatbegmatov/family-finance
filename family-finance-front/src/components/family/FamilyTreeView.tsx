@@ -7,6 +7,7 @@ import type { FamilyTreeResponse, FamilyTreeMember, FamilyRelationshipDto } from
 
 interface FamilyTreeViewProps {
   onAddRelation?: (fromMemberId: number) => void;
+  onEditMember?: (memberId: number) => void;
   refreshKey?: number;
 }
 
@@ -23,7 +24,7 @@ const CATEGORY_ORDER = [
   'other',
 ];
 
-export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProps) {
+export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: FamilyTreeViewProps) {
   const [treeData, setTreeData] = useState<FamilyTreeResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,6 +140,10 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
     !['grandparents', 'parents', 'siblings', 'spouse', 'children', 'grandchildren'].includes(c)
   );
 
+  const handleCardClick = onEditMember
+    ? (member: FamilyTreeMember) => onEditMember(member.id)
+    : undefined;
+
   return (
     <div className="flex flex-col items-center gap-0 py-6 overflow-x-auto">
       {/* Yuqoridagi qatorlar: bobo-buvi, ota-ona */}
@@ -160,6 +165,7 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
                     relationLabel={rel.label}
                     size={cat === 'grandparents' ? 'sm' : 'lg'}
                     onAddRelation={onAddRelation}
+                    onClick={handleCardClick}
                   />
                 );
               })}
@@ -188,6 +194,7 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
                 relationLabel={rel.label}
                 size="md"
                 onAddRelation={onAddRelation}
+                onClick={handleCardClick}
               />
             );
           })}
@@ -198,6 +205,7 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
             isRoot
             size="lg"
             onAddRelation={onAddRelation}
+            onClick={handleCardClick}
           />
 
           {/* Turmush o'rtog'i — o'ngda */}
@@ -211,6 +219,7 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
                 relationLabel={rel.label}
                 size="lg"
                 onAddRelation={onAddRelation}
+                onClick={handleCardClick}
               />
             );
           })}
@@ -247,6 +256,7 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
                       relationLabel={rel.label}
                       size="md"
                       onAddRelation={onAddRelation}
+                      onClick={handleCardClick}
                     />
                   </div>
                 );
@@ -278,6 +288,7 @@ export function FamilyTreeView({ onAddRelation, refreshKey }: FamilyTreeViewProp
                           relationLabel={rel.label}
                           size="sm"
                           onAddRelation={onAddRelation}
+                          onClick={handleCardClick}
                         />
                       );
                     })}
