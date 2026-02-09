@@ -123,6 +123,7 @@ export function FamilyMembersPage() {
       phone: member.phone || '',
       birthDate: member.birthDate || '',
       avatar: member.avatar || '',
+      userId: member.userId,
     });
     setShowModal(true);
   };
