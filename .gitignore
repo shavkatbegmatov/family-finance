@@ -32,6 +32,7 @@ family-finance-api/.mvn/wrapper/maven-wrapper.jar
 # Application config (secrets)
 family-finance-api/src/main/resources/application-local.yml
 family-finance-api/src/main/resources/application-local.properties
+family-finance-api/.env
 
 # =============================================
 # Frontend - Node / React / Vite
