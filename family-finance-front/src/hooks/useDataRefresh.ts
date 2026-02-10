@@ -47,6 +47,7 @@ export function useDataRefresh<T>({
   const onSuccessRef = useRef(onSuccess);
   const onErrorRef = useRef(onError);
   const initialLoadingRef = useRef(true);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep refs updated
   useEffect(() => {
@@ -85,7 +86,8 @@ export function useDataRefresh<T>({
       // Show success feedback for manual refreshes only
       if (isManualRefresh) {
         setRefreshSuccess(true);
-        setTimeout(() => setRefreshSuccess(false), successDuration);
+        if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+        successTimeoutRef.current = setTimeout(() => setRefreshSuccess(false), successDuration);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ma\'lumotlarni yuklashda xatolik';
@@ -100,6 +102,13 @@ export function useDataRefresh<T>({
       setRefreshing(false);
     }
   }, [successDuration]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) clearTimeout(successTimeoutRef.current);
+    };
+  }, []);
 
   return {
     initialLoading,

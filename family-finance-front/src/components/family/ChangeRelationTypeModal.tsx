@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { RefreshCw, X } from 'lucide-react';
 import { ModalPortal } from '../common/Modal';
 import { familyTreeApi } from '../../api/family-tree.api';
@@ -37,7 +38,7 @@ export function ChangeRelationTypeModal({
           const data = res.data.data as RelationshipTypeInfo[];
           setTypes(data);
         })
-        .catch(err => console.error('Failed to load relationship types:', err))
+        .catch(() => toast.error('Munosabat turlarini yuklashda xatolik'))
         .finally(() => setLoadingTypes(false));
     }
   }, [isOpen, currentType]);
@@ -52,8 +53,8 @@ export function ChangeRelationTypeModal({
         newRelationshipType: selectedType,
       });
       onSuccess();
-    } catch (err) {
-      console.error('Failed to update relationship type:', err);
+    } catch {
+      toast.error('Munosabat turini yangilashda xatolik');
     } finally {
       setSubmitting(false);
     }

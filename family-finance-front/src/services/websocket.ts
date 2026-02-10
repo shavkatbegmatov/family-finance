@@ -41,6 +41,7 @@ class WebSocketService {
   private permissionUpdateCallback: PermissionUpdateCallback | null = null;
   private sessionUpdateCallback: SessionUpdateCallback | null = null;
   private connectionStatusCallback: ConnectionStatusCallback | null = null;
+  private connectionId = 0;
 
   /**
    * WebSocket ulanishini boshlash
@@ -56,6 +57,9 @@ class WebSocketService {
     this.permissionUpdateCallback = onPermissionUpdate || null;
     this.sessionUpdateCallback = onSessionUpdate || null;
     this.connectionStatusCallback = onConnectionStatus || null;
+
+    // Har bir connect chaqiruvi uchun unikal ID
+    const currentConnectionId = ++this.connectionId;
 
     // Agar allaqachon ulanish mavjud bo'lsa, avval uzib tashlaymiz
     if (this.client) {
@@ -82,6 +86,9 @@ class WebSocketService {
 
       // Ulanish muvaffaqiyatli
       onConnect: () => {
+        // Eski ulanish callback'ini e'tiborsiz qoldirish
+        if (this.connectionId !== currentConnectionId) return;
+
         this.connectionStatusCallback?.(true);
 
         // Barcha staff uchun global bildirishnomalar

@@ -105,7 +105,7 @@ public class SessionController {
         if (authHeader == null || !authHeader.startsWith("Bearer ") || authHeader.length() < 8) {
             throw new BadRequestException("Authorization header yaroqsiz");
         }
-        return extractToken(authHeader);
+        return authHeader.substring(7);
     }
 
     private String hashToken(String token) {

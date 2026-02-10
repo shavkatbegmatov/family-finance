@@ -103,7 +103,8 @@ public class SavingsGoalService {
         // Atomic balance update
         savingsGoalRepository.addToCurrentAmount(goal.getId(), request.getAmount());
 
-        BigDecimal newAmount = goal.getCurrentAmount().add(request.getAmount());
+        BigDecimal current = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
+        BigDecimal newAmount = current.add(request.getAmount());
         if (newAmount.compareTo(goal.getTargetAmount()) >= 0) {
             savingsGoalRepository.markAsCompleted(goal.getId());
             notificationService.createGlobalNotification(

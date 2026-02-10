@@ -1,5 +1,6 @@
 package uz.familyfinance.api.dto.request;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -14,4 +15,10 @@ public class BudgetRequest {
     @NotNull private BudgetPeriod period;
     @NotNull private LocalDate startDate;
     @NotNull private LocalDate endDate;
+
+    @AssertTrue(message = "Tugash sanasi boshlanish sanasidan keyin bo'lishi kerak")
+    public boolean isDateRangeValid() {
+        if (startDate == null || endDate == null) return true;
+        return !endDate.isBefore(startDate);
+    }
 }
