@@ -16,14 +16,13 @@ import uz.familyfinance.api.dto.request.LoginRequest;
 import uz.familyfinance.api.dto.request.RegisterRequest;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
-import uz.familyfinance.api.entity.LoginAttempt;
-import uz.familyfinance.api.entity.RoleEntity;
-import uz.familyfinance.api.entity.Session;
-import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.entity.*;
+import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.Role;
 import uz.familyfinance.api.exception.AccountDisabledException;
 import uz.familyfinance.api.exception.AccountLockedException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.security.CustomUserDetails;
@@ -40,6 +39,7 @@ public class AuthService {
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
     private final LoginAttemptService loginAttemptService;
@@ -81,6 +81,14 @@ public class AuthService {
 
         user.getRoles().add(memberRole);
         userRepository.save(user);
+
+        // Avtomatik FamilyMember yaratish va user ga bog'lash
+        FamilyMember familyMember = FamilyMember.builder()
+                .fullName(request.getFullName())
+                .role(FamilyRole.OTHER)
+                .user(user)
+                .build();
+        familyMemberRepository.save(familyMember);
 
         // Audit log
         auditLogService.log(
