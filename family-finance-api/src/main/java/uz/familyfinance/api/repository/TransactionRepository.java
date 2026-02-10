@@ -43,6 +43,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                  @Param("from") LocalDateTime from,
                                                  @Param("to") LocalDateTime to);
 
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'INCOME' AND " +
+           "t.category.id = :categoryId AND t.transactionDate >= :from AND t.transactionDate <= :to")
+    BigDecimal sumIncomeByCategoryAndDateRange(@Param("categoryId") Long categoryId,
+                                                @Param("from") LocalDateTime from,
+                                                @Param("to") LocalDateTime to);
+
     List<Transaction> findTop10ByOrderByTransactionDateDesc();
 
     @Query("SELECT t FROM Transaction t WHERE t.isRecurring = true AND t.recurringPattern IS NOT NULL")

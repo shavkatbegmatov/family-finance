@@ -43,7 +43,9 @@ public class ReportService {
         BigDecimal total = transactionRepository.sumByTypeAndDateRange(txType, from, to);
 
         return categories.stream().map(c -> {
-            BigDecimal amount = transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), from, to);
+            BigDecimal amount = type == CategoryType.EXPENSE
+                    ? transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), from, to)
+                    : transactionRepository.sumIncomeByCategoryAndDateRange(c.getId(), from, to);
             Map<String, Object> item = new HashMap<>();
             item.put("categoryId", c.getId());
             item.put("categoryName", c.getName());
@@ -51,8 +53,7 @@ public class ReportService {
             item.put("percentage", total.compareTo(BigDecimal.ZERO) > 0
                     ? amount.multiply(BigDecimal.valueOf(100)).divide(total, 2, RoundingMode.HALF_UP).doubleValue() : 0);
             return item;
-        }).filter(m -> ((BigDecimal) m.get("amount")).compareTo(BigDecimal.ZERO) > 0)
-                .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
+        }).sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
                 .toList();
     }
 

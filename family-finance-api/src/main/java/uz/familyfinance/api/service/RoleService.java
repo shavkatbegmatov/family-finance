@@ -18,8 +18,10 @@ import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -52,10 +54,19 @@ public class RoleService {
         Page<RoleEntity> roles = (search != null && !search.isEmpty())
                 ? roleRepository.searchRoles(search, pageable)
                 : roleRepository.findAllActive(pageable);
-        return roles.map(role -> {
-            Long userCount = roleRepository.countUsersByRoleId(role.getId());
-            return RoleResponse.simpleFromWithUserCount(role, userCount);
-        });
+
+        // Bitta query bilan barcha rollar uchun user count olish (N+1 oldini olish)
+        List<Long> roleIds = roles.getContent().stream().map(RoleEntity::getId).toList();
+        Map<Long, Long> userCountMap = new HashMap<>();
+        if (!roleIds.isEmpty()) {
+            roleRepository.countUsersByRoleIds(roleIds).forEach(row ->
+                    userCountMap.put((Long) row[0], (Long) row[1])
+            );
+        }
+
+        return roles.map(role ->
+                RoleResponse.simpleFromWithUserCount(role, userCountMap.getOrDefault(role.getId(), 0L))
+        );
     }
 
     /**
@@ -168,12 +179,11 @@ public class RoleService {
         permissionService.clearUserPermissionsCache();
 
         // Notify all users who have this role
-        RoleEntity finalRole = role;
-        Set<Long> affectedUserIds = roleRepository.findByIdWithPermissionsAndUsers(id)
-                .map(r -> r.getUsers().stream()
-                        .map(User::getId)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
+        RoleEntity finalRole = roleRepository.findByIdWithPermissionsAndUsers(id)
+                .orElse(role);
+        Set<Long> affectedUserIds = finalRole.getUsers() != null
+                ? finalRole.getUsers().stream().map(User::getId).collect(Collectors.toSet())
+                : Collections.emptySet();
 
         if (!affectedUserIds.isEmpty()) {
             notificationDispatcher.notifyMultipleUsersPermissionsUpdated(
@@ -194,7 +204,7 @@ public class RoleService {
      */
     @Transactional
     public void deleteRole(Long id, Long currentUserId) {
-        RoleEntity role = roleRepository.findById(id)
+        RoleEntity role = roleRepository.findByIdWithPermissionsAndUsers(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rol", "id", id));
 
         // System roles cannot be deleted
@@ -203,7 +213,7 @@ public class RoleService {
         }
 
         // Check if role has users
-        if (!role.getUsers().isEmpty()) {
+        if (role.getUsers() != null && !role.getUsers().isEmpty()) {
             throw new BadRequestException("Bu rol foydalanuvchilarga biriktirilgan. Avval foydalanuvchilardan olib tashlang.");
         }
 

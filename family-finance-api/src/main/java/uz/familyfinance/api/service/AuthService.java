@@ -1,6 +1,7 @@
 package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -8,16 +9,22 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.LoginRequest;
+import uz.familyfinance.api.dto.request.RegisterRequest;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
-import uz.familyfinance.api.entity.LoginAttempt;
-import uz.familyfinance.api.entity.Session;
-import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.entity.*;
+import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.enums.Role;
 import uz.familyfinance.api.exception.AccountDisabledException;
 import uz.familyfinance.api.exception.AccountLockedException;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.JwtTokenProvider;
@@ -26,16 +33,92 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final FamilyMemberRepository familyMemberRepository;
+    private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
     private final LoginAttemptService loginAttemptService;
+    private final AuditLogService auditLogService;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
+
+    @Transactional
+    public UserResponse register(RegisterRequest request) {
+        // Check username uniqueness
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new IllegalArgumentException("Bu username allaqachon band");
+        }
+
+        // Validate password match
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("Parol va tasdiqlash mos kelmadi");
+        }
+
+        // Validate password strength
+        validatePassword(request.getPassword());
+
+        // Find MEMBER role
+        RoleEntity memberRole = roleRepository.findByCode("MEMBER")
+                .orElseThrow(() -> new ResourceNotFoundException("Rol topilmadi: MEMBER"));
+
+        // Create user
+        User user = User.builder()
+                .username(request.getUsername())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .phone(request.getPhone())
+                .role(Role.SELLER) // Legacy field
+                .active(true)
+                .mustChangePassword(false)
+                .build();
+
+        user.getRoles().add(memberRole);
+        userRepository.save(user);
+
+        // Avtomatik FamilyMember yaratish va user ga bog'lash
+        FamilyMember familyMember = FamilyMember.builder()
+                .fullName(request.getFullName())
+                .role(FamilyRole.OTHER)
+                .user(user)
+                .build();
+        familyMemberRepository.save(familyMember);
+
+        // Audit log
+        auditLogService.log(
+                "User",
+                user.getId(),
+                "USER_REGISTERED",
+                null,
+                String.format("Foydalanuvchi ro'yxatdan o'tdi: %s", user.getUsername()),
+                user.getId()
+        );
+
+        log.info("New user registered: {}", user.getUsername());
+
+        return UserResponse.from(user);
+    }
+
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 6) {
+            throw new IllegalArgumentException("Parol kamida 6 belgidan iborat bo'lishi kerak");
+        }
+
+        boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
+        boolean hasLower = password.chars().anyMatch(Character::isLowerCase);
+        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
+
+        if (!hasUpper || !hasLower || !hasDigit) {
+            throw new IllegalArgumentException("Parol katta harf, kichik harf va raqam o'z ichiga olishi kerak");
+        }
+    }
 
     public JwtResponse login(LoginRequest request, String ipAddress, String userAgent) {
         String username = request.getUsername();
@@ -160,7 +243,7 @@ public class AuthService {
                     .roles(userDetails.getRoleCodes())
                     .build();
         }
-        throw new RuntimeException("Refresh token yaroqsiz");
+        throw new BadRequestException("Refresh token yaroqsiz");
     }
 
     public UserResponse getCurrentUser() {

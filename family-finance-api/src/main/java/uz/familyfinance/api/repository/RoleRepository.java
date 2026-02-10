@@ -53,4 +53,7 @@ public interface RoleRepository extends JpaRepository<RoleEntity, Long> {
 
     @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.id = :roleId")
     Long countUsersByRoleId(@Param("roleId") Long roleId);
+
+    @Query("SELECT r.id, COUNT(u) FROM RoleEntity r LEFT JOIN r.users u WHERE r.id IN :roleIds GROUP BY r.id")
+    List<Object[]> countUsersByRoleIds(@Param("roleIds") List<Long> roleIds);
 }

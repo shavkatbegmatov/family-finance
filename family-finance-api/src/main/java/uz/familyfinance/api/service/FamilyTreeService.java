@@ -40,7 +40,7 @@ public class FamilyTreeService {
         FamilyMember root = familyMemberRepository.findById(rootId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + rootId));
 
-        List<FamilyRelationship> relationships = relationshipRepository.findByFromMemberId(rootId);
+        List<FamilyRelationship> relationships = relationshipRepository.findByFromMemberIdWithMembers(rootId);
 
         Set<Long> memberIds = new HashSet<>();
         memberIds.add(rootId);

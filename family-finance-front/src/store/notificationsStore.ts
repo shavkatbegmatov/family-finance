@@ -96,8 +96,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const notifications = response.content.map(mapNotification);
       const unreadCount = notifications.filter((n) => !n.isRead).length;
       set({ notifications, unreadCount, loading: false });
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch {
       set({ error: 'Bildirishnomalarni yuklashda xatolik', loading: false });
     }
   },
@@ -106,8 +105,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     try {
       const count = await notificationsApi.getUnreadCount();
       set({ unreadCount: count });
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+    } catch {
+      // Unread count yuklash muvaffaqiyatsiz
     }
   },
 
@@ -122,8 +121,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     try {
       await notificationsApi.markAsRead(id);
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
+    } catch {
       // Revert on error
       set({ notifications, unreadCount: notifications.filter((n) => !n.isRead).length });
     }
@@ -137,8 +135,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     try {
       await notificationsApi.markAllAsRead();
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
+    } catch {
       // Revert on error
       set({ notifications, unreadCount: notifications.filter((n) => !n.isRead).length });
     }
@@ -153,8 +150,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     try {
       await notificationsApi.delete(id);
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
+    } catch {
       // Revert on error
       set({ notifications, unreadCount: notifications.filter((n) => !n.isRead).length });
     }
@@ -219,60 +215,41 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
               }
             );
 
-            console.log('[Permissions] Updated permissions in real-time');
-          } else {
-            console.warn('[Permissions] Cannot update - user or tokens missing');
           }
-        } catch (error) {
-          console.error('[Permissions] Error updating permissions:', error);
+        } catch {
+          // Permission update failed
         }
       },
       // Session update callback
       async (sessionUpdate: SessionUpdateMessage) => {
-        console.log('[Session] Update received:', sessionUpdate.type);
-
-        // Handle SESSION_REVOKED
         if (sessionUpdate.type === 'SESSION_REVOKED') {
-          // Check if this is an intentional logout (user clicked logout button)
-          const intentionalLogout = sessionStorage.getItem('intentional-logout');
-          if (intentionalLogout) {
-            console.log('[Session] Ignoring SESSION_REVOKED - intentional logout in progress');
-            sessionStorage.removeItem('intentional-logout');
-            return; // Don't show notification or dispatch event
+          try {
+            const intentionalLogout = sessionStorage.getItem('intentional-logout');
+            if (intentionalLogout) {
+              sessionStorage.removeItem('intentional-logout');
+              return;
+            }
+          } catch {
+            // sessionStorage mavjud emas
           }
 
           try {
-            // Quick validation: check if our session is still valid
             const { sessionsApi } = await import('../api/sessions.api');
             const isValid = await sessionsApi.validateCurrentSession();
 
             if (!isValid) {
-              // Our session was revoked from another device
-              console.log('[Session] Current session was revoked - logging out immediately');
-
               toast.error('Sessioningiz boshqa qurilmadan yopilgan. Qayta kiring.');
-
-              // Logout after a short delay to show the toast
-              const { useAuthStore } = await import('./authStore');
-              setTimeout(() => {
-                useAuthStore.getState().logout();
-                window.location.href = '/login';
-              }, 1500);
-
-              return; // Don't dispatch event if we're logging out
+              useAuthStore.getState().logoutWithRedirect();
+              return;
             }
 
-            // Another device logged out - show toast notification
-            console.log('[Session] Current session is still valid - another device logged out');
             toast('Sessiya ro\'yxati yangilandi', { icon: '🔄' });
-          } catch (error: unknown) {
-            console.error('[Session] Error validating session:', error);
+          } catch {
+            // Session validation failed
           }
         }
 
-        // Handle SESSION_CREATED
         if (sessionUpdate.type === 'SESSION_CREATED') {
-          console.log('[Session] New session created on another device');
           toast('Yangi qurilmadan kirish', { icon: '✨' });
         }
 

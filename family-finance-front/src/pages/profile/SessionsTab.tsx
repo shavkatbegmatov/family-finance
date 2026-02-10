@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Monitor,
   Smartphone,
@@ -25,106 +24,60 @@ export function SessionsTab() {
   const [revokingId, setRevokingId] = useState<number | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-  const { logout } = useAuthStore();
-  const navigate = useNavigate();
+  const { logoutWithRedirect } = useAuthStore();
 
   // Define fetchSessions before useEffect
   const fetchSessions = useCallback(async () => {
-    console.log('[SessionsTab] 🔄 fetchSessions called');
     setLoading(true);
     try {
-      console.log('[SessionsTab] 📡 Calling API...');
       const data = await sessionsApi.getActiveSessions();
-      console.log('[SessionsTab] ✅ API response:', data);
       setSessions(data);
 
-      // Find and store current session ID for comparison
       const current = data.find((s) => s.isCurrent);
       if (current) {
         setCurrentSessionId(current.id);
-        console.log('[SessionsTab] 🎯 Current session ID:', current.id);
       }
-
-      console.log('[SessionsTab] 🎯 State updated with', data.length, 'sessions');
     } catch (error: unknown) {
-      console.error('[SessionsTab] ❌ Error fetching sessions:', error);
       // If 401 Unauthorized, the session was revoked from another device
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401) {
         toast.error('Sessioningiz boshqa qurilmadan yopilgan. Qayta kiring.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+        logoutWithRedirect();
       } else {
         toast.error('Sessiyalarni yuklashda xatolik');
       }
     } finally {
       setLoading(false);
     }
-  }, [logout, navigate]);
+  }, [logoutWithRedirect]);
 
   useEffect(() => {
-    console.log('[SessionsTab] 🚀 Component mounted, fetching initial sessions');
     void fetchSessions();
 
-    // Listen for session updates via custom event (dispatched from notificationsStore)
     const handleSessionUpdate = (event: Event) => {
-      console.log('[SessionsTab] 📨 Event received:', event);
       const customEvent = event as CustomEvent<SessionUpdateMessage>;
       const data = customEvent.detail;
 
-      console.log('[SessionsTab] 📦 Session update data:', data);
-      console.log('[SessionsTab] 🔔 Update type:', data.type);
-      console.log('[SessionsTab] 🆔 Revoked sessionId:', data.sessionId);
-      console.log('[SessionsTab] 🆔 Current sessionId:', currentSessionId);
-
       if (data.type === 'SESSION_REVOKED') {
-        console.log('[SessionsTab] 🔴 SESSION_REVOKED detected');
-
-        // Check if this is our own session being revoked or another device
         const isCurrentSession = data.sessionId === currentSessionId;
-        console.log('[SessionsTab] ❓ Is current session?', isCurrentSession);
 
         if (isCurrentSession) {
-          // Our own session was revoked from another device - logout
-          console.log('[SessionsTab] 🚪 Current session revoked - logging out...');
           toast.error('Sessioningiz boshqa qurilmadan yopilgan. Qayta kiring.');
-          setTimeout(() => {
-            logout();
-            navigate('/login');
-          }, 1500);
+          logoutWithRedirect();
         } else {
-          // Another device logged out - just refresh the session list
-          // (Toast notification is shown globally by notificationsStore)
-          console.log('[SessionsTab] 🔄 Another device logged out - refreshing list...');
-          console.log('[SessionsTab] 🎬 About to call fetchSessions()');
           void fetchSessions();
-          console.log('[SessionsTab] ✓ fetchSessions() called');
         }
       } else if (data.type === 'SESSION_CREATED') {
-        // New session created - refresh list
-        // (Toast notification is shown globally by notificationsStore)
-        console.log('[SessionsTab] 🟢 SESSION_CREATED detected');
-        console.log('[SessionsTab] 🆔 New sessionId:', data.sessionId);
-        console.log('[SessionsTab] 💬 Reason:', data.reason);
-        console.log('[SessionsTab] 🔄 Refreshing session list...');
-        console.log('[SessionsTab] 🎬 About to call fetchSessions()');
         void fetchSessions();
-        console.log('[SessionsTab] ✓ fetchSessions() called');
       }
     };
 
-    // Register window event listener
-    console.log('[SessionsTab] 👂 Registering session-update event listener');
     window.addEventListener('session-update', handleSessionUpdate);
 
-    // Cleanup
     return () => {
-      console.log('[SessionsTab] 🧹 Cleaning up event listener');
       window.removeEventListener('session-update', handleSessionUpdate);
     };
-  }, [fetchSessions, currentSessionId, logout, navigate]);
+  }, [fetchSessions, currentSessionId, logoutWithRedirect]);
 
   const handleRevokeSession = async (sessionId: number) => {
     if (!confirm('Ushbu qurilmadan chiqmoqchimisiz?')) return;
@@ -139,10 +92,7 @@ export function SessionsTab() {
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401) {
         toast.error('Sessioningiz yaroqsiz. Qayta kiring.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+        logoutWithRedirect();
       } else {
         toast.error('Sessionni tugatishda xatolik');
       }
@@ -164,10 +114,7 @@ export function SessionsTab() {
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401) {
         toast.error('Sessioningiz yaroqsiz. Qayta kiring.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+        logoutWithRedirect();
       } else {
         toast.error('Sessiyalarni tugatishda xatolik');
       }

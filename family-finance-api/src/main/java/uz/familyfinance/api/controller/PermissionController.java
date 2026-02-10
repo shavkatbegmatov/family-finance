@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.PermissionResponse;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.RequiresPermission;
@@ -67,7 +68,7 @@ public class PermissionController {
                     .body(resource);
 
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new BadRequestException("Eksport xatoligi");
         }
     }
 

@@ -24,12 +24,13 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import { transactionsApi } from '../../api/transactions.api';
 import { accountsApi } from '../../api/accounts.api';
 import { familyMembersApi } from '../../api/family-members.api';
 import { familyDebtsApi } from '../../api/family-debts.api';
 import { formatCurrency } from '../../config/constants';
-import type { Transaction, Account, FamilyMember, FamilyDebt } from '../../types';
+import type { Transaction, Account, FamilyMember, FamilyDebt, ApiResponse, PagedResponse } from '../../types';
 
 type ResultType = 'transaction' | 'account' | 'member' | 'debt' | 'page';
 
@@ -196,7 +197,7 @@ export function SearchCommand() {
 
     setLoading(true);
     try {
-      const [transactionsRes, accountsRes, membersRes, debtsRes] = await Promise.all([
+      const [transactionsRes, accountsRes, membersRes, debtsRes] = await Promise.allSettled([
         transactionsApi.getAll(0, 5),
         accountsApi.getAll(0, 5),
         familyMembersApi.getAll(0, 5),
@@ -204,85 +205,94 @@ export function SearchCommand() {
       ]);
 
       const searchResults: SearchResult[] = [];
+      const q = searchQuery.toLowerCase();
 
       // Filter pages by query
       const matchedPages = QUICK_ACTIONS.filter(
         (action) =>
-          action.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          action.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
+          action.title.toLowerCase().includes(q) ||
+          action.subtitle?.toLowerCase().includes(q)
       );
       searchResults.push(...matchedPages);
 
       // Transactions
-      (transactionsRes.data as any).data.content
-        .filter((t: Transaction) =>
-          t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          t.accountName?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .forEach((t: Transaction) => {
-          searchResults.push({
-            id: `transaction-${t.id}`,
-            type: 'transaction',
-            title: t.description || t.categoryName || t.type,
-            subtitle: `${t.accountName} • ${t.transactionDate}`,
-            href: `/transactions?highlight=${t.id}`,
-            meta: formatCurrency(t.amount),
+      if (transactionsRes.status === 'fulfilled') {
+        const transactions = (transactionsRes.value.data as ApiResponse<PagedResponse<Transaction>>).data.content;
+        transactions
+          .filter((t) =>
+            t.description?.toLowerCase().includes(q) ||
+            t.categoryName?.toLowerCase().includes(q) ||
+            t.accountName?.toLowerCase().includes(q)
+          )
+          .forEach((t) => {
+            searchResults.push({
+              id: `transaction-${t.id}`,
+              type: 'transaction',
+              title: t.description || t.categoryName || t.type,
+              subtitle: `${t.accountName} • ${t.transactionDate}`,
+              href: `/transactions?highlight=${t.id}`,
+              meta: formatCurrency(t.amount),
+            });
           });
-        });
+      }
 
       // Accounts
-      (accountsRes.data as any).data.content
-        .filter((a: Account) =>
-          a.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .forEach((a: Account) => {
-          searchResults.push({
-            id: `account-${a.id}`,
-            type: 'account',
-            title: a.name,
-            subtitle: a.type,
-            href: `/accounts?highlight=${a.id}`,
-            meta: formatCurrency(a.balance),
+      if (accountsRes.status === 'fulfilled') {
+        const accounts = (accountsRes.value.data as ApiResponse<PagedResponse<Account>>).data.content;
+        accounts
+          .filter((a) => a.name.toLowerCase().includes(q))
+          .forEach((a) => {
+            searchResults.push({
+              id: `account-${a.id}`,
+              type: 'account',
+              title: a.name,
+              subtitle: a.type,
+              href: `/accounts?highlight=${a.id}`,
+              meta: formatCurrency(a.balance),
+            });
           });
-        });
+      }
 
       // Family members
-      (membersRes.data as any).data.content
-        .filter((m: FamilyMember) =>
-          m.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .forEach((m: FamilyMember) => {
-          searchResults.push({
-            id: `member-${m.id}`,
-            type: 'member',
-            title: m.fullName,
-            subtitle: m.role,
-            href: `/family?highlight=${m.id}`,
+      if (membersRes.status === 'fulfilled') {
+        const members = (membersRes.value.data as ApiResponse<PagedResponse<FamilyMember>>).data.content;
+        members
+          .filter((m) => m.fullName.toLowerCase().includes(q))
+          .forEach((m) => {
+            searchResults.push({
+              id: `member-${m.id}`,
+              type: 'member',
+              title: m.fullName,
+              subtitle: m.role,
+              href: `/family?highlight=${m.id}`,
+            });
           });
-        });
+      }
 
       // Debts
-      (debtsRes.data as any).data.content
-        .filter((d: FamilyDebt) =>
-          d.personName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .forEach((d: FamilyDebt) => {
-          searchResults.push({
-            id: `debt-${d.id}`,
-            type: 'debt',
-            title: d.personName,
-            subtitle: d.type === 'GIVEN' ? 'Berilgan qarz' : 'Olingan qarz',
-            href: `/debts?highlight=${d.id}`,
-            meta: formatCurrency(d.remainingAmount),
+      if (debtsRes.status === 'fulfilled') {
+        const debts = (debtsRes.value.data as ApiResponse<PagedResponse<FamilyDebt>>).data.content;
+        debts
+          .filter((d) =>
+            d.personName.toLowerCase().includes(q) ||
+            d.description?.toLowerCase().includes(q)
+          )
+          .forEach((d) => {
+            searchResults.push({
+              id: `debt-${d.id}`,
+              type: 'debt',
+              title: d.personName,
+              subtitle: d.type === 'GIVEN' ? 'Berilgan qarz' : 'Olingan qarz',
+              href: `/debts?highlight=${d.id}`,
+              meta: formatCurrency(d.remainingAmount),
+            });
           });
-        });
+      }
 
       setResults(searchResults);
       setSelectedIndex(0);
-    } catch (error) {
-      console.error('Search failed:', error);
+    } catch {
+      toast.error('Qidirishda xatolik yuz berdi');
     } finally {
       setLoading(false);
     }

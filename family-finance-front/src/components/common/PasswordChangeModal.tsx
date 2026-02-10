@@ -14,7 +14,6 @@ import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
-import { useNavigate } from 'react-router-dom';
 import type { ChangePasswordRequest } from '../../types';
 
 interface PasswordFormData {
@@ -33,8 +32,7 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const { logout } = useAuthStore();
-  const navigate = useNavigate();
+  const { logoutWithRedirect } = useAuthStore();
 
   const {
     register,
@@ -88,10 +86,7 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
       onClose();
 
       // Force re-login after password change
-      setTimeout(() => {
-        logout();
-        navigate('/login');
-      }, 1500);
+      logoutWithRedirect();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Parolni o'zgartirishda xatolik");

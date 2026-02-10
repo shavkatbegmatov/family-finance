@@ -149,7 +149,6 @@ export function AuditLogsPage() {
         return newMap;
       });
     } catch (err) {
-      console.error('Failed to load field changes:', err);
       toast.error('Batafsil ma\'lumotlarni yuklashda xatolik');
     }
   };

@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { sessionsApi } from '../api/sessions.api';
 import { useAuthStore } from '../store/authStore';
@@ -23,12 +22,11 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     checkOnFocus = true,
   } = options;
 
-  const { logout, isAuthenticated } = useAuthStore();
-  const navigate = useNavigate();
+  const { logoutWithRedirect, isAuthenticated } = useAuthStore();
   const isValidatingRef = useRef(false);
   const lastCheckTimeRef = useRef(Date.now());
 
-  const validateSession = async (source: 'polling' | 'visibility' = 'polling') => {
+  const validateSession = useCallback(async () => {
     // Prevent concurrent validations
     if (isValidatingRef.current || !isAuthenticated) {
       return;
@@ -47,34 +45,22 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
       const isValid = await sessionsApi.validateCurrentSession();
 
       if (!isValid) {
-        // Session was revoked from another device
-        console.warn(`[Session Monitor] Session invalidated (source: ${source})`);
-
         toast.error('Sessioningiz boshqa qurilmadan tugatilgan. Qayta kiring.', {
           duration: 4000,
           icon: '🔒',
         });
-
-        // Clear auth state and redirect to login
-        setTimeout(() => {
-          logout();
-          navigate('/login', { replace: true });
-        }, 1000);
+        logoutWithRedirect(1000);
       }
     } catch (error: unknown) {
-      // If 401/403, session is invalid - let axios interceptor handle it
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401 || axiosError?.response?.status === 403) {
-        console.warn(`[Session Monitor] Session validation failed with ${axiosError.response?.status}`);
-        // Axios interceptor will handle logout automatically
-      } else {
-        // Network error or other issue - log but don't logout
-        console.error('[Session Monitor] Validation error:', error);
+        // Axios interceptor handles logout automatically
       }
+      // Network errors — silently ignore, don't logout
     } finally {
       isValidatingRef.current = false;
     }
-  };
+  }, [isAuthenticated, logoutWithRedirect]);
 
   // Periodic polling
   useEffect(() => {
@@ -83,19 +69,19 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     }
 
     const intervalId = setInterval(() => {
-      validateSession('polling');
+      validateSession();
     }, pollingInterval);
 
     // Initial check after 5 seconds (give time for app to initialize)
     const timeoutId = setTimeout(() => {
-      validateSession('polling');
+      validateSession();
     }, 5000);
 
     return () => {
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [enabled, isAuthenticated, pollingInterval]);
+  }, [enabled, isAuthenticated, pollingInterval, validateSession]);
 
   // Visibility API - check session when tab becomes visible
   useEffect(() => {
@@ -105,8 +91,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Session Monitor] Tab focused, validating session');
-        validateSession('visibility');
+        validateSession();
       }
     };
 
@@ -115,7 +100,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [enabled, checkOnFocus, isAuthenticated]);
+  }, [enabled, checkOnFocus, isAuthenticated, validateSession]);
 
   // Focus event as fallback for older browsers
   useEffect(() => {
@@ -124,8 +109,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     }
 
     const handleFocus = () => {
-      console.log('[Session Monitor] Window focused, validating session');
-      validateSession('visibility');
+      validateSession();
     };
 
     window.addEventListener('focus', handleFocus);
@@ -133,5 +117,5 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     return () => {
       window.removeEventListener('focus', handleFocus);
     };
-  }, [enabled, checkOnFocus, isAuthenticated]);
+  }, [enabled, checkOnFocus, isAuthenticated, validateSession]);
 }

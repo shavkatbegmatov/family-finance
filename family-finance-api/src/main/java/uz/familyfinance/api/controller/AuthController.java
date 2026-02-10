@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.ChangePasswordRequest;
 import uz.familyfinance.api.dto.request.LoginRequest;
+import uz.familyfinance.api.dto.request.RegisterRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
@@ -29,6 +31,14 @@ public class AuthController {
     private final UserService userService;
     private final SessionService sessionService;
 
+    @PostMapping("/register")
+    @Operation(summary = "Register", description = "Yangi foydalanuvchi ro'yxatdan o'tish")
+    public ResponseEntity<ApiResponse<UserResponse>> register(
+            @Valid @RequestBody RegisterRequest request) {
+        UserResponse response = authService.register(request);
+        return ResponseEntity.ok(ApiResponse.success("Muvaffaqiyatli ro'yxatdan o'tildi", response));
+    }
+
     @PostMapping("/login")
     @Operation(summary = "Login", description = "Foydalanuvchi tizimga kirish")
     public ResponseEntity<ApiResponse<JwtResponse>> login(
@@ -44,7 +54,7 @@ public class AuthController {
 
     @PostMapping("/refresh-token")
     @Operation(summary = "Refresh Token", description = "Token yangilash")
-    public ResponseEntity<ApiResponse<JwtResponse>> refreshToken(@RequestParam String refreshToken) {
+    public ResponseEntity<ApiResponse<JwtResponse>> refreshToken(@RequestParam @NotBlank String refreshToken) {
         JwtResponse response = authService.refreshToken(refreshToken);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -103,14 +113,9 @@ public class AuthController {
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
+        // Faqat remoteAddr ishlatamiz — X-Forwarded-For spoofing xavfi bor
+        // Production'da reverse proxy (nginx) orqali real IP olish uchun
+        // server.forward-headers-strategy=NATIVE sozlamasini ishlatish kerak
         return request.getRemoteAddr();
     }
 }

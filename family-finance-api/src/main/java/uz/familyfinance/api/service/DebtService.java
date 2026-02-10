@@ -81,20 +81,24 @@ public class DebtService {
     public DebtPaymentResponse addPayment(Long debtId, DebtPaymentRequest request) {
         Debt debt = findById(debtId);
 
-        if (request.getAmount().compareTo(debt.getRemainingAmount()) > 0) {
+        BigDecimal paymentAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal remaining = debt.getRemainingAmount().setScale(2, RoundingMode.HALF_UP);
+
+        if (paymentAmount.compareTo(remaining) > 0) {
             throw new BadRequestException("To'lov summasi qoldiq summadan oshmasligi kerak");
         }
 
         DebtPayment payment = DebtPayment.builder()
                 .debt(debt)
-                .amount(request.getAmount())
+                .amount(paymentAmount)
                 .paymentDate(request.getPaymentDate())
                 .note(request.getNote())
                 .build();
         debtPaymentRepository.save(payment);
 
-        debt.setRemainingAmount(debt.getRemainingAmount().subtract(request.getAmount()));
-        if (debt.getRemainingAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        BigDecimal newRemaining = remaining.subtract(paymentAmount).setScale(2, RoundingMode.HALF_UP);
+        debt.setRemainingAmount(newRemaining);
+        if (newRemaining.compareTo(BigDecimal.ZERO) <= 0) {
             debt.setStatus(DebtStatus.PAID);
         } else {
             debt.setStatus(DebtStatus.PARTIALLY_PAID);

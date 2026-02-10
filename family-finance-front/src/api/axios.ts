@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../config/constants';
+import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -27,15 +28,9 @@ const processQueue = (error: unknown, token: string | null) => {
 };
 
 const clearAuthAndRedirect = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
-
-  if (!window.location.pathname.includes('/login')) {
+  if (window.location.pathname !== '/login') {
     toast.error('Sessioningiz tugadi. Qayta kiring.');
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 1000);
+    useAuthStore.getState().logoutWithRedirect(1000);
   }
 };
 // ────────────────────────────────────────────────────────────
@@ -43,9 +38,13 @@ const clearAuthAndRedirect = () => {
 // Request interceptor - add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch {
+      // localStorage mavjud emas (private browsing)
     }
     return config;
   },
@@ -70,7 +69,12 @@ api.interceptors.response.use(
 
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem('refreshToken');
+      let refreshToken: string | null = null;
+      try {
+        refreshToken = localStorage.getItem('refreshToken');
+      } catch {
+        // localStorage mavjud emas
+      }
       if (!refreshToken) {
         clearAuthAndRedirect();
         return Promise.reject(error);
@@ -97,8 +101,12 @@ api.interceptors.response.use(
         );
 
         const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        try {
+          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', newRefreshToken);
+        } catch {
+          // localStorage mavjud emas
+        }
 
         // Navbatdagi barcha so'rovlarni yangi token bilan qayta yuborish
         processQueue(null, accessToken);
@@ -123,8 +131,6 @@ api.interceptors.response.use(
         duration: 4000,
         icon: '🔒',
       });
-
-      console.warn('Permission denied:', error.config?.url, message);
     }
 
     return Promise.reject(error);

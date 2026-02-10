@@ -31,6 +31,15 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+export interface RegisterRequest {
+  fullName: string;
+  username: string;
+  password: string;
+  confirmPassword: string;
+  email?: string;
+  phone?: string;
+}
+
 export interface CredentialsInfo {
   username: string;
   temporaryPassword: string;

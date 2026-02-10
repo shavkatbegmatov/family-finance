@@ -100,16 +100,19 @@ public class SavingsGoalService {
 
         contributionRepository.save(contribution);
 
-        goal.setCurrentAmount(goal.getCurrentAmount().add(request.getAmount()));
-        if (goal.getCurrentAmount().compareTo(goal.getTargetAmount()) >= 0) {
-            goal.setIsCompleted(true);
+        // Atomic balance update
+        savingsGoalRepository.addToCurrentAmount(goal.getId(), request.getAmount());
+
+        BigDecimal current = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
+        BigDecimal newAmount = current.add(request.getAmount());
+        if (newAmount.compareTo(goal.getTargetAmount()) >= 0) {
+            savingsGoalRepository.markAsCompleted(goal.getId());
             notificationService.createGlobalNotification(
                     "Jamg'arma maqsadi bajarildi!",
                     String.format("\"%s\" maqsadi to'liq bajarildi!", goal.getName()),
                     uz.familyfinance.api.enums.StaffNotificationType.SAVINGS_MILESTONE,
                     "SAVINGS_GOAL", goal.getId());
         }
-        savingsGoalRepository.save(goal);
 
         return toContributionResponse(contribution);
     }
@@ -136,8 +139,9 @@ public class SavingsGoalService {
         r.setColor(g.getColor());
         r.setIsCompleted(g.getIsCompleted());
         r.setCreatedAt(g.getCreatedAt());
+        BigDecimal currentAmount = g.getCurrentAmount() != null ? g.getCurrentAmount() : BigDecimal.ZERO;
         if (g.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
-            r.setPercentage(g.getCurrentAmount().multiply(BigDecimal.valueOf(100))
+            r.setPercentage(currentAmount.multiply(BigDecimal.valueOf(100))
                     .divide(g.getTargetAmount(), 2, RoundingMode.HALF_UP).doubleValue());
         } else {
             r.setPercentage(0.0);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { User, X, Users } from 'lucide-react';
 import { familyTreeApi } from '../../api/family-tree.api';
 import { familyMembersApi } from '../../api/family-members.api';
@@ -82,7 +83,7 @@ export function AddRelationModal({
         const data = res.data.data as FamilyMember[];
         // fromMemberId dan boshqa a'zolarni ko'rsatish
         setExistingMembers(data.filter(m => m.id !== fromMemberId));
-      }).catch(console.error);
+      }).catch(() => toast.error("Oila a'zolari ro'yxatini yuklashda xatolik"));
     }
   }, [isOpen, mode, fromMemberId]);
 

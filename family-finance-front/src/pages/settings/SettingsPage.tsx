@@ -34,7 +34,7 @@ export function SettingsPage() {
       const data = await settingsApi.get();
       setDebtDueDays(data.debtDueDays);
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      toast.error('Sozlamalarni yuklashda xatolik');
     } finally {
       setSettingsLoading(false);
     }
@@ -55,7 +55,6 @@ export function SettingsPage() {
       setDebtDueDays(data.debtDueDays);
       toast.success('Sozlamalar yangilandi');
     } catch (error) {
-      console.error('Failed to save settings:', error);
       toast.error('Sozlamalarni saqlashda xatolik');
     } finally {
       setSettingsSaving(false);

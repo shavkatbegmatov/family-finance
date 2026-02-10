@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import {
   Wallet,
   TrendingUp,
@@ -197,7 +198,7 @@ export function DashboardPage() {
       setCharts(chartsData);
       setRecentTransactions(recentData);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      toast.error("Ma'lumotlarni yuklashda xatolik");
     } finally {
       setInitialLoading(false);
       setRefreshing(false);

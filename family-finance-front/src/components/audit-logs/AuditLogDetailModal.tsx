@@ -30,7 +30,6 @@ export function AuditLogDetailModal({ logId, onClose }: AuditLogDetailModalProps
       const data = await auditLogsApi.getDetail(logId);
       setDetail(data);
     } catch (error) {
-      console.error('Failed to load audit log detail:', error);
       toast.error('Batafsil ma\'lumotlarni yuklashda xatolik');
     } finally {
       setLoading(false);

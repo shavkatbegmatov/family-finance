@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.LoginAttemptResponse;
 import uz.familyfinance.api.entity.LoginAttempt;
 import uz.familyfinance.api.enums.PermissionCode;
@@ -98,6 +99,7 @@ public class LoginActivityController {
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(defaultValue = "10000") int maxRecords
     ) {
+        maxRecords = Math.min(maxRecords, 10000);
         try {
             LoginAttempt.LoginStatus loginStatus = status != null
                     ? LoginAttempt.LoginStatus.valueOf(status.toUpperCase())
@@ -136,7 +138,7 @@ public class LoginActivityController {
                     .contentLength(resource.contentLength())
                     .body(resource);
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new BadRequestException("Eksport xatoligi");
         }
     }
 }

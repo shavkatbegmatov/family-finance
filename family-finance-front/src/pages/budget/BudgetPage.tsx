@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PieChart, Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import { budgetsApi } from '../../api/budgets.api';
 import { categoriesApi } from '../../api/categories.api';
 import { formatCurrency, BUDGET_PERIODS, MONTHS_UZ } from '../../config/constants';
@@ -52,7 +53,7 @@ export function BudgetPage() {
       const data = res.data as ApiResponse<PagedResponse<Budget>>;
       setBudgets(data.data.content);
     } catch (error) {
-      console.error('Failed to load budgets:', error);
+      toast.error('Byudjetlarni yuklashda xatolik');
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ export function BudgetPage() {
       const data = categoriesRes.data as ApiResponse<FinanceCategory[]>;
       setCategories(data.data);
     } catch (error) {
-      console.error('Failed to load categories:', error);
+      toast.error('Kategoriyalarni yuklashda xatolik');
     }
   }, []);
 
@@ -146,7 +147,7 @@ export function BudgetPage() {
       handleCloseModal();
       void loadBudgets();
     } catch (error) {
-      console.error('Failed to save budget:', error);
+      toast.error('Byudjetni saqlashda xatolik');
     } finally {
       setSubmitting(false);
     }
@@ -165,7 +166,7 @@ export function BudgetPage() {
       await budgetsApi.delete(deletingId);
       void loadBudgets();
     } catch (error) {
-      console.error('Failed to delete budget:', error);
+      toast.error("Byudjetni o'chirishda xatolik");
     } finally {
       setShowDeleteConfirm(false);
       setDeletingId(null);

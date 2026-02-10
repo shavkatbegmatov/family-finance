@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import {
   Plus,
   ArrowLeftRight,
@@ -129,7 +130,7 @@ export function TransactionsPage() {
         (membersRes.data as ApiResponse<FamilyMember[]>).data ?? (membersRes.data as FamilyMember[])
       );
     } catch (error) {
-      console.error('Failed to load reference data:', error);
+      toast.error("Ma'lumotnoma yuklashda xatolik");
     }
   }, []);
 
@@ -143,7 +144,7 @@ export function TransactionsPage() {
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch (error) {
-      console.error('Failed to load transactions:', error);
+      toast.error('Tranzaksiyalarni yuklashda xatolik');
     } finally {
       setLoading(false);
     }
@@ -245,7 +246,7 @@ export function TransactionsPage() {
       handleCloseForm();
       void loadTransactions();
     } catch (error) {
-      console.error('Failed to save transaction:', error);
+      toast.error('Tranzaksiyani saqlashda xatolik');
     } finally {
       setSubmitting(false);
     }
@@ -260,7 +261,7 @@ export function TransactionsPage() {
       handleCloseDelete();
       void loadTransactions();
     } catch (error) {
-      console.error('Failed to delete transaction:', error);
+      toast.error("Tranzaksiyani o'chirishda xatolik");
     } finally {
       setSubmitting(false);
     }

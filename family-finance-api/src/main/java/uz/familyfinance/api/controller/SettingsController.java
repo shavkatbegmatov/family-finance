@@ -18,6 +18,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import uz.familyfinance.api.dto.request.SettingsUpdateRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.SettingsResponse;
 import uz.familyfinance.api.service.SettingsService;
 import uz.familyfinance.api.service.export.GenericExportService;
@@ -72,7 +73,7 @@ public class SettingsController {
                     .body(resource);
 
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new BadRequestException("Eksport xatoligi");
         }
     }
 

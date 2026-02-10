@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Target, Plus, Edit2, Trash2, X, PiggyBank, ArrowUpCircle } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import { savingsApi } from '../../api/savings.api';
 import { formatCurrency, formatDate } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
@@ -86,7 +87,7 @@ export function SavingsPage() {
       const data = res.data as ApiResponse<PagedResponse<SavingsGoal>>;
       setGoals(data.data.content);
     } catch (error) {
-      console.error('Failed to load savings goals:', error);
+      toast.error("Jamg'arma maqsadlarini yuklashda xatolik");
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export function SavingsPage() {
       const data = contribRes.data as ApiResponse<GoalContribution[]>;
       setContributions(data.data);
     } catch (error) {
-      console.error('Failed to load contributions:', error);
+      toast.error("Hissalarni yuklashda xatolik");
     } finally {
       setLoadingContribs(false);
     }
@@ -158,7 +159,7 @@ export function SavingsPage() {
       handleCloseGoalModal();
       void loadGoals();
     } catch (error) {
-      console.error('Failed to save goal:', error);
+      toast.error('Maqsadni saqlashda xatolik');
     } finally {
       setSubmitting(false);
     }
@@ -201,7 +202,7 @@ export function SavingsPage() {
         void loadContributions(contributionGoalId);
       }
     } catch (error) {
-      console.error('Failed to add contribution:', error);
+      toast.error("Hissa qo'shishda xatolik");
     } finally {
       setSubmitting(false);
     }
@@ -236,7 +237,7 @@ export function SavingsPage() {
       }
       void loadGoals();
     } catch (error) {
-      console.error('Failed to delete goal:', error);
+      toast.error("Maqsadni o'chirishda xatolik");
     } finally {
       setShowDeleteConfirm(false);
       setDeletingId(null);
