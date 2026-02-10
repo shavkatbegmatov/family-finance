@@ -180,19 +180,15 @@ public class TransactionService {
     private void updateAccountBalances(TransactionType type, Account account, Account toAccount, BigDecimal amount) {
         switch (type) {
             case INCOME:
-                account.setBalance(account.getBalance().add(amount));
-                accountRepository.save(account);
+                accountRepository.addToBalance(account.getId(), amount);
                 break;
             case EXPENSE:
-                account.setBalance(account.getBalance().subtract(amount));
-                accountRepository.save(account);
+                accountRepository.addToBalance(account.getId(), amount.negate());
                 break;
             case TRANSFER:
-                account.setBalance(account.getBalance().subtract(amount));
-                accountRepository.save(account);
+                accountRepository.addToBalance(account.getId(), amount.negate());
                 if (toAccount != null) {
-                    toAccount.setBalance(toAccount.getBalance().add(amount));
-                    accountRepository.save(toAccount);
+                    accountRepository.addToBalance(toAccount.getId(), amount);
                 }
                 break;
         }
@@ -201,19 +197,15 @@ public class TransactionService {
     private void reverseAccountBalances(TransactionType type, Account account, Account toAccount, BigDecimal amount) {
         switch (type) {
             case INCOME:
-                account.setBalance(account.getBalance().subtract(amount));
-                accountRepository.save(account);
+                accountRepository.addToBalance(account.getId(), amount.negate());
                 break;
             case EXPENSE:
-                account.setBalance(account.getBalance().add(amount));
-                accountRepository.save(account);
+                accountRepository.addToBalance(account.getId(), amount);
                 break;
             case TRANSFER:
-                account.setBalance(account.getBalance().add(amount));
-                accountRepository.save(account);
+                accountRepository.addToBalance(account.getId(), amount);
                 if (toAccount != null) {
-                    toAccount.setBalance(toAccount.getBalance().subtract(amount));
-                    accountRepository.save(toAccount);
+                    accountRepository.addToBalance(toAccount.getId(), amount.negate());
                 }
                 break;
         }

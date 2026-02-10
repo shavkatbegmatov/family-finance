@@ -3,7 +3,9 @@ package uz.familyfinance.api.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import uz.familyfinance.api.entity.Account;
 import uz.familyfinance.api.enums.AccountType;
 
@@ -21,4 +23,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Query("SELECT a FROM Account a WHERE a.isActive = true AND " +
            "LOWER(a.name) LIKE LOWER(CONCAT('%', :search, '%'))")
     Page<Account> search(String search, Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE Account a SET a.balance = a.balance + :amount WHERE a.id = :id")
+    void addToBalance(@Param("id") Long id, @Param("amount") BigDecimal amount);
 }

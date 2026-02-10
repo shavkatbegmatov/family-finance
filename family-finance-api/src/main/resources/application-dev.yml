@@ -2,8 +2,8 @@ spring:
   datasource:
     # localhost - Windows/IntelliJ uchun, 172.17.0.1 - WSL uchun
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/family_finance_db
-    username: family_finance_user
-    password: ${DB_PASSWORD:family_finance_2026}
+    username: ${DB_USERNAME:family_finance_user}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
