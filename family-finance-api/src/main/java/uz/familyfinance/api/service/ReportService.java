@@ -53,8 +53,7 @@ public class ReportService {
             item.put("percentage", total.compareTo(BigDecimal.ZERO) > 0
                     ? amount.multiply(BigDecimal.valueOf(100)).divide(total, 2, RoundingMode.HALF_UP).doubleValue() : 0);
             return item;
-        }).filter(m -> ((BigDecimal) m.get("amount")).compareTo(BigDecimal.ZERO) > 0)
-                .sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
+        }).sorted((a, b) -> ((BigDecimal) b.get("amount")).compareTo((BigDecimal) a.get("amount")))
                 .toList();
     }
 

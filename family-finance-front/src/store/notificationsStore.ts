@@ -227,10 +227,14 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       // Session update callback
       async (sessionUpdate: SessionUpdateMessage) => {
         if (sessionUpdate.type === 'SESSION_REVOKED') {
-          const intentionalLogout = sessionStorage.getItem('intentional-logout');
-          if (intentionalLogout) {
-            sessionStorage.removeItem('intentional-logout');
-            return;
+          try {
+            const intentionalLogout = sessionStorage.getItem('intentional-logout');
+            if (intentionalLogout) {
+              sessionStorage.removeItem('intentional-logout');
+              return;
+            }
+          } catch {
+            // sessionStorage mavjud emas
           }
 
           try {
