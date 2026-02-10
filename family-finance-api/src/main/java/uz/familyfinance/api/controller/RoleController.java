@@ -17,6 +17,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import uz.familyfinance.api.dto.request.RoleRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.RoleResponse;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.CustomUserDetails;
@@ -78,7 +79,7 @@ public class RoleController {
                     .body(resource);
 
         } catch (Exception e) {
-            throw new RuntimeException("Eksport xatoligi", e);
+            throw new BadRequestException("Eksport xatoligi");
         }
     }
 

@@ -139,8 +139,9 @@ public class SavingsGoalService {
         r.setColor(g.getColor());
         r.setIsCompleted(g.getIsCompleted());
         r.setCreatedAt(g.getCreatedAt());
+        BigDecimal currentAmount = g.getCurrentAmount() != null ? g.getCurrentAmount() : BigDecimal.ZERO;
         if (g.getTargetAmount().compareTo(BigDecimal.ZERO) > 0) {
-            r.setPercentage(g.getCurrentAmount().multiply(BigDecimal.valueOf(100))
+            r.setPercentage(currentAmount.multiply(BigDecimal.valueOf(100))
                     .divide(g.getTargetAmount(), 2, RoundingMode.HALF_UP).doubleValue());
         } else {
             r.setPercentage(0.0);

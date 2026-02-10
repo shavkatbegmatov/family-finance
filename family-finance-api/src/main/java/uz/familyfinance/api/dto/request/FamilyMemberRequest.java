@@ -2,6 +2,7 @@ package uz.familyfinance.api.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.Gender;
@@ -9,11 +10,11 @@ import java.time.LocalDate;
 
 @Data
 public class FamilyMemberRequest {
-    @NotBlank private String fullName;
+    @NotBlank @Size(max = 100) private String fullName;
     @NotNull private FamilyRole role;
     private Gender gender;
     private LocalDate birthDate;
-    private String phone;
+    @Size(max = 20, message = "Telefon raqami 20 ta belgidan oshmasligi kerak") private String phone;
     private String avatar;
     private Long userId;
     private Boolean createAccount;

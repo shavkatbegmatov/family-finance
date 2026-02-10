@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.AuditLogDetailResponse;
 import uz.familyfinance.api.dto.response.AuditLogGroupResponse;
 import uz.familyfinance.api.dto.response.AuditLogResponse;
@@ -171,7 +172,7 @@ public class AuditLogController {
                     .contentLength(resource.contentLength())
                     .body(resource);
         } catch (Exception e) {
-            throw new RuntimeException("Eksport xatoligi", e);
+            throw new BadRequestException("Eksport xatoligi");
         }
     }
 }

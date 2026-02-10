@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.UserActivityResponse;
 import uz.familyfinance.api.enums.PermissionCode;
@@ -130,7 +131,7 @@ public class UserController {
                     .contentLength(resource.contentLength())
                     .body(resource);
         } catch (Exception e) {
-            throw new RuntimeException("Eksport xatoligi", e);
+            throw new BadRequestException("Eksport xatoligi");
         }
     }
 }
