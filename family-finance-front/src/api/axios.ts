@@ -125,8 +125,6 @@ api.interceptors.response.use(
         duration: 4000,
         icon: '🔒',
       });
-
-      console.warn('Permission denied:', error.config?.url, message);
     }
 
     return Promise.reject(error);

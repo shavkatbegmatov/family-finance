@@ -28,7 +28,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
   const isValidatingRef = useRef(false);
   const lastCheckTimeRef = useRef(Date.now());
 
-  const validateSession = async (source: 'polling' | 'visibility' = 'polling') => {
+  const validateSession = async () => {
     // Prevent concurrent validations
     if (isValidatingRef.current || !isAuthenticated) {
       return;
@@ -48,7 +48,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
 
       if (!isValid) {
         // Session was revoked from another device
-        console.warn(`[Session Monitor] Session invalidated (source: ${source})`);
+        // Session invalidated
 
         toast.error('Sessioningiz boshqa qurilmadan tugatilgan. Qayta kiring.', {
           duration: 4000,
@@ -65,7 +65,7 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
       // If 401/403, session is invalid - let axios interceptor handle it
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401 || axiosError?.response?.status === 403) {
-        console.warn(`[Session Monitor] Session validation failed with ${axiosError.response?.status}`);
+        // Session validation failed — axios interceptor handles logout
         // Axios interceptor will handle logout automatically
       } else {
         // Network error or other issue - log but don't logout
@@ -83,12 +83,12 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     }
 
     const intervalId = setInterval(() => {
-      validateSession('polling');
+      validateSession();
     }, pollingInterval);
 
     // Initial check after 5 seconds (give time for app to initialize)
     const timeoutId = setTimeout(() => {
-      validateSession('polling');
+      validateSession();
     }, 5000);
 
     return () => {
@@ -105,8 +105,8 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Session Monitor] Tab focused, validating session');
-        validateSession('visibility');
+        // Tab focused — validating session
+        validateSession();
       }
     };
 
@@ -124,8 +124,8 @@ export function useSessionMonitor(options: UseSessionMonitorOptions = {}) {
     }
 
     const handleFocus = () => {
-      console.log('[Session Monitor] Window focused, validating session');
-      validateSession('visibility');
+      // Window focused — validating session
+      validateSession();
     };
 
     window.addEventListener('focus', handleFocus);

@@ -82,7 +82,6 @@ class WebSocketService {
 
       // Ulanish muvaffaqiyatli
       onConnect: () => {
-        console.log('[WebSocket] Connected');
         this.connectionStatusCallback?.(true);
 
         // Barcha staff uchun global bildirishnomalar
@@ -108,7 +107,6 @@ class WebSocketService {
 
       // Ulanish uzildi
       onDisconnect: () => {
-        console.log('[WebSocket] Disconnected');
         this.connectionStatusCallback?.(false);
       },
 
@@ -143,14 +141,7 @@ class WebSocketService {
   private handlePermissionUpdate(message: IMessage) {
     try {
       const data = JSON.parse(message.body) as PermissionUpdateMessage;
-      console.log('[WebSocket] Permission update received');
-
-      // Callback chaqirish (authStore ni yangilash uchun)
-      if (this.permissionUpdateCallback) {
-        this.permissionUpdateCallback(data);
-      } else {
-        console.warn('[WebSocket] Permission update callback not registered');
-      }
+      this.permissionUpdateCallback?.(data);
     } catch (error) {
       console.error('[WebSocket] Error handling permission update:', error);
     }
@@ -162,14 +153,7 @@ class WebSocketService {
   private handleSessionUpdate(message: IMessage) {
     try {
       const data = JSON.parse(message.body) as SessionUpdateMessage;
-      console.log('[WebSocket] Session update received:', data.type);
-
-      // Callback chaqirish (SessionsTab ni yangilash uchun)
-      if (this.sessionUpdateCallback) {
-        this.sessionUpdateCallback(data);
-      } else {
-        console.warn('[WebSocket] Session update callback not registered');
-      }
+      this.sessionUpdateCallback?.(data);
     } catch (error) {
       console.error('[WebSocket] Error handling session update:', error);
     }

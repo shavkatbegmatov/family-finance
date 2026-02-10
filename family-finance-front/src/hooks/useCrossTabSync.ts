@@ -28,7 +28,7 @@ export function useCrossTabSync() {
 
       // Case 1: Access token removed (logout in another tab)
       if (event.key === 'accessToken' && event.oldValue && !event.newValue) {
-        console.log('[Cross-Tab Sync] Token removed in another tab - logging out');
+        // [Cross-Tab Sync] Token removed in another tab - logging out');
 
         toast.error('Siz boshqa tabda chiqib ketdingiz', {
           duration: 3000,
@@ -44,7 +44,7 @@ export function useCrossTabSync() {
 
       // Case 2: User data removed (session cleared)
       if (event.key === 'user' && event.oldValue && !event.newValue) {
-        console.log('[Cross-Tab Sync] User data removed in another tab - logging out');
+        // [Cross-Tab Sync] User data removed in another tab - logging out');
 
         setTimeout(() => {
           logout();
@@ -54,7 +54,7 @@ export function useCrossTabSync() {
 
       // Case 3: Entire localStorage cleared
       if (event.key === null && event.oldValue === null && event.newValue === null) {
-        console.log('[Cross-Tab Sync] localStorage cleared - logging out');
+        // [Cross-Tab Sync] localStorage cleared - logging out');
 
         toast.error('Session tozalandi', {
           duration: 2000,
@@ -69,7 +69,7 @@ export function useCrossTabSync() {
       // Case 4: New login in another tab (token changed)
       if (event.key === 'accessToken' && event.oldValue && event.newValue &&
           event.oldValue !== event.newValue) {
-        console.log('[Cross-Tab Sync] New login detected in another tab');
+        // [Cross-Tab Sync] New login detected in another tab');
 
         toast('Boshqa tabda yangi session boshlandi', {
           duration: 3000,
@@ -84,11 +84,11 @@ export function useCrossTabSync() {
     // Listen for storage events (only fires for changes from OTHER tabs/windows)
     window.addEventListener('storage', handleStorageChange);
 
-    console.log('[Cross-Tab Sync] Initialized - listening for cross-tab changes');
+    // [Cross-Tab Sync] Initialized - listening for cross-tab changes');
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      console.log('[Cross-Tab Sync] Cleanup - stopped listening');
+      // [Cross-Tab Sync] Cleanup - stopped listening');
     };
   }, [isAuthenticated, logout, navigate]);
 }

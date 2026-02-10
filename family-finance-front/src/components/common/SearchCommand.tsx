@@ -24,6 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 import { transactionsApi } from '../../api/transactions.api';
 import { accountsApi } from '../../api/accounts.api';
 import { familyMembersApi } from '../../api/family-members.api';
@@ -290,8 +291,8 @@ export function SearchCommand() {
 
       setResults(searchResults);
       setSelectedIndex(0);
-    } catch (error) {
-      console.error('Search failed:', error);
+    } catch {
+      toast.error('Qidirishda xatolik yuz berdi');
     } finally {
       setLoading(false);
     }
