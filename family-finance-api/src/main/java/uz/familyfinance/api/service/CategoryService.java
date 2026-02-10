@@ -40,9 +40,9 @@ public class CategoryService {
     public List<CategoryResponse> getTree(CategoryType type) {
         List<Category> roots;
         if (type != null) {
-            roots = categoryRepository.findByParentIsNullAndTypeAndIsActiveTrue(type);
+            roots = categoryRepository.findRootsWithChildrenByType(type);
         } else {
-            roots = categoryRepository.findByParentIsNullAndIsActiveTrue();
+            roots = categoryRepository.findRootsWithChildren();
         }
         return roots.stream().map(this::toTreeResponse).collect(Collectors.toList());
     }

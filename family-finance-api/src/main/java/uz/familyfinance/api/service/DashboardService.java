@@ -125,7 +125,7 @@ public class DashboardService {
 
         List<ChartDataResponse.CategoryData> incomeByCategory = incomeCategories.stream()
                 .map(c -> {
-                    BigDecimal amount = transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), monthStart, monthEnd);
+                    BigDecimal amount = transactionRepository.sumIncomeByCategoryAndDateRange(c.getId(), monthStart, monthEnd);
                     double pct = totalIncome.compareTo(BigDecimal.ZERO) > 0
                             ? amount.multiply(BigDecimal.valueOf(100)).divide(totalIncome, 2, RoundingMode.HALF_UP).doubleValue() : 0;
                     return ChartDataResponse.CategoryData.builder()

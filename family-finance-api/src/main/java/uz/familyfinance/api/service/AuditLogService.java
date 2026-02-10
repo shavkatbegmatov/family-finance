@@ -44,37 +44,32 @@ public class AuditLogService {
     /**
      * Log an audit event asynchronously
      */
-    @Async
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(String entityType, Long entityId, String action, Object oldValue, Object newValue, Long userId) {
-        try {
-            String username = null;
-            if (userId != null) {
-                username = userRepository.findById(userId)
-                        .map(User::getUsername)
-                        .orElse(null);
-            }
-
-            String ipAddress = getClientIpAddress();
-            String userAgent = getUserAgent();
-
-            AuditLog auditLog = AuditLog.builder()
-                    .entityType(entityType)
-                    .entityId(entityId)
-                    .action(action)
-                    .oldValue(convertToMap(oldValue))
-                    .newValue(convertToMap(newValue))
-                    .userId(userId)
-                    .username(username)
-                    .ipAddress(ipAddress)
-                    .userAgent(userAgent)
-                    .build();
-
-            auditLogRepository.save(auditLog);
-            log.debug("Audit log created: {} {} {} by {}", action, entityType, entityId, username);
-        } catch (Exception e) {
-            log.error("Failed to create audit log: {}", e.getMessage(), e);
+        String username = null;
+        if (userId != null) {
+            username = userRepository.findById(userId)
+                    .map(User::getUsername)
+                    .orElse(null);
         }
+
+        String ipAddress = getClientIpAddress();
+        String userAgent = getUserAgent();
+
+        AuditLog auditLog = AuditLog.builder()
+                .entityType(entityType)
+                .entityId(entityId)
+                .action(action)
+                .oldValue(convertToMap(oldValue))
+                .newValue(convertToMap(newValue))
+                .userId(userId)
+                .username(username)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .build();
+
+        auditLogRepository.save(auditLog);
+        log.debug("Audit log created: {} {} {} by {}", action, entityType, entityId, username);
     }
 
     /**

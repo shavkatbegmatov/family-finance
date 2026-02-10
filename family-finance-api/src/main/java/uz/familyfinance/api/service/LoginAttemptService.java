@@ -36,27 +36,23 @@ public class LoginAttemptService {
      */
     @Transactional
     public void logSuccessfulAttempt(String username, String ipAddress, String userAgent, Session session) {
-        try {
-            User user = userRepository.findByUsername(username).orElse(null);
-            UserAgentParser.DeviceInfo deviceInfo = userAgentParser.parse(userAgent);
+        User user = userRepository.findByUsername(username).orElse(null);
+        UserAgentParser.DeviceInfo deviceInfo = userAgentParser.parse(userAgent);
 
-            LoginAttempt attempt = LoginAttempt.builder()
-                    .user(user)
-                    .username(username)
-                    .ipAddress(ipAddress)
-                    .userAgent(userAgent)
-                    .deviceType(deviceInfo.getDeviceType())
-                    .browser(deviceInfo.getBrowser())
-                    .os(deviceInfo.getOs())
-                    .status(LoginAttempt.LoginStatus.SUCCESS)
-                    .session(session)
-                    .build();
+        LoginAttempt attempt = LoginAttempt.builder()
+                .user(user)
+                .username(username)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .deviceType(deviceInfo.getDeviceType())
+                .browser(deviceInfo.getBrowser())
+                .os(deviceInfo.getOs())
+                .status(LoginAttempt.LoginStatus.SUCCESS)
+                .session(session)
+                .build();
 
-            loginAttemptRepository.save(attempt);
-            log.info("Logged successful login for user: {} from IP: {}", username, ipAddress);
-        } catch (Exception e) {
-            log.error("Error logging successful login attempt", e);
-        }
+        loginAttemptRepository.save(attempt);
+        log.info("Logged successful login for user: {} from IP: {}", username, ipAddress);
     }
 
     /**
@@ -70,29 +66,25 @@ public class LoginAttemptService {
             LoginAttempt.FailureReason reason,
             String message
     ) {
-        try {
-            User user = userRepository.findByUsername(username).orElse(null);
-            UserAgentParser.DeviceInfo deviceInfo = userAgentParser.parse(userAgent);
+        User user = userRepository.findByUsername(username).orElse(null);
+        UserAgentParser.DeviceInfo deviceInfo = userAgentParser.parse(userAgent);
 
-            LoginAttempt attempt = LoginAttempt.builder()
-                    .user(user)
-                    .username(username)
-                    .ipAddress(ipAddress)
-                    .userAgent(userAgent)
-                    .deviceType(deviceInfo.getDeviceType())
-                    .browser(deviceInfo.getBrowser())
-                    .os(deviceInfo.getOs())
-                    .status(LoginAttempt.LoginStatus.FAILED)
-                    .failureReason(reason)
-                    .failureMessage(message)
-                    .build();
+        LoginAttempt attempt = LoginAttempt.builder()
+                .user(user)
+                .username(username)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .deviceType(deviceInfo.getDeviceType())
+                .browser(deviceInfo.getBrowser())
+                .os(deviceInfo.getOs())
+                .status(LoginAttempt.LoginStatus.FAILED)
+                .failureReason(reason)
+                .failureMessage(message)
+                .build();
 
-            loginAttemptRepository.save(attempt);
-            log.warn("Logged failed login for user: {} from IP: {} - Reason: {}",
-                    username, ipAddress, reason);
-        } catch (Exception e) {
-            log.error("Error logging failed login attempt", e);
-        }
+        loginAttemptRepository.save(attempt);
+        log.warn("Logged failed login for user: {} from IP: {} - Reason: {}",
+                username, ipAddress, reason);
     }
 
     /**
