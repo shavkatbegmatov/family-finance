@@ -1,4 +1,5 @@
 import { useState, type RefObject } from 'react';
+import toast from 'react-hot-toast';
 import { Download, Image, FileText, ChevronDown } from 'lucide-react';
 
 interface TreeExportButtonProps {
@@ -57,7 +58,7 @@ export function TreeExportButton({ treeContentRef, scale, setScale }: TreeExport
         pdf.save('oila-daraxti.pdf');
       }
     } catch (err) {
-      console.error('Export failed:', err);
+      toast.error('Eksport qilishda xatolik');
     } finally {
       setScale(originalScale);
       setExporting(false);

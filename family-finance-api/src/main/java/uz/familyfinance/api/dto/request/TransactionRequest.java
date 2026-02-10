@@ -1,6 +1,7 @@
 package uz.familyfinance.api.dto.request;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 import uz.familyfinance.api.enums.RecurringPattern;
@@ -16,7 +17,7 @@ public class TransactionRequest {
     private Long toAccountId;
     private Long categoryId;
     private Long familyMemberId;
-    @NotNull private LocalDateTime transactionDate;
+    @NotNull @PastOrPresent(message = "Tranzaksiya sanasi kelajakda bo'lishi mumkin emas") private LocalDateTime transactionDate;
     private String description;
     private Boolean isRecurring = false;
     private RecurringPattern recurringPattern;

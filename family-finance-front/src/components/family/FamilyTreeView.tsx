@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { Users, Plus, AlertTriangle, RefreshCw, Heart, ArrowLeft } from 'lucide-react';
 import { familyTreeApi } from '../../api/family-tree.api';
 import { FamilyTreeCard } from './FamilyTreeCard';
@@ -162,7 +163,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
       setDeleteRelation(null);
       void loadTree();
     } catch (err) {
-      console.error('Failed to delete relation:', err);
+      toast.error("Munosabatni o'chirishda xatolik");
     }
   };
 

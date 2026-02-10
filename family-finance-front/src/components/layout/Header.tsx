@@ -111,7 +111,7 @@ export function Header() {
         const rolesData = await rolesApi.getAll();
         setRoles(rolesData);
       } catch (error) {
-        console.error('Failed to fetch roles:', error);
+        // Rollarni yuklash muvaffaqiyatsiz — kritik emas
       }
 
       // Dastlabki bildirishnomalarni yuklash
@@ -167,7 +167,7 @@ export function Header() {
       // Revoke session in backend database
       await authApi.logout();
     } catch (error) {
-      console.error('Logout API error:', error);
+      // Logout API xatoligi — baribir logout davom etadi
       // Continue with logout even if API call fails (network issues, etc.)
     } finally {
       // Clear frontend state and redirect

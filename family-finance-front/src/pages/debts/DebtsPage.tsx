@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   HandMetal,
   Plus,
@@ -247,7 +248,7 @@ export function DebtsPage() {
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch (error) {
-      console.error('Failed to load debts:', error);
+      toast.error('Qarzlarni yuklashda xatolik');
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
@@ -260,7 +261,7 @@ export function DebtsPage() {
       const data = summaryRes.data.data as DebtSummary;
       setSummary(data);
     } catch (error) {
-      console.error('Failed to load summary:', error);
+      toast.error('Qarz xulosasini yuklashda xatolik');
     }
   }, []);
 
@@ -271,7 +272,7 @@ export function DebtsPage() {
       const data = paymentsRes.data.data as DebtPayment[];
       setPayments(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Failed to load payments:', error);
+      toast.error("To'lovlarni yuklashda xatolik");
       setPayments([]);
     } finally {
       setLoadingPayments(false);
@@ -335,7 +336,7 @@ export function DebtsPage() {
       void loadDebts();
       void loadSummary();
     } catch (error) {
-      console.error('Failed to save debt:', error);
+      toast.error('Qarzni saqlashda xatolik');
     } finally {
       setSubmittingDebt(false);
     }
@@ -355,7 +356,7 @@ export function DebtsPage() {
       void loadDebts();
       void loadSummary();
     } catch (error) {
-      console.error('Failed to delete debt:', error);
+      toast.error("Qarzni o'chirishda xatolik");
     }
   };
 
@@ -388,7 +389,7 @@ export function DebtsPage() {
       setSelectedDebt(updatedDebt);
       loadDebtPayments(selectedDebt.id);
     } catch (error) {
-      console.error('Failed to add payment:', error);
+      toast.error("To'lov qo'shishda xatolik");
     } finally {
       setSubmittingPayment(false);
     }

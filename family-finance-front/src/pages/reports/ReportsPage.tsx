@@ -73,7 +73,6 @@ export function ReportsPage() {
       const report = (res.data as ApiResponse<IncomeExpenseReport>).data;
       setIncomeExpense(report);
     } catch (err) {
-      console.error('Failed to load income/expense report:', err);
       setError('Daromad/Xarajat hisobotini yuklashda xatolik');
     } finally {
       setIeLoading(false);
@@ -88,7 +87,6 @@ export function ReportsPage() {
       const data = (res.data as ApiResponse<CategoryReport[]>).data;
       setCategories(data);
     } catch (err) {
-      console.error('Failed to load category report:', err);
       setError('Kategoriya hisobotini yuklashda xatolik');
     } finally {
       setCatLoading(false);
@@ -103,7 +101,6 @@ export function ReportsPage() {
       const data = (res.data as ApiResponse<MemberReport[]>).data;
       setMembers(data);
     } catch (err) {
-      console.error('Failed to load member report:', err);
       setError("Oila a'zolari hisobotini yuklashda xatolik");
     } finally {
       setMemLoading(false);

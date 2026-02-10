@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   Users,
   Plus,
@@ -82,7 +83,7 @@ export function FamilyMembersPage() {
       setMembers(data.content);
       setTotalElements(data.totalElements);
     } catch (error) {
-      console.error('Failed to load family members:', error);
+      toast.error("Oila a'zolarini yuklashda xatolik");
     } finally {
       setLoading(false);
     }
@@ -150,7 +151,7 @@ export function FamilyMembersPage() {
       void loadMembers();
       setTreeRefreshKey(k => k + 1);
     } catch (error) {
-      console.error('Failed to save family member:', error);
+      toast.error("Oila a'zosini saqlashda xatolik");
     } finally {
       setSubmitting(false);
     }
@@ -162,7 +163,7 @@ export function FamilyMembersPage() {
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
     } catch {
-      console.error('Failed to copy to clipboard');
+      toast.error('Nusxalashda xatolik');
     }
   };
 
@@ -176,7 +177,7 @@ export function FamilyMembersPage() {
       void loadMembers();
       setTreeRefreshKey(k => k + 1);
     } catch (error) {
-      console.error('Failed to delete family member:', error);
+      toast.error("Oila a'zosini o'chirishda xatolik");
     }
   };
 
@@ -200,7 +201,7 @@ export function FamilyMembersPage() {
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export:', error);
+      toast.error('Eksport qilishda xatolik');
     }
   };
 
@@ -226,7 +227,7 @@ export function FamilyMembersPage() {
       const member = res.data.data as FamilyMember;
       handleOpenEditModal(member);
     } catch (error) {
-      console.error('Failed to load member for edit:', error);
+      toast.error("A'zo ma'lumotlarini yuklashda xatolik");
     }
   };
 

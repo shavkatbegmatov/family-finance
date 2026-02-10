@@ -96,8 +96,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const notifications = response.content.map(mapNotification);
       const unreadCount = notifications.filter((n) => !n.isRead).length;
       set({ notifications, unreadCount, loading: false });
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch {
       set({ error: 'Bildirishnomalarni yuklashda xatolik', loading: false });
     }
   },
@@ -106,8 +105,8 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     try {
       const count = await notificationsApi.getUnreadCount();
       set({ unreadCount: count });
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+    } catch {
+      // Unread count yuklash muvaffaqiyatsiz
     }
   },
 
@@ -122,8 +121,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     try {
       await notificationsApi.markAsRead(id);
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
+    } catch {
       // Revert on error
       set({ notifications, unreadCount: notifications.filter((n) => !n.isRead).length });
     }
@@ -137,8 +135,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     try {
       await notificationsApi.markAllAsRead();
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
+    } catch {
       // Revert on error
       set({ notifications, unreadCount: notifications.filter((n) => !n.isRead).length });
     }
@@ -153,8 +150,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
     try {
       await notificationsApi.delete(id);
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
+    } catch {
       // Revert on error
       set({ notifications, unreadCount: notifications.filter((n) => !n.isRead).length });
     }
