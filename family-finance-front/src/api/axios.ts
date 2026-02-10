@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../config/constants';
+import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -31,9 +32,10 @@ const clearAuthAndRedirect = () => {
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('user');
 
-  if (!window.location.pathname.includes('/login')) {
+  if (window.location.pathname !== '/login') {
     toast.error('Sessioningiz tugadi. Qayta kiring.');
     setTimeout(() => {
+      useAuthStore.getState().logout();
       window.location.href = '/login';
     }, 1000);
   }

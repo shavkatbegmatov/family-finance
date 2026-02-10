@@ -253,7 +253,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
               toast.error('Sessioningiz boshqa qurilmadan yopilgan. Qayta kiring.');
 
               // Logout after a short delay to show the toast
-              const { useAuthStore } = await import('./authStore');
               setTimeout(() => {
                 useAuthStore.getState().logout();
                 window.location.href = '/login';
