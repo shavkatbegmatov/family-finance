@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.AddFamilyMemberWithRelationRequest;
 import uz.familyfinance.api.dto.request.AddRelationshipRequest;
+import uz.familyfinance.api.dto.request.UpdateRelationshipTypeRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.FamilyTreeResponse;
 import uz.familyfinance.api.dto.response.RelationshipTypeDto;
@@ -42,6 +43,14 @@ public class FamilyTreeController {
     public ResponseEntity<ApiResponse<FamilyTreeResponse>> addMemberWithRelation(
             @Valid @RequestBody AddFamilyMemberWithRelationRequest request) {
         return ResponseEntity.ok(ApiResponse.success(familyTreeService.addMemberWithRelationship(request)));
+    }
+
+    @PutMapping("/relationships")
+    @RequiresPermission(PermissionCode.FAMILY_UPDATE)
+    public ResponseEntity<ApiResponse<Void>> updateRelationshipType(
+            @Valid @RequestBody UpdateRelationshipTypeRequest request) {
+        familyTreeService.updateRelationshipType(request);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @DeleteMapping("/relationships")

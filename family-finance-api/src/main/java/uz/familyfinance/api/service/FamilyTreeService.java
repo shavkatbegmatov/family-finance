@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.AddFamilyMemberWithRelationRequest;
 import uz.familyfinance.api.dto.request.AddRelationshipRequest;
+import uz.familyfinance.api.dto.request.UpdateRelationshipTypeRequest;
 import uz.familyfinance.api.dto.response.*;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.FamilyRelationship;
@@ -154,6 +155,30 @@ public class FamilyTreeService {
     public void removeRelationship(Long fromId, Long toId) {
         relationshipRepository.deleteByFromMemberIdAndToMemberId(fromId, toId);
         relationshipRepository.deleteByFromMemberIdAndToMemberId(toId, fromId);
+    }
+
+    @Transactional
+    public void updateRelationshipType(UpdateRelationshipTypeRequest request) {
+        FamilyRelationship forward = relationshipRepository
+                .findByFromMemberIdAndToMemberId(request.getFromMemberId(), request.getToMemberId())
+                .orElseThrow(() -> new ResourceNotFoundException("Munosabat topilmadi"));
+
+        FamilyMember from = forward.getFromMember();
+        RelationshipType newType = request.getNewRelationshipType();
+
+        // Forward munosabatni yangilash
+        forward.setRelationshipType(newType);
+        relationshipRepository.save(forward);
+
+        // Inverse munosabatni yangilash
+        relationshipRepository.findByFromMemberIdAndToMemberId(request.getToMemberId(), request.getFromMemberId())
+                .ifPresent(inverse -> {
+                    if (from.getGender() != null) {
+                        RelationshipType inverseType = inverseService.computeInverse(newType, from.getGender());
+                        inverse.setRelationshipType(inverseType);
+                        relationshipRepository.save(inverse);
+                    }
+                });
     }
 
     public List<RelationshipTypeDto> getRelationshipTypes() {

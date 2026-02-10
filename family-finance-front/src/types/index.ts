@@ -230,6 +230,12 @@ export interface RelationshipTypeInfo {
   category: string;
 }
 
+export interface UpdateRelationshipTypeRequest {
+  fromMemberId: number;
+  toMemberId: number;
+  newRelationshipType: string;
+}
+
 // Account Types
 export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'E_WALLET';
 

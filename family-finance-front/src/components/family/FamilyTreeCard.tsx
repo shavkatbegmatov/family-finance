@@ -1,6 +1,6 @@
 import { Phone, Calendar, Plus } from 'lucide-react';
 import clsx from 'clsx';
-import type { FamilyTreeMember, Gender } from '../../types';
+import type { FamilyTreeMember, FamilyRelationshipDto, Gender } from '../../types';
 
 interface FamilyTreeCardProps {
   member: FamilyTreeMember;
@@ -9,6 +9,8 @@ interface FamilyTreeCardProps {
   size?: 'lg' | 'md' | 'sm';
   onAddRelation?: (memberId: number) => void;
   onClick?: (member: FamilyTreeMember) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  relationship?: FamilyRelationshipDto;
 }
 
 const getGenderColor = (gender?: Gender | null) => {
@@ -52,7 +54,7 @@ const avatarSizes = {
   sm: 'h-10 w-10 text-base',
 };
 
-export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onAddRelation, onClick }: FamilyTreeCardProps) {
+export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onAddRelation, onClick, onContextMenu }: FamilyTreeCardProps) {
   const age = getAge(member.birthDate);
 
   return (
@@ -66,6 +68,7 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
           sizeClasses[size]
         )}
         onClick={() => onClick?.(member)}
+        onContextMenu={onContextMenu}
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
         onKeyDown={(e) => { if (e.key === 'Enter' && onClick) onClick(member); }}

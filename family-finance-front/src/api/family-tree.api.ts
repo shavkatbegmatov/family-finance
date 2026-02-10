@@ -1,5 +1,5 @@
 import axiosInstance from './axios';
-import { AddRelationshipRequest, AddFamilyMemberWithRelationRequest } from '../types';
+import { AddRelationshipRequest, AddFamilyMemberWithRelationRequest, UpdateRelationshipTypeRequest } from '../types';
 
 export const familyTreeApi = {
   getTree: (memberId?: number) => {
@@ -15,4 +15,6 @@ export const familyTreeApi = {
     axiosInstance.delete('/v1/family-tree/relationships', { params: { from: fromId, to: toId } }),
   getRelationshipTypes: () =>
     axiosInstance.get('/v1/family-tree/relationship-types'),
+  updateRelationshipType: (data: UpdateRelationshipTypeRequest) =>
+    axiosInstance.put('/v1/family-tree/relationships', data),
 };
