@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.ChangePasswordRequest;
 import uz.familyfinance.api.dto.request.LoginRequest;
+import uz.familyfinance.api.dto.request.RegisterRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
@@ -28,6 +29,14 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final SessionService sessionService;
+
+    @PostMapping("/register")
+    @Operation(summary = "Register", description = "Yangi foydalanuvchi ro'yxatdan o'tish")
+    public ResponseEntity<ApiResponse<UserResponse>> register(
+            @Valid @RequestBody RegisterRequest request) {
+        UserResponse response = authService.register(request);
+        return ResponseEntity.ok(ApiResponse.success("Muvaffaqiyatli ro'yxatdan o'tildi", response));
+    }
 
     @PostMapping("/login")
     @Operation(summary = "Login", description = "Foydalanuvchi tizimga kirish")
