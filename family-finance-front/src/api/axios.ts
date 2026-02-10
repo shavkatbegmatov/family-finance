@@ -28,16 +28,9 @@ const processQueue = (error: unknown, token: string | null) => {
 };
 
 const clearAuthAndRedirect = () => {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-  localStorage.removeItem('user');
-
   if (window.location.pathname !== '/login') {
     toast.error('Sessioningiz tugadi. Qayta kiring.');
-    setTimeout(() => {
-      useAuthStore.getState().logout();
-      window.location.href = '/login';
-    }, 1000);
+    useAuthStore.getState().logoutWithRedirect(1000);
   }
 };
 // ────────────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.Role;
 import uz.familyfinance.api.exception.AccountDisabledException;
 import uz.familyfinance.api.exception.AccountLockedException;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.RoleRepository;
@@ -242,7 +243,7 @@ public class AuthService {
                     .roles(userDetails.getRoleCodes())
                     .build();
         }
-        throw new RuntimeException("Refresh token yaroqsiz");
+        throw new BadRequestException("Refresh token yaroqsiz");
     }
 
     public UserResponse getCurrentUser() {

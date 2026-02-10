@@ -98,6 +98,7 @@ public class LoginActivityController {
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(defaultValue = "10000") int maxRecords
     ) {
+        maxRecords = Math.min(maxRecords, 10000);
         try {
             LoginAttempt.LoginStatus loginStatus = status != null
                     ? LoginAttempt.LoginStatus.valueOf(status.toUpperCase())
@@ -136,7 +137,7 @@ public class LoginActivityController {
                     .contentLength(resource.contentLength())
                     .body(resource);
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new RuntimeException("Eksport xatoligi", e);
         }
     }
 }

@@ -141,8 +141,8 @@ public class AuditLogController {
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(defaultValue = "10000") int maxRecords
     ) {
+        maxRecords = Math.min(maxRecords, 10000);
         try {
-            // Fetch audit logs with filters (limit to maxRecords for safety)
             Pageable pageable = PageRequest.of(0, maxRecords, Sort.by(Sort.Direction.DESC, "createdAt"));
             Page<AuditLogResponse> auditLogsPage = auditLogService.searchAuditLogs(
                     entityType, action, userId, search, pageable
@@ -171,7 +171,7 @@ public class AuditLogController {
                     .contentLength(resource.contentLength())
                     .body(resource);
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new RuntimeException("Eksport xatoligi", e);
         }
     }
 }

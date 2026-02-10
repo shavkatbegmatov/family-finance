@@ -100,16 +100,18 @@ public class SavingsGoalService {
 
         contributionRepository.save(contribution);
 
-        goal.setCurrentAmount(goal.getCurrentAmount().add(request.getAmount()));
-        if (goal.getCurrentAmount().compareTo(goal.getTargetAmount()) >= 0) {
-            goal.setIsCompleted(true);
+        // Atomic balance update
+        savingsGoalRepository.addToCurrentAmount(goal.getId(), request.getAmount());
+
+        BigDecimal newAmount = goal.getCurrentAmount().add(request.getAmount());
+        if (newAmount.compareTo(goal.getTargetAmount()) >= 0) {
+            savingsGoalRepository.markAsCompleted(goal.getId());
             notificationService.createGlobalNotification(
                     "Jamg'arma maqsadi bajarildi!",
                     String.format("\"%s\" maqsadi to'liq bajarildi!", goal.getName()),
                     uz.familyfinance.api.enums.StaffNotificationType.SAVINGS_MILESTONE,
                     "SAVINGS_GOAL", goal.getId());
         }
-        savingsGoalRepository.save(goal);
 
         return toContributionResponse(contribution);
     }

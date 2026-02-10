@@ -51,6 +51,7 @@ public class RoleController {
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(defaultValue = "10000") int maxRecords) {
+        maxRecords = Math.min(maxRecords, 10000);
         try {
             Pageable pageable = Pageable.ofSize(maxRecords);
             Page<RoleResponse> page = roleService.searchRoles(search, pageable);
@@ -77,7 +78,7 @@ public class RoleController {
                     .body(resource);
 
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new RuntimeException("Eksport xatoligi", e);
         }
     }
 

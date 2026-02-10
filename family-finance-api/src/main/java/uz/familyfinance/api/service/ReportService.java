@@ -43,7 +43,9 @@ public class ReportService {
         BigDecimal total = transactionRepository.sumByTypeAndDateRange(txType, from, to);
 
         return categories.stream().map(c -> {
-            BigDecimal amount = transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), from, to);
+            BigDecimal amount = type == CategoryType.EXPENSE
+                    ? transactionRepository.sumExpenseByCategoryAndDateRange(c.getId(), from, to)
+                    : transactionRepository.sumIncomeByCategoryAndDateRange(c.getId(), from, to);
             Map<String, Object> item = new HashMap<>();
             item.put("categoryId", c.getId());
             item.put("categoryName", c.getName());

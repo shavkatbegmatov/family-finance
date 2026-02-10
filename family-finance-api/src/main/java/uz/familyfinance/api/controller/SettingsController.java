@@ -72,7 +72,7 @@ public class SettingsController {
                     .body(resource);
 
         } catch (Exception e) {
-            throw new RuntimeException("Eksport qilishda xatolik: " + e.getMessage(), e);
+            throw new RuntimeException("Eksport xatoligi", e);
         }
     }
 

@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
 
+// Bir nechta logout chaqiruvini oldini olish uchun guard
+let isLoggingOut = false;
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
@@ -11,6 +14,7 @@ interface AuthState {
   isAuthenticated: boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string, permissions?: string[], roles?: string[]) => void;
   logout: () => void;
+  logoutWithRedirect: (delay?: number) => void;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (...permissions: string[]) => boolean;
   hasAllPermissions: (...permissions: string[]) => boolean;
@@ -57,6 +61,17 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
+      logoutWithRedirect: (delay = 1500) => {
+        if (isLoggingOut) return;
+        isLoggingOut = true;
+        setTimeout(() => {
+          get().logout();
+          window.location.href = '/login';
+          // Qayta login qilish imkoniyati uchun flag'ni tozalash
+          setTimeout(() => { isLoggingOut = false; }, 1000);
+        }, delay);
+      },
+
       hasPermission: (permission: string) => {
         return get().permissions.has(permission);
       },
@@ -86,13 +101,23 @@ export const useAuthStore = create<AuthState>()(
       // Deserialize permissions and roles from array back to Set
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // permissions comes as array from storage, convert to Set
+          // permissions comes as array from storage, convert to Set with validation
           if (Array.isArray(state.permissions)) {
-            state.permissions = new Set(state.permissions as unknown as string[]);
+            const validPermissions = (state.permissions as unknown[]).filter(
+              (p): p is string => typeof p === 'string'
+            );
+            state.permissions = new Set(validPermissions);
+          } else {
+            state.permissions = new Set<string>();
           }
-          // roles comes as array from storage, convert to Set
+          // roles comes as array from storage, convert to Set with validation
           if (Array.isArray(state.roles)) {
-            state.roles = new Set(state.roles as unknown as string[]);
+            const validRoles = (state.roles as unknown[]).filter(
+              (r): r is string => typeof r === 'string'
+            );
+            state.roles = new Set(validRoles);
+          } else {
+            state.roles = new Set<string>();
           }
         }
       },

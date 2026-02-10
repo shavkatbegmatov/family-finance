@@ -14,6 +14,8 @@ import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.service.SessionService;
 
+import uz.familyfinance.api.exception.BadRequestException;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -34,7 +36,7 @@ public class SessionController {
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> validateCurrentSession(
             @RequestHeader("Authorization") String authHeader) {
 
-        String currentToken = authHeader.substring(7); // Remove "Bearer "
+        String currentToken = extractToken(authHeader); // Remove "Bearer "
         boolean isValid = sessionService.isSessionValid(currentToken);
 
         Map<String, Boolean> response = Map.of("valid", isValid);
@@ -48,7 +50,7 @@ public class SessionController {
             @RequestHeader("Authorization") String authHeader) {
 
         Long userId = userDetails.getUser().getId();
-        String currentToken = authHeader.substring(7); // Remove "Bearer "
+        String currentToken = extractToken(authHeader); // Remove "Bearer "
         String currentTokenHash = hashToken(currentToken);
 
         List<Session> sessions = sessionService.getActiveSessions(userId);
@@ -87,7 +89,7 @@ public class SessionController {
             @RequestHeader("Authorization") String authHeader) {
 
         Long userId = userDetails.getUser().getId();
-        String currentToken = authHeader.substring(7);
+        String currentToken = extractToken(authHeader);
 
         // Get current session ID to exclude it
         Session currentSession = sessionService.getSessionByToken(currentToken)
@@ -97,6 +99,13 @@ public class SessionController {
 
         Map<String, Integer> result = Map.of("revokedCount", revokedCount);
         return ResponseEntity.ok(ApiResponse.success("Boshqa qurilmalardagi sessionlar tugatildi", result));
+    }
+
+    private String extractToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ") || authHeader.length() < 8) {
+            throw new BadRequestException("Authorization header yaroqsiz");
+        }
+        return extractToken(authHeader);
     }
 
     private String hashToken(String token) {

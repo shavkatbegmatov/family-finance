@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Monitor,
   Smartphone,
@@ -25,8 +24,7 @@ export function SessionsTab() {
   const [revokingId, setRevokingId] = useState<number | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-  const { logout } = useAuthStore();
-  const navigate = useNavigate();
+  const { logoutWithRedirect } = useAuthStore();
 
   // Define fetchSessions before useEffect
   const fetchSessions = useCallback(async () => {
@@ -44,17 +42,14 @@ export function SessionsTab() {
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401) {
         toast.error('Sessioningiz boshqa qurilmadan yopilgan. Qayta kiring.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+        logoutWithRedirect();
       } else {
         toast.error('Sessiyalarni yuklashda xatolik');
       }
     } finally {
       setLoading(false);
     }
-  }, [logout, navigate]);
+  }, [logoutWithRedirect]);
 
   useEffect(() => {
     void fetchSessions();
@@ -68,10 +63,7 @@ export function SessionsTab() {
 
         if (isCurrentSession) {
           toast.error('Sessioningiz boshqa qurilmadan yopilgan. Qayta kiring.');
-          setTimeout(() => {
-            logout();
-            navigate('/login');
-          }, 1500);
+          logoutWithRedirect();
         } else {
           void fetchSessions();
         }
@@ -85,7 +77,7 @@ export function SessionsTab() {
     return () => {
       window.removeEventListener('session-update', handleSessionUpdate);
     };
-  }, [fetchSessions, currentSessionId, logout, navigate]);
+  }, [fetchSessions, currentSessionId, logoutWithRedirect]);
 
   const handleRevokeSession = async (sessionId: number) => {
     if (!confirm('Ushbu qurilmadan chiqmoqchimisiz?')) return;
@@ -100,10 +92,7 @@ export function SessionsTab() {
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401) {
         toast.error('Sessioningiz yaroqsiz. Qayta kiring.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+        logoutWithRedirect();
       } else {
         toast.error('Sessionni tugatishda xatolik');
       }
@@ -125,10 +114,7 @@ export function SessionsTab() {
       const axiosError = error as { response?: { status?: number } };
       if (axiosError?.response?.status === 401) {
         toast.error('Sessioningiz yaroqsiz. Qayta kiring.');
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 1500);
+        logoutWithRedirect();
       } else {
         toast.error('Sessiyalarni tugatishda xatolik');
       }
