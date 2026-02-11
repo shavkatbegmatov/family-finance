@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import ELK, { type ElkNode, type ElkExtendedEdge } from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from '@xyflow/react';
 import type {
@@ -9,13 +9,12 @@ import type {
 } from '../types';
 
 // ============ Constants ============
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 160;
+export const NODE_WIDTH = 200;
+export const NODE_HEIGHT = 160;
 
 const elk = new ELK();
 
 // ============ Layer Mapping ============
-// Determines what generation layer a relationship type maps to
 function getLayer(type: RelationshipType): number {
   switch (type) {
     case 'BOBO':
@@ -53,7 +52,6 @@ function getLayer(type: RelationshipType): number {
   }
 }
 
-// Edge type based on relationship
 function getEdgeType(type: RelationshipType): 'parentChild' | 'spouse' | 'sibling' {
   switch (type) {
     case 'ER':
@@ -69,37 +67,21 @@ function getEdgeType(type: RelationshipType): 'parentChild' | 'spouse' | 'siblin
   }
 }
 
-// Whether this relationship type is a "parent" of root (so edge goes upward)
 function isParentRelation(type: RelationshipType): boolean {
   return ['OTA', 'ONA', 'BOBO', 'BUVI', 'QAYIN_OTA', 'QAYIN_ONA', 'AMAKI', 'TOGHA', 'AMMA', 'XOLA'].includes(type);
 }
 
+// Node data — only contains display data, NO callbacks
 export interface FamilyNodeData {
   member: FamilyTreeMember;
   relationship?: FamilyRelationshipDto;
   isRoot: boolean;
-  onAddRelation?: (memberId: number, suggestedCategory?: string) => void;
-  onEditMember?: (memberId: number) => void;
-  onContextMenu?: (event: React.MouseEvent, member: FamilyTreeMember, isRoot: boolean, relationship?: FamilyRelationshipDto) => void;
-  onLongPress?: (x: number, y: number, member: FamilyTreeMember, isRoot: boolean, relationship?: FamilyRelationshipDto) => void;
 }
 
-export function useElkLayout(
-  treeData: FamilyTreeResponse | null,
-  callbacks?: {
-    onAddRelation?: (memberId: number, suggestedCategory?: string) => void;
-    onEditMember?: (memberId: number) => void;
-    onContextMenu?: (event: React.MouseEvent, member: FamilyTreeMember, isRoot: boolean, relationship?: FamilyRelationshipDto) => void;
-    onLongPress?: (x: number, y: number, member: FamilyTreeMember, isRoot: boolean, relationship?: FamilyRelationshipDto) => void;
-  },
-) {
+export function useElkLayout(treeData: FamilyTreeResponse | null) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLayouting, setIsLayouting] = useState(false);
-
-  // Use ref for callbacks to avoid infinite re-render loop
-  const callbacksRef = useRef(callbacks);
-  callbacksRef.current = callbacks;
 
   const computeLayout = useCallback(async () => {
     if (!treeData || treeData.members.length === 0) {
@@ -115,32 +97,20 @@ export function useElkLayout(
 
     const rootId = treeData.rootMemberId;
 
-    // Build relationship lookup: toMemberId -> relationship (from root perspective)
     const relMap = new Map<number, FamilyRelationshipDto>();
     treeData.relationships.forEach(r => {
       relMap.set(r.toMemberId, r);
     });
 
-    // Group members by layer
-    const layerMap = new Map<number, number[]>(); // layer -> memberIds
-
-    // Root is always layer 0
     const memberLayers = new Map<number, number>();
     memberLayers.set(rootId, 0);
 
-    // Assign layers based on relationships
     treeData.relationships.forEach(rel => {
       const layer = getLayer(rel.relationshipType);
       memberLayers.set(rel.toMemberId, layer);
     });
 
-    // Group by layer
-    for (const [memberId, layer] of memberLayers) {
-      if (!layerMap.has(layer)) layerMap.set(layer, []);
-      layerMap.get(layer)!.push(memberId);
-    }
-
-    // Find spouse (er/xotin) for coupling
+    // Find spouse
     let spouseId: number | null = null;
     treeData.relationships.forEach(rel => {
       if (rel.relationshipType === 'ER' || rel.relationshipType === 'XOTIN') {
@@ -152,12 +122,10 @@ export function useElkLayout(
     const elkNodes: ElkNode[] = [];
     const elkEdges: ElkExtendedEdge[] = [];
 
-    // Create ELK nodes with layer constraints
     for (const [memberId, layer] of memberLayers) {
       const member = membersMap.get(memberId);
       if (!member) continue;
 
-      // If this is root and there's a spouse, create a compound node
       if (memberId === rootId && spouseId) {
         elkNodes.push({
           id: `couple_${rootId}`,
@@ -169,29 +137,18 @@ export function useElkLayout(
             'elk.padding': '[top=0,left=0,bottom=0,right=0]',
           },
           children: [
-            {
-              id: String(rootId),
-              width: NODE_WIDTH,
-              height: NODE_HEIGHT,
-            },
-            {
-              id: String(spouseId),
-              width: NODE_WIDTH,
-              height: NODE_HEIGHT,
-            },
+            { id: String(rootId), width: NODE_WIDTH, height: NODE_HEIGHT },
+            { id: String(spouseId), width: NODE_WIDTH, height: NODE_HEIGHT },
           ],
-          edges: [
-            {
-              id: `e_spouse_${rootId}_${spouseId}`,
-              sources: [String(rootId)],
-              targets: [String(spouseId)],
-            },
-          ],
+          edges: [{
+            id: `e_spouse_${rootId}_${spouseId}`,
+            sources: [String(rootId)],
+            targets: [String(spouseId)],
+          }],
         });
         continue;
       }
 
-      // Skip spouse as it's inside couple compound node
       if (memberId === spouseId) continue;
 
       elkNodes.push({
@@ -204,40 +161,19 @@ export function useElkLayout(
       });
     }
 
-    // Create ELK edges
     treeData.relationships.forEach(rel => {
       const edgeType = getEdgeType(rel.relationshipType);
-
-      // Skip spouse edge — handled inside compound node
       if (edgeType === 'spouse') return;
 
       const fromNodeId = spouseId && rel.fromMemberId === rootId
         ? `couple_${rootId}`
         : String(rel.fromMemberId);
-
       const toNodeId = String(rel.toMemberId);
 
-      // For parent/grandparent relations, edge direction: child -> parent (reversed for layout)
       if (isParentRelation(rel.relationshipType)) {
-        elkEdges.push({
-          id: `e_${rel.id}`,
-          sources: [toNodeId],
-          targets: [fromNodeId],
-        });
-      } else if (edgeType === 'sibling') {
-        // Siblings: connect to root/couple
-        elkEdges.push({
-          id: `e_${rel.id}`,
-          sources: [fromNodeId],
-          targets: [toNodeId],
-        });
+        elkEdges.push({ id: `e_${rel.id}`, sources: [toNodeId], targets: [fromNodeId] });
       } else {
-        // Parent-child: root -> child
-        elkEdges.push({
-          id: `e_${rel.id}`,
-          sources: [fromNodeId],
-          targets: [toNodeId],
-        });
+        elkEdges.push({ id: `e_${rel.id}`, sources: [fromNodeId], targets: [toNodeId] });
       }
     });
 
@@ -261,7 +197,6 @@ export function useElkLayout(
       const rfNodes: Node[] = [];
       const rfEdges: Edge[] = [];
 
-      // Process layout result — extract node positions
       const extractNodes = (elkNode: ElkNode, offsetX = 0, offsetY = 0) => {
         if (elkNode.children) {
           for (const child of elkNode.children) {
@@ -269,7 +204,6 @@ export function useElkLayout(
             const y = (child.y ?? 0) + offsetY;
 
             if (child.children && child.id.startsWith('couple_')) {
-              // Compound couple node — extract children
               extractNodes(child, x, y);
             } else {
               const memberId = Number(child.id);
@@ -283,14 +217,11 @@ export function useElkLayout(
                 id: child.id,
                 type: 'familyMember',
                 position: { x, y },
+                style: { overflow: 'visible' },
                 data: {
                   member,
                   relationship: rel,
                   isRoot,
-                  onAddRelation: callbacksRef.current?.onAddRelation,
-                  onEditMember: callbacksRef.current?.onEditMember,
-                  onContextMenu: callbacksRef.current?.onContextMenu,
-                  onLongPress: callbacksRef.current?.onLongPress,
                 } satisfies FamilyNodeData,
               });
             }
@@ -300,7 +231,6 @@ export function useElkLayout(
 
       extractNodes(layoutResult);
 
-      // Build React Flow edges from relationships
       treeData.relationships.forEach(rel => {
         const edgeType = getEdgeType(rel.relationshipType);
 
@@ -314,15 +244,12 @@ export function useElkLayout(
           return;
         }
 
-        // For parent relations, swap source/target for visual correctness
-        // (parent should appear above child)
         if (isParentRelation(rel.relationshipType)) {
           rfEdges.push({
             id: `edge_${rel.id}`,
             source: String(rel.toMemberId),
             target: String(rel.fromMemberId),
             type: edgeType,
-            data: { relationshipType: rel.relationshipType },
           });
         } else {
           rfEdges.push({
@@ -330,7 +257,6 @@ export function useElkLayout(
             source: String(rel.fromMemberId),
             target: String(rel.toMemberId),
             type: edgeType,
-            data: { relationshipType: rel.relationshipType },
           });
         }
       });
@@ -339,8 +265,7 @@ export function useElkLayout(
       setEdges(rfEdges);
     } catch (err) {
       console.error('ELK layout error:', err);
-      // Fallback: simple grid layout
-      fallbackLayout(treeData, membersMap, relMap, rootId, setNodes, setEdges, callbacksRef.current);
+      fallbackLayout(treeData, membersMap, relMap, rootId, setNodes, setEdges);
     } finally {
       setIsLayouting(false);
     }
@@ -353,16 +278,12 @@ export function useElkLayout(
   return { nodes, edges, isLayouting };
 }
 
-// Layer number to ELK constraint string
 function layerToConstraint(layer: number): string {
-  // ELK doesn't have negative layer constraints.
-  // We use layerConstraint only for extreme layers.
   if (layer <= -2) return 'FIRST';
   if (layer >= 2) return 'LAST';
   return 'NONE';
 }
 
-// Simple fallback layout if ELK fails
 function fallbackLayout(
   treeData: FamilyTreeResponse,
   membersMap: Map<number, FamilyTreeMember>,
@@ -370,17 +291,10 @@ function fallbackLayout(
   rootId: number,
   setNodes: (nodes: Node[]) => void,
   setEdges: (edges: Edge[]) => void,
-  callbacks?: {
-    onAddRelation?: (memberId: number, suggestedCategory?: string) => void;
-    onEditMember?: (memberId: number) => void;
-    onContextMenu?: (event: React.MouseEvent, member: FamilyTreeMember, isRoot: boolean, relationship?: FamilyRelationshipDto) => void;
-    onLongPress?: (x: number, y: number, member: FamilyTreeMember, isRoot: boolean, relationship?: FamilyRelationshipDto) => void;
-  },
 ) {
   const rfNodes: Node[] = [];
   const rfEdges: Edge[] = [];
 
-  // Group by layer
   const layers = new Map<number, number[]>();
   layers.set(0, [rootId]);
 
@@ -401,9 +315,6 @@ function fallbackLayout(
       const member = membersMap.get(memberId);
       if (!member) return;
 
-      const isRoot = memberId === rootId;
-      const rel = relMap.get(memberId);
-
       rfNodes.push({
         id: String(memberId),
         type: 'familyMember',
@@ -411,36 +322,22 @@ function fallbackLayout(
           x: startX + idx * (NODE_WIDTH + 50),
           y: layerIdx * (NODE_HEIGHT + 140),
         },
+        style: { overflow: 'visible' },
         data: {
           member,
-          relationship: rel,
-          isRoot,
-          onAddRelation: callbacks?.onAddRelation,
-          onEditMember: callbacks?.onEditMember,
-          onContextMenu: callbacks?.onContextMenu,
-          onLongPress: callbacks?.onLongPress,
+          relationship: relMap.get(memberId),
+          isRoot: memberId === rootId,
         } satisfies FamilyNodeData,
       });
     });
   });
 
-  // Edges
   treeData.relationships.forEach(rel => {
     const edgeType = getEdgeType(rel.relationshipType);
     if (isParentRelation(rel.relationshipType)) {
-      rfEdges.push({
-        id: `edge_${rel.id}`,
-        source: String(rel.toMemberId),
-        target: String(rel.fromMemberId),
-        type: edgeType,
-      });
+      rfEdges.push({ id: `edge_${rel.id}`, source: String(rel.toMemberId), target: String(rel.fromMemberId), type: edgeType });
     } else {
-      rfEdges.push({
-        id: `edge_${rel.id}`,
-        source: String(rel.fromMemberId),
-        target: String(rel.toMemberId),
-        type: edgeType,
-      });
+      rfEdges.push({ id: `edge_${rel.id}`, source: String(rel.fromMemberId), target: String(rel.toMemberId), type: edgeType });
     }
   });
 

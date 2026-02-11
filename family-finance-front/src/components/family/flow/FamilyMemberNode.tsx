@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Phone, Calendar, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { useLongPress } from '../../../hooks/useLongPress';
+import { useFamilyFlowCallbacks } from './FamilyFlowTree';
 import type { FamilyNodeData } from '../../../hooks/useElkLayout';
 import type { Gender } from '../../../types';
 
@@ -38,7 +39,6 @@ const getAge = (birthDate?: string): number | null => {
   return age;
 };
 
-// Direction button for adding relations
 interface DirectionButtonProps {
   direction: 'top' | 'bottom' | 'left' | 'right';
   onClick: () => void;
@@ -83,7 +83,9 @@ function DirectionButton({ direction, onClick, title }: DirectionButtonProps) {
 }
 
 function FamilyMemberNodeComponent({ data }: NodeProps) {
-  const { member, relationship, isRoot, onAddRelation, onEditMember, onContextMenu, onLongPress } = data as unknown as FamilyNodeData;
+  const { member, relationship, isRoot } = data as unknown as FamilyNodeData;
+  const { onAddRelation, onContextMenu, onLongPress } = useFamilyFlowCallbacks();
+
   const age = getAge(member.birthDate);
   const [showTooltip, setShowTooltip] = useState(false);
   const relationLabel = relationship?.label;
@@ -106,18 +108,8 @@ function FamilyMemberNodeComponent({ data }: NodeProps) {
       {/* Invisible handles for React Flow edges */}
       <Handle type="target" position={Position.Top} className="!opacity-0 !w-2 !h-2" />
       <Handle type="source" position={Position.Bottom} className="!opacity-0 !w-2 !h-2" />
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="spouse-right"
-        className="!opacity-0 !w-2 !h-2"
-      />
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="spouse-left"
-        className="!opacity-0 !w-2 !h-2"
-      />
+      <Handle type="source" position={Position.Right} id="spouse-right" className="!opacity-0 !w-2 !h-2" />
+      <Handle type="target" position={Position.Left} id="spouse-left" className="!opacity-0 !w-2 !h-2" />
 
       {/* Direction + buttons */}
       {onAddRelation && (
@@ -151,13 +143,12 @@ function FamilyMemberNodeComponent({ data }: NodeProps) {
           'flex flex-col items-center justify-center rounded-xl border-2 bg-base-100 p-3 text-center',
           'transition-all duration-200 hover:shadow-lg h-full',
           'animate-tree-node-appear',
-          onEditMember && 'cursor-pointer',
           isRoot && 'animate-pulse-ring',
           getGenderBorderColor(member.gender, isRoot),
         )}
-        onClick={() => onEditMember?.(member.id)}
         onContextMenu={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           onContextMenu?.(e, member, isRoot, relationship);
         }}
         onMouseEnter={() => setShowTooltip(true)}
