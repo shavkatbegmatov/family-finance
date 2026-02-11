@@ -207,12 +207,25 @@ export interface FamilyRelationshipDto {
   relationshipType: RelationshipType;
   label: string;
   category: string;
+  pathKind?: 'direct' | 'inferred';
 }
 
 export interface FamilyTreeResponse {
   rootMemberId: number;
   members: FamilyTreeMember[];
   relationships: FamilyRelationshipDto[];
+}
+
+export type FamilyTreeLayoutScope = 'FULL' | 'ANCESTORS' | 'DESCENDANTS' | 'RELATIVES';
+
+export interface FamilyTreeNodeUI {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isHiddenByFilter: boolean;
+  isFocused: boolean;
 }
 
 export interface AddRelationshipRequest {

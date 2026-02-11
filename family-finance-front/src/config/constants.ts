@@ -105,6 +105,7 @@ export const RELATIONSHIP_CATEGORIES: Record<string, string> = {
 export const FAMILY_TREE_VIEW_PRESETS = {
   FULL: {
     label: "To'liq",
+    layoutScope: 'FULL',
     categories: [
       'grandparents',
       'parents',
@@ -119,14 +120,17 @@ export const FAMILY_TREE_VIEW_PRESETS = {
   },
   PEDIGREE: {
     label: 'Ajdodlar',
+    layoutScope: 'ANCESTORS',
     categories: ['grandparents', 'parents', 'siblings', 'spouse'],
   },
   DESCENDANTS: {
     label: 'Avlodlar',
+    layoutScope: 'DESCENDANTS',
     categories: ['spouse', 'children', 'grandchildren'],
   },
   RELATIVES: {
     label: 'Qarindoshlar',
+    layoutScope: 'RELATIVES',
     categories: ['siblings', 'in-laws', 'extended', 'other'],
   },
 } as const;

@@ -3,29 +3,24 @@ import toast from 'react-hot-toast';
 import { Download, Image, FileText, ChevronDown } from 'lucide-react';
 
 interface TreeExportButtonProps {
-  treeContentRef: RefObject<HTMLDivElement | null>;
-  scale: number;
-  setScale: (scale: number) => void;
+  targetRef: RefObject<HTMLDivElement | null>;
+  beforeExport?: () => Promise<void> | void;
 }
 
-export function TreeExportButton({ treeContentRef, scale, setScale }: TreeExportButtonProps) {
+export function TreeExportButton({ targetRef, beforeExport }: TreeExportButtonProps) {
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const exportAs = async (format: 'png' | 'pdf') => {
-    if (!treeContentRef.current) return;
+    if (!targetRef.current) return;
     setExporting(true);
 
-    // Vaqtincha scale'ni 1 ga qaytarish
-    const originalScale = scale;
-    setScale(1);
-
-    // Biroz kutish — DOM yangilanishi uchun
-    await new Promise(r => setTimeout(r, 200));
-
     try {
+      await beforeExport?.();
+      await new Promise(r => setTimeout(r, 200));
+
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(treeContentRef.current, {
+      const canvas = await html2canvas(targetRef.current, {
         backgroundColor: '#f8fafc',
         scale: 2,
         useCORS: true,
@@ -43,8 +38,7 @@ export function TreeExportButton({ treeContentRef, scale, setScale }: TreeExport
         const imgWidth = canvas.width;
         const imgHeight = canvas.height;
 
-        // A4 o'lchamlari (mm)
-        const pdfWidth = 297; // landscape A4
+        const pdfWidth = 297;
         const pdfHeight = 210;
 
         const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
@@ -57,10 +51,9 @@ export function TreeExportButton({ treeContentRef, scale, setScale }: TreeExport
         pdf.addImage(imgData, 'PNG', x, y, w, h);
         pdf.save('oila-daraxti.pdf');
       }
-    } catch (err) {
+    } catch {
       toast.error('Eksport qilishda xatolik');
     } finally {
-      setScale(originalScale);
       setExporting(false);
       setOpen(false);
     }

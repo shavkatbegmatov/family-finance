@@ -1,17 +1,16 @@
 import { Phone, Calendar, Plus } from 'lucide-react';
 import clsx from 'clsx';
-import type { FamilyTreeMember, FamilyRelationshipDto, Gender } from '../../types';
+import type { FamilyTreeMember, Gender } from '../../types';
 
 interface FamilyTreeCardProps {
   member: FamilyTreeMember;
   relationLabel?: string;
   isRoot?: boolean;
-  size?: 'lg' | 'md' | 'sm';
   highlighted?: boolean;
+  selected?: boolean;
   onAddRelation?: (memberId: number) => void;
   onClick?: (member: FamilyTreeMember) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
-  relationship?: FamilyRelationshipDto;
 }
 
 const getGenderColor = (gender?: Gender | null) => {
@@ -43,24 +42,12 @@ const getAge = (birthDate?: string): number | null => {
   return age;
 };
 
-const sizeClasses = {
-  lg: 'w-44',
-  md: 'w-40',
-  sm: 'w-36',
-};
-
-const avatarSizes = {
-  lg: 'h-14 w-14 text-xl',
-  md: 'h-12 w-12 text-lg',
-  sm: 'h-10 w-10 text-base',
-};
-
 export function FamilyTreeCard({
   member,
   relationLabel,
   isRoot,
-  size = 'md',
   highlighted = false,
+  selected = false,
   onAddRelation,
   onClick,
   onContextMenu,
@@ -71,12 +58,12 @@ export function FamilyTreeCard({
     <div className={clsx('relative group', onAddRelation && 'pb-2')}>
       <div
         className={clsx(
-          'relative flex flex-col items-center rounded-xl border-2 bg-base-100 p-3 text-center',
+          'relative flex h-[164px] w-[208px] flex-col items-center rounded-xl border-2 bg-base-100 px-3 pb-3 pt-4 text-center',
           'transition-shadow duration-200 hover:shadow-lg',
           onClick && 'cursor-pointer',
           highlighted && 'ring-2 ring-warning/40 bg-warning/5',
+          selected && 'ring-2 ring-primary/45 shadow-md',
           getGenderBorderColor(member.gender, isRoot),
-          sizeClasses[size]
         )}
         onClick={() => onClick?.(member)}
         onContextMenu={onContextMenu}
@@ -101,9 +88,8 @@ export function FamilyTreeCard({
         {/* Avatar */}
         <div
           className={clsx(
-            'rounded-full flex items-center justify-center text-white font-bold mb-2',
+            'mb-2 flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold text-white',
             getGenderColor(member.gender),
-            avatarSizes[size]
           )}
         >
           {member.avatar ? (
@@ -118,7 +104,7 @@ export function FamilyTreeCard({
         </div>
 
         {/* Name */}
-        <h4 className="font-semibold text-sm leading-tight mb-1 line-clamp-2">
+        <h4 className="mb-1 line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-tight">
           {member.fullName}
         </h4>
 
@@ -132,9 +118,9 @@ export function FamilyTreeCard({
 
         {/* Phone */}
         {member.phone && (
-          <div className="flex items-center gap-1 text-xs text-base-content/60 mt-0.5">
+          <div className="mt-0.5 flex max-w-[170px] items-center gap-1 text-xs text-base-content/60">
             <Phone className="h-3 w-3" />
-            <span className="truncate max-w-[100px]">{member.phone}</span>
+            <span className="truncate">{member.phone}</span>
           </div>
         )}
       </div>
