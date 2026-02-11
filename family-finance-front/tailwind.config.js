@@ -25,6 +25,18 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(10px) scale(0.97)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
         },
+        'tree-node-appear': {
+          '0%': { opacity: '0', transform: 'scale(0.85) translateY(10px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'connector-draw': {
+          '0%': { strokeDashoffset: '1000' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        'pulse-ring': {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(15,118,110,0.3)' },
+          '50%': { boxShadow: '0 0 0 8px rgba(15,118,110,0)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.2s ease-out',
@@ -32,6 +44,9 @@ export default {
         'scale-in': 'scale-in 0.15s ease-out',
         'dropdown': 'slide-in-from-top 0.2s ease-out, fade-in 0.2s ease-out',
         'tree-fade-in': 'tree-fade-in 0.4s ease-out both',
+        'tree-node-appear': 'tree-node-appear 0.4s ease-out both',
+        'connector-draw': 'connector-draw 0.8s ease-out both',
+        'pulse-ring': 'pulse-ring 2s ease-in-out infinite',
       },
     },
   },

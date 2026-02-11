@@ -207,7 +207,7 @@ export function FamilyMembersPage() {
 
   // ==================== ADD RELATION ====================
 
-  const handleAddRelation = (fromMemberId: number) => {
+  const handleAddRelation = (fromMemberId: number, _suggestedCategory?: string) => {
     // fromMemberName ni topish
     const member = members.find(m => m.id === fromMemberId);
     setAddRelationFromId(fromMemberId);

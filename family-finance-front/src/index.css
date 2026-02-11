@@ -276,19 +276,6 @@
   }
 
   /* Hide scrollbar while keeping functionality */
-  /* Tree connector lines */
-  .tree-connector-v {
-    @apply w-px border-l-2 border-solid border-base-content/20;
-  }
-
-  .tree-connector-h {
-    @apply border-t-2 border-solid border-base-content/20;
-  }
-
-  .tree-connector-branch {
-    @apply h-4 w-px border-l-2 border-solid border-base-content/20;
-  }
-
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -306,6 +293,9 @@
   .animate-highlight-row,
   .animate-datepicker-down,
   .animate-datepicker-up,
+  .animate-tree-node-appear,
+  .animate-connector-draw,
+  .animate-pulse-ring,
   .stagger-children > * {
     animation: none !important;
   }

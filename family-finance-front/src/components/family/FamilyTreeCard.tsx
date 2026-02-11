@@ -1,23 +1,26 @@
-import { Phone, Calendar, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { Phone, Calendar, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
+import { useLongPress } from '../../hooks/useLongPress';
 import type { FamilyTreeMember, FamilyRelationshipDto, Gender } from '../../types';
 
 interface FamilyTreeCardProps {
   member: FamilyTreeMember;
   relationLabel?: string;
   isRoot?: boolean;
-  size?: 'lg' | 'md' | 'sm';
-  onAddRelation?: (memberId: number) => void;
+  size?: 'normal' | 'compact';
+  onAddRelation?: (memberId: number, suggestedCategory?: string) => void;
   onClick?: (member: FamilyTreeMember) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
+  onLongPress?: (x: number, y: number) => void;
   relationship?: FamilyRelationshipDto;
 }
 
-const getGenderColor = (gender?: Gender | null) => {
+const getGenderGradient = (gender?: Gender | null) => {
   switch (gender) {
-    case 'MALE': return 'bg-blue-500';
-    case 'FEMALE': return 'bg-pink-500';
-    default: return 'bg-amber-500';
+    case 'MALE': return 'bg-gradient-to-br from-blue-400 to-blue-600';
+    case 'FEMALE': return 'bg-gradient-to-br from-pink-400 to-pink-600';
+    default: return 'bg-gradient-to-br from-amber-400 to-amber-600';
   }
 };
 
@@ -43,55 +46,148 @@ const getAge = (birthDate?: string): number | null => {
 };
 
 const sizeClasses = {
-  lg: 'w-44',
-  md: 'w-40',
-  sm: 'w-36',
+  normal: 'w-44',
+  compact: 'w-36',
 };
 
 const avatarSizes = {
-  lg: 'h-14 w-14 text-xl',
-  md: 'h-12 w-12 text-lg',
-  sm: 'h-10 w-10 text-base',
+  normal: 'h-12 w-12 text-lg',
+  compact: 'h-10 w-10 text-base',
 };
 
-export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onAddRelation, onClick, onContextMenu }: FamilyTreeCardProps) {
-  const age = getAge(member.birthDate);
+// Yo'nalishli "+" tugmalar
+interface DirectionButtonProps {
+  direction: 'top' | 'bottom' | 'left' | 'right';
+  onClick: () => void;
+  title: string;
+}
+
+function DirectionButton({ direction, onClick, title }: DirectionButtonProps) {
+  const positionClasses = {
+    top: '-top-3 left-1/2 -translate-x-1/2',
+    bottom: '-bottom-3 left-1/2 -translate-x-1/2',
+    left: 'top-1/2 -left-3 -translate-y-1/2',
+    right: 'top-1/2 -right-3 -translate-y-1/2',
+  };
+
+  const Icon = {
+    top: ChevronUp,
+    bottom: ChevronDown,
+    left: ChevronLeft,
+    right: ChevronRight,
+  }[direction];
 
   return (
-    <div className={clsx('relative group', onAddRelation && 'pb-2')}>
+    <button
+      className={clsx(
+        'absolute flex items-center justify-center',
+        'h-6 w-6 rounded-full bg-primary text-primary-content',
+        'opacity-0 group-hover:opacity-100 transition-all duration-200',
+        'hover:scale-110 active:scale-95',
+        'z-20 cursor-pointer shadow-sm',
+        positionClasses[direction]
+      )}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      title={title}
+      type="button"
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+export function FamilyTreeCard({
+  member,
+  relationLabel,
+  isRoot,
+  size = 'normal',
+  onAddRelation,
+  onClick,
+  onContextMenu,
+  onLongPress,
+}: FamilyTreeCardProps) {
+  const age = getAge(member.birthDate);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const longPressHandlers = useLongPress({
+    onLongPress: (e) => {
+      if (onLongPress) {
+        const touch = e.touches[0];
+        onLongPress(touch.clientX, touch.clientY);
+      }
+    },
+    delay: 500,
+  });
+
+  return (
+    <div className={clsx('relative group', sizeClasses[size])}>
+      {/* Yo'nalishli "+" tugmalar */}
+      {onAddRelation && (
+        <>
+          <DirectionButton
+            direction="top"
+            onClick={() => onAddRelation(member.id, 'parents')}
+            title="Ota-ona qo'shish"
+          />
+          <DirectionButton
+            direction="bottom"
+            onClick={() => onAddRelation(member.id, 'children')}
+            title="Farzand qo'shish"
+          />
+          <DirectionButton
+            direction="right"
+            onClick={() => onAddRelation(member.id, 'spouse')}
+            title="Juft qo'shish"
+          />
+          <DirectionButton
+            direction="left"
+            onClick={() => onAddRelation(member.id, 'siblings')}
+            title="Aka-uka qo'shish"
+          />
+        </>
+      )}
+
+      {/* Card */}
       <div
         className={clsx(
           'relative flex flex-col items-center rounded-xl border-2 bg-base-100 p-3 text-center',
-          'transition-shadow duration-200 hover:shadow-lg',
+          'transition-all duration-200 hover:shadow-lg',
+          'animate-tree-node-appear',
           onClick && 'cursor-pointer',
+          isRoot && 'animate-pulse-ring',
           getGenderBorderColor(member.gender, isRoot),
-          sizeClasses[size]
         )}
         onClick={() => onClick?.(member)}
         onContextMenu={onContextMenu}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        {...longPressHandlers}
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
         onKeyDown={(e) => { if (e.key === 'Enter' && onClick) onClick(member); }}
       >
-        {/* Relation label */}
-        {(relationLabel || isRoot) && (
-          <div className="text-[10px] font-medium text-base-content/50 mb-1">
-            {isRoot ? "O'zim" : relationLabel}
+        {/* Root marker */}
+        {isRoot && (
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-content text-[10px] font-bold px-2 py-0.5 rounded-full z-10 whitespace-nowrap">
+            MEN
           </div>
         )}
 
-        {/* Root marker */}
-        {isRoot && (
-          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-primary text-primary-content text-[10px] font-bold px-2 py-0.5 rounded-full">
-            MEN
+        {/* Relation label */}
+        {(relationLabel || isRoot) && (
+          <div className="text-[10px] font-medium text-base-content/50 mb-1 truncate max-w-full">
+            {isRoot ? "O'zim" : relationLabel}
           </div>
         )}
 
         {/* Avatar */}
         <div
           className={clsx(
-            'rounded-full flex items-center justify-center text-white font-bold mb-2',
-            getGenderColor(member.gender),
+            'rounded-full flex items-center justify-center text-white font-bold mb-2 shadow-sm',
+            getGenderGradient(member.gender),
             avatarSizes[size]
           )}
         >
@@ -107,41 +203,46 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
         </div>
 
         {/* Name */}
-        <h4 className="font-semibold text-sm leading-tight mb-1 line-clamp-2">
+        <h4 className="font-semibold text-sm leading-tight mb-0.5 line-clamp-2">
           {member.fullName}
         </h4>
 
-        {/* Age */}
+        {/* Age — kompakt ko'rinishda ham ko'rinadi */}
         {age !== null && (
-          <div className="flex items-center gap-1 text-xs text-base-content/60">
-            <Calendar className="h-3 w-3" />
-            <span>{age} yosh</span>
-          </div>
-        )}
-
-        {/* Phone */}
-        {member.phone && (
-          <div className="flex items-center gap-1 text-xs text-base-content/60 mt-0.5">
-            <Phone className="h-3 w-3" />
-            <span className="truncate max-w-[100px]">{member.phone}</span>
+          <div className="text-xs text-base-content/50">
+            {age} yosh
           </div>
         )}
       </div>
 
-      {/* Add relation button */}
-      {onAddRelation && (
+      {/* Hover tooltip — to'liq ma'lumot */}
+      {showTooltip && (member.phone || member.birthDate) && (
         <div
-          className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center justify-center h-5 w-5 rounded-full bg-primary text-primary-content opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer hover:brightness-90 active:brightness-75"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddRelation(member.id);
-          }}
-          title="Qarindosh qo'shish"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onAddRelation(member.id); } }}
+          className={clsx(
+            'absolute z-50 left-1/2 -translate-x-1/2 top-full mt-2',
+            'bg-base-100 border border-base-300 rounded-lg shadow-xl p-3',
+            'min-w-[180px] animate-fade-in pointer-events-none'
+          )}
         >
-          <Plus className="h-3 w-3" />
+          <div className="space-y-1.5">
+            {member.birthDate && (
+              <div className="flex items-center gap-1.5 text-xs text-base-content/70">
+                <Calendar className="h-3 w-3 shrink-0" />
+                <span>{new Date(member.birthDate).toLocaleDateString('uz-UZ')}</span>
+              </div>
+            )}
+            {member.phone && (
+              <div className="flex items-center gap-1.5 text-xs text-base-content/70">
+                <Phone className="h-3 w-3 shrink-0" />
+                <span>{member.phone}</span>
+              </div>
+            )}
+            {age !== null && (
+              <div className="text-xs text-base-content/50">
+                {age} yosh
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

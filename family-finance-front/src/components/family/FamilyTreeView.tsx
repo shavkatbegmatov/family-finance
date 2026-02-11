@@ -1,35 +1,24 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Users, Plus, AlertTriangle, RefreshCw, Heart, ArrowLeft } from 'lucide-react';
+import { Users, Plus, AlertTriangle, RefreshCw, ArrowLeft, Maximize2 } from 'lucide-react';
 import { familyTreeApi } from '../../api/family-tree.api';
 import { FamilyTreeCard } from './FamilyTreeCard';
+import { TreeSVGConnectors } from './TreeSVGConnectors';
 import { TreeContextMenu } from './TreeContextMenu';
 import { DeleteRelationConfirmModal } from './DeleteRelationConfirmModal';
 import { ChangeRelationTypeModal } from './ChangeRelationTypeModal';
 import { ZoomControls } from './ZoomControls';
 import { TreeExportButton } from './TreeExportButton';
 import { useZoomPan } from '../../hooks/useZoomPan';
+import { useTreeLayout, CARD_WIDTH } from '../../hooks/useTreeLayout';
 import { RELATIONSHIP_CATEGORIES } from '../../config/constants';
 import type { FamilyTreeResponse, FamilyTreeMember, FamilyRelationshipDto } from '../../types';
 
 interface FamilyTreeViewProps {
-  onAddRelation?: (fromMemberId: number) => void;
+  onAddRelation?: (fromMemberId: number, suggestedCategory?: string) => void;
   onEditMember?: (memberId: number) => void;
   refreshKey?: number;
 }
-
-// Category → daraxt qatorlari tartibi
-const CATEGORY_ORDER = [
-  'grandparents',
-  'parents',
-  'siblings',
-  'spouse',
-  'children',
-  'grandchildren',
-  'in-laws',
-  'extended',
-  'other',
-];
 
 interface ContextMenuState {
   x: number;
@@ -66,7 +55,10 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
   // Zoom/Pan
   const containerRef = useRef<HTMLDivElement>(null);
   const treeContentRef = useRef<HTMLDivElement>(null);
-  const { scale, position, handlers, zoomIn, zoomOut, resetZoom, setScale } = useZoomPan(containerRef);
+  const { scale, position, setPosition, handlers, zoomIn, zoomOut, resetZoom, setScale } = useZoomPan(containerRef);
+
+  // Tree layout
+  const layout = useTreeLayout(treeData);
 
   const loadTree = useCallback(async () => {
     setLoading(true);
@@ -90,6 +82,17 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
     void loadTree();
   }, [loadTree, refreshKey]);
 
+  // Auto-center: root a'zoni viewport markaziga qo'yish
+  useEffect(() => {
+    if (layout.rootNode && containerRef.current) {
+      const containerWidth = containerRef.current.clientWidth;
+      setPosition({
+        x: containerWidth / 2 - layout.rootNode.x - CARD_WIDTH / 2,
+        y: 60,
+      });
+    }
+  }, [layout.rootNode, setPosition]);
+
   // ==================== CONTEXT MENU HANDLERS ====================
 
   const handleContextMenu = (
@@ -102,6 +105,25 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
+      memberId: member.id,
+      memberName: member.fullName,
+      isRoot,
+      relationshipType: relationship?.relationshipType,
+      fromMemberId: relationship?.fromMemberId,
+    });
+  };
+
+  // Mobile long-press context menu
+  const handleLongPress = (
+    x: number,
+    y: number,
+    member: FamilyTreeMember,
+    isRoot: boolean,
+    relationship?: FamilyRelationshipDto
+  ) => {
+    setContextMenu({
+      x,
+      y,
       memberId: member.id,
       memberName: member.fullName,
       isRoot,
@@ -176,6 +198,27 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
     setViewingMemberId(null);
   };
 
+  // "Ekranga sig'dirish" funksiyasi
+  const handleFitToScreen = () => {
+    if (!containerRef.current || layout.width === 0 || layout.height === 0) return;
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    const scaleX = containerWidth / layout.width;
+    const scaleY = containerHeight / layout.height;
+    const fitScale = Math.min(scaleX, scaleY, 1) * 0.9; // 90% for padding
+
+    setScale(fitScale);
+    setPosition({
+      x: (containerWidth - layout.width * fitScale) / 2,
+      y: (containerHeight - layout.height * fitScale) / 2,
+    });
+  };
+
+  const handleCardClick = onEditMember
+    ? (member: FamilyTreeMember) => onEditMember(member.id)
+    : undefined;
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -240,43 +283,6 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
   const rootMember = membersMap.get(treeData.rootMemberId);
   if (!rootMember) return null;
 
-  // Munosabatlarni category bo'yicha guruhlash
-  const grouped = new Map<string, FamilyRelationshipDto[]>();
-  treeData.relationships.forEach(rel => {
-    const cat = rel.category;
-    if (!grouped.has(cat)) grouped.set(cat, []);
-    grouped.get(cat)!.push(rel);
-  });
-
-  // Tartibli category'lar
-  const orderedCategories = CATEGORY_ORDER.filter(cat => grouped.has(cat));
-
-  // "MEN" qatorini aniqlash — siblings va spouse bilan bir qatorda
-  const siblingsAndSpouse = [
-    ...(grouped.get('siblings') || []),
-    ...(grouped.get('spouse') || []),
-  ];
-  const hasSiblingsOrSpouse = siblingsAndSpouse.length > 0;
-
-  // "MEN" qatorida ko'rsatilmaydigan category'lar
-  const aboveMe = orderedCategories.filter(c => ['grandparents', 'parents'].includes(c));
-  const belowMe = orderedCategories.filter(c => ['children', 'grandchildren'].includes(c));
-  const otherCats = orderedCategories.filter(c =>
-    !['grandparents', 'parents', 'siblings', 'spouse', 'children', 'grandchildren'].includes(c)
-  );
-
-  const handleCardClick = onEditMember
-    ? (member: FamilyTreeMember) => onEditMember(member.id)
-    : undefined;
-
-  // Animatsiya indeksi counter
-  let animIndex = 0;
-  const getAnimDelay = () => {
-    const delay = animIndex * 80;
-    animIndex++;
-    return delay;
-  };
-
   return (
     <div className="relative">
       {/* Toolbar */}
@@ -298,6 +304,16 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Ekranga sig'dirish */}
+          {layout.nodes.length > 10 && (
+            <button
+              className="btn btn-ghost btn-sm gap-1"
+              onClick={handleFitToScreen}
+              title="Ekranga sig'dirish"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          )}
           <TreeExportButton treeContentRef={treeContentRef} scale={scale} setScale={setScale} />
           <ZoomControls scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
         </div>
@@ -307,215 +323,85 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
       <div
         ref={containerRef}
         className="overflow-hidden rounded-xl border border-base-200 bg-base-200/30 cursor-grab active:cursor-grabbing"
-        style={{ minHeight: '400px' }}
+        style={{ minHeight: '500px', height: '70vh', maxHeight: '800px' }}
         {...handlers}
       >
         <div
           ref={treeContentRef}
-          className="flex flex-col items-center gap-0 py-6 min-w-max"
+          className="relative"
           style={{
+            width: layout.width,
+            height: layout.height + (layout.overflowRelationships.length > 0 ? 300 : 0),
             transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
             transformOrigin: '0 0',
           }}
         >
-          {/* Yuqoridagi qatorlar: bobo-buvi, ota-ona */}
-          {aboveMe.map(cat => {
-            const rels = grouped.get(cat)!;
-            return (
-              <div key={cat} className="flex flex-col items-center">
-                <div className="text-xs font-medium text-base-content/40 mb-2">
-                  {RELATIONSHIP_CATEGORIES[cat]}
-                </div>
-                <div className="flex flex-wrap justify-center gap-4">
-                  {rels.map(rel => {
-                    const member = membersMap.get(rel.toMemberId);
-                    if (!member) return null;
-                    const delay = getAnimDelay();
-                    return (
-                      <div
-                        key={rel.id}
-                        className="animate-tree-fade-in"
-                        style={{ animationDelay: `${delay}ms` }}
-                      >
-                        <FamilyTreeCard
-                          member={member}
-                          relationLabel={rel.label}
-                          size={cat === 'grandparents' ? 'sm' : 'lg'}
-                          onAddRelation={onAddRelation}
-                          onClick={handleCardClick}
-                          onContextMenu={(e) => handleContextMenu(e, member, false, rel)}
-                          relationship={rel}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="h-8 tree-connector-v" />
-              </div>
-            );
-          })}
+          {/* SVG Connectors */}
+          <TreeSVGConnectors
+            nodes={layout.nodes}
+            edges={layout.edges}
+            width={layout.width}
+            height={layout.height}
+          />
 
-          {/* ===== MEN qatori (siblings + ME + spouse) ===== */}
-          <div className="flex flex-col items-center">
-            {hasSiblingsOrSpouse && (
-              <div className="text-xs font-medium text-base-content/40 mb-2" />
-            )}
-            <div className="flex flex-wrap items-end justify-center gap-4">
-              {/* Aka-uka, opa-singillar — chapda */}
-              {(grouped.get('siblings') || []).map(rel => {
-                const member = membersMap.get(rel.toMemberId);
-                if (!member) return null;
-                const delay = getAnimDelay();
-                return (
-                  <div
-                    key={rel.id}
-                    className="animate-tree-fade-in"
-                    style={{ animationDelay: `${delay}ms` }}
-                  >
-                    <FamilyTreeCard
-                      member={member}
-                      relationLabel={rel.label}
-                      size="md"
-                      onAddRelation={onAddRelation}
-                      onClick={handleCardClick}
-                      onContextMenu={(e) => handleContextMenu(e, member, false, rel)}
-                      relationship={rel}
-                    />
-                  </div>
-                );
-              })}
-
-              {/* MEN — markazda */}
-              <div
-                className="animate-tree-fade-in"
-                style={{ animationDelay: `${getAnimDelay()}ms` }}
-              >
-                <FamilyTreeCard
-                  member={rootMember}
-                  isRoot
-                  size="lg"
-                  onAddRelation={onAddRelation}
-                  onClick={handleCardClick}
-                  onContextMenu={(e) => handleContextMenu(e, rootMember, true)}
-                />
-              </div>
-
-              {/* Heart icon + Turmush o'rtog'i */}
-              {(grouped.get('spouse') || []).map(rel => {
-                const member = membersMap.get(rel.toMemberId);
-                if (!member) return null;
-                const delay = getAnimDelay();
-                return (
-                  <div key={rel.id} className="flex items-end gap-2">
-                    <div className="flex items-center mb-8">
-                      <Heart className="h-5 w-5 text-red-500 fill-red-500 animate-tree-fade-in" style={{ animationDelay: `${delay - 40}ms` }} />
-                    </div>
-                    <div
-                      className="animate-tree-fade-in"
-                      style={{ animationDelay: `${delay}ms` }}
-                    >
-                      <FamilyTreeCard
-                        member={member}
-                        relationLabel={rel.label}
-                        size="lg"
-                        onAddRelation={onAddRelation}
-                        onClick={handleCardClick}
-                        onContextMenu={(e) => handleContextMenu(e, member, false, rel)}
-                        relationship={rel}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Tree nodes */}
+          {layout.nodes.map(node => (
+            <div
+              key={node.memberId}
+              className="absolute"
+              style={{
+                left: node.x,
+                top: node.y,
+                width: node.size === 'compact' ? 144 : 176,
+              }}
+            >
+              <FamilyTreeCard
+                member={node.member}
+                relationLabel={node.relationship?.label}
+                isRoot={node.isRoot}
+                size={node.size}
+                onAddRelation={onAddRelation}
+                onClick={handleCardClick}
+                onContextMenu={(e) => handleContextMenu(e, node.member, node.isRoot, node.relationship)}
+                onLongPress={(x, y) => handleLongPress(x, y, node.member, node.isRoot, node.relationship)}
+                relationship={node.relationship}
+              />
             </div>
-          </div>
+          ))}
 
-          {/* Pastdagi qatorlar: farzandlar, nevaralar */}
-          {belowMe.map(cat => {
-            const rels = grouped.get(cat)!;
-            return (
-              <div key={cat} className="flex flex-col items-center">
-                <div className="h-8 tree-connector-v" />
-                <div className="text-xs font-medium text-base-content/40 mb-2">
-                  {RELATIONSHIP_CATEGORIES[cat]}
-                </div>
-                {rels.length > 1 && (
-                  <div
-                    className="tree-connector-h mb-0"
-                    style={{
-                      width: `${Math.min(rels.length * 176, 700)}px`,
-                      maxWidth: '90vw',
-                    }}
-                  />
-                )}
-                <div className="flex flex-wrap justify-center gap-4">
-                  {rels.map(rel => {
-                    const member = membersMap.get(rel.toMemberId);
-                    if (!member) return null;
-                    const delay = getAnimDelay();
-                    return (
-                      <div key={rel.id} className="flex flex-col items-center">
-                        <div className="tree-connector-branch" />
-                        <div
-                          className="animate-tree-fade-in"
-                          style={{ animationDelay: `${delay}ms` }}
-                        >
+          {/* Overflow section: in-laws, extended, other */}
+          {layout.overflowRelationships.length > 0 && (
+            <div
+              className="absolute left-0 right-0"
+              style={{ top: layout.height + 20 }}
+            >
+              <div className="border-t-2 border-solid border-base-content/10 pt-6 px-8">
+                {layout.overflowRelationships.map(({ category, relationships }) => (
+                  <div key={category} className="mb-6">
+                    <h3 className="text-center text-sm font-medium text-base-content/50 mb-4">
+                      {RELATIONSHIP_CATEGORIES[category] || category}
+                    </h3>
+                    <div className="flex flex-wrap justify-center gap-4">
+                      {relationships.map(rel => {
+                        const member = membersMap.get(rel.toMemberId);
+                        if (!member) return null;
+                        return (
                           <FamilyTreeCard
+                            key={rel.id}
                             member={member}
                             relationLabel={rel.label}
-                            size="md"
+                            size="compact"
                             onAddRelation={onAddRelation}
                             onClick={handleCardClick}
                             onContextMenu={(e) => handleContextMenu(e, member, false, rel)}
+                            onLongPress={(x, y) => handleLongPress(x, y, member, false, rel)}
                             relationship={rel}
                           />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Boshqa kategoriyalar: in-laws, extended, other */}
-          {otherCats.length > 0 && (
-            <div className="w-full mt-10">
-              <div className="border-t-2 border-solid border-base-content/10 pt-6">
-                {otherCats.map(cat => {
-                  const rels = grouped.get(cat)!;
-                  return (
-                    <div key={cat} className="mb-6">
-                      <h3 className="text-center text-sm font-medium text-base-content/50 mb-4">
-                        {RELATIONSHIP_CATEGORIES[cat]}
-                      </h3>
-                      <div className="flex flex-wrap justify-center gap-4">
-                        {rels.map(rel => {
-                          const member = membersMap.get(rel.toMemberId);
-                          if (!member) return null;
-                          const delay = getAnimDelay();
-                          return (
-                            <div
-                              key={rel.id}
-                              className="animate-tree-fade-in"
-                              style={{ animationDelay: `${delay}ms` }}
-                            >
-                              <FamilyTreeCard
-                                member={member}
-                                relationLabel={rel.label}
-                                size="sm"
-                                onAddRelation={onAddRelation}
-                                onClick={handleCardClick}
-                                onContextMenu={(e) => handleContextMenu(e, member, false, rel)}
-                                relationship={rel}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           )}

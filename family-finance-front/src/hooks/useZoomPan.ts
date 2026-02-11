@@ -15,6 +15,11 @@ export function useZoomPan(_containerRef: RefObject<HTMLDivElement | null>) {
   const isDragging = useRef(false);
   const lastMouse = useRef<Position>({ x: 0, y: 0 });
 
+  // Touch state
+  const lastTouchDistance = useRef<number | null>(null);
+  const lastTouchCenter = useRef<Position | null>(null);
+  const isTouchDragging = useRef(false);
+
   const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
   const zoomIn = useCallback(() => {
@@ -30,6 +35,8 @@ export function useZoomPan(_containerRef: RefObject<HTMLDivElement | null>) {
     setPosition({ x: 0, y: 0 });
   }, []);
 
+  // ====== MOUSE HANDLERS ======
+
   const onWheel = useCallback((e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
@@ -39,7 +46,6 @@ export function useZoomPan(_containerRef: RefObject<HTMLDivElement | null>) {
   }, []);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
-    // Faqat chap tugma bilan drag
     if (e.button !== 0) return;
     isDragging.current = true;
     lastMouse.current = { x: e.clientX, y: e.clientY };
@@ -61,12 +67,80 @@ export function useZoomPan(_containerRef: RefObject<HTMLDivElement | null>) {
     isDragging.current = false;
   }, []);
 
+  // ====== TOUCH HANDLERS ======
+
+  const getTouchDistance = (touches: React.TouchList): number => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const getTouchCenter = (touches: React.TouchList): Position => {
+    if (touches.length < 2) {
+      return { x: touches[0].clientX, y: touches[0].clientY };
+    }
+    return {
+      x: (touches[0].clientX + touches[1].clientX) / 2,
+      y: (touches[0].clientY + touches[1].clientY) / 2,
+    };
+  };
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch-to-zoom start
+      e.preventDefault();
+      lastTouchDistance.current = getTouchDistance(e.touches);
+      lastTouchCenter.current = getTouchCenter(e.touches);
+      isTouchDragging.current = false;
+    } else if (e.touches.length === 1) {
+      // Single finger drag
+      isTouchDragging.current = true;
+      lastTouchCenter.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDistance.current !== null) {
+      // Pinch-to-zoom
+      e.preventDefault();
+      const newDistance = getTouchDistance(e.touches);
+      const scaleDiff = (newDistance - lastTouchDistance.current) * 0.005;
+      lastTouchDistance.current = newDistance;
+      setScale(prev => clampScale(prev + scaleDiff));
+
+      // Pan while pinching
+      const newCenter = getTouchCenter(e.touches);
+      if (lastTouchCenter.current) {
+        const dx = newCenter.x - lastTouchCenter.current.x;
+        const dy = newCenter.y - lastTouchCenter.current.y;
+        setPosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      }
+      lastTouchCenter.current = newCenter;
+    } else if (e.touches.length === 1 && isTouchDragging.current && lastTouchCenter.current) {
+      // Single finger drag-to-pan
+      const dx = e.touches[0].clientX - lastTouchCenter.current.x;
+      const dy = e.touches[0].clientY - lastTouchCenter.current.y;
+      lastTouchCenter.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      setPosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    lastTouchDistance.current = null;
+    lastTouchCenter.current = null;
+    isTouchDragging.current = false;
+  }, []);
+
   const handlers = {
     onWheel,
     onMouseDown,
     onMouseMove,
     onMouseUp,
     onMouseLeave,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
   };
 
   return {
