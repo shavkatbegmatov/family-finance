@@ -102,6 +102,77 @@ export const RELATIONSHIP_CATEGORIES: Record<string, string> = {
   other: 'Boshqalar',
 } as const;
 
+export const FAMILY_TREE_VIEW_PRESETS = {
+  FULL: {
+    label: "To'liq",
+    categories: [
+      'grandparents',
+      'parents',
+      'siblings',
+      'spouse',
+      'children',
+      'grandchildren',
+      'in-laws',
+      'extended',
+      'other',
+    ],
+  },
+  PEDIGREE: {
+    label: 'Ajdodlar',
+    categories: ['grandparents', 'parents', 'siblings', 'spouse'],
+  },
+  DESCENDANTS: {
+    label: 'Avlodlar',
+    categories: ['spouse', 'children', 'grandchildren'],
+  },
+  RELATIVES: {
+    label: 'Qarindoshlar',
+    categories: ['siblings', 'in-laws', 'extended', 'other'],
+  },
+} as const;
+
+export const QUICK_RELATIONSHIP_TYPES = [
+  'OTA',
+  'ONA',
+  'ER',
+  'XOTIN',
+  'OGIL',
+  'QIZ',
+  'AKA',
+  'OPA',
+] as const;
+
+export const RELATIONSHIP_TYPE_DEFAULTS: Record<
+  string,
+  { role: 'FATHER' | 'MOTHER' | 'CHILD' | 'OTHER'; gender?: 'MALE' | 'FEMALE' }
+> = {
+  OTA: { role: 'FATHER', gender: 'MALE' },
+  ONA: { role: 'MOTHER', gender: 'FEMALE' },
+  OGIL: { role: 'CHILD', gender: 'MALE' },
+  QIZ: { role: 'CHILD', gender: 'FEMALE' },
+  ER: { role: 'OTHER', gender: 'MALE' },
+  XOTIN: { role: 'OTHER', gender: 'FEMALE' },
+  AKA: { role: 'OTHER', gender: 'MALE' },
+  UKA: { role: 'OTHER', gender: 'MALE' },
+  OPA: { role: 'OTHER', gender: 'FEMALE' },
+  SINGIL: { role: 'OTHER', gender: 'FEMALE' },
+  BOBO: { role: 'OTHER', gender: 'MALE' },
+  BUVI: { role: 'OTHER', gender: 'FEMALE' },
+  NEVARA_OGIL: { role: 'CHILD', gender: 'MALE' },
+  NEVARA_QIZ: { role: 'CHILD', gender: 'FEMALE' },
+  AMAKI: { role: 'OTHER', gender: 'MALE' },
+  TOGHA: { role: 'OTHER', gender: 'MALE' },
+  AMMA: { role: 'OTHER', gender: 'FEMALE' },
+  XOLA: { role: 'OTHER', gender: 'FEMALE' },
+  JIYAN_OGIL: { role: 'OTHER', gender: 'MALE' },
+  JIYAN_QIZ: { role: 'OTHER', gender: 'FEMALE' },
+  KUYOV: { role: 'OTHER', gender: 'MALE' },
+  KELIN: { role: 'OTHER', gender: 'FEMALE' },
+  QAYIN_OTA: { role: 'OTHER', gender: 'MALE' },
+  QAYIN_ONA: { role: 'OTHER', gender: 'FEMALE' },
+  BOSHQA: { role: 'OTHER' },
+};
+
 export const FAMILY_DEBT_TYPES = {
   GIVEN: { label: 'Berilgan qarz', value: 'GIVEN' },
   TAKEN: { label: 'Olingan qarz', value: 'TAKEN' },

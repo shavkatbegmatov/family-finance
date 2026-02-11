@@ -7,6 +7,7 @@ interface FamilyTreeCardProps {
   relationLabel?: string;
   isRoot?: boolean;
   size?: 'lg' | 'md' | 'sm';
+  highlighted?: boolean;
   onAddRelation?: (memberId: number) => void;
   onClick?: (member: FamilyTreeMember) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
@@ -54,7 +55,16 @@ const avatarSizes = {
   sm: 'h-10 w-10 text-base',
 };
 
-export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onAddRelation, onClick, onContextMenu }: FamilyTreeCardProps) {
+export function FamilyTreeCard({
+  member,
+  relationLabel,
+  isRoot,
+  size = 'md',
+  highlighted = false,
+  onAddRelation,
+  onClick,
+  onContextMenu,
+}: FamilyTreeCardProps) {
   const age = getAge(member.birthDate);
 
   return (
@@ -64,6 +74,7 @@ export function FamilyTreeCard({ member, relationLabel, isRoot, size = 'md', onA
           'relative flex flex-col items-center rounded-xl border-2 bg-base-100 p-3 text-center',
           'transition-shadow duration-200 hover:shadow-lg',
           onClick && 'cursor-pointer',
+          highlighted && 'ring-2 ring-warning/40 bg-warning/5',
           getGenderBorderColor(member.gender, isRoot),
           sizeClasses[size]
         )}

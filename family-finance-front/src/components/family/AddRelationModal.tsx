@@ -1,13 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { User, X, Users } from 'lucide-react';
 import { familyTreeApi } from '../../api/family-tree.api';
 import { familyMembersApi } from '../../api/family-members.api';
-import { RELATIONSHIP_TYPES, RELATIONSHIP_CATEGORIES, FAMILY_ROLES, GENDERS } from '../../config/constants';
+import {
+  RELATIONSHIP_TYPES,
+  RELATIONSHIP_CATEGORIES,
+  FAMILY_ROLES,
+  GENDERS,
+  QUICK_RELATIONSHIP_TYPES,
+  RELATIONSHIP_TYPE_DEFAULTS,
+} from '../../config/constants';
 import { ModalPortal } from '../common/Modal';
 import { TextInput } from '../ui/TextInput';
 import { PhoneInput } from '../ui/PhoneInput';
 import { DateInput } from '../ui/DateInput';
+import { SearchInput } from '../ui/SearchInput';
 import { Select } from '../ui/Select';
 import type {
   FamilyMember,
@@ -15,6 +23,7 @@ import type {
   Gender,
   RelationshipType,
 } from '../../types';
+import type { SelectOption } from '../ui/Select';
 
 interface AddRelationModalProps {
   isOpen: boolean;
@@ -26,9 +35,6 @@ interface AddRelationModalProps {
 
 type ModalMode = 'new' | 'existing';
 
-import type { SelectOption } from '../ui/Select';
-
-// Category bo'yicha guruhlangan relationship type'larni yassi optionlar ro'yxatiga aylantirish
 const buildRelationshipOptions = (): SelectOption[] => {
   const groups: Record<string, { value: string; label: string }[]> = {};
   Object.entries(RELATIONSHIP_TYPES).forEach(([key, { label, category }]) => {
@@ -40,14 +46,20 @@ const buildRelationshipOptions = (): SelectOption[] => {
   Object.entries(groups).forEach(([cat, items]) => {
     options.push({
       value: `__group_${cat}`,
-      label: `── ${RELATIONSHIP_CATEGORIES[cat] || cat} ──`,
+      label: `--- ${RELATIONSHIP_CATEGORIES[cat] || cat} ---`,
       disabled: true,
     });
     items.forEach(item => {
       options.push({ value: item.value, label: item.label });
     });
   });
+
   return options;
+};
+
+const resolveDefaults = (type: RelationshipType | '') => {
+  if (!type) return undefined;
+  return RELATIONSHIP_TYPE_DEFAULTS[type];
 };
 
 export function AddRelationModal({
@@ -61,10 +73,8 @@ export function AddRelationModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Relation type
   const [relationshipType, setRelationshipType] = useState<RelationshipType | ''>('');
 
-  // New member form
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<FamilyRole>('OTHER');
   const [gender, setGender] = useState<Gender | ''>('');
@@ -72,31 +82,55 @@ export function AddRelationModal({
   const [birthDate, setBirthDate] = useState('');
   const [avatar, setAvatar] = useState('');
   const [createAccount, setCreateAccount] = useState(false);
+  const [keepOpenAfterSave, setKeepOpenAfterSave] = useState(false);
+  const [roleTouched, setRoleTouched] = useState(false);
+  const [genderTouched, setGenderTouched] = useState(false);
 
-  // Existing member
   const [existingMembers, setExistingMembers] = useState<FamilyMember[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<number | ''>('');
+  const [existingSearch, setExistingSearch] = useState('');
+
+  const relationshipOptions = useMemo(() => buildRelationshipOptions(), []);
 
   useEffect(() => {
     if (isOpen && mode === 'existing') {
-      familyMembersApi.getList().then(res => {
-        const data = res.data.data as FamilyMember[];
-        // fromMemberId dan boshqa a'zolarni ko'rsatish
-        setExistingMembers(data.filter(m => m.id !== fromMemberId));
-      }).catch(() => toast.error("Oila a'zolari ro'yxatini yuklashda xatolik"));
+      familyMembersApi
+        .getList()
+        .then(res => {
+          const data = res.data.data as FamilyMember[];
+          setExistingMembers(data.filter(m => m.id !== fromMemberId));
+        })
+        .catch(() => toast.error("Oila a'zolari ro'yxatini yuklashda xatolik"));
     }
   }, [isOpen, mode, fromMemberId]);
 
-  const resetForm = () => {
-    setRelationshipType('');
+  useEffect(() => {
+    setSelectedMemberId('');
+    setExistingSearch('');
+    setError(null);
+  }, [mode]);
+
+  const resetNewMemberForm = (preserveRelation = false) => {
+    const nextDefaults = preserveRelation ? resolveDefaults(relationshipType) : undefined;
+
     setFullName('');
-    setRole('OTHER');
-    setGender('');
+    setRole(nextDefaults?.role || 'OTHER');
+    setGender((nextDefaults?.gender as Gender | undefined) || '');
     setPhone('');
     setBirthDate('');
     setAvatar('');
     setCreateAccount(false);
+    setRoleTouched(false);
+    setGenderTouched(false);
+  };
+
+  const resetForm = () => {
+    setRelationshipType('');
+    resetNewMemberForm(false);
+    setKeepOpenAfterSave(false);
     setSelectedMemberId('');
+    setExistingMembers([]);
+    setExistingSearch('');
     setError(null);
     setMode('new');
   };
@@ -104,6 +138,25 @@ export function AddRelationModal({
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const applyDefaultsByType = (nextType: RelationshipType | '') => {
+    if (!nextType || mode !== 'new') return;
+    const defaults = resolveDefaults(nextType);
+    if (!defaults) return;
+
+    if (!roleTouched) {
+      setRole(defaults.role);
+    }
+    if (!genderTouched) {
+      setGender((defaults.gender as Gender | undefined) || '');
+    }
+  };
+
+  const handleRelationshipTypeChange = (value: string | number | undefined) => {
+    const nextType = (value as RelationshipType) || '';
+    setRelationshipType(nextType);
+    applyDefaultsByType(nextType);
   };
 
   const handleSubmit = async () => {
@@ -116,7 +169,7 @@ export function AddRelationModal({
       if (mode === 'new') {
         await familyTreeApi.addMemberWithRelation({
           fromMemberId,
-          relationshipType: relationshipType as RelationshipType,
+          relationshipType,
           fullName: fullName.trim(),
           role,
           gender: gender || undefined,
@@ -129,16 +182,21 @@ export function AddRelationModal({
         if (!selectedMemberId) return;
         await familyTreeApi.addRelationship({
           fromMemberId,
-          toMemberId: selectedMemberId as number,
-          relationshipType: relationshipType as RelationshipType,
+          toMemberId: selectedMemberId,
+          relationshipType,
         });
       }
 
-      handleClose();
       onSuccess();
+
+      if (mode === 'new' && keepOpenAfterSave) {
+        resetNewMemberForm(true);
+      } else {
+        handleClose();
+      }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Xatolik yuz berdi");
+      setError(axiosErr.response?.data?.message || 'Xatolik yuz berdi');
     } finally {
       setSubmitting(false);
     }
@@ -150,25 +208,30 @@ export function AddRelationModal({
     return !!selectedMemberId;
   };
 
-  const relationshipOptions = buildRelationshipOptions();
+  const filteredExistingMembers = useMemo(() => {
+    const query = existingSearch.trim().toLowerCase();
+    if (!query) return existingMembers;
 
-  const memberOptions: SelectOption[] = existingMembers.map(m => ({
-    value: m.id,
-    label: m.fullName,
+    return existingMembers.filter(member =>
+      member.fullName.toLowerCase().includes(query) ||
+      (member.phone || '').toLowerCase().includes(query)
+    );
+  }, [existingMembers, existingSearch]);
+
+  const memberOptions: SelectOption[] = filteredExistingMembers.map(member => ({
+    value: member.id,
+    label: member.fullName,
   }));
 
   return (
     <ModalPortal isOpen={isOpen} onClose={handleClose}>
       <div className="w-full max-w-lg bg-base-100 rounded-2xl shadow-2xl">
         <div className="p-4 sm:p-6">
-          {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-xl font-semibold">Qarindosh qo&apos;shish</h3>
+              <h3 className="text-xl font-semibold">Qarindosh qo'shish</h3>
               {fromMemberName && (
-                <p className="text-sm text-base-content/60">
-                  {fromMemberName} uchun
-                </p>
+                <p className="text-sm text-base-content/60">{fromMemberName} uchun</p>
               )}
             </div>
             <button className="btn btn-ghost btn-sm" onClick={handleClose}>
@@ -176,45 +239,55 @@ export function AddRelationModal({
             </button>
           </div>
 
-          {/* Mode tabs */}
           <div className="flex gap-1 bg-base-200 rounded-lg p-1 mt-4">
             <button
               className={`btn btn-sm flex-1 gap-1 ${mode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setMode('new')}
             >
               <User className="h-4 w-4" />
-              Yangi a&apos;zo
+              Yangi a'zo
             </button>
             <button
               className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setMode('existing')}
             >
               <Users className="h-4 w-4" />
-              Mavjud a&apos;zo
+              Mavjud a'zo
             </button>
           </div>
 
           <div className="mt-4 space-y-4">
-            {/* Error */}
-            {error && (
-              <div className="alert alert-error text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className="alert alert-error text-sm">{error}</div>}
 
-            {/* Relationship Type */}
             <Select
               label="Munosabat turi"
               required
               value={relationshipType || undefined}
-              onChange={(val) => setRelationshipType((val as RelationshipType) || '')}
+              onChange={handleRelationshipTypeChange}
               options={relationshipOptions}
               placeholder="Tanlang..."
             />
 
+            <div>
+              <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50 block">
+                Tez tanlash
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {QUICK_RELATIONSHIP_TYPES.map(type => (
+                  <button
+                    key={type}
+                    className={`btn btn-xs ${relationshipType === type ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => handleRelationshipTypeChange(type)}
+                    type="button"
+                  >
+                    {RELATIONSHIP_TYPES[type].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {mode === 'new' ? (
               <>
-                {/* Full Name */}
                 <TextInput
                   label="To'liq ism"
                   required
@@ -224,12 +297,14 @@ export function AddRelationModal({
                   leadingIcon={<User className="h-5 w-5" />}
                 />
 
-                {/* Role */}
                 <Select
                   label="Rol"
                   required
                   value={role}
-                  onChange={(val) => setRole((val as FamilyRole) || 'OTHER')}
+                  onChange={(val) => {
+                    setRole((val as FamilyRole) || 'OTHER');
+                    setRoleTouched(true);
+                  }}
                   options={Object.entries(FAMILY_ROLES).map(([key, { label }]) => ({
                     value: key,
                     label,
@@ -237,11 +312,13 @@ export function AddRelationModal({
                   placeholder="Rolni tanlang"
                 />
 
-                {/* Gender */}
                 <Select
                   label="Jinsi"
                   value={gender}
-                  onChange={(val) => setGender(val as Gender)}
+                  onChange={(val) => {
+                    setGender((val as Gender) || '');
+                    setGenderTouched(true);
+                  }}
                   options={Object.entries(GENDERS).map(([key, { label }]) => ({
                     value: key,
                     label,
@@ -249,14 +326,12 @@ export function AddRelationModal({
                   placeholder="Avtomatik"
                 />
 
-                {/* Phone */}
                 <PhoneInput
                   label="Telefon raqami"
                   value={phone}
                   onChange={setPhone}
                 />
 
-                {/* Birth Date */}
                 <DateInput
                   label="Tug'ilgan sana"
                   value={birthDate}
@@ -264,7 +339,6 @@ export function AddRelationModal({
                   max={new Date().toISOString().slice(0, 10)}
                 />
 
-                {/* Avatar */}
                 <TextInput
                   label="Avatar URL"
                   value={avatar}
@@ -273,7 +347,6 @@ export function AddRelationModal({
                   type="url"
                 />
 
-                {/* Create Account */}
                 <div className="form-control">
                   <label className="label cursor-pointer justify-start gap-3">
                     <input
@@ -290,21 +363,45 @@ export function AddRelationModal({
                     </div>
                   </label>
                 </div>
+
+                <div className="form-control">
+                  <label className="label cursor-pointer justify-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm checkbox-primary"
+                      checked={keepOpenAfterSave}
+                      onChange={(e) => setKeepOpenAfterSave(e.target.checked)}
+                    />
+                    <span className="label-text text-sm">Saqlagandan keyin yana a'zo qo'shaman</span>
+                  </label>
+                </div>
               </>
             ) : (
-              <Select
-                label="Oila a'zosi"
-                required
-                value={selectedMemberId || undefined}
-                onChange={(val) => setSelectedMemberId(typeof val === 'number' ? val : Number(val) || '')}
-                options={memberOptions}
-                placeholder="Tanlang..."
-                icon={<Users className="h-4 w-4" />}
-              />
+              <>
+                <SearchInput
+                  value={existingSearch}
+                  onValueChange={setExistingSearch}
+                  label="A'zo qidirish"
+                  placeholder="Ism yoki telefon bo'yicha qidiring"
+                />
+                <Select
+                  label="Oila a'zosi"
+                  required
+                  value={selectedMemberId || undefined}
+                  onChange={(val) => setSelectedMemberId(typeof val === 'number' ? val : Number(val) || '')}
+                  options={memberOptions}
+                  placeholder="Tanlang..."
+                  icon={<Users className="h-4 w-4" />}
+                />
+                {memberOptions.length === 0 && (
+                  <p className="text-xs text-base-content/60">
+                    Qidiruv bo'yicha mos oila a'zosi topilmadi.
+                  </p>
+                )}
+              </>
             )}
           </div>
 
-          {/* Actions */}
           <div className="mt-6 flex justify-end gap-2">
             <button className="btn btn-ghost" onClick={handleClose} disabled={submitting}>
               Bekor qilish
@@ -315,7 +412,7 @@ export function AddRelationModal({
               disabled={submitting || !canSubmit()}
             >
               {submitting && <span className="loading loading-spinner loading-sm" />}
-              Qo&apos;shish
+              Qo'shish
             </button>
           </div>
         </div>

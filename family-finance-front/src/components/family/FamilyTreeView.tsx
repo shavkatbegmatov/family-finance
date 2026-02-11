@@ -8,8 +8,9 @@ import { DeleteRelationConfirmModal } from './DeleteRelationConfirmModal';
 import { ChangeRelationTypeModal } from './ChangeRelationTypeModal';
 import { ZoomControls } from './ZoomControls';
 import { TreeExportButton } from './TreeExportButton';
+import { SearchInput } from '../ui/SearchInput';
 import { useZoomPan } from '../../hooks/useZoomPan';
-import { RELATIONSHIP_CATEGORIES } from '../../config/constants';
+import { RELATIONSHIP_CATEGORIES, FAMILY_TREE_VIEW_PRESETS } from '../../config/constants';
 import type { FamilyTreeResponse, FamilyTreeMember, FamilyRelationshipDto } from '../../types';
 
 interface FamilyTreeViewProps {
@@ -41,6 +42,8 @@ interface ContextMenuState {
   fromMemberId?: number;
 }
 
+type TreeViewPresetKey = keyof typeof FAMILY_TREE_VIEW_PRESETS;
+
 export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: FamilyTreeViewProps) {
   const [treeData, setTreeData] = useState<FamilyTreeResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +51,9 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
 
   // Perspektiva
   const [viewingMemberId, setViewingMemberId] = useState<number | null>(null);
+  const [viewPreset, setViewPreset] = useState<TreeViewPresetKey>('FULL');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   // Kontekst menyu
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -89,6 +95,15 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
   useEffect(() => {
     void loadTree();
   }, [loadTree, refreshKey]);
+
+  useEffect(() => {
+    setMemberSearch('');
+    setCategoryFilter('all');
+  }, [viewingMemberId]);
+
+  useEffect(() => {
+    setCategoryFilter('all');
+  }, [viewPreset]);
 
   // ==================== CONTEXT MENU HANDLERS ====================
 
@@ -162,7 +177,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
       await familyTreeApi.removeRelationship(deleteRelation.fromId, deleteRelation.toId);
       setDeleteRelation(null);
       void loadTree();
-    } catch (err) {
+    } catch {
       toast.error("Munosabatni o'chirishda xatolik");
     }
   };
@@ -240,9 +255,27 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
   const rootMember = membersMap.get(treeData.rootMemberId);
   if (!rootMember) return null;
 
+  const normalizedSearch = memberSearch.trim().toLowerCase();
+  const allowedCategories = FAMILY_TREE_VIEW_PRESETS[viewPreset].categories;
+  const allowedCategorySet = new Set<string>(allowedCategories as readonly string[]);
+  const availableCategories = CATEGORY_ORDER.filter(cat =>
+    treeData.relationships.some(rel => rel.category === cat)
+  );
+  const filterCategories = availableCategories.filter(cat => allowedCategorySet.has(cat));
+  const effectiveCategoryFilter =
+    categoryFilter !== 'all' && filterCategories.includes(categoryFilter) ? categoryFilter : 'all';
+
+  const visibleRelationships = treeData.relationships.filter(rel => {
+    if (!allowedCategorySet.has(rel.category)) return false;
+    if (effectiveCategoryFilter !== 'all' && rel.category !== effectiveCategoryFilter) return false;
+    if (!normalizedSearch) return true;
+    const member = membersMap.get(rel.toMemberId);
+    return member ? member.fullName.toLowerCase().includes(normalizedSearch) : false;
+  });
+
   // Munosabatlarni category bo'yicha guruhlash
   const grouped = new Map<string, FamilyRelationshipDto[]>();
-  treeData.relationships.forEach(rel => {
+  visibleRelationships.forEach(rel => {
     const cat = rel.category;
     if (!grouped.has(cat)) grouped.set(cat, []);
     grouped.get(cat)!.push(rel);
@@ -250,6 +283,8 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
 
   // Tartibli category'lar
   const orderedCategories = CATEGORY_ORDER.filter(cat => grouped.has(cat));
+  const visibleMemberIds = new Set<number>([rootMember.id]);
+  visibleRelationships.forEach(rel => visibleMemberIds.add(rel.toMemberId));
 
   // "MEN" qatorini aniqlash — siblings va spouse bilan bir qatorda
   const siblingsAndSpouse = [
@@ -264,6 +299,9 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
   const otherCats = orderedCategories.filter(c =>
     !['grandparents', 'parents', 'siblings', 'spouse', 'children', 'grandchildren'].includes(c)
   );
+
+  const isHighlightedMember = (member: FamilyTreeMember) =>
+    normalizedSearch.length > 0 && member.fullName.toLowerCase().includes(normalizedSearch);
 
   const handleCardClick = onEditMember
     ? (member: FamilyTreeMember) => onEditMember(member.id)
@@ -281,7 +319,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
     <div className="relative">
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {viewingMemberId && (
             <button
               className="btn btn-ghost btn-sm gap-1"
@@ -296,10 +334,53 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
               {rootMember.fullName} ning daraxti
             </span>
           )}
+          <span className="pill">
+            {visibleMemberIds.size} ta a&apos;zo ko&apos;rinmoqda
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <TreeExportButton treeContentRef={treeContentRef} scale={scale} setScale={setScale} />
           <ZoomControls scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          {Object.entries(FAMILY_TREE_VIEW_PRESETS).map(([key, preset]) => (
+            <button
+              key={key}
+              className={`btn btn-xs ${viewPreset === key ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setViewPreset(key as TreeViewPresetKey)}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end">
+          <label className="form-control w-full lg:max-w-xs">
+            <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+              Kategoriya
+            </span>
+            <select
+              className="select select-bordered h-12 rounded-xl"
+              value={effectiveCategoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="all">Barchasi</option>
+              {filterCategories.map(category => (
+                <option key={category} value={category}>
+                  {RELATIONSHIP_CATEGORIES[category] || category}
+                </option>
+              ))}
+            </select>
+          </label>
+          <SearchInput
+            value={memberSearch}
+            onValueChange={setMemberSearch}
+            label="A'zo qidirish"
+            placeholder="Daraxtdan ism toping..."
+            className="w-full lg:max-w-sm"
+          />
         </div>
       </div>
 
@@ -318,6 +399,25 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
             transformOrigin: '0 0',
           }}
         >
+          {visibleRelationships.length === 0 && (
+            <div className="mb-6 max-w-md rounded-xl border border-warning/30 bg-warning/10 p-4 text-center">
+              <p className="text-sm font-medium">Bu filtrda a&apos;zo topilmadi</p>
+              <p className="text-xs text-base-content/60 mt-1">
+                Ko&apos;rishni tiklash uchun filtr va qidiruvni tozalang.
+              </p>
+              <button
+                className="btn btn-ghost btn-xs mt-3"
+                onClick={() => {
+                  setMemberSearch('');
+                  setCategoryFilter('all');
+                  setViewPreset('FULL');
+                }}
+              >
+                Filtrni tozalash
+              </button>
+            </div>
+          )}
+
           {/* Yuqoridagi qatorlar: bobo-buvi, ota-ona */}
           {aboveMe.map(cat => {
             const rels = grouped.get(cat)!;
@@ -339,6 +439,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
                       >
                         <FamilyTreeCard
                           member={member}
+                          highlighted={isHighlightedMember(member)}
                           relationLabel={rel.label}
                           size={cat === 'grandparents' ? 'sm' : 'lg'}
                           onAddRelation={onAddRelation}
@@ -374,6 +475,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
                   >
                     <FamilyTreeCard
                       member={member}
+                      highlighted={isHighlightedMember(member)}
                       relationLabel={rel.label}
                       size="md"
                       onAddRelation={onAddRelation}
@@ -393,6 +495,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
                 <FamilyTreeCard
                   member={rootMember}
                   isRoot
+                  highlighted={isHighlightedMember(rootMember)}
                   size="lg"
                   onAddRelation={onAddRelation}
                   onClick={handleCardClick}
@@ -416,6 +519,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
                     >
                       <FamilyTreeCard
                         member={member}
+                        highlighted={isHighlightedMember(member)}
                         relationLabel={rel.label}
                         size="lg"
                         onAddRelation={onAddRelation}
@@ -462,6 +566,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
                         >
                           <FamilyTreeCard
                             member={member}
+                            highlighted={isHighlightedMember(member)}
                             relationLabel={rel.label}
                             size="md"
                             onAddRelation={onAddRelation}
@@ -502,6 +607,7 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
                             >
                               <FamilyTreeCard
                                 member={member}
+                                highlighted={isHighlightedMember(member)}
                                 relationLabel={rel.label}
                                 size="sm"
                                 onAddRelation={onAddRelation}
