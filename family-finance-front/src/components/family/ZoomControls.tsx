@@ -1,18 +1,48 @@
-import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useCallback, type RefObject } from 'react';
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { useReactFlow } from '@xyflow/react';
 
 interface ZoomControlsProps {
-  scale: number;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
-  onReset: () => void;
+  flowContainerRef: RefObject<HTMLDivElement | null>;
 }
 
-export function ZoomControls({ scale, onZoomIn, onZoomOut, onReset }: ZoomControlsProps) {
+export function ZoomControls(_props: ZoomControlsProps) {
+  const { zoomIn, zoomOut, fitView, getZoom } = useReactFlow();
+  const [scale, setScale] = useState(1);
+
+  const updateScale = useCallback(() => {
+    try {
+      setScale(getZoom());
+    } catch {
+      // ReactFlow not yet initialized
+    }
+  }, [getZoom]);
+
+  useEffect(() => {
+    const interval = setInterval(updateScale, 300);
+    return () => clearInterval(interval);
+  }, [updateScale]);
+
+  const handleZoomIn = () => {
+    void zoomIn({ duration: 200 });
+    setTimeout(updateScale, 250);
+  };
+
+  const handleZoomOut = () => {
+    void zoomOut({ duration: 200 });
+    setTimeout(updateScale, 250);
+  };
+
+  const handleFitView = () => {
+    void fitView({ duration: 300, padding: 0.2 });
+    setTimeout(updateScale, 350);
+  };
+
   return (
     <div className="flex items-center gap-1 bg-base-200 rounded-lg p-1">
       <button
         className="btn btn-ghost btn-xs btn-square"
-        onClick={onZoomOut}
+        onClick={handleZoomOut}
         title="Kichiklashtirish"
         disabled={scale <= 0.3}
       >
@@ -23,7 +53,7 @@ export function ZoomControls({ scale, onZoomIn, onZoomOut, onReset }: ZoomContro
       </span>
       <button
         className="btn btn-ghost btn-xs btn-square"
-        onClick={onZoomIn}
+        onClick={handleZoomIn}
         title="Kattalashtirish"
         disabled={scale >= 2}
       >
@@ -31,10 +61,10 @@ export function ZoomControls({ scale, onZoomIn, onZoomOut, onReset }: ZoomContro
       </button>
       <button
         className="btn btn-ghost btn-xs btn-square"
-        onClick={onReset}
-        title="Qaytarish"
+        onClick={handleFitView}
+        title="Ekranga sig'dirish"
       >
-        <RotateCcw className="h-3.5 w-3.5" />
+        <Maximize2 className="h-3.5 w-3.5" />
       </button>
     </div>
   );

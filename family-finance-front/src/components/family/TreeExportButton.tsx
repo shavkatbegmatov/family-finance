@@ -3,29 +3,27 @@ import toast from 'react-hot-toast';
 import { Download, Image, FileText, ChevronDown } from 'lucide-react';
 
 interface TreeExportButtonProps {
-  treeContentRef: RefObject<HTMLDivElement | null>;
-  scale: number;
-  setScale: (scale: number) => void;
+  flowContainerRef: RefObject<HTMLDivElement | null>;
 }
 
-export function TreeExportButton({ treeContentRef, scale, setScale }: TreeExportButtonProps) {
+export function TreeExportButton({ flowContainerRef }: TreeExportButtonProps) {
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const exportAs = async (format: 'png' | 'pdf') => {
-    if (!treeContentRef.current) return;
+    if (!flowContainerRef.current) return;
     setExporting(true);
 
-    // Vaqtincha scale'ni 1 ga qaytarish
-    const originalScale = scale;
-    setScale(1);
-
-    // Biroz kutish — DOM yangilanishi uchun
-    await new Promise(r => setTimeout(r, 200));
-
     try {
+      // Find the .react-flow container inside
+      const reactFlowEl = flowContainerRef.current.querySelector('.react-flow') as HTMLElement;
+      if (!reactFlowEl) {
+        toast.error('Eksport qilish uchun daraxt topilmadi');
+        return;
+      }
+
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(treeContentRef.current, {
+      const canvas = await html2canvas(reactFlowEl, {
         backgroundColor: '#f8fafc',
         scale: 2,
         useCORS: true,
@@ -57,10 +55,9 @@ export function TreeExportButton({ treeContentRef, scale, setScale }: TreeExport
         pdf.addImage(imgData, 'PNG', x, y, w, h);
         pdf.save('oila-daraxti.pdf');
       }
-    } catch (err) {
+    } catch {
       toast.error('Eksport qilishda xatolik');
     } finally {
-      setScale(originalScale);
       setExporting(false);
       setOpen(false);
     }
