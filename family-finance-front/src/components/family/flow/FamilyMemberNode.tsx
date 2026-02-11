@@ -88,7 +88,7 @@ function FamilyMemberNodeComponent({ data }: NodeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const relationLabel = relationship?.label;
 
-  const longPressHandlers = useLongPress({
+  const { isLongPress: _isLongPress, ...longPressHandlers } = useLongPress({
     onLongPress: (e) => {
       if (onLongPress) {
         const touch = e.touches[0];

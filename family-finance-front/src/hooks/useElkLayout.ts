@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ELK, { type ElkNode, type ElkExtendedEdge } from 'elkjs/lib/elk.bundled.js';
 import type { Node, Edge } from '@xyflow/react';
 import type {
@@ -96,6 +96,10 @@ export function useElkLayout(
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isLayouting, setIsLayouting] = useState(false);
+
+  // Use ref for callbacks to avoid infinite re-render loop
+  const callbacksRef = useRef(callbacks);
+  callbacksRef.current = callbacks;
 
   const computeLayout = useCallback(async () => {
     if (!treeData || treeData.members.length === 0) {
@@ -283,10 +287,10 @@ export function useElkLayout(
                   member,
                   relationship: rel,
                   isRoot,
-                  onAddRelation: callbacks?.onAddRelation,
-                  onEditMember: callbacks?.onEditMember,
-                  onContextMenu: callbacks?.onContextMenu,
-                  onLongPress: callbacks?.onLongPress,
+                  onAddRelation: callbacksRef.current?.onAddRelation,
+                  onEditMember: callbacksRef.current?.onEditMember,
+                  onContextMenu: callbacksRef.current?.onContextMenu,
+                  onLongPress: callbacksRef.current?.onLongPress,
                 } satisfies FamilyNodeData,
               });
             }
@@ -336,11 +340,11 @@ export function useElkLayout(
     } catch (err) {
       console.error('ELK layout error:', err);
       // Fallback: simple grid layout
-      fallbackLayout(treeData, membersMap, relMap, rootId, setNodes, setEdges, callbacks);
+      fallbackLayout(treeData, membersMap, relMap, rootId, setNodes, setEdges, callbacksRef.current);
     } finally {
       setIsLayouting(false);
     }
-  }, [treeData, callbacks]);
+  }, [treeData]);
 
   useEffect(() => {
     void computeLayout();
