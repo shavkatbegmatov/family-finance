@@ -87,7 +87,7 @@ export function FamilyTreeView() {
   }
 
   // Empty tree
-  if (!treeData || treeData.familyUnits.length === 0) {
+  if (!treeData || treeData.persons.length === 0) {
     return (
       <div className="surface-card p-12 text-center">
         <Users className="h-16 w-16 mx-auto mb-4 text-base-content/20" />
