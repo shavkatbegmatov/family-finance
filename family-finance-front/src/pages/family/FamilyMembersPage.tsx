@@ -24,7 +24,6 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
-import { AddRelationModal } from '../../components/family/AddRelationModal';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -67,11 +66,6 @@ export function FamilyMembersPage() {
 
   // Delete confirmation
   const [deletingMemberId, setDeletingMemberId] = useState<number | null>(null);
-
-  // AddRelationModal
-  const [addRelationFromId, setAddRelationFromId] = useState<number | null>(null);
-  const [addRelationFromName, setAddRelationFromName] = useState<string>('');
-  const [treeRefreshKey, setTreeRefreshKey] = useState(0);
 
   // ==================== DATA LOADING ====================
 
@@ -149,7 +143,6 @@ export function FamilyMembersPage() {
       }
       handleCloseModal();
       void loadMembers();
-      setTreeRefreshKey(k => k + 1);
     } catch (error) {
       toast.error("Oila a'zosini saqlashda xatolik");
     } finally {
@@ -175,7 +168,6 @@ export function FamilyMembersPage() {
       await familyMembersApi.delete(deletingMemberId);
       setDeletingMemberId(null);
       void loadMembers();
-      setTreeRefreshKey(k => k + 1);
     } catch (error) {
       toast.error("Oila a'zosini o'chirishda xatolik");
     }
@@ -202,32 +194,6 @@ export function FamilyMembersPage() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       toast.error('Eksport qilishda xatolik');
-    }
-  };
-
-  // ==================== ADD RELATION ====================
-
-  const handleAddRelation = (fromMemberId: number, _suggestedCategory?: string) => {
-    // fromMemberName ni topish
-    const member = members.find(m => m.id === fromMemberId);
-    setAddRelationFromId(fromMemberId);
-    setAddRelationFromName(member?.fullName || '');
-  };
-
-  const handleRelationSuccess = () => {
-    setTreeRefreshKey(k => k + 1);
-    void loadMembers();
-  };
-
-  // ==================== EDIT FROM TREE ====================
-
-  const handleEditFromTree = async (memberId: number) => {
-    try {
-      const res = await familyMembersApi.getById(memberId);
-      const member = res.data.data as FamilyMember;
-      handleOpenEditModal(member);
-    } catch (error) {
-      toast.error("A'zo ma'lumotlarini yuklashda xatolik");
     }
   };
 
@@ -302,11 +268,7 @@ export function FamilyMembersPage() {
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
         <div className="surface-card p-4 sm:p-6 overflow-x-auto">
-          <FamilyTreeView
-            onAddRelation={handleAddRelation}
-            onEditMember={handleEditFromTree}
-            refreshKey={treeRefreshKey}
-          />
+          <FamilyTreeView />
         </div>
       )}
 
@@ -675,15 +637,6 @@ export function FamilyMembersPage() {
           </div>
         </div>
       </ModalPortal>
-
-      {/* Add Relation Modal */}
-      <AddRelationModal
-        isOpen={!!addRelationFromId}
-        onClose={() => setAddRelationFromId(null)}
-        fromMemberId={addRelationFromId}
-        fromMemberName={addRelationFromName}
-        onSuccess={handleRelationSuccess}
-      />
     </div>
   );
 }

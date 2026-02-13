@@ -1,14 +1,14 @@
-import { FamilyMemberNode } from './FamilyMemberNode';
-import { ParentChildEdge } from './edges/ParentChildEdge';
-import { SpouseEdge } from './edges/SpouseEdge';
-import { SiblingEdge } from './edges/SiblingEdge';
+import { PersonNode } from './nodes/PersonNode';
+import { FamilyUnitNode } from './nodes/FamilyUnitNode';
+import { MarriageEdge } from './edges/MarriageEdge';
+import { ChildEdge } from './edges/ChildEdge';
 
 export const nodeTypes = {
-  familyMember: FamilyMemberNode,
+  personNode: PersonNode,
+  familyUnitNode: FamilyUnitNode,
 };
 
 export const edgeTypes = {
-  parentChild: ParentChildEdge,
-  spouse: SpouseEdge,
-  sibling: SiblingEdge,
+  marriageEdge: MarriageEdge,
+  childEdge: ChildEdge,
 };

@@ -155,9 +155,12 @@ export type Gender = 'MALE' | 'FEMALE';
 export interface FamilyMember {
   id: number;
   fullName: string;
+  lastName?: string;
   role: FamilyRole;
   gender?: Gender;
   birthDate?: string;
+  birthPlace?: string;
+  deathDate?: string;
   phone?: string;
   avatar?: string;
   isActive: boolean;
@@ -169,80 +172,16 @@ export interface FamilyMember {
 
 export interface FamilyMemberRequest {
   fullName: string;
+  lastName?: string;
   role: FamilyRole;
   gender?: Gender;
   birthDate?: string;
+  birthPlace?: string;
+  deathDate?: string;
   phone?: string;
   avatar?: string;
   userId?: number;
   createAccount?: boolean;
-}
-
-// Family Tree Types
-export type RelationshipType =
-  | 'OTA' | 'ONA' | 'OGIL' | 'QIZ' | 'ER' | 'XOTIN'
-  | 'AKA' | 'UKA' | 'OPA' | 'SINGIL'
-  | 'BOBO' | 'BUVI' | 'NEVARA_OGIL' | 'NEVARA_QIZ'
-  | 'AMAKI' | 'TOGHA' | 'AMMA' | 'XOLA'
-  | 'JIYAN_OGIL' | 'JIYAN_QIZ'
-  | 'KUYOV' | 'KELIN' | 'QAYIN_OTA' | 'QAYIN_ONA'
-  | 'BOSHQA';
-
-export interface FamilyTreeMember {
-  id: number;
-  fullName: string;
-  role: FamilyRole;
-  gender?: Gender;
-  birthDate?: string;
-  phone?: string;
-  avatar?: string;
-  isActive: boolean;
-  userId?: number;
-}
-
-export interface FamilyRelationshipDto {
-  id: number;
-  fromMemberId: number;
-  toMemberId: number;
-  relationshipType: RelationshipType;
-  label: string;
-  category: string;
-}
-
-export interface FamilyTreeResponse {
-  rootMemberId: number;
-  members: FamilyTreeMember[];
-  relationships: FamilyRelationshipDto[];
-}
-
-export interface AddRelationshipRequest {
-  fromMemberId: number;
-  toMemberId: number;
-  relationshipType: RelationshipType;
-}
-
-export interface AddFamilyMemberWithRelationRequest {
-  fromMemberId: number;
-  relationshipType: RelationshipType;
-  fullName: string;
-  role: FamilyRole;
-  gender?: Gender;
-  birthDate?: string;
-  phone?: string;
-  avatar?: string;
-  createAccount?: boolean;
-}
-
-export interface RelationshipTypeInfo {
-  value: RelationshipType;
-  label: string;
-  category: string;
-}
-
-export interface UpdateRelationshipTypeRequest {
-  fromMemberId: number;
-  toMemberId: number;
-  newRelationshipType: string;
 }
 
 // Account Types
@@ -526,3 +465,6 @@ export interface MemberReport {
 
 // Audit Log Detail Types
 export * from './audit-log.types';
+
+// Family Tree V2 Types
+export * from './family-tree.types';

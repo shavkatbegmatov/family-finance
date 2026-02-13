@@ -102,6 +102,26 @@ export const RELATIONSHIP_CATEGORIES: Record<string, string> = {
   other: 'Boshqalar',
 } as const;
 
+export const MARRIAGE_TYPES = {
+  MARRIED: { label: 'Nikohda', value: 'MARRIED' },
+  DIVORCED: { label: 'Ajrashgan', value: 'DIVORCED' },
+  PARTNERSHIP: { label: 'Sheriklik', value: 'PARTNERSHIP' },
+  OTHER: { label: 'Boshqa', value: 'OTHER' },
+} as const;
+
+export const LINEAGE_TYPES = {
+  BIOLOGICAL: { label: 'Biologik', value: 'BIOLOGICAL' },
+  ADOPTED: { label: 'Asrab olingan', value: 'ADOPTED' },
+  STEP: { label: "O'gay", value: 'STEP' },
+  FOSTER: { label: 'Tarbiyalanuvchi', value: 'FOSTER' },
+  GUARDIAN: { label: 'Vasiylik', value: 'GUARDIAN' },
+} as const;
+
+export const FAMILY_UNIT_STATUSES = {
+  ACTIVE: { label: 'Faol', value: 'ACTIVE', color: 'badge-success' },
+  DISSOLVED: { label: 'Tugatilgan', value: 'DISSOLVED', color: 'badge-warning' },
+} as const;
+
 export const FAMILY_DEBT_TYPES = {
   GIVEN: { label: 'Berilgan qarz', value: 'GIVEN' },
   TAKEN: { label: 'Olingan qarz', value: 'TAKEN' },

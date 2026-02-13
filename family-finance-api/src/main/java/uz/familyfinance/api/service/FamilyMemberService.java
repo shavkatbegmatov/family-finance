@@ -50,9 +50,12 @@ public class FamilyMemberService {
     public FamilyMemberResponse create(FamilyMemberRequest request) {
         FamilyMember member = FamilyMember.builder()
                 .fullName(request.getFullName())
+                .lastName(request.getLastName())
                 .role(request.getRole())
                 .gender(request.getGender())
                 .birthDate(request.getBirthDate())
+                .birthPlace(request.getBirthPlace())
+                .deathDate(request.getDeathDate())
                 .phone(request.getPhone())
                 .avatar(request.getAvatar())
                 .build();
@@ -83,9 +86,12 @@ public class FamilyMemberService {
     public FamilyMemberResponse update(Long id, FamilyMemberRequest request) {
         FamilyMember member = findById(id);
         member.setFullName(request.getFullName());
+        member.setLastName(request.getLastName());
         member.setRole(request.getRole());
         member.setGender(request.getGender());
         member.setBirthDate(request.getBirthDate());
+        member.setBirthPlace(request.getBirthPlace());
+        member.setDeathDate(request.getDeathDate());
         member.setPhone(request.getPhone());
         member.setAvatar(request.getAvatar());
 
@@ -125,9 +131,12 @@ public class FamilyMemberService {
         FamilyMemberResponse r = new FamilyMemberResponse();
         r.setId(m.getId());
         r.setFullName(m.getFullName());
+        r.setLastName(m.getLastName());
         r.setRole(m.getRole());
         r.setGender(m.getGender());
         r.setBirthDate(m.getBirthDate());
+        r.setBirthPlace(m.getBirthPlace());
+        r.setDeathDate(m.getDeathDate());
         r.setPhone(m.getPhone());
         r.setAvatar(m.getAvatar());
         r.setIsActive(m.getIsActive());

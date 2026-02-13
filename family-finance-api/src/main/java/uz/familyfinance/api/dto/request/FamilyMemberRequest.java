@@ -11,9 +11,12 @@ import java.time.LocalDate;
 @Data
 public class FamilyMemberRequest {
     @NotBlank @Size(max = 100) private String fullName;
+    @Size(max = 100) private String lastName;
     @NotNull private FamilyRole role;
     private Gender gender;
     private LocalDate birthDate;
+    @Size(max = 200) private String birthPlace;
+    private LocalDate deathDate;
     @Size(max = 20, message = "Telefon raqami 20 ta belgidan oshmasligi kerak") private String phone;
     private String avatar;
     private Long userId;
