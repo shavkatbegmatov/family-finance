@@ -95,6 +95,12 @@ export function FamilyMembersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchQuery]);
 
+  useEffect(() => {
+    if (activeTab === 'list') {
+      void loadMembers();
+    }
+  }, [activeTab]);
+
   // ==================== MODAL ====================
 
   const handleOpenAddModal = () => {
