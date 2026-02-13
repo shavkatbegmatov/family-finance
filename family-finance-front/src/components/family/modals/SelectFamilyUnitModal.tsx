@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X, Users } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useFamilyUnitsByPersonQuery } from '../../../hooks/useFamilyTreeQueries';
@@ -41,11 +42,12 @@ export function SelectFamilyUnitModal({
     }
   };
 
-  // If person has only one family unit, skip selection
-  if (isOpen && !isLoading && familyUnits.length === 1) {
-    handleSelect(familyUnits[0].id);
-    return null;
-  }
+  // If person has only one family unit, auto-select it
+  useEffect(() => {
+    if (isOpen && !isLoading && familyUnits.length === 1) {
+      handleSelect(familyUnits[0].id);
+    }
+  }, [isOpen, isLoading, familyUnits]);
 
   // If person has no family units, show single parent option
   if (isOpen && !isLoading && familyUnits.length === 0) {
