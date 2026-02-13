@@ -1,27 +1,25 @@
-import { X, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useFamilyUnitsByPersonQuery } from '../../../hooks/useFamilyTreeQueries';
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
-import { MARRIAGE_TYPES } from '../../../config/constants';
-import toast from 'react-hot-toast';
 
-interface SelectFamilyUnitModalProps {
+interface AddSiblingModalProps {
   isOpen: boolean;
   personId: number;
   onClose: () => void;
 }
 
-export function SelectFamilyUnitModal({
+export function AddSiblingModal({
   isOpen,
   personId,
   onClose,
-}: SelectFamilyUnitModalProps) {
-  const { data: allFamilyUnits = [], isLoading } = useFamilyUnitsByPersonQuery(personId);
+}: AddSiblingModalProps) {
+  const { data: familyUnits = [], isLoading } = useFamilyUnitsByPersonQuery(personId);
   const { openModal } = useFamilyTreeStore();
 
-  // Faqat partner sifatida bo'lgan unitlar (farzand qo'shish uchun)
-  const familyUnits = allFamilyUnits.filter(fu =>
-    fu.partners.some(p => p.personId === personId)
+  // Ota-ona unitlarini topish (personId children[] da bo'lgan unitlar)
+  const parentUnits = familyUnits.filter(fu =>
+    fu.children.some(c => c.personId === personId)
   );
 
   const handleSelect = (familyUnitId: number) => {
@@ -29,50 +27,35 @@ export function SelectFamilyUnitModal({
     openModal({ type: 'addChild', familyUnitId });
   };
 
-  const handleSingleParent = async () => {
-    try {
-      const { familyUnitApi } = await import('../../../api/family-unit.api');
-      const res = await familyUnitApi.createFamilyUnit({ partner1Id: personId });
-      const newUnit = (res.data as { data: { id: number } }).data;
-      onClose();
-      openModal({ type: 'addChild', familyUnitId: newUnit.id });
-    } catch {
-      toast.error("Oila birligini yaratishda xatolik");
-    }
-  };
-
-  // If person has only one family unit, skip selection
-  if (isOpen && !isLoading && familyUnits.length === 1) {
-    handleSelect(familyUnits[0].id);
+  // 1 ta ota-ona unit — avtomatik yo'naltirish
+  if (isOpen && !isLoading && parentUnits.length === 1) {
+    handleSelect(parentUnits[0].id);
     return null;
   }
 
-  // If person has no family units, show single parent option
-  if (isOpen && !isLoading && familyUnits.length === 0) {
+  // Ota-ona topilmadi
+  if (isOpen && !isLoading && parentUnits.length === 0) {
     return (
       <ModalPortal isOpen={isOpen} onClose={onClose}>
         <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
           <div className="p-4 sm:p-6 text-center">
             <Users className="h-12 w-12 mx-auto mb-3 text-base-content/30" />
-            <h3 className="text-lg font-semibold mb-2">Nikoh topilmadi</h3>
+            <h3 className="text-lg font-semibold mb-2">Ota-ona topilmadi</h3>
             <p className="text-sm text-base-content/60 mb-4">
-              Farzand qo&apos;shish uchun turmush o&apos;rtoq qo&apos;shing yoki yagona ota-ona sifatida davom eting.
+              Aka-uka qo&apos;shish uchun avval ota-ona qo&apos;shing.
             </p>
             <div className="flex gap-2 justify-center">
               <button className="btn btn-ghost btn-sm" onClick={onClose}>
                 Bekor qilish
               </button>
               <button
-                className="btn btn-outline btn-sm"
+                className="btn btn-primary btn-sm"
                 onClick={() => {
                   onClose();
-                  openModal({ type: 'addSpouse', personId });
+                  openModal({ type: 'addParents', personId });
                 }}
               >
-                Turmush o&apos;rtoq qo&apos;shish
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={handleSingleParent}>
-                Yagona ota-ona
+                Ota-ona qo&apos;shish
               </button>
             </div>
           </div>
@@ -81,20 +64,20 @@ export function SelectFamilyUnitModal({
     );
   }
 
+  // 2+ ota-ona unit — tanlash
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose}>
       <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl">
         <div className="p-4 sm:p-6">
-          {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-xl font-semibold">Oilani tanlang</h3>
+              <h3 className="text-xl font-semibold">Ota-onani tanlang</h3>
               <p className="text-sm text-base-content/60 mt-1">
-                Qaysi nikohga farzand qo&apos;shmoqchisiz?
+                Qaysi ota-ona orqali aka-uka qo&apos;shmoqchisiz?
               </p>
             </div>
             <button className="btn btn-ghost btn-sm btn-square" onClick={onClose}>
-              <X className="h-4 w-4" />
+              <span className="text-lg">&times;</span>
             </button>
           </div>
 
@@ -104,10 +87,8 @@ export function SelectFamilyUnitModal({
             </div>
           ) : (
             <div className="mt-4 space-y-2">
-              {familyUnits.map((fu) => {
-                const otherPartner = fu.partners.find(
-                  (p) => p.personId !== personId
-                );
+              {parentUnits.map((fu) => {
+                const partnerNames = fu.partners.map(p => p.fullName).join(' & ');
                 return (
                   <button
                     key={fu.id}
@@ -115,17 +96,11 @@ export function SelectFamilyUnitModal({
                     onClick={() => handleSelect(fu.id)}
                   >
                     <div className="flex-1">
-                      <p className="font-medium">
-                        {otherPartner?.fullName || 'Partner'}
-                      </p>
+                      <p className="font-medium">{partnerNames}</p>
                       <p className="text-xs text-base-content/50">
-                        {MARRIAGE_TYPES[fu.marriageType]?.label || fu.marriageType}
-                        {fu.marriageDate && ` - ${fu.marriageDate}`}
+                        {fu.children.length} farzand
                       </p>
                     </div>
-                    <span className="text-xs text-base-content/40">
-                      {fu.children.length} farzand
-                    </span>
                   </button>
                 );
               })}

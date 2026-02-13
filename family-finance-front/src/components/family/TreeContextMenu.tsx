@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   Edit2,
   UserPlus,
+  UserRoundPlus,
   Baby,
   Users,
   Eye,
@@ -109,6 +110,13 @@ export function TreeContextMenu() {
             <Baby className="h-4 w-4 text-base-content/60" />,
             "Farzand qo'shish",
             () => openModal({ type: 'selectFamilyUnit', personId: contextMenu.personId! })
+          )}
+
+          {/* Add sibling */}
+          {menuItem(
+            <UserRoundPlus className="h-4 w-4 text-base-content/60" />,
+            "Aka-uka qo'shish",
+            () => openModal({ type: 'addSibling', personId: contextMenu.personId! })
           )}
 
           {/* Add parents */}

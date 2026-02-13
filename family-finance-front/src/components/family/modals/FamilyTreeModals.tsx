@@ -1,6 +1,7 @@
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
 import { AddSpouseModal } from './AddSpouseModal';
 import { AddChildModal } from './AddChildModal';
+import { AddSiblingModal } from './AddSiblingModal';
 import { AddParentsModal } from './AddParentsModal';
 import { SelectFamilyUnitModal } from './SelectFamilyUnitModal';
 import { EditPersonModal } from './EditPersonModal';
@@ -36,6 +37,15 @@ export function FamilyTreeModals() {
           familyUnitId={activeModal.familyUnitId}
           onClose={closeModal}
           onSuccess={handleSuccess}
+        />
+      );
+
+    case 'addSibling':
+      return (
+        <AddSiblingModal
+          isOpen
+          personId={activeModal.personId}
+          onClose={closeModal}
         />
       );
 

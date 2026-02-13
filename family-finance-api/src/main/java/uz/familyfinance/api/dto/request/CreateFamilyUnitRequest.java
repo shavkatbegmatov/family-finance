@@ -9,7 +9,7 @@ import java.time.LocalDate;
 @Data
 public class CreateFamilyUnitRequest {
     @NotNull private Long partner1Id;
-    @NotNull private Long partner2Id;
+    private Long partner2Id;
     private MarriageType marriageType;
     private LocalDate marriageDate;
 }

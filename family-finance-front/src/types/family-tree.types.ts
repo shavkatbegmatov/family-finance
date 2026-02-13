@@ -74,7 +74,7 @@ export interface RelationshipResult {
 // ============ Requests ============
 export interface CreateFamilyUnitRequest {
   partner1Id: number;
-  partner2Id: number;
+  partner2Id?: number;
   marriageType?: MarriageType;
   marriageDate?: string;
 }
@@ -113,6 +113,7 @@ export type FamilyEdgeType = 'marriage' | 'child';
 export type FamilyTreeModal =
   | { type: 'addSpouse'; personId: number }
   | { type: 'addChild'; familyUnitId: number }
+  | { type: 'addSibling'; personId: number }
   | { type: 'selectFamilyUnit'; personId: number }
   | { type: 'editPerson'; personId: number }
   | { type: 'editFamilyUnit'; familyUnitId: number }

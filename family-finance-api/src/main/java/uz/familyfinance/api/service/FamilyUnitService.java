@@ -33,10 +33,11 @@ public class FamilyUnitService {
 
     @Transactional
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
-        validationService.validateNotSelfPartnership(request.getPartner1Id(), request.getPartner2Id());
+        if (request.getPartner2Id() != null) {
+            validationService.validateNotSelfPartnership(request.getPartner1Id(), request.getPartner2Id());
+        }
 
         FamilyMember partner1 = findMember(request.getPartner1Id());
-        FamilyMember partner2 = findMember(request.getPartner2Id());
 
         FamilyUnit unit = FamilyUnit.builder()
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
@@ -51,14 +52,17 @@ public class FamilyUnitService {
                 .person(partner1)
                 .role(PartnerRole.PARTNER1)
                 .build();
-        FamilyPartner fp2 = FamilyPartner.builder()
-                .familyUnit(saved)
-                .person(partner2)
-                .role(PartnerRole.PARTNER2)
-                .build();
-
         familyPartnerRepository.save(fp1);
-        familyPartnerRepository.save(fp2);
+
+        if (request.getPartner2Id() != null) {
+            FamilyMember partner2 = findMember(request.getPartner2Id());
+            FamilyPartner fp2 = FamilyPartner.builder()
+                    .familyUnit(saved)
+                    .person(partner2)
+                    .role(PartnerRole.PARTNER2)
+                    .build();
+            familyPartnerRepository.save(fp2);
+        }
 
         return getById(saved.getId());
     }
