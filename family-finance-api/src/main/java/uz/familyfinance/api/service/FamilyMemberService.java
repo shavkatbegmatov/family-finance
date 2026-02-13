@@ -4,8 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
@@ -27,8 +29,9 @@ public class FamilyMemberService {
     private final UserRepository userRepository;
     private final UserService userService;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable) {
+        ensureSelfMemberActive();
         if (search != null && !search.isBlank()) {
             return familyMemberRepository.search(search, pageable).map(this::toResponse);
         }
@@ -109,6 +112,15 @@ public class FamilyMemberService {
     @Transactional
     public void delete(Long id) {
         FamilyMember member = findById(id);
+
+        // O'z-o'zini o'chirishdan himoya
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(username).orElse(null);
+        if (currentUser != null && member.getUser() != null
+                && member.getUser().getId().equals(currentUser.getId())) {
+            throw new BadRequestException("O'zingizning profilingizni o'chirib bo'lmaydi");
+        }
+
         member.setIsActive(false);
         familyMemberRepository.save(member);
     }
@@ -116,6 +128,23 @@ public class FamilyMemberService {
     @Transactional(readOnly = true)
     public List<FamilyMember> getAllEntities() {
         return familyMemberRepository.findByIsActiveTrue();
+    }
+
+    private void ensureSelfMemberActive() {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            User currentUser = userRepository.findByUsername(username).orElse(null);
+            if (currentUser == null) return;
+
+            familyMemberRepository.findByUserId(currentUser.getId()).ifPresent(member -> {
+                if (Boolean.FALSE.equals(member.getIsActive())) {
+                    member.setIsActive(true);
+                    familyMemberRepository.save(member);
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Self member tekshirishda xatolik: {}", e.getMessage());
+        }
     }
 
     private FamilyMember findById(Long id) {

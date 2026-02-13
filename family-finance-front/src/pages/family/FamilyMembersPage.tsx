@@ -17,6 +17,7 @@ import {
   TreePine,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuthStore } from '../../store/authStore';
 import { familyMembersApi } from '../../api/family-members.api';
 import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
@@ -39,6 +40,7 @@ import type {
 } from '../../types';
 
 export function FamilyMembersPage() {
+  const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -396,15 +398,17 @@ export function FamilyMembersPage() {
                         Tahrirlash
                       </button>
                     </PermissionGate>
-                    <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
-                      <button
-                        className="btn btn-ghost btn-xs text-error"
-                        onClick={() => setDeletingMemberId(member.id)}
-                        title="O'chirish"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </PermissionGate>
+                    {member.userId !== user?.id && (
+                      <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
+                        <button
+                          className="btn btn-ghost btn-xs text-error"
+                          onClick={() => setDeletingMemberId(member.id)}
+                          title="O'chirish"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </PermissionGate>
+                    )}
                   </div>
                 </div>
               ))}

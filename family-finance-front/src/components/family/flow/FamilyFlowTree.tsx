@@ -29,6 +29,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
         personId: data.person.id,
         personName: data.person.fullName,
         isRoot: data.isRoot,
+        personUserId: data.person.userId,
       });
     } else if (node.id.startsWith('fu_')) {
       const fuId = Number(node.id.replace('fu_', ''));

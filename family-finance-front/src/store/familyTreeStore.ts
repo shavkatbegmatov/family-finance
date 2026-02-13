@@ -8,6 +8,7 @@ interface ContextMenuState {
   familyUnitId?: number;
   personName?: string;
   isRoot?: boolean;
+  personUserId?: number | null;
 }
 
 interface FamilyTreeState {

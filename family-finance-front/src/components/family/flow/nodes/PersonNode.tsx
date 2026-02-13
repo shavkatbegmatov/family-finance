@@ -51,6 +51,7 @@ function PersonNodeComponent({ data }: NodeProps) {
       personId: person.id,
       personName: person.fullName,
       isRoot,
+      personUserId: person.userId,
     });
   };
 

@@ -10,10 +10,12 @@ import {
   Settings2,
 } from 'lucide-react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
+import { useAuthStore } from '../../store/authStore';
 
 export function TreeContextMenu() {
   const { contextMenu, closeContextMenu, openModal, setRootPersonId } =
     useFamilyTreeStore();
+  const user = useAuthStore((s) => s.user);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +54,8 @@ export function TreeContextMenu() {
   }, [contextMenu]);
 
   if (!contextMenu) return null;
+
+  const isSelf = contextMenu.personUserId != null && contextMenu.personUserId === user?.id;
 
   const isPersonMenu = !!contextMenu.personId;
   const isFamilyUnitMenu = !!contextMenu.familyUnitId;
@@ -122,19 +126,23 @@ export function TreeContextMenu() {
               () => setRootPersonId(contextMenu.personId!)
             )}
 
-          <div className="my-1.5 border-t border-base-200" />
+          {!isSelf && (
+            <>
+              <div className="my-1.5 border-t border-base-200" />
 
-          {/* Delete person */}
-          {menuItem(
-            <Trash2 className="h-4 w-4" />,
-            "O'chirish",
-            () =>
-              openModal({
-                type: 'deletePerson',
-                personId: contextMenu.personId!,
-                personName: contextMenu.personName || '',
-              }),
-            true
+              {/* Delete person */}
+              {menuItem(
+                <Trash2 className="h-4 w-4" />,
+                "O'chirish",
+                () =>
+                  openModal({
+                    type: 'deletePerson',
+                    personId: contextMenu.personId!,
+                    personName: contextMenu.personName || '',
+                  }),
+                true
+              )}
+            </>
           )}
         </>
       )}
