@@ -41,11 +41,11 @@ public class FamilyUnit extends BaseEntity implements Auditable {
 
     @OneToMany(mappedBy = "familyUnit", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<FamilyPartner> partners = new ArrayList<>();
+    private Set<FamilyPartner> partners = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "familyUnit", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<FamilyChild> children = new ArrayList<>();
+    private Set<FamilyChild> children = new LinkedHashSet<>();
 
     @Override
     public String getEntityName() {
