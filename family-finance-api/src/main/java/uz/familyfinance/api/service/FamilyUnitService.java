@@ -147,10 +147,13 @@ public class FamilyUnitService {
 
         validationService.validateChildBirthDate(familyUnitId, request.getPersonId());
 
+        LineageType lineageType = request.getLineageType() != null ? request.getLineageType() : LineageType.BIOLOGICAL;
+        validationService.validateBiologicalParentUnique(request.getPersonId(), lineageType);
+
         FamilyChild child = FamilyChild.builder()
                 .familyUnit(unit)
                 .person(person)
-                .lineageType(request.getLineageType() != null ? request.getLineageType() : LineageType.BIOLOGICAL)
+                .lineageType(lineageType)
                 .birthOrder(request.getBirthOrder())
                 .build();
 

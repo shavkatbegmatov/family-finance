@@ -6,6 +6,7 @@ import uz.familyfinance.api.entity.FamilyChild;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.FamilyPartner;
 import uz.familyfinance.api.entity.FamilyUnit;
+import uz.familyfinance.api.enums.LineageType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyChildRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
@@ -112,6 +113,19 @@ public class FamilyTreeValidationService {
         if (count >= 2) {
             throw new IllegalArgumentException("Oila birligida 2 dan ortiq partner bo'la olmaydi");
         }
+    }
+
+    /**
+     * Bitta farzandning faqat bitta biologik ota-onalar juftligi bo'lishi mumkin
+     */
+    public void validateBiologicalParentUnique(Long personId, LineageType lineageType) {
+        if (lineageType != LineageType.BIOLOGICAL) return;
+
+        familyChildRepository.findByPersonIdAndLineageType(personId, LineageType.BIOLOGICAL)
+                .ifPresent(existing -> {
+                    throw new IllegalArgumentException(
+                            "Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan");
+                });
     }
 
     /**

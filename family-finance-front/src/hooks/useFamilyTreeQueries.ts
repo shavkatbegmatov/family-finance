@@ -148,7 +148,10 @@ export function useAddChild() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Farzand qo'shildi");
     },
-    onError: () => toast.error("Farzand qo'shishda xatolik"),
+    onError: (error) => {
+      const axiosErr = error as { response?: { data?: { message?: string } } };
+      toast.error(axiosErr?.response?.data?.message || "Farzand qo'shishda xatolik");
+    },
   });
 }
 
