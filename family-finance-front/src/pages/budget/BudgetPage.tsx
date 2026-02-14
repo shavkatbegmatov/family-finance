@@ -52,7 +52,7 @@ export function BudgetPage() {
       const res = await budgetsApi.getAll();
       const data = res.data as ApiResponse<PagedResponse<Budget>>;
       setBudgets(data.data.content);
-    } catch (error) {
+    } catch {
       toast.error('Byudjetlarni yuklashda xatolik');
     } finally {
       setLoading(false);
@@ -64,7 +64,7 @@ export function BudgetPage() {
       const categoriesRes = await categoriesApi.getByType('EXPENSE');
       const data = categoriesRes.data as ApiResponse<FinanceCategory[]>;
       setCategories(data.data);
-    } catch (error) {
+    } catch {
       toast.error('Kategoriyalarni yuklashda xatolik');
     }
   }, []);
@@ -146,7 +146,7 @@ export function BudgetPage() {
 
       handleCloseModal();
       void loadBudgets();
-    } catch (error) {
+    } catch {
       toast.error('Byudjetni saqlashda xatolik');
     } finally {
       setSubmitting(false);
@@ -165,7 +165,7 @@ export function BudgetPage() {
     try {
       await budgetsApi.delete(deletingId);
       void loadBudgets();
-    } catch (error) {
+    } catch {
       toast.error("Byudjetni o'chirishda xatolik");
     } finally {
       setShowDeleteConfirm(false);

@@ -100,7 +100,7 @@ export function ActivityHistoryTab() {
         newMap.set(activityId, detail.fieldChanges);
         return newMap;
       });
-    } catch (err) {
+    } catch {
       toast.error("Batafsil ma'lumotlarni yuklashda xatolik");
     }
   };

@@ -129,7 +129,7 @@ export function TransactionsPage() {
       setMembers(
         (membersRes.data as ApiResponse<FamilyMember[]>).data ?? (membersRes.data as FamilyMember[])
       );
-    } catch (error) {
+    } catch {
       toast.error("Ma'lumotnoma yuklashda xatolik");
     }
   }, []);
@@ -143,7 +143,7 @@ export function TransactionsPage() {
       setTransactions(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
-    } catch (error) {
+    } catch {
       toast.error('Tranzaksiyalarni yuklashda xatolik');
     } finally {
       setLoading(false);
@@ -245,7 +245,7 @@ export function TransactionsPage() {
 
       handleCloseForm();
       void loadTransactions();
-    } catch (error) {
+    } catch {
       toast.error('Tranzaksiyani saqlashda xatolik');
     } finally {
       setSubmitting(false);
@@ -260,7 +260,7 @@ export function TransactionsPage() {
       await transactionsApi.delete(deletingTransaction.id);
       handleCloseDelete();
       void loadTransactions();
-    } catch (error) {
+    } catch {
       toast.error("Tranzaksiyani o'chirishda xatolik");
     } finally {
       setSubmitting(false);

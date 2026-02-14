@@ -17,7 +17,7 @@ function ChildEdgeComponent(props: EdgeProps) {
 
   let strokeDasharray: string | undefined;
   let strokeColor = '#64748b'; // slate
-  let strokeWidth = 1.5;
+  const strokeWidth = 1.5;
 
   switch (lineageType) {
     case 'BIOLOGICAL':

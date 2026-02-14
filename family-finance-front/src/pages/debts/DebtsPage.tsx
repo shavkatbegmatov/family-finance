@@ -247,7 +247,7 @@ export function DebtsPage() {
       setDebts(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
-    } catch (error) {
+    } catch {
       toast.error('Qarzlarni yuklashda xatolik');
     } finally {
       setInitialLoading(false);
@@ -260,7 +260,7 @@ export function DebtsPage() {
       const summaryRes = await familyDebtsApi.getSummary();
       const data = summaryRes.data.data as DebtSummary;
       setSummary(data);
-    } catch (error) {
+    } catch {
       toast.error('Qarz xulosasini yuklashda xatolik');
     }
   }, []);
@@ -271,7 +271,7 @@ export function DebtsPage() {
       const paymentsRes = await familyDebtsApi.getPayments(debtId);
       const data = paymentsRes.data.data as DebtPayment[];
       setPayments(Array.isArray(data) ? data : []);
-    } catch (error) {
+    } catch {
       toast.error("To'lovlarni yuklashda xatolik");
       setPayments([]);
     } finally {
@@ -335,7 +335,7 @@ export function DebtsPage() {
       handleCloseDebtModal();
       void loadDebts();
       void loadSummary();
-    } catch (error) {
+    } catch {
       toast.error('Qarzni saqlashda xatolik');
     } finally {
       setSubmittingDebt(false);
@@ -355,7 +355,7 @@ export function DebtsPage() {
       }
       void loadDebts();
       void loadSummary();
-    } catch (error) {
+    } catch {
       toast.error("Qarzni o'chirishda xatolik");
     }
   };
@@ -388,7 +388,7 @@ export function DebtsPage() {
       const updatedDebt = updatedRes.data.data as FamilyDebt;
       setSelectedDebt(updatedDebt);
       loadDebtPayments(selectedDebt.id);
-    } catch (error) {
+    } catch {
       toast.error("To'lov qo'shishda xatolik");
     } finally {
       setSubmittingPayment(false);
