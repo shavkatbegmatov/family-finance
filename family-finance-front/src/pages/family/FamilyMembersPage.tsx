@@ -15,6 +15,10 @@ import {
   Link,
   List,
   TreePine,
+  Eye,
+  EyeOff,
+  Shield,
+  ClipboardCopy,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
@@ -62,8 +66,11 @@ export function FamilyMembersPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
+  const [showAccountPassword, setShowAccountPassword] = useState(false);
+
   // Credentials modal
   const [credentialsInfo, setCredentialsInfo] = useState<CredentialsInfo | null>(null);
+  const [showCredPassword, setShowCredPassword] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Delete confirmation
@@ -113,7 +120,10 @@ export function FamilyMembersPage() {
       birthDate: '',
       avatar: '',
       createAccount: false,
+      accountPassword: '',
+      accountRole: 'MEMBER',
     });
+    setShowAccountPassword(false);
     setShowModal(true);
   };
 
@@ -507,23 +517,100 @@ export function FamilyMembersPage() {
                 leadingIcon={<Link className="h-5 w-5" />}
               />
 
-              {/* Create Account Toggle — faqat yangi a'zo uchun */}
+              {/* Create Account Section — faqat yangi a'zo uchun */}
               {!editingMember && (
-                <div className="form-control">
-                  <label className="label cursor-pointer justify-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-primary toggle-sm"
-                      checked={form.createAccount || false}
-                      onChange={(e) => setForm((prev) => ({ ...prev, createAccount: e.target.checked }))}
-                    />
-                    <div>
-                      <span className="label-text font-medium">Tizimga kirish imkoniyati</span>
-                      <p className="text-xs text-base-content/50 mt-0.5">
-                        Avtomatik login va vaqtinchalik parol yaratiladi
-                      </p>
+                <div className="space-y-3">
+                  <div className="form-control">
+                    <label className="label cursor-pointer justify-start gap-3">
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary toggle-sm"
+                        checked={form.createAccount || false}
+                        onChange={(e) => {
+                          setForm((prev) => ({
+                            ...prev,
+                            createAccount: e.target.checked,
+                            accountPassword: '',
+                            accountRole: 'MEMBER',
+                          }));
+                          setShowAccountPassword(false);
+                        }}
+                      />
+                      <div>
+                        <span className="label-text font-medium">Tizimga kirish imkoniyati</span>
+                        <p className="text-xs text-base-content/50 mt-0.5">
+                          Login avtomatik yaratiladi (ism asosida)
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {form.createAccount && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                      {/* Account Role */}
+                      <div className="form-control">
+                        <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+                          Tizim roli
+                        </span>
+                        <div className="flex gap-2">
+                          {[
+                            { value: 'MEMBER', label: "A'zo" },
+                            { value: 'ADMIN', label: 'Administrator' },
+                          ].map((r) => (
+                            <button
+                              key={r.value}
+                              type="button"
+                              className={clsx(
+                                'btn btn-sm flex-1',
+                                form.accountRole === r.value
+                                  ? r.value === 'ADMIN'
+                                    ? 'btn-warning'
+                                    : 'btn-primary'
+                                  : 'btn-ghost border-base-300'
+                              )}
+                              onClick={() => setForm((prev) => ({ ...prev, accountRole: r.value }))}
+                            >
+                              {r.value === 'ADMIN' && <Shield className="h-3.5 w-3.5" />}
+                              {r.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Custom Password */}
+                      <div className="form-control">
+                        <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+                          Parol
+                        </span>
+                        <div className="relative">
+                          <input
+                            type={showAccountPassword ? 'text' : 'password'}
+                            className="input input-bordered input-sm w-full pr-10"
+                            placeholder="Bo'sh qolsa avtomatik yaratiladi"
+                            value={form.accountPassword || ''}
+                            onChange={(e) => setForm((prev) => ({ ...prev, accountPassword: e.target.value }))}
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content transition-colors"
+                            onClick={() => setShowAccountPassword(!showAccountPassword)}
+                            aria-label={showAccountPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+                          >
+                            {showAccountPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                        {form.accountPassword && form.accountPassword.length > 0 && form.accountPassword.length < 6 && (
+                          <span className="text-xs text-error mt-1">Kamida 6 belgi</span>
+                        )}
+                        <p className="text-xs text-base-content/40 mt-1">
+                          {form.accountPassword
+                            ? 'Kiritilgan parol ishlatiladi'
+                            : 'Vaqtinchalik parol avtomatik yaratiladi'}
+                        </p>
+                      </div>
                     </div>
-                  </label>
+                  )}
                 </div>
               )}
             </div>
@@ -539,7 +626,7 @@ export function FamilyMembersPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleSubmit}
-                disabled={submitting || !form.fullName.trim()}
+                disabled={submitting || !form.fullName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
               >
                 {submitting && <span className="loading loading-spinner loading-sm" />}
                 {editingMember ? 'Saqlash' : "Qo'shish"}
@@ -579,7 +666,7 @@ export function FamilyMembersPage() {
       </ModalPortal>
 
       {/* Credentials Modal */}
-      <ModalPortal isOpen={!!credentialsInfo} onClose={() => setCredentialsInfo(null)}>
+      <ModalPortal isOpen={!!credentialsInfo} onClose={() => { setCredentialsInfo(null); setShowCredPassword(false); }}>
         <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl">
           <div className="p-4 sm:p-6">
             <div className="text-center mb-6">
@@ -614,23 +701,59 @@ export function FamilyMembersPage() {
 
               {/* Password */}
               <div className="bg-base-200 rounded-lg p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-base-content/50 font-medium">Vaqtinchalik parol</p>
-                  <p className="font-mono font-semibold text-lg">{credentialsInfo?.temporaryPassword}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-base-content/50 font-medium">
+                    {credentialsInfo?.mustChangePassword ? 'Vaqtinchalik parol' : 'Parol'}
+                  </p>
+                  <p className="font-mono font-semibold text-lg">
+                    {showCredPassword
+                      ? credentialsInfo?.temporaryPassword
+                      : '\u2022'.repeat(credentialsInfo?.temporaryPassword?.length || 8)}
+                  </p>
                 </div>
-                <button
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => handleCopyToClipboard(credentialsInfo?.temporaryPassword || '', 'password')}
-                  title="Nusxa olish"
-                >
-                  {copiedField === 'password' ? (
-                    <Check className="h-4 w-4 text-success" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowCredPassword(!showCredPassword)}
+                    title={showCredPassword ? 'Yashirish' : "Ko'rsatish"}
+                  >
+                    {showCredPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => handleCopyToClipboard(credentialsInfo?.temporaryPassword || '', 'password')}
+                    title="Nusxa olish"
+                  >
+                    {copiedField === 'password' ? (
+                      <Check className="h-4 w-4 text-success" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Copy All */}
+            <button
+              className="btn btn-outline btn-sm w-full mt-3"
+              onClick={() => handleCopyToClipboard(
+                `Login: ${credentialsInfo?.username}\nParol: ${credentialsInfo?.temporaryPassword}`,
+                'all'
+              )}
+            >
+              {copiedField === 'all' ? (
+                <>
+                  <Check className="h-4 w-4 text-success" />
+                  Nusxalandi!
+                </>
+              ) : (
+                <>
+                  <ClipboardCopy className="h-4 w-4" />
+                  Hammasini nusxalash
+                </>
+              )}
+            </button>
 
             <div className="alert alert-warning mt-4">
               <span className="text-sm">Bu ma'lumotlar faqat bir marta ko'rsatiladi. Oila a'zosiga yetkazing!</span>
@@ -639,7 +762,7 @@ export function FamilyMembersPage() {
             <div className="mt-6 flex justify-end">
               <button
                 className="btn btn-primary"
-                onClick={() => setCredentialsInfo(null)}
+                onClick={() => { setCredentialsInfo(null); setShowCredPassword(false); }}
               >
                 Tushunarli
               </button>

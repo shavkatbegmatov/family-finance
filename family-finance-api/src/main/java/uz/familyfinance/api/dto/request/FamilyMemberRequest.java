@@ -21,4 +21,6 @@ public class FamilyMemberRequest {
     private String avatar;
     private Long userId;
     private Boolean createAccount;
+    @Size(min = 6, max = 100, message = "Parol kamida 6, ko'pi bilan 100 belgi") private String accountPassword;
+    @Size(max = 20) private String accountRole;
 }

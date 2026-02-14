@@ -182,6 +182,8 @@ export interface FamilyMemberRequest {
   avatar?: string;
   userId?: number;
   createAccount?: boolean;
+  accountPassword?: string;
+  accountRole?: string;
 }
 
 // Account Types

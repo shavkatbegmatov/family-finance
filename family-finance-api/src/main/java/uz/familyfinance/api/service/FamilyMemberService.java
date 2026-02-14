@@ -77,7 +77,10 @@ public class FamilyMemberService {
 
         // Avtomatik user account yaratish
         if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
-            CredentialsInfo credentials = userService.createUserForFamilyMember(saved, "MEMBER");
+            String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
+                    ? request.getAccountRole() : "MEMBER";
+            CredentialsInfo credentials = userService.createUserForFamilyMember(
+                    saved, roleCode, request.getAccountPassword());
             // Yaratilgan user'ni member'ga biriktirish
             User createdUser = userRepository.findByUsername(credentials.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
