@@ -1,1 +1,3 @@
-<!-- CI test -->
+# Family Finance
+
+Oilaviy moliyani boshqarish ilovasi.
