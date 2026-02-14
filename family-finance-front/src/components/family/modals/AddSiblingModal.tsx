@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Users } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useFamilyUnitsByPersonQuery } from '../../../hooks/useFamilyTreeQueries';
@@ -16,6 +17,7 @@ export function AddSiblingModal({
 }: AddSiblingModalProps) {
   const { data: familyUnits = [], isLoading } = useFamilyUnitsByPersonQuery(personId);
   const { openModal } = useFamilyTreeStore();
+  const autoRedirected = useRef(false);
 
   // Ota-ona unitlarini topish (personId children[] da bo'lgan unitlar)
   const parentUnits = familyUnits.filter(fu =>
@@ -27,9 +29,23 @@ export function AddSiblingModal({
     openModal({ type: 'addChild', familyUnitId });
   };
 
-  // 1 ta ota-ona unit — avtomatik yo'naltirish
+  // 1 ta ota-ona unit — avtomatik yo'naltirish (useEffect orqali)
+  useEffect(() => {
+    if (isOpen && !isLoading && parentUnits.length === 1 && !autoRedirected.current) {
+      autoRedirected.current = true;
+      handleSelect(parentUnits[0].id);
+    }
+  }, [isOpen, isLoading, parentUnits]);
+
+  // Modal yopilganda ref ni tozalash
+  useEffect(() => {
+    if (!isOpen) {
+      autoRedirected.current = false;
+    }
+  }, [isOpen]);
+
+  // 1 ta ota-ona unit bo'lsa, avtomatik yo'naltiriladi — hech narsa ko'rsatmaslik
   if (isOpen && !isLoading && parentUnits.length === 1) {
-    handleSelect(parentUnits[0].id);
     return null;
   }
 
