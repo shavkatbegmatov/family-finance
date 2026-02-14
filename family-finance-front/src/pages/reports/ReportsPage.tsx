@@ -72,7 +72,7 @@ export function ReportsPage() {
       const res = await familyReportsApi.getIncomeExpense(from, to);
       const report = (res.data as ApiResponse<IncomeExpenseReport>).data;
       setIncomeExpense(report);
-    } catch (err) {
+    } catch {
       setError('Daromad/Xarajat hisobotini yuklashda xatolik');
     } finally {
       setIeLoading(false);
@@ -86,7 +86,7 @@ export function ReportsPage() {
       const res = await familyReportsApi.getCategoryReport(type, from, to);
       const data = (res.data as ApiResponse<CategoryReport[]>).data;
       setCategories(data);
-    } catch (err) {
+    } catch {
       setError('Kategoriya hisobotini yuklashda xatolik');
     } finally {
       setCatLoading(false);
@@ -100,7 +100,7 @@ export function ReportsPage() {
       const res = await familyReportsApi.getMemberReport(from, to);
       const data = (res.data as ApiResponse<MemberReport[]>).data;
       setMembers(data);
-    } catch (err) {
+    } catch {
       setError("Oila a'zolari hisobotini yuklashda xatolik");
     } finally {
       setMemLoading(false);

@@ -86,7 +86,7 @@ export function SavingsPage() {
       const res = await savingsApi.getAll();
       const data = res.data as ApiResponse<PagedResponse<SavingsGoal>>;
       setGoals(data.data.content);
-    } catch (error) {
+    } catch {
       toast.error("Jamg'arma maqsadlarini yuklashda xatolik");
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export function SavingsPage() {
       const contribRes = await savingsApi.getContributions(goalId);
       const data = contribRes.data as ApiResponse<GoalContribution[]>;
       setContributions(data.data);
-    } catch (error) {
+    } catch {
       toast.error("Hissalarni yuklashda xatolik");
     } finally {
       setLoadingContribs(false);
@@ -158,7 +158,7 @@ export function SavingsPage() {
 
       handleCloseGoalModal();
       void loadGoals();
-    } catch (error) {
+    } catch {
       toast.error('Maqsadni saqlashda xatolik');
     } finally {
       setSubmitting(false);
@@ -201,7 +201,7 @@ export function SavingsPage() {
       if (selectedGoal && selectedGoal.id === contributionGoalId) {
         void loadContributions(contributionGoalId);
       }
-    } catch (error) {
+    } catch {
       toast.error("Hissa qo'shishda xatolik");
     } finally {
       setSubmitting(false);
@@ -236,7 +236,7 @@ export function SavingsPage() {
         setContributions([]);
       }
       void loadGoals();
-    } catch (error) {
+    } catch {
       toast.error("Maqsadni o'chirishda xatolik");
     } finally {
       setShowDeleteConfirm(false);

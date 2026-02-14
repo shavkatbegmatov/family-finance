@@ -197,7 +197,7 @@ export function DashboardPage() {
       setStats(statsData);
       setCharts(chartsData);
       setRecentTransactions(recentData);
-    } catch (error) {
+    } catch {
       toast.error("Ma'lumotlarni yuklashda xatolik");
     } finally {
       setInitialLoading(false);

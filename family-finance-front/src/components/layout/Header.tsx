@@ -110,7 +110,7 @@ export function Header() {
       try {
         const rolesData = await rolesApi.getAll();
         setRoles(rolesData);
-      } catch (error) {
+      } catch {
         // Rollarni yuklash muvaffaqiyatsiz — kritik emas
       }
 
@@ -166,7 +166,7 @@ export function Header() {
 
       // Revoke session in backend database
       await authApi.logout();
-    } catch (error) {
+    } catch {
       // Logout API xatoligi — baribir logout davom etadi
       // Continue with logout even if API call fails (network issues, etc.)
     } finally {

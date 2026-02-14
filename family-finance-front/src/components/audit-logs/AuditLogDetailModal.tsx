@@ -29,7 +29,7 @@ export function AuditLogDetailModal({ logId, onClose }: AuditLogDetailModalProps
       setLoading(true);
       const data = await auditLogsApi.getDetail(logId);
       setDetail(data);
-    } catch (error) {
+    } catch {
       toast.error('Batafsil ma\'lumotlarni yuklashda xatolik');
     } finally {
       setLoading(false);

@@ -85,7 +85,7 @@ export function FamilyMembersPage() {
       const data = res.data.data as PagedResponse<FamilyMember>;
       setMembers(data.content);
       setTotalElements(data.totalElements);
-    } catch (error) {
+    } catch {
       toast.error("Oila a'zolarini yuklashda xatolik");
     } finally {
       setLoading(false);
@@ -161,7 +161,7 @@ export function FamilyMembersPage() {
       }
       handleCloseModal();
       void loadMembers();
-    } catch (error) {
+    } catch {
       toast.error("Oila a'zosini saqlashda xatolik");
     } finally {
       setSubmitting(false);
@@ -186,7 +186,7 @@ export function FamilyMembersPage() {
       await familyMembersApi.delete(deletingMemberId);
       setDeletingMemberId(null);
       void loadMembers();
-    } catch (error) {
+    } catch {
       toast.error("Oila a'zosini o'chirishda xatolik");
     }
   };
@@ -210,7 +210,7 @@ export function FamilyMembersPage() {
       link.download = `oila-azolari.${format === 'excel' ? 'xlsx' : 'pdf'}`;
       link.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch {
       toast.error('Eksport qilishda xatolik');
     }
   };
