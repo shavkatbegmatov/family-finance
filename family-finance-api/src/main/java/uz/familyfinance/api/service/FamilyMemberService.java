@@ -8,11 +8,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.exception.BadRequestException;
+import uz.familyfinance.api.exception.ConflictException;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
+import uz.familyfinance.api.dto.request.RegisterSelfRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.UserRepository;
@@ -82,6 +86,29 @@ public class FamilyMemberService {
             return toResponse(saved, credentials);
         }
 
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public FamilyMemberResponse registerSelf(RegisterSelfRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        familyMemberRepository.findByUserId(currentUser.getId()).ifPresent(existing -> {
+            throw new ConflictException("Siz allaqachon oila a'zosiga bog'langansiz");
+        });
+
+        FamilyRole role = request.getGender() == Gender.MALE ? FamilyRole.FATHER : FamilyRole.MOTHER;
+
+        FamilyMember member = FamilyMember.builder()
+                .fullName(request.getFullName())
+                .gender(request.getGender())
+                .role(role)
+                .user(currentUser)
+                .build();
+
+        FamilyMember saved = familyMemberRepository.save(member);
         return toResponse(saved);
     }
 

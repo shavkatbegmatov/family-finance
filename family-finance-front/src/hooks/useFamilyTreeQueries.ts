@@ -41,6 +41,7 @@ export function useTreeQuery(personId?: number, depth = 5) {
       const res = await familyUnitApi.getTree(personId, depth);
       return (res.data as ApiResponse<TreeResponse>).data;
     },
+    retry: false,
   });
 }
 
@@ -184,6 +185,19 @@ export function useUpdatePerson() {
       toast.success("Shaxs ma'lumotlari yangilandi");
     },
     onError: () => toast.error("Shaxs ma'lumotlarini yangilashda xatolik"),
+  });
+}
+
+export function useRegisterSelf() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { fullName: string; gender: string }) =>
+      familyUnitApi.registerSelf(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
+      toast.success("Profilingiz oila a'zosiga bog'landi");
+    },
+    onError: () => toast.error("Ro'yxatdan o'tishda xatolik"),
   });
 }
 

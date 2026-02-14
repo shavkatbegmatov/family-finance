@@ -1,12 +1,14 @@
-import { useEffect } from 'react';
-import { Users, Plus, AlertTriangle, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, Plus, AlertTriangle, RefreshCw, UserPlus } from 'lucide-react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FamilyFlowTree } from './flow/FamilyFlowTree';
 import { FamilyTreeToolbar } from './FamilyTreeToolbar';
 import { TreeContextMenu } from './TreeContextMenu';
 import { FamilyTreeModals } from './modals/FamilyTreeModals';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
-import { useTreeQuery, useLabeledTreeQuery } from '../../hooks/useFamilyTreeQueries';
+import { useTreeQuery, useLabeledTreeQuery, useRegisterSelf } from '../../hooks/useFamilyTreeQueries';
+import { useAuthStore } from '../../store/authStore';
+import { GENDERS, FAMILY_ROLES } from '../../config/constants';
 import type { TreeResponse } from '../../types';
 
 export function FamilyTreeView() {
@@ -50,22 +52,11 @@ export function FamilyTreeView() {
     );
   }
 
-  // Error: not linked
+  // Error: not linked — show register-self form
   if (isError) {
     const axiosErr = error as { response?: { status?: number } };
     if (axiosErr?.response?.status === 404) {
-      return (
-        <div className="surface-card p-12 text-center">
-          <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-warning" />
-          <h3 className="text-lg font-semibold mb-2">
-            Profilingiz oila a&apos;zosiga bog&apos;lanmagan
-          </h3>
-          <p className="text-sm text-base-content/60 mb-4">
-            Oila daraxtini ko&apos;rish uchun avval oila a&apos;zosi yaratib,
-            foydalanuvchi akkauntingizga bog&apos;lang.
-          </p>
-        </div>
-      );
+      return <RegisterSelfForm />;
     }
 
     return (
@@ -135,5 +126,95 @@ export function FamilyTreeView() {
         <FamilyTreeModals />
       </div>
     </ReactFlowProvider>
+  );
+}
+
+function RegisterSelfForm() {
+  const user = useAuthStore((s) => s.user);
+  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [gender, setGender] = useState('');
+  const registerSelf = useRegisterSelf();
+
+  const inferredRole =
+    gender === 'MALE'
+      ? FAMILY_ROLES.FATHER.label
+      : gender === 'FEMALE'
+        ? FAMILY_ROLES.MOTHER.label
+        : null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim() || !gender) return;
+    registerSelf.mutate({ fullName: fullName.trim(), gender });
+  };
+
+  return (
+    <div className="surface-card p-12 text-center max-w-md mx-auto">
+      <UserPlus className="h-16 w-16 mx-auto mb-4 text-primary" />
+      <h3 className="text-lg font-semibold mb-2">
+        Profilingizni oila a&apos;zosiga bog&apos;lang
+      </h3>
+      <p className="text-sm text-base-content/60 mb-6">
+        Oila daraxtini ko&apos;rish uchun o&apos;zingizni oila a&apos;zosi sifatida ro&apos;yxatdan o&apos;tkazing.
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Ism familiya</span>
+          </label>
+          <input
+            type="text"
+            className="input input-bordered w-full"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            maxLength={100}
+            required
+          />
+        </div>
+
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Jinsi</span>
+          </label>
+          <select
+            className="select select-bordered w-full"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            required
+          >
+            <option value="" disabled>
+              Tanlang
+            </option>
+            {Object.values(GENDERS).map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {inferredRole && (
+          <p className="text-sm text-base-content/60">
+            Rol: <span className="font-medium text-base-content">{inferredRole}</span>
+          </p>
+        )}
+
+        <button
+          type="submit"
+          className="btn btn-primary w-full"
+          disabled={registerSelf.isPending || !fullName.trim() || !gender}
+        >
+          {registerSelf.isPending ? (
+            <span className="loading loading-spinner loading-sm" />
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" />
+              Ro&apos;yxatdan o&apos;tish
+            </>
+          )}
+        </button>
+      </form>
+    </div>
   );
 }
