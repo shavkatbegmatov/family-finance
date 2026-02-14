@@ -1,225 +1,50 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import toast from 'react-hot-toast';
-import { Users, Plus, AlertTriangle, RefreshCw, ArrowLeft, Maximize2 } from 'lucide-react';
-import { familyTreeApi } from '../../api/family-tree.api';
-import { FamilyTreeCard } from './FamilyTreeCard';
-import { TreeSVGConnectors } from './TreeSVGConnectors';
+import { useEffect, useState } from 'react';
+import { Users, Plus, AlertTriangle, RefreshCw, UserPlus } from 'lucide-react';
+import { ReactFlowProvider } from '@xyflow/react';
+import { FamilyFlowTree } from './flow/FamilyFlowTree';
+import { FamilyTreeToolbar } from './FamilyTreeToolbar';
 import { TreeContextMenu } from './TreeContextMenu';
-import { DeleteRelationConfirmModal } from './DeleteRelationConfirmModal';
-import { ChangeRelationTypeModal } from './ChangeRelationTypeModal';
-import { ZoomControls } from './ZoomControls';
-import { TreeExportButton } from './TreeExportButton';
-import { useZoomPan } from '../../hooks/useZoomPan';
-import { useTreeLayout, CARD_WIDTH } from '../../hooks/useTreeLayout';
-import { RELATIONSHIP_CATEGORIES } from '../../config/constants';
-import type { FamilyTreeResponse, FamilyTreeMember, FamilyRelationshipDto } from '../../types';
+import { FamilyTreeModals } from './modals/FamilyTreeModals';
+import { useFamilyTreeStore } from '../../store/familyTreeStore';
+import { useTreeQuery, useLabeledTreeQuery, useRegisterSelf } from '../../hooks/useFamilyTreeQueries';
+import { useAuthStore } from '../../store/authStore';
+import { GENDERS, FAMILY_ROLES } from '../../config/constants';
+import type { TreeResponse } from '../../types';
 
-interface FamilyTreeViewProps {
-  onAddRelation?: (fromMemberId: number, suggestedCategory?: string) => void;
-  onEditMember?: (memberId: number) => void;
-  refreshKey?: number;
-}
+export function FamilyTreeView() {
+  const {
+    rootPersonId,
+    viewerPersonId,
+    depth,
+    openModal,
+  } = useFamilyTreeStore();
 
-interface ContextMenuState {
-  x: number;
-  y: number;
-  memberId: number;
-  memberName: string;
-  isRoot: boolean;
-  relationshipType?: string;
-  fromMemberId?: number;
-}
+  // Use labeled tree if viewer is selected, otherwise use normal tree
+  const treeQuery = useTreeQuery(rootPersonId ?? undefined, depth);
+  const labeledQuery = useLabeledTreeQuery(
+    rootPersonId ?? treeQuery.data?.rootPersonId ?? 0,
+    viewerPersonId ?? 0,
+    depth
+  );
 
-export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: FamilyTreeViewProps) {
-  const [treeData, setTreeData] = useState<FamilyTreeResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Pick the right data
+  const isLabeled = !!viewerPersonId;
+  const treeData: TreeResponse | undefined = isLabeled
+    ? labeledQuery.data
+    : treeQuery.data;
+  const isLoading = isLabeled ? labeledQuery.isLoading : treeQuery.isLoading;
+  const isError = isLabeled ? labeledQuery.isError : treeQuery.isError;
+  const error = isLabeled ? labeledQuery.error : treeQuery.error;
+  const refetch = isLabeled ? labeledQuery.refetch : treeQuery.refetch;
 
-  // Perspektiva
-  const [viewingMemberId, setViewingMemberId] = useState<number | null>(null);
-
-  // Kontekst menyu
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-
-  // Munosabat o'chirish
-  const [deleteRelation, setDeleteRelation] = useState<{ fromId: number; toId: number; memberName: string } | null>(null);
-
-  // Tur o'zgartirish
-  const [changeRelationType, setChangeRelationType] = useState<{
-    fromMemberId: number;
-    toMemberId: number;
-    memberName: string;
-    currentType: string;
-  } | null>(null);
-
-  // Zoom/Pan
-  const containerRef = useRef<HTMLDivElement>(null);
-  const treeContentRef = useRef<HTMLDivElement>(null);
-  const { scale, position, setPosition, handlers, zoomIn, zoomOut, resetZoom, setScale } = useZoomPan(containerRef);
-
-  // Tree layout
-  const layout = useTreeLayout(treeData);
-
-  const loadTree = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await familyTreeApi.getTree(viewingMemberId ?? undefined);
-      setTreeData(res.data.data as FamilyTreeResponse);
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: { message?: string } } };
-      if (axiosErr.response?.status === 404) {
-        setError('NOT_LINKED');
-      } else {
-        setError(axiosErr.response?.data?.message || "Daraxtni yuklashda xatolik yuz berdi");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [viewingMemberId]);
-
+  // Set rootPersonId from initial tree data
   useEffect(() => {
-    void loadTree();
-  }, [loadTree, refreshKey]);
-
-  // Auto-center: root a'zoni viewport markaziga qo'yish
-  useEffect(() => {
-    if (layout.rootNode && containerRef.current) {
-      const containerWidth = containerRef.current.clientWidth;
-      setPosition({
-        x: containerWidth / 2 - layout.rootNode.x - CARD_WIDTH / 2,
-        y: 60,
-      });
+    if (treeQuery.data?.rootPersonId && !rootPersonId) {
+      useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
     }
-  }, [layout.rootNode, setPosition]);
+  }, [treeQuery.data?.rootPersonId, rootPersonId]);
 
-  // ==================== CONTEXT MENU HANDLERS ====================
-
-  const handleContextMenu = (
-    e: React.MouseEvent,
-    member: FamilyTreeMember,
-    isRoot: boolean,
-    relationship?: FamilyRelationshipDto
-  ) => {
-    e.preventDefault();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      memberId: member.id,
-      memberName: member.fullName,
-      isRoot,
-      relationshipType: relationship?.relationshipType,
-      fromMemberId: relationship?.fromMemberId,
-    });
-  };
-
-  // Mobile long-press context menu
-  const handleLongPress = (
-    x: number,
-    y: number,
-    member: FamilyTreeMember,
-    isRoot: boolean,
-    relationship?: FamilyRelationshipDto
-  ) => {
-    setContextMenu({
-      x,
-      y,
-      memberId: member.id,
-      memberName: member.fullName,
-      isRoot,
-      relationshipType: relationship?.relationshipType,
-      fromMemberId: relationship?.fromMemberId,
-    });
-  };
-
-  const handleCloseContextMenu = () => setContextMenu(null);
-
-  const handleContextEdit = () => {
-    if (contextMenu && onEditMember) {
-      onEditMember(contextMenu.memberId);
-    }
-    handleCloseContextMenu();
-  };
-
-  const handleContextAddRelation = () => {
-    if (contextMenu && onAddRelation) {
-      onAddRelation(contextMenu.memberId);
-    }
-    handleCloseContextMenu();
-  };
-
-  const handleContextViewTree = () => {
-    if (contextMenu) {
-      setViewingMemberId(contextMenu.memberId);
-    }
-    handleCloseContextMenu();
-  };
-
-  const handleContextChangeType = () => {
-    if (contextMenu && contextMenu.fromMemberId && contextMenu.relationshipType) {
-      setChangeRelationType({
-        fromMemberId: contextMenu.fromMemberId,
-        toMemberId: contextMenu.memberId,
-        memberName: contextMenu.memberName,
-        currentType: contextMenu.relationshipType,
-      });
-    }
-    handleCloseContextMenu();
-  };
-
-  const handleContextDeleteRelation = () => {
-    if (contextMenu && contextMenu.fromMemberId) {
-      setDeleteRelation({
-        fromId: contextMenu.fromMemberId,
-        toId: contextMenu.memberId,
-        memberName: contextMenu.memberName,
-      });
-    }
-    handleCloseContextMenu();
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteRelation) return;
-    try {
-      await familyTreeApi.removeRelationship(deleteRelation.fromId, deleteRelation.toId);
-      setDeleteRelation(null);
-      void loadTree();
-    } catch (err) {
-      toast.error("Munosabatni o'chirishda xatolik");
-    }
-  };
-
-  const handleRelationTypeChanged = () => {
-    setChangeRelationType(null);
-    void loadTree();
-  };
-
-  const handleBackToMe = () => {
-    setViewingMemberId(null);
-  };
-
-  // "Ekranga sig'dirish" funksiyasi
-  const handleFitToScreen = () => {
-    if (!containerRef.current || layout.width === 0 || layout.height === 0) return;
-    const containerWidth = containerRef.current.clientWidth;
-    const containerHeight = containerRef.current.clientHeight;
-
-    const scaleX = containerWidth / layout.width;
-    const scaleY = containerHeight / layout.height;
-    const fitScale = Math.min(scaleX, scaleY, 1) * 0.9; // 90% for padding
-
-    setScale(fitScale);
-    setPosition({
-      x: (containerWidth - layout.width * fitScale) / 2,
-      y: (containerHeight - layout.height * fitScale) / 2,
-    });
-  };
-
-  const handleCardClick = onEditMember
-    ? (member: FamilyTreeMember) => onEditMember(member.id)
-    : undefined;
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-16">
         <span className="loading loading-spinner loading-lg text-primary" />
@@ -227,26 +52,24 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
     );
   }
 
-  // User oila a'zosiga bog'lanmagan holat
-  if (error === 'NOT_LINKED') {
-    return (
-      <div className="surface-card p-12 text-center">
-        <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-warning" />
-        <h3 className="text-lg font-semibold mb-2">Profilingiz oila a&apos;zosiga bog&apos;lanmagan</h3>
-        <p className="text-sm text-base-content/60 mb-4">
-          Oila daraxtini ko&apos;rish uchun avval oila a&apos;zosi yaratib, foydalanuvchi akkauntingizga bog&apos;lang.
-        </p>
-      </div>
-    );
-  }
+  // Error: not linked — show register-self form
+  if (isError) {
+    const axiosErr = error as { response?: { status?: number } };
+    if (axiosErr?.response?.status === 404) {
+      return <RegisterSelfForm />;
+    }
 
-  if (error) {
     return (
       <div className="surface-card p-12 text-center">
         <AlertTriangle className="h-16 w-16 mx-auto mb-4 text-error" />
         <h3 className="text-lg font-semibold mb-2">Xatolik</h3>
-        <p className="text-sm text-base-content/60 mb-4">{error}</p>
-        <button className="btn btn-primary btn-sm" onClick={() => void loadTree()}>
+        <p className="text-sm text-base-content/60 mb-4">
+          Daraxtni yuklashda xatolik yuz berdi
+        </p>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => void refetch()}
+        >
           <RefreshCw className="h-4 w-4" />
           Qayta yuklash
         </button>
@@ -254,193 +77,144 @@ export function FamilyTreeView({ onAddRelation, onEditMember, refreshKey }: Fami
     );
   }
 
-  if (!treeData || treeData.relationships.length === 0) {
+  // Empty tree
+  if (!treeData || treeData.persons.length === 0) {
     return (
       <div className="surface-card p-12 text-center">
         <Users className="h-16 w-16 mx-auto mb-4 text-base-content/20" />
-        <h3 className="text-lg font-semibold mb-2">Oila daraxti bo&apos;sh</h3>
+        <h3 className="text-lg font-semibold mb-2">
+          Oila daraxti bo&apos;sh
+        </h3>
         <p className="text-sm text-base-content/60 mb-4">
-          Qarindoshlaringizni qo&apos;shib oila daraxtini yarating
+          Turmush o&apos;rtoq qo&apos;shib oila daraxtini yarating
         </p>
-        {onAddRelation && treeData && (
+        {treeData && (
           <button
             className="btn btn-primary btn-sm"
-            onClick={() => onAddRelation(treeData.rootMemberId)}
+            onClick={() =>
+              openModal({ type: 'addSpouse', personId: treeData.rootPersonId })
+            }
           >
             <Plus className="h-4 w-4" />
-            Qarindosh qo&apos;shish
+            Turmush o&apos;rtoq qo&apos;shish
           </button>
         )}
       </div>
     );
   }
 
-  // Memberlar map
-  const membersMap = new Map<number, FamilyTreeMember>();
-  treeData.members.forEach(m => membersMap.set(m.id, m));
+  return (
+    <ReactFlowProvider>
+      <div className="relative">
+        {/* Toolbar */}
+        <div className="mb-3">
+          <FamilyTreeToolbar />
+        </div>
 
-  // Root member
-  const rootMember = membersMap.get(treeData.rootMemberId);
-  if (!rootMember) return null;
+        {/* React Flow container */}
+        <div
+          className="rounded-xl border border-base-200 bg-base-200/30"
+          style={{ minHeight: '500px', height: '70vh', maxHeight: '800px' }}
+        >
+          <FamilyFlowTree treeData={treeData} />
+        </div>
+
+        {/* Context menu */}
+        <TreeContextMenu />
+
+        {/* Modals */}
+        <FamilyTreeModals />
+      </div>
+    </ReactFlowProvider>
+  );
+}
+
+function RegisterSelfForm() {
+  const user = useAuthStore((s) => s.user);
+  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [gender, setGender] = useState('');
+  const registerSelf = useRegisterSelf();
+
+  const inferredRole =
+    gender === 'MALE'
+      ? FAMILY_ROLES.FATHER.label
+      : gender === 'FEMALE'
+        ? FAMILY_ROLES.MOTHER.label
+        : null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName.trim() || !gender) return;
+    registerSelf.mutate({ fullName: fullName.trim(), gender });
+  };
 
   return (
-    <div className="relative">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <div className="flex items-center gap-2">
-          {viewingMemberId && (
-            <button
-              className="btn btn-ghost btn-sm gap-1"
-              onClick={handleBackToMe}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              O&apos;zimga qaytish
-            </button>
-          )}
-          {viewingMemberId && (
-            <span className="text-sm text-base-content/50">
-              {rootMember.fullName} ning daraxti
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Ekranga sig'dirish */}
-          {layout.nodes.length > 10 && (
-            <button
-              className="btn btn-ghost btn-sm gap-1"
-              onClick={handleFitToScreen}
-              title="Ekranga sig'dirish"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <TreeExportButton treeContentRef={treeContentRef} scale={scale} setScale={setScale} />
-          <ZoomControls scale={scale} onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetZoom} />
-        </div>
-      </div>
+    <div className="surface-card p-12 text-center max-w-md mx-auto">
+      <UserPlus className="h-16 w-16 mx-auto mb-4 text-primary" />
+      <h3 className="text-lg font-semibold mb-2">
+        Profilingizni oila a&apos;zosiga bog&apos;lang
+      </h3>
+      <p className="text-sm text-base-content/60 mb-6">
+        Oila daraxtini ko&apos;rish uchun o&apos;zingizni oila a&apos;zosi sifatida ro&apos;yxatdan o&apos;tkazing.
+      </p>
 
-      {/* Zoom/Pan container */}
-      <div
-        ref={containerRef}
-        className="overflow-hidden rounded-xl border border-base-200 bg-base-200/30 cursor-grab active:cursor-grabbing"
-        style={{ minHeight: '500px', height: '70vh', maxHeight: '800px' }}
-        {...handlers}
-      >
-        <div
-          ref={treeContentRef}
-          className="relative"
-          style={{
-            width: layout.width,
-            height: layout.height + (layout.overflowRelationships.length > 0 ? 300 : 0),
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          {/* SVG Connectors */}
-          <TreeSVGConnectors
-            nodes={layout.nodes}
-            edges={layout.edges}
-            width={layout.width}
-            height={layout.height}
+      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Ism familiya</span>
+          </label>
+          <input
+            type="text"
+            className="input input-bordered w-full"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            maxLength={100}
+            required
           />
-
-          {/* Tree nodes */}
-          {layout.nodes.map(node => (
-            <div
-              key={node.memberId}
-              className="absolute"
-              style={{
-                left: node.x,
-                top: node.y,
-                width: node.size === 'compact' ? 144 : 176,
-              }}
-            >
-              <FamilyTreeCard
-                member={node.member}
-                relationLabel={node.relationship?.label}
-                isRoot={node.isRoot}
-                size={node.size}
-                onAddRelation={onAddRelation}
-                onClick={handleCardClick}
-                onContextMenu={(e) => handleContextMenu(e, node.member, node.isRoot, node.relationship)}
-                onLongPress={(x, y) => handleLongPress(x, y, node.member, node.isRoot, node.relationship)}
-                relationship={node.relationship}
-              />
-            </div>
-          ))}
-
-          {/* Overflow section: in-laws, extended, other */}
-          {layout.overflowRelationships.length > 0 && (
-            <div
-              className="absolute left-0 right-0"
-              style={{ top: layout.height + 20 }}
-            >
-              <div className="border-t-2 border-solid border-base-content/10 pt-6 px-8">
-                {layout.overflowRelationships.map(({ category, relationships }) => (
-                  <div key={category} className="mb-6">
-                    <h3 className="text-center text-sm font-medium text-base-content/50 mb-4">
-                      {RELATIONSHIP_CATEGORIES[category] || category}
-                    </h3>
-                    <div className="flex flex-wrap justify-center gap-4">
-                      {relationships.map(rel => {
-                        const member = membersMap.get(rel.toMemberId);
-                        if (!member) return null;
-                        return (
-                          <FamilyTreeCard
-                            key={rel.id}
-                            member={member}
-                            relationLabel={rel.label}
-                            size="compact"
-                            onAddRelation={onAddRelation}
-                            onClick={handleCardClick}
-                            onContextMenu={(e) => handleContextMenu(e, member, false, rel)}
-                            onLongPress={(x, y) => handleLongPress(x, y, member, false, rel)}
-                            relationship={rel}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Kontekst menyu */}
-      {contextMenu && (
-        <TreeContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          isRoot={contextMenu.isRoot}
-          onEdit={handleContextEdit}
-          onAddRelation={handleContextAddRelation}
-          onViewTree={handleContextViewTree}
-          onChangeType={handleContextChangeType}
-          onDeleteRelation={handleContextDeleteRelation}
-          onClose={handleCloseContextMenu}
-        />
-      )}
+        <div className="form-control">
+          <label className="label">
+            <span className="label-text">Jinsi</span>
+          </label>
+          <select
+            className="select select-bordered w-full"
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            required
+          >
+            <option value="" disabled>
+              Tanlang
+            </option>
+            {Object.values(GENDERS).map((g) => (
+              <option key={g.value} value={g.value}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {/* Munosabat o'chirish modal */}
-      <DeleteRelationConfirmModal
-        isOpen={!!deleteRelation}
-        memberName={deleteRelation?.memberName || ''}
-        onClose={() => setDeleteRelation(null)}
-        onConfirm={handleConfirmDelete}
-      />
+        {inferredRole && (
+          <p className="text-sm text-base-content/60">
+            Rol: <span className="font-medium text-base-content">{inferredRole}</span>
+          </p>
+        )}
 
-      {/* Tur o'zgartirish modal */}
-      <ChangeRelationTypeModal
-        isOpen={!!changeRelationType}
-        fromMemberId={changeRelationType?.fromMemberId ?? 0}
-        toMemberId={changeRelationType?.toMemberId ?? 0}
-        memberName={changeRelationType?.memberName || ''}
-        currentType={changeRelationType?.currentType || ''}
-        onClose={() => setChangeRelationType(null)}
-        onSuccess={handleRelationTypeChanged}
-      />
+        <button
+          type="submit"
+          className="btn btn-primary w-full"
+          disabled={registerSelf.isPending || !fullName.trim() || !gender}
+        >
+          {registerSelf.isPending ? (
+            <span className="loading loading-spinner loading-sm" />
+          ) : (
+            <>
+              <UserPlus className="h-4 w-4" />
+              Ro&apos;yxatdan o&apos;tish
+            </>
+          )}
+        </button>
+      </form>
     </div>
   );
 }

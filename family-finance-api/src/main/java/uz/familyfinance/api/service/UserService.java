@@ -52,11 +52,17 @@ public class UserService {
      */
     @Transactional
     public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode) {
+        return createUserForFamilyMember(member, roleCode, null);
+    }
+
+    @Transactional
+    public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode, String customPassword) {
         // Generate unique username
         String username = generateUsername(member.getFullName());
 
-        // Generate temporary password
-        String temporaryPassword = generateTemporaryPassword();
+        // Use custom password or generate temporary
+        boolean isCustomPassword = customPassword != null && !customPassword.isBlank();
+        String temporaryPassword = isCustomPassword ? customPassword : generateTemporaryPassword();
 
         // Find role
         RoleEntity role = roleRepository.findByCode(roleCode)
@@ -74,7 +80,7 @@ public class UserService {
                 .phone(member.getPhone())
                 .role(legacyRole) // Legacy field
                 .active(true)
-                .mustChangePassword(true)
+                .mustChangePassword(!isCustomPassword)
                 .createdBy(createdBy)
                 .build();
 
@@ -99,8 +105,10 @@ public class UserService {
         return CredentialsInfo.builder()
                 .username(username)
                 .temporaryPassword(temporaryPassword)
-                .message("Ushbu parol faqat bir marta ko'rsatiladi. Oila a'zosiga yetkazing!")
-                .mustChangePassword(true)
+                .message(isCustomPassword
+                        ? "Akkaunt yaratildi. Login ma'lumotlarini oila a'zosiga yetkazing!"
+                        : "Ushbu parol faqat bir marta ko'rsatiladi. Oila a'zosiga yetkazing!")
+                .mustChangePassword(!isCustomPassword)
                 .build();
     }
 

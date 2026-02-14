@@ -8,6 +8,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
+import uz.familyfinance.api.dto.request.RegisterSelfRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
@@ -56,6 +57,12 @@ public class FamilyMemberController {
     @RequiresPermission(PermissionCode.FAMILY_CREATE)
     public ResponseEntity<ApiResponse<FamilyMemberResponse>> create(@Valid @RequestBody FamilyMemberRequest request) {
         return ResponseEntity.ok(ApiResponse.success(familyMemberService.create(request)));
+    }
+
+    @PostMapping("/register-self")
+    public ResponseEntity<ApiResponse<FamilyMemberResponse>> registerSelf(
+            @Valid @RequestBody RegisterSelfRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.registerSelf(request)));
     }
 
     @PutMapping("/{id}")
