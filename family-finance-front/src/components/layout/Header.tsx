@@ -22,11 +22,9 @@ import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { useNotificationsStore, type Notification } from '../../store/notificationsStore';
-import { rolesApi } from '../../api/roles.api';
 import { authApi } from '../../api/auth.api';
 import { ROLES } from '../../config/constants';
 import { SearchCommand } from '../common/SearchCommand';
-import type { Role } from '../../types';
 
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
@@ -97,7 +95,6 @@ export function Header() {
   const matches = useMatches();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
-  const [roles, setRoles] = useState<Role[]>([]);
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -106,14 +103,6 @@ export function Header() {
   // WebSocket ulanishini boshlash va dastlabki ma'lumotlarni yuklash
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch roles
-      try {
-        const rolesData = await rolesApi.getAll();
-        setRoles(rolesData);
-      } catch {
-        // Rollarni yuklash muvaffaqiyatsiz — kritik emas
-      }
-
       // Dastlabki bildirishnomalarni yuklash
       fetchNotifications();
 
@@ -199,14 +188,8 @@ export function Header() {
   };
 
   const getRoleLabel = (roleCode: string): string => {
-    // First check if it's a legacy role
-    const legacyRole = ROLES[roleCode as keyof typeof ROLES];
-    if (legacyRole) {
-      return legacyRole.label;
-    }
-    // Otherwise, find it in fetched roles
-    const role = roles.find((r) => r.code === roleCode);
-    return role?.name || roleCode;
+    const role = ROLES[roleCode as keyof typeof ROLES];
+    return role?.label || roleCode;
   };
 
   return (
