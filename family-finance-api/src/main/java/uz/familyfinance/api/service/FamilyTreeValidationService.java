@@ -97,6 +97,17 @@ public class FamilyTreeValidationService {
     }
 
     /**
+     * Ikki shaxs orasida allaqachon nikoh (FamilyUnit) mavjudligini tekshirish
+     */
+    public void validateDuplicateMarriage(Long person1Id, Long person2Id) {
+        List<FamilyUnit> existing = familyUnitRepository.findByPartnerPair(person1Id, person2Id);
+        if (!existing.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Bu ikki shaxs orasida allaqachon nikoh mavjud (oila birligi #" + existing.get(0).getId() + ")");
+        }
+    }
+
+    /**
      * O'zi bilan nikoh taqiqlash
      */
     public void validateNotSelfPartnership(Long person1Id, Long person2Id) {

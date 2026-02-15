@@ -33,6 +33,11 @@ public interface FamilyUnitRepository extends JpaRepository<FamilyUnit, Long> {
     List<FamilyUnit> findByPartnerId(@Param("personId") Long personId);
 
     @Query("SELECT DISTINCT fu FROM FamilyUnit fu " +
+           "WHERE EXISTS (SELECT 1 FROM FamilyPartner fp1 WHERE fp1.familyUnit = fu AND fp1.person.id = :person1Id) " +
+           "AND EXISTS (SELECT 1 FROM FamilyPartner fp2 WHERE fp2.familyUnit = fu AND fp2.person.id = :person2Id)")
+    List<FamilyUnit> findByPartnerPair(@Param("person1Id") Long person1Id, @Param("person2Id") Long person2Id);
+
+    @Query("SELECT DISTINCT fu FROM FamilyUnit fu " +
            "JOIN fu.children c WHERE c.person.id = :personId")
     List<FamilyUnit> findByChildId(@Param("personId") Long personId);
 }
