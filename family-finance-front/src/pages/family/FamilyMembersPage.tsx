@@ -57,7 +57,7 @@ export function FamilyMembersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [form, setForm] = useState<FamilyMemberRequest>({
-    fullName: '',
+    firstName: '',
     role: 'OTHER',
     gender: undefined,
     phone: '',
@@ -113,7 +113,7 @@ export function FamilyMembersPage() {
   const handleOpenAddModal = () => {
     setEditingMember(null);
     setForm({
-      fullName: '',
+      firstName: '',
       role: 'OTHER',
       gender: undefined,
       phone: '',
@@ -130,7 +130,9 @@ export function FamilyMembersPage() {
   const handleOpenEditModal = (member: FamilyMember) => {
     setEditingMember(member);
     setForm({
-      fullName: member.fullName,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      middleName: member.middleName,
       role: member.role,
       gender: member.gender,
       phone: member.phone || '',
@@ -147,7 +149,7 @@ export function FamilyMembersPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.fullName.trim()) return;
+    if (!form.firstName.trim()) return;
     setSubmitting(true);
     try {
       if (editingMember) {
@@ -452,13 +454,13 @@ export function FamilyMembersPage() {
             </div>
 
             <div className="mt-6 space-y-4">
-              {/* Full Name */}
+              {/* First Name */}
               <TextInput
-                label="To'liq ism"
+                label="Ism"
                 required
-                value={form.fullName}
-                onChange={(val) => setForm((prev) => ({ ...prev, fullName: val }))}
-                placeholder="Ism familiya"
+                value={form.firstName}
+                onChange={(val) => setForm((prev) => ({ ...prev, firstName: val }))}
+                placeholder="Ism"
                 leadingIcon={<User className="h-5 w-5" />}
               />
 
@@ -626,7 +628,7 @@ export function FamilyMembersPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleSubmit}
-                disabled={submitting || !form.fullName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
+                disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
               >
                 {submitting && <span className="loading loading-spinner loading-sm" />}
                 {editingMember ? 'Saqlash' : "Qo'shish"}

@@ -5,9 +5,10 @@ import { TextInput } from '../../ui/TextInput';
 import { PhoneInput } from '../../ui/PhoneInput';
 import { Select } from '../../ui/Select';
 import { DateInput } from '../../ui/DateInput';
-import { useUpdatePerson, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
-import { GENDERS, FAMILY_ROLES } from '../../../config/constants';
-import type { Gender, FamilyRole } from '../../../types';
+import { useUpdatePerson, useUpdateSelf, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
+import { GENDERS } from '../../../config/constants';
+import { useAuthStore } from '../../../store/authStore';
+import type { Gender } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
 
 interface EditPersonModalProps {
@@ -23,40 +24,42 @@ export function EditPersonModal({
   onClose,
   onSuccess,
 }: EditPersonModalProps) {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
-  const [role, setRole] = useState<FamilyRole>('OTHER');
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
   const [deathDate, setDeathDate] = useState('');
   const [avatar, setAvatar] = useState('');
 
+  const currentUser = useAuthStore((s) => s.user);
   const updatePerson = useUpdatePerson();
+  const updateSelf = useUpdateSelf();
   const { data: activePersons = [] } = useActivePersonsQuery();
 
+  const person = activePersons.find((p) => p.id === personId);
+  const isSelf = person?.userId != null && person.userId === currentUser?.id;
+
   const genderOptions: SelectOption[] = Object.entries(GENDERS).map(
-    ([key, { label }]) => ({ value: key, label })
-  );
-  const roleOptions: SelectOption[] = Object.entries(FAMILY_ROLES).map(
     ([key, { label }]) => ({ value: key, label })
   );
 
   // Load person data
   useEffect(() => {
     if (isOpen && personId) {
-      const person = activePersons.find((p) => p.id === personId);
-      if (person) {
-        setFullName(person.fullName || '');
-        setLastName(person.lastName || '');
-        setGender((person.gender as Gender) || '');
-        setRole(person.role || 'OTHER');
-        setPhone(person.phone || '');
-        setBirthDate(person.birthDate || '');
-        setBirthPlace(person.birthPlace || '');
-        setDeathDate(person.deathDate || '');
-        setAvatar(person.avatar || '');
+      const p = activePersons.find((p) => p.id === personId);
+      if (p) {
+        setFirstName(p.firstName || '');
+        setLastName(p.lastName || '');
+        setMiddleName(p.middleName || '');
+        setGender((p.gender as Gender) || '');
+        setPhone(p.phone || '');
+        setBirthDate(p.birthDate || '');
+        setBirthPlace(p.birthPlace || '');
+        setDeathDate(p.deathDate || '');
+        setAvatar(p.avatar || '');
       }
     }
   }, [isOpen, personId, activePersons]);
@@ -66,33 +69,41 @@ export function EditPersonModal({
   };
 
   const handleSubmit = () => {
-    if (!fullName.trim()) return;
+    if (!firstName.trim()) return;
 
-    updatePerson.mutate(
-      {
-        id: personId,
-        data: {
-          fullName: fullName.trim(),
-          lastName: lastName.trim() || undefined,
-          gender: gender || undefined,
-          role,
-          phone: phone || undefined,
-          birthDate: birthDate || undefined,
-          birthPlace: birthPlace.trim() || undefined,
-          deathDate: deathDate || undefined,
-          avatar: avatar.trim() || undefined,
-        },
-      },
-      {
+    const data = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim() || undefined,
+      middleName: middleName.trim() || undefined,
+      gender: gender || undefined,
+      phone: phone || undefined,
+      birthDate: birthDate || undefined,
+      birthPlace: birthPlace.trim() || undefined,
+      deathDate: deathDate || undefined,
+      avatar: avatar.trim() || undefined,
+    };
+
+    if (isSelf) {
+      updateSelf.mutate(data, {
         onSuccess: () => {
           handleClose();
           onSuccess();
         },
-      }
-    );
+      });
+    } else {
+      updatePerson.mutate(
+        { id: personId, data },
+        {
+          onSuccess: () => {
+            handleClose();
+            onSuccess();
+          },
+        }
+      );
+    }
   };
 
-  const isSubmitting = updatePerson.isPending;
+  const isSubmitting = updatePerson.isPending || updateSelf.isPending;
 
   return (
     <ModalPortal isOpen={isOpen} onClose={handleClose}>
@@ -113,11 +124,11 @@ export function EditPersonModal({
 
           <div className="mt-4 space-y-4">
             <TextInput
-              label="To'liq ism"
+              label="Ism"
               required
-              value={fullName}
-              onChange={setFullName}
-              placeholder="Ism familiya"
+              value={firstName}
+              onChange={setFirstName}
+              placeholder="Ism"
               leadingIcon={<User className="h-5 w-5" />}
             />
 
@@ -128,21 +139,20 @@ export function EditPersonModal({
               placeholder="Familiya"
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label="Jinsi"
-                value={gender || undefined}
-                onChange={(val) => setGender(val as Gender)}
-                options={genderOptions}
-                placeholder="Tanlang..."
-              />
-              <Select
-                label="Rol"
-                value={role}
-                onChange={(val) => setRole(val as FamilyRole)}
-                options={roleOptions}
-              />
-            </div>
+            <TextInput
+              label="Otasining ismi"
+              value={middleName}
+              onChange={setMiddleName}
+              placeholder="Otasining ismi"
+            />
+
+            <Select
+              label="Jinsi"
+              value={gender || undefined}
+              onChange={(val) => setGender(val as Gender)}
+              options={genderOptions}
+              placeholder="Tanlang..."
+            />
 
             <PhoneInput
               label="Telefon"
@@ -190,7 +200,7 @@ export function EditPersonModal({
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting || !fullName.trim()}
+              disabled={isSubmitting || !firstName.trim()}
             >
               {isSubmitting && <span className="loading loading-spinner loading-sm" />}
               Saqlash

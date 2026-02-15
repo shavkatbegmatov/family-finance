@@ -155,6 +155,8 @@ export type Gender = 'MALE' | 'FEMALE';
 
 export interface FamilyMember {
   id: number;
+  firstName: string;
+  middleName?: string;
   fullName: string;
   lastName?: string;
   role: FamilyRole;
@@ -172,9 +174,10 @@ export interface FamilyMember {
 }
 
 export interface FamilyMemberRequest {
-  fullName: string;
+  firstName: string;
+  middleName?: string;
   lastName?: string;
-  role: FamilyRole;
+  role?: FamilyRole;
   gender?: Gender;
   birthDate?: string;
   birthPlace?: string;

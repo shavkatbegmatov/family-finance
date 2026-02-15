@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { familyUnitApi } from '../api/family-unit.api';
+import { familyMembersApi } from '../api/family-members.api';
 import type {
   TreeResponse,
   FamilyUnitDto,
@@ -191,10 +192,23 @@ export function useUpdatePerson() {
   });
 }
 
+export function useUpdateSelf() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: FamilyMemberRequest) =>
+      familyMembersApi.updateSelf(data).then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
+      toast.success("Shaxs ma'lumotlari yangilandi");
+    },
+    onError: () => toast.error("Shaxs ma'lumotlarini yangilashda xatolik"),
+  });
+}
+
 export function useRegisterSelf() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { fullName: string; gender: string }) =>
+    mutationFn: (data: { firstName: string; gender: string }) =>
       familyUnitApi.registerSelf(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });

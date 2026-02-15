@@ -36,19 +36,19 @@ public class TestDataInitializer implements CommandLineRunner {
         log.info("Creating test family members and accounts...");
 
         familyMemberRepository.save(FamilyMember.builder()
-                .fullName("Otabek (Ota)")
+                .firstName("Otabek (Ota)")
                 .role(FamilyRole.FATHER)
                 .phone("+998901234567")
                 .build());
 
         familyMemberRepository.save(FamilyMember.builder()
-                .fullName("Nilufar (Ona)")
+                .firstName("Nilufar (Ona)")
                 .role(FamilyRole.MOTHER)
                 .phone("+998901234568")
                 .build());
 
         familyMemberRepository.save(FamilyMember.builder()
-                .fullName("Jasur (Farzand)")
+                .firstName("Jasur (Farzand)")
                 .role(FamilyRole.CHILD)
                 .build());
 

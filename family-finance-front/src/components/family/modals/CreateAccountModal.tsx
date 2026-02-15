@@ -52,8 +52,9 @@ export function CreateAccountModal({
 
       // Update bilan createAccount yuboramiz
       const res = await familyMembersApi.update(personId, {
-        fullName: person.fullName,
+        firstName: person.firstName,
         lastName: person.lastName,
+        middleName: person.middleName,
         role: person.role,
         gender: person.gender,
         birthDate: person.birthDate,

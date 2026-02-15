@@ -95,7 +95,7 @@ export function AddParentsModal({
         resolvedFatherId = fatherId as number;
       } else {
         const res = await familyUnitApi.createPerson({
-          fullName: fatherName.trim(),
+          firstName: fatherName.trim(),
           gender: 'MALE',
           birthDate: fatherBirthDate || undefined,
           role: 'FATHER',
@@ -109,7 +109,7 @@ export function AddParentsModal({
         resolvedMotherId = motherId as number;
       } else {
         const res = await familyUnitApi.createPerson({
-          fullName: motherName.trim(),
+          firstName: motherName.trim(),
           gender: 'FEMALE',
           birthDate: motherBirthDate || undefined,
           role: 'MOTHER',

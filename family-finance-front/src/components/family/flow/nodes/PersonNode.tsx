@@ -99,9 +99,6 @@ function PersonNodeComponent({ data }: NodeProps) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm truncate">{person.fullName}</div>
-          {person.lastName && (
-            <div className="text-xs text-base-content/50 truncate">{person.lastName}</div>
-          )}
         </div>
       </div>
 

@@ -142,9 +142,6 @@ export function PersonDetailPanel({
         {/* ===== Ism va qarindoshlik ===== */}
         <div className="px-6 mt-3">
           <h2 className="text-2xl font-bold">{person?.fullName}</h2>
-          {person?.lastName && (
-            <p className="text-sm text-base-content/50">{person.lastName}</p>
-          )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {person?.gender && (
               <span className="badge badge-sm badge-outline">

@@ -10,8 +10,10 @@ import java.time.LocalDateTime;
 @Data
 public class FamilyMemberResponse {
     private Long id;
-    private String fullName;
+    private String firstName;
     private String lastName;
+    private String middleName;
+    private String fullName;
     private FamilyRole role;
     private Gender gender;
     private LocalDate birthDate;
