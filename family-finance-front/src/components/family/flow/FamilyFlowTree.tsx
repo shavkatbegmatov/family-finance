@@ -1,10 +1,12 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
   MiniMap,
   ReactFlowProvider,
+  useReactFlow,
   type NodeMouseHandler,
+  type Viewport,
 } from '@xyflow/react';
 import { useElkLayout } from '../../../hooks/useElkLayout';
 import { nodeTypes, edgeTypes } from './nodeTypes';
@@ -18,6 +20,24 @@ export interface FamilyFlowTreeProps {
 export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
   const { nodes, edges, isLayouting } = useElkLayout(treeData);
   const { closeContextMenu, openModal, openContextMenu } = useFamilyTreeStore();
+  const reactFlow = useReactFlow();
+  const isInitialLoad = useRef(true);
+  const savedViewport = useRef<Viewport | null>(null);
+
+  // Birinchi renderdan keyin viewport ni saqlab, keyingi o'zgarishlarda tiklash
+  useEffect(() => {
+    if (isLayouting || nodes.length === 0) return;
+
+    if (isInitialLoad.current) {
+      // Birinchi marta — fitView ishlaydi (ReactFlow fitView prop orqali)
+      isInitialLoad.current = false;
+    } else if (savedViewport.current) {
+      // Keyingi o'zgarishlar — viewport ni tiklash
+      requestAnimationFrame(() => {
+        reactFlow.setViewport(savedViewport.current!, { duration: 0 });
+      });
+    }
+  }, [nodes, edges, isLayouting, reactFlow]);
 
   const handleNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
     event.preventDefault();
@@ -56,6 +76,10 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     );
   }
 
+  const handleMoveEnd = useCallback((_event: unknown, viewport: Viewport) => {
+    savedViewport.current = viewport;
+  }, []);
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -65,6 +89,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       onNodeContextMenu={handleNodeContextMenu}
       onNodeClick={handleNodeClick}
       onPaneClick={closeContextMenu}
+      onMoveEnd={handleMoveEnd}
       fitView
       fitViewOptions={{ padding: 0.2 }}
       minZoom={0.2}
