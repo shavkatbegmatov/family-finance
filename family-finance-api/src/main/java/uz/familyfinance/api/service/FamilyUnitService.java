@@ -35,6 +35,7 @@ public class FamilyUnitService {
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
         if (request.getPartner2Id() != null) {
             validationService.validateNotSelfPartnership(request.getPartner1Id(), request.getPartner2Id());
+            validationService.validateDuplicateMarriage(request.getPartner1Id(), request.getPartner2Id());
         }
 
         FamilyMember partner1 = findMember(request.getPartner1Id());
@@ -100,7 +101,7 @@ public class FamilyUnitService {
     public FamilyUnitResponse addPartner(Long familyUnitId, AddPartnerRequest request) {
         validationService.validateMaxPartners(familyUnitId);
 
-        FamilyUnit unit = familyUnitRepository.findById(familyUnitId)
+        FamilyUnit unit = familyUnitRepository.findByIdWithRelations(familyUnitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + familyUnitId));
         FamilyMember person = findMember(request.getPersonId());
 
@@ -109,6 +110,12 @@ public class FamilyUnitService {
                 .ifPresent(existing -> {
                     throw new IllegalArgumentException("Bu shaxs allaqachon oila birligida partner");
                 });
+
+        // Mavjud partnerlar bilan dublikat nikoh tekshirish
+        for (FamilyPartner existingPartner : unit.getPartners()) {
+            validationService.validateNotSelfPartnership(existingPartner.getPerson().getId(), request.getPersonId());
+            validationService.validateDuplicateMarriage(existingPartner.getPerson().getId(), request.getPersonId());
+        }
 
         long count = familyPartnerRepository.countByFamilyUnitId(familyUnitId);
         PartnerRole role = count == 0 ? PartnerRole.PARTNER1 : PartnerRole.PARTNER2;
