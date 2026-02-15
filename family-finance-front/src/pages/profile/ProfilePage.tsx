@@ -21,10 +21,9 @@ import {
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import { authApi } from '../../api/auth.api';
-import { rolesApi } from '../../api/roles.api';
 import { useAuthStore } from '../../store/authStore';
 import { ROLES } from '../../config/constants';
-import type { ChangePasswordRequest, User as UserType, Role } from '../../types';
+import type { ChangePasswordRequest, User as UserType } from '../../types';
 import { SessionsTab } from './SessionsTab';
 import { LoginActivityTab } from './LoginActivityTab';
 import { ActivityHistoryTab } from './ActivityHistoryTab';
@@ -40,7 +39,6 @@ interface PasswordFormData {
 export function ProfilePage() {
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [userData, setUserData] = useState<UserType | null>(null);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -81,16 +79,12 @@ export function ProfilePage() {
     return 'Kuchli';
   };
 
-  // Fetch user data and roles
+  // Fetch user data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [userData, rolesData] = await Promise.all([
-          authApi.getCurrentUser(),
-          rolesApi.getAll(),
-        ]);
+        const userData = await authApi.getCurrentUser();
         setUserData(userData);
-        setRoles(rolesData);
       } catch {
         toast.error("Ma'lumotlarni yuklashda xatolik");
       } finally {
@@ -102,14 +96,8 @@ export function ProfilePage() {
 
   // Helper function to get role label
   const getRoleLabel = (roleCode: string): string => {
-    // First check if it's a legacy role
-    const legacyRole = ROLES[roleCode as keyof typeof ROLES];
-    if (legacyRole) {
-      return legacyRole.label;
-    }
-    // Otherwise, find it in fetched roles
-    const role = roles.find((r) => r.code === roleCode);
-    return role?.name || roleCode;
+    const role = ROLES[roleCode as keyof typeof ROLES];
+    return role?.label || roleCode;
   };
 
   const onSubmitPassword = async (data: PasswordFormData) => {
