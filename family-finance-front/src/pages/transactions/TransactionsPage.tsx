@@ -252,16 +252,16 @@ export function TransactionsPage() {
     }
   };
 
-  // Submit delete
+  // Submit storno (reverse)
   const handleDelete = async () => {
     if (!deletingTransaction) return;
     setSubmitting(true);
     try {
-      await transactionsApi.delete(deletingTransaction.id);
+      await transactionsApi.reverse(deletingTransaction.id, 'Foydalanuvchi tomonidan storno qilindi');
       handleCloseDelete();
       void loadTransactions();
     } catch {
-      toast.error("Tranzaksiyani o'chirishda xatolik");
+      toast.error("Tranzaksiyani storno qilishda xatolik");
     } finally {
       setSubmitting(false);
     }
@@ -269,10 +269,11 @@ export function TransactionsPage() {
 
   // Type badge renderer
   const renderTypeBadge = (type: TransactionType) => {
-    const config = {
+    const config: Record<TransactionType, { label: string; class: string }> = {
       INCOME: { label: 'Daromad', class: 'badge-success' },
       EXPENSE: { label: 'Xarajat', class: 'badge-error' },
       TRANSFER: { label: "O'tkazma", class: 'badge-info' },
+      REVERSAL: { label: 'Storno', class: 'badge-warning' },
     };
     const c = config[type];
     return <span className={clsx('badge badge-sm', c.class)}>{c.label}</span>;
@@ -811,9 +812,9 @@ export function TransactionsPage() {
                 </button>
               </div>
 
-              <h3 className="text-lg font-semibold mb-2">Tranzaksiyani o'chirish</h3>
+              <h3 className="text-lg font-semibold mb-2">Tranzaksiyani storno qilish</h3>
               <p className="text-sm text-base-content/60 mb-1">
-                Quyidagi tranzaksiyani o'chirishni xohlaysizmi?
+                Quyidagi tranzaksiyani storno qilishni xohlaysizmi?
               </p>
               <div className="surface-soft rounded-lg p-3 mb-4">
                 <div className="flex items-center justify-between">
@@ -832,8 +833,8 @@ export function TransactionsPage() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-error/80 mb-4">
-                Bu amalni ortga qaytarib bo'lmaydi.
+              <p className="text-xs text-warning/80 mb-4">
+                Storno qilish teskari tranzaksiya yaratadi. Asl tranzaksiya saqlanib qoladi.
               </p>
 
               <div className="flex justify-end gap-2">
@@ -845,12 +846,12 @@ export function TransactionsPage() {
                   Bekor qilish
                 </button>
                 <button
-                  className="btn btn-error"
+                  className="btn btn-warning"
                   onClick={handleDelete}
                   disabled={submitting}
                 >
                   {submitting && <span className="loading loading-spinner loading-sm" />}
-                  O'chirish
+                  Storno qilish
                 </button>
               </div>
             </div>

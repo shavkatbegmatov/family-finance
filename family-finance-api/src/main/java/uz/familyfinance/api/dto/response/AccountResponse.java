@@ -4,6 +4,7 @@ import lombok.Data;
 import uz.familyfinance.api.enums.AccountType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class AccountResponse {
@@ -16,4 +17,13 @@ public class AccountResponse {
     private String icon;
     private Boolean isActive;
     private LocalDateTime createdAt;
+    private String accCode;
+    private String accCodeFormatted;
+    private String balanceAccountCode;
+    private String currencyCode;
+    private Long ownerId;
+    private String ownerName;
+    private String description;
+    private List<CardResponse> cards;
+    private List<AccountAccessResponse> accessList;
 }

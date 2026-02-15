@@ -16,5 +16,5 @@ export const transactionsApi = {
   getById: (id: number) => axiosInstance.get(`/v1/transactions/${id}`),
   create: (data: TransactionRequest) => axiosInstance.post('/v1/transactions', data),
   update: (id: number, data: TransactionRequest) => axiosInstance.put(`/v1/transactions/${id}`, data),
-  delete: (id: number) => axiosInstance.delete(`/v1/transactions/${id}`),
+  reverse: (id: number, reason: string) => axiosInstance.post(`/v1/transactions/${id}/reverse`, { reason }),
 };

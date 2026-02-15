@@ -15,4 +15,7 @@ public class AccountRequest {
     @PositiveOrZero(message = "Boshlang'ich balans manfiy bo'lishi mumkin emas") private BigDecimal balance;
     private String color;
     private String icon;
+    private Long ownerId;
+    private String currencyCode;
+    private String description;
 }

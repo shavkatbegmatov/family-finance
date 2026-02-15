@@ -45,6 +45,11 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
 
+# Card Encryption
+app:
+  card-encryption:
+    key: ${CARD_ENCRYPTION_KEY:default-key-change-in-production-32ch}
+
 # Logging
 logging:
   level:

@@ -25,4 +25,16 @@ public class TransactionResponse {
     private RecurringPattern recurringPattern;
     private String tags;
     private LocalDateTime createdAt;
+    private Long debitAccountId;
+    private String debitAccountName;
+    private String debitAccCode;
+    private Long creditAccountId;
+    private String creditAccountName;
+    private String creditAccCode;
+    private String status;
+    private BigDecimal balanceBeforeDebit;
+    private BigDecimal balanceAfterDebit;
+    private BigDecimal balanceBeforeCredit;
+    private BigDecimal balanceAfterCredit;
+    private Long originalTransactionId;
 }
