@@ -46,7 +46,7 @@ export function ProfileInfoTab({ userData, onUserDataChange }: ProfileInfoTabPro
 
   // Data
   const { data: activePersons = [] } = useActivePersonsQuery();
-  const familyMember = activePersons.find((p) => p.userId === userData.id);
+  const familyMember = activePersons.find((p) => p.id === userData.familyMemberId);
   const updateSelf = useUpdateSelf();
   const { updateUser } = useAuthStore();
 
