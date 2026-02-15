@@ -19,12 +19,30 @@ export function FamilyTreeToolbar() {
   const setRootPersonId = useFamilyTreeStore(s => s.setRootPersonId);
 
   const handleFindMe = () => {
-    if (currentUser?.familyMemberId) {
+    if (!currentUser?.familyMemberId) return;
+
+    const nodeId = `person_${currentUser.familyMemberId}`;
+    const node = reactFlow.getNode(nodeId);
+
+    if (node) {
+      // Node allaqachon daraxtda bor — markazga olib kelish
+      const x = node.position.x + (node.measured?.width ?? 200) / 2;
+      const y = node.position.y + (node.measured?.height ?? 140) / 2;
+      reactFlow.setCenter(x, y, { zoom: 1, duration: 500 });
+    } else {
+      // Node yo'q — root o'zgartirib, layout dan keyin markazlash
       setRootPersonId(currentUser.familyMemberId);
       setViewerPersonId(currentUser.familyMemberId);
       setTimeout(() => {
-        reactFlow.fitView({ duration: 300, padding: 0.2 });
-      }, 100);
+        const n = reactFlow.getNode(nodeId);
+        if (n) {
+          const x = n.position.x + (n.measured?.width ?? 200) / 2;
+          const y = n.position.y + (n.measured?.height ?? 140) / 2;
+          reactFlow.setCenter(x, y, { zoom: 1, duration: 500 });
+        } else {
+          reactFlow.fitView({ duration: 300, padding: 0.2 });
+        }
+      }, 300);
     }
   };
 
