@@ -8,6 +8,8 @@ import uz.familyfinance.api.enums.Gender;
 
 @Data
 public class RegisterSelfRequest {
-    @NotBlank @Size(max = 100) private String fullName;
+    @NotBlank @Size(max = 100) private String firstName;
+    @Size(max = 100) private String lastName;
+    @Size(max = 100) private String middleName;
     @NotNull private Gender gender;
 }

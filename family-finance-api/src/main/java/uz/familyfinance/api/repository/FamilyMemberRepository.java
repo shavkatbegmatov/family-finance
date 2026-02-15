@@ -15,7 +15,9 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
     Optional<FamilyMember> findByUserId(Long userId);
 
     @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
-           "(LOWER(fm.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "(LOWER(fm.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(fm.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(fm.middleName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(fm.phone) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<FamilyMember> search(String search, Pageable pageable);
 }

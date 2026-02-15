@@ -30,7 +30,7 @@ export function AddChildModal({
   const [selectedPersonId, setSelectedPersonId] = useState<number | ''>('');
 
   // New person form
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [birthDate, setBirthDate] = useState('');
 
@@ -57,7 +57,7 @@ export function AddChildModal({
   const resetForm = () => {
     setMode('existing');
     setSelectedPersonId('');
-    setFullName('');
+    setFirstName('');
     setGender('');
     setBirthDate('');
     setLineageType('BIOLOGICAL');
@@ -75,7 +75,7 @@ export function AddChildModal({
 
   const canSubmit = () => {
     if (mode === 'existing') return !!selectedPersonId;
-    return !!fullName.trim();
+    return !!firstName.trim();
   };
 
   const handleSubmit = async () => {
@@ -102,7 +102,7 @@ export function AddChildModal({
       const { familyUnitApi } = await import('../../../api/family-unit.api');
       try {
         const res = await familyUnitApi.createPerson({
-          fullName: fullName.trim(),
+          firstName: firstName.trim(),
           gender: gender || undefined,
           birthDate: birthDate || undefined,
           role: 'CHILD',
@@ -184,11 +184,11 @@ export function AddChildModal({
             ) : (
               <>
                 <TextInput
-                  label="To'liq ism"
+                  label="Ism"
                   required
-                  value={fullName}
-                  onChange={setFullName}
-                  placeholder="Ism familiya"
+                  value={firstName}
+                  onChange={setFirstName}
+                  placeholder="Ism"
                   leadingIcon={<User className="h-5 w-5" />}
                 />
                 <Select

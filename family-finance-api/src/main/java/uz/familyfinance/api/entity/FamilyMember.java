@@ -29,13 +29,17 @@ import java.util.Set;
 @ExportEntity(sheetName = "Oila a'zolari", title = "Oila A'zolari Hisoboti", orientation = ExportEntity.Orientation.LANDSCAPE)
 public class FamilyMember extends BaseEntity implements Auditable {
 
-    @Column(name = "full_name", nullable = false, length = 100)
-    @ExportColumn(header = "Ism familiya", order = 1)
-    private String fullName;
+    @Column(name = "first_name", nullable = false, length = 100)
+    @ExportColumn(header = "Ism", order = 1)
+    private String firstName;
 
     @Column(name = "last_name", length = 100)
     @ExportColumn(header = "Familiya", order = 2)
     private String lastName;
+
+    @Column(name = "middle_name", length = 100)
+    @ExportColumn(header = "Otasining ismi", order = 3)
+    private String middleName;
 
     @Column(name = "birth_place", length = 200)
     private String birthPlace;
@@ -45,20 +49,20 @@ public class FamilyMember extends BaseEntity implements Auditable {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @ExportColumn(header = "Rol", order = 3, type = ColumnType.ENUM)
+    @ExportColumn(header = "Rol", order = 4, type = ColumnType.ENUM)
     private FamilyRole role;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
-    @ExportColumn(header = "Jinsi", order = 4, type = ColumnType.ENUM)
+    @ExportColumn(header = "Jinsi", order = 5, type = ColumnType.ENUM)
     private Gender gender;
 
     @Column(name = "birth_date")
-    @ExportColumn(header = "Tug'ilgan sana", order = 5, type = ColumnType.DATE, format = "dd.MM.yyyy")
+    @ExportColumn(header = "Tug'ilgan sana", order = 6, type = ColumnType.DATE, format = "dd.MM.yyyy")
     private LocalDate birthDate;
 
     @Column(length = 20)
-    @ExportColumn(header = "Telefon", order = 6)
+    @ExportColumn(header = "Telefon", order = 7)
     private String phone;
 
     @Column(length = 255)
@@ -66,12 +70,32 @@ public class FamilyMember extends BaseEntity implements Auditable {
 
     @Column(name = "is_active", nullable = false)
     @Builder.Default
-    @ExportColumn(header = "Faol", order = 7, type = ColumnType.BOOLEAN)
+    @ExportColumn(header = "Faol", order = 8, type = ColumnType.BOOLEAN)
     private Boolean isActive = true;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true)
     private User user;
+
+    /**
+     * To'liq ismni hisoblash: "Familiya Ism Otasining ismi" formatida.
+     * getFullName() ham shu methodga yo'naltiradi — orqaga qarab moslik uchun.
+     */
+    public String getFullName() {
+        return getDisplayName();
+    }
+
+    public String getDisplayName() {
+        StringBuilder sb = new StringBuilder();
+        if (this.lastName != null && !this.lastName.isBlank()) {
+            sb.append(this.lastName).append(" ");
+        }
+        sb.append(this.firstName);
+        if (this.middleName != null && !this.middleName.isBlank()) {
+            sb.append(" ").append(this.middleName);
+        }
+        return sb.toString().trim();
+    }
 
     @Override
     public String getEntityName() {
@@ -83,8 +107,9 @@ public class FamilyMember extends BaseEntity implements Auditable {
     public Map<String, Object> toAuditMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", getId());
-        map.put("fullName", this.fullName);
+        map.put("firstName", this.firstName);
         map.put("lastName", this.lastName);
+        map.put("middleName", this.middleName);
         map.put("birthPlace", this.birthPlace);
         map.put("deathDate", this.deathDate);
         map.put("role", this.role);

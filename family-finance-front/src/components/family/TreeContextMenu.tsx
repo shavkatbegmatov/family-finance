@@ -13,11 +13,13 @@ import {
 } from 'lucide-react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
+import { usePermission } from '../../hooks/usePermission';
 
 export function TreeContextMenu() {
   const { contextMenu, closeContextMenu, openModal, setRootPersonId } =
     useFamilyTreeStore();
   const user = useAuthStore((s) => s.user);
+  const { canUpdateFamily, canCreateFamily, canDeleteFamily } = usePermission();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,15 +94,16 @@ export function TreeContextMenu() {
     >
       {isPersonMenu && (
         <>
-          {/* Edit person */}
-          {menuItem(
-            <Edit2 className="h-4 w-4 text-base-content/60" />,
-            'Tahrirlash',
-            () => openModal({ type: 'editPerson', personId: contextMenu.personId! })
-          )}
+          {/* Edit person — isSelf or canUpdateFamily */}
+          {(isSelf || canUpdateFamily) &&
+            menuItem(
+              <Edit2 className="h-4 w-4 text-base-content/60" />,
+              'Tahrirlash',
+              () => openModal({ type: 'editPerson', personId: contextMenu.personId! })
+            )}
 
-          {/* Create account — faqat akkauntisiz a'zolarga */}
-          {!contextMenu.personUserId &&
+          {/* Create account — canUpdateFamily + no existing account */}
+          {canUpdateFamily && !contextMenu.personUserId &&
             menuItem(
               <KeyRound className="h-4 w-4 text-base-content/60" />,
               'Akkaunt yaratish',
@@ -112,35 +115,39 @@ export function TreeContextMenu() {
                 })
             )}
 
-          {/* Add spouse */}
-          {menuItem(
-            <UserPlus className="h-4 w-4 text-base-content/60" />,
-            "Turmush o'rtoq qo'shish",
-            () => openModal({ type: 'addSpouse', personId: contextMenu.personId! })
-          )}
+          {/* Add spouse — canCreateFamily */}
+          {canCreateFamily &&
+            menuItem(
+              <UserPlus className="h-4 w-4 text-base-content/60" />,
+              "Turmush o'rtoq qo'shish",
+              () => openModal({ type: 'addSpouse', personId: contextMenu.personId! })
+            )}
 
-          {/* Add child — opens selectFamilyUnit if person has multiple FamilyUnits */}
-          {menuItem(
-            <Baby className="h-4 w-4 text-base-content/60" />,
-            "Farzand qo'shish",
-            () => openModal({ type: 'selectFamilyUnit', personId: contextMenu.personId! })
-          )}
+          {/* Add child — canCreateFamily */}
+          {canCreateFamily &&
+            menuItem(
+              <Baby className="h-4 w-4 text-base-content/60" />,
+              "Farzand qo'shish",
+              () => openModal({ type: 'selectFamilyUnit', personId: contextMenu.personId! })
+            )}
 
-          {/* Add sibling */}
-          {menuItem(
-            <UserRoundPlus className="h-4 w-4 text-base-content/60" />,
-            "Aka-uka qo'shish",
-            () => openModal({ type: 'addSibling', personId: contextMenu.personId! })
-          )}
+          {/* Add sibling — canCreateFamily */}
+          {canCreateFamily &&
+            menuItem(
+              <UserRoundPlus className="h-4 w-4 text-base-content/60" />,
+              "Aka-uka qo'shish",
+              () => openModal({ type: 'addSibling', personId: contextMenu.personId! })
+            )}
 
-          {/* Add parents */}
-          {menuItem(
-            <Users className="h-4 w-4 text-base-content/60" />,
-            "Ota-ona qo'shish",
-            () => openModal({ type: 'addParents', personId: contextMenu.personId! })
-          )}
+          {/* Add parents — canCreateFamily */}
+          {canCreateFamily &&
+            menuItem(
+              <Users className="h-4 w-4 text-base-content/60" />,
+              "Ota-ona qo'shish",
+              () => openModal({ type: 'addParents', personId: contextMenu.personId! })
+            )}
 
-          {/* View tree from this person */}
+          {/* View tree from this person — no permission needed */}
           {!contextMenu.isRoot &&
             menuItem(
               <Eye className="h-4 w-4 text-base-content/60" />,
@@ -148,11 +155,11 @@ export function TreeContextMenu() {
               () => setRootPersonId(contextMenu.personId!)
             )}
 
-          {!isSelf && (
+          {/* Delete person — canDeleteFamily + not self */}
+          {canDeleteFamily && !isSelf && (
             <>
               <div className="my-1.5 border-t border-base-200" />
 
-              {/* Delete person */}
               {menuItem(
                 <Trash2 className="h-4 w-4" />,
                 "O'chirish",

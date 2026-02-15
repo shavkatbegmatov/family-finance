@@ -65,6 +65,12 @@ public class FamilyMemberController {
         return ResponseEntity.ok(ApiResponse.success(familyMemberService.registerSelf(request)));
     }
 
+    @PutMapping("/update-self")
+    public ResponseEntity<ApiResponse<FamilyMemberResponse>> updateSelf(
+            @Valid @RequestBody FamilyMemberRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.updateSelf(request)));
+    }
+
     @PutMapping("/{id}")
     @RequiresPermission(PermissionCode.FAMILY_UPDATE)
     public ResponseEntity<ApiResponse<FamilyMemberResponse>> update(@PathVariable Long id,

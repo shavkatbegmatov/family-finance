@@ -9,6 +9,8 @@ export type PartnerRole = 'PARTNER1' | 'PARTNER2';
 // ============ Person (from backend FamilyTreeMemberDto) ============
 export interface TreePerson {
   id: number;
+  firstName: string;
+  middleName?: string;
   fullName: string;
   lastName?: string;
   role: FamilyRole;

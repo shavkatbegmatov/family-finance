@@ -1,7 +1,6 @@
 package uz.familyfinance.api.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import uz.familyfinance.api.enums.FamilyRole;
@@ -10,9 +9,10 @@ import java.time.LocalDate;
 
 @Data
 public class FamilyMemberRequest {
-    @NotBlank @Size(max = 100) private String fullName;
+    @NotBlank @Size(max = 100) private String firstName;
     @Size(max = 100) private String lastName;
-    @NotNull private FamilyRole role;
+    @Size(max = 100) private String middleName;
+    private FamilyRole role;
     private Gender gender;
     private LocalDate birthDate;
     @Size(max = 200) private String birthPlace;

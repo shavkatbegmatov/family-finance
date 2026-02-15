@@ -56,9 +56,10 @@ public class FamilyMemberService {
     @Transactional
     public FamilyMemberResponse create(FamilyMemberRequest request) {
         FamilyMember member = FamilyMember.builder()
-                .fullName(request.getFullName())
+                .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .role(request.getRole())
+                .middleName(request.getMiddleName())
+                .role(request.getRole() != null ? request.getRole() : FamilyRole.OTHER)
                 .gender(request.getGender())
                 .birthDate(request.getBirthDate())
                 .birthPlace(request.getBirthPlace())
@@ -105,22 +106,33 @@ public class FamilyMemberService {
         FamilyRole role = request.getGender() == Gender.MALE ? FamilyRole.FATHER : FamilyRole.MOTHER;
 
         FamilyMember member = FamilyMember.builder()
-                .fullName(request.getFullName())
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .middleName(request.getMiddleName())
                 .gender(request.getGender())
                 .role(role)
                 .user(currentUser)
                 .build();
 
         FamilyMember saved = familyMemberRepository.save(member);
+
+        // User.fullName ni sinxronlashtirish
+        currentUser.setFullName(saved.getDisplayName());
+        userRepository.save(currentUser);
+
         return toResponse(saved);
     }
 
     @Transactional
     public FamilyMemberResponse update(Long id, FamilyMemberRequest request) {
         FamilyMember member = findById(id);
-        member.setFullName(request.getFullName());
+        member.setFirstName(request.getFirstName());
         member.setLastName(request.getLastName());
-        member.setRole(request.getRole());
+        member.setMiddleName(request.getMiddleName());
+        // Role: agar null bo'lsa mavjud rolni saqlab qolish
+        if (request.getRole() != null) {
+            member.setRole(request.getRole());
+        }
         member.setGender(request.getGender());
         member.setBirthDate(request.getBirthDate());
         member.setBirthPlace(request.getBirthPlace());
@@ -139,6 +151,9 @@ public class FamilyMemberService {
 
         FamilyMember saved = familyMemberRepository.save(member);
 
+        // Bog'langan User.fullName ni sinxronlashtirish
+        syncUserFullName(saved);
+
         // Akkaunt yaratish (update orqali ham)
         if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
             String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
@@ -151,6 +166,36 @@ public class FamilyMemberService {
             familyMemberRepository.save(saved);
             return toResponse(saved, credentials);
         }
+
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public FamilyMemberResponse updateSelf(FamilyMemberRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        FamilyMember member = familyMemberRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Siz hali oila a'zosiga bog'lanmagansiz"));
+
+        // Faqat shaxsiy ma'lumotlarni yangilash
+        member.setFirstName(request.getFirstName());
+        member.setLastName(request.getLastName());
+        member.setMiddleName(request.getMiddleName());
+        member.setGender(request.getGender());
+        member.setPhone(request.getPhone());
+        member.setBirthDate(request.getBirthDate());
+        member.setBirthPlace(request.getBirthPlace());
+        member.setAvatar(request.getAvatar());
+        // role, deathDate, userId — O'ZGARMAYDI
+
+        FamilyMember saved = familyMemberRepository.save(member);
+
+        // User.fullName ni sinxronlashtirish
+        currentUser.setFullName(saved.getDisplayName());
+        userRepository.save(currentUser);
 
         return toResponse(saved);
     }
@@ -174,6 +219,17 @@ public class FamilyMemberService {
     @Transactional(readOnly = true)
     public List<FamilyMember> getAllEntities() {
         return familyMemberRepository.findByIsActiveTrue();
+    }
+
+    /**
+     * Bog'langan User.fullName ni FamilyMember dan sinxronlashtirish
+     */
+    private void syncUserFullName(FamilyMember member) {
+        if (member.getUser() != null) {
+            User linkedUser = member.getUser();
+            linkedUser.setFullName(member.getDisplayName());
+            userRepository.save(linkedUser);
+        }
     }
 
     private void ensureSelfMemberActive() {
@@ -205,8 +261,10 @@ public class FamilyMemberService {
     private FamilyMemberResponse toResponse(FamilyMember m, CredentialsInfo credentials) {
         FamilyMemberResponse r = new FamilyMemberResponse();
         r.setId(m.getId());
-        r.setFullName(m.getFullName());
+        r.setFirstName(m.getFirstName());
         r.setLastName(m.getLastName());
+        r.setMiddleName(m.getMiddleName());
+        r.setFullName(m.getDisplayName());
         r.setRole(m.getRole());
         r.setGender(m.getGender());
         r.setBirthDate(m.getBirthDate());

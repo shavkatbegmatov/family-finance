@@ -138,7 +138,7 @@ export function FamilyTreeView() {
 
 function RegisterSelfForm() {
   const user = useAuthStore((s) => s.user);
-  const [fullName, setFullName] = useState(user?.fullName ?? '');
+  const [firstName, setFirstName] = useState(user?.fullName ?? '');
   const [gender, setGender] = useState('');
   const registerSelf = useRegisterSelf();
 
@@ -151,8 +151,8 @@ function RegisterSelfForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !gender) return;
-    registerSelf.mutate({ fullName: fullName.trim(), gender });
+    if (!firstName.trim() || !gender) return;
+    registerSelf.mutate({ firstName: firstName.trim(), gender });
   };
 
   return (
@@ -168,13 +168,13 @@ function RegisterSelfForm() {
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
         <div className="form-control">
           <label className="label">
-            <span className="label-text">Ism familiya</span>
+            <span className="label-text">Ism</span>
           </label>
           <input
             type="text"
             className="input input-bordered w-full"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
             maxLength={100}
             required
           />
@@ -210,7 +210,7 @@ function RegisterSelfForm() {
         <button
           type="submit"
           className="btn btn-primary w-full"
-          disabled={registerSelf.isPending || !fullName.trim() || !gender}
+          disabled={registerSelf.isPending || !firstName.trim() || !gender}
         >
           {registerSelf.isPending ? (
             <span className="loading loading-spinner loading-sm" />
