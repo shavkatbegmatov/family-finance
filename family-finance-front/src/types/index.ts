@@ -190,6 +190,18 @@ export interface FamilyMemberRequest {
   accountRole?: string;
 }
 
+export interface UpdateSelfRequest {
+  firstName: string;
+  lastName?: string;
+  middleName?: string;
+  gender?: Gender;
+  phone?: string;
+  birthDate?: string;
+  birthPlace?: string;
+  avatar?: string;
+  email?: string;
+}
+
 // Account Types
 export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'E_WALLET';
 

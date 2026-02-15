@@ -11,6 +11,7 @@ import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ConflictException;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
 import uz.familyfinance.api.dto.request.RegisterSelfRequest;
+import uz.familyfinance.api.dto.request.UpdateSelfRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
 import uz.familyfinance.api.entity.FamilyMember;
@@ -171,7 +172,7 @@ public class FamilyMemberService {
     }
 
     @Transactional
-    public FamilyMemberResponse updateSelf(FamilyMemberRequest request) {
+    public FamilyMemberResponse updateSelf(UpdateSelfRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
@@ -193,8 +194,12 @@ public class FamilyMemberService {
 
         FamilyMember saved = familyMemberRepository.save(member);
 
-        // User.fullName ni sinxronlashtirish
+        // User ma'lumotlarini sinxronlashtirish
         currentUser.setFullName(saved.getDisplayName());
+        currentUser.setPhone(request.getPhone());
+        if (request.getEmail() != null) {
+            currentUser.setEmail(request.getEmail());
+        }
         userRepository.save(currentUser);
 
         return toResponse(saved);

@@ -10,7 +10,7 @@ import type {
   AddPartnerRequest,
   AddChildRequest,
 } from '../types';
-import type { FamilyMember, FamilyMemberRequest, ApiResponse } from '../types';
+import type { FamilyMember, FamilyMemberRequest, UpdateSelfRequest, ApiResponse } from '../types';
 import toast from 'react-hot-toast';
 
 // ========== Query Keys Factory ==========
@@ -195,13 +195,13 @@ export function useUpdatePerson() {
 export function useUpdateSelf() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: FamilyMemberRequest) =>
+    mutationFn: (data: UpdateSelfRequest) =>
       familyMembersApi.updateSelf(data).then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
-      toast.success("Shaxs ma'lumotlari yangilandi");
+      toast.success("Ma'lumotlar yangilandi");
     },
-    onError: () => toast.error("Shaxs ma'lumotlarini yangilashda xatolik"),
+    onError: () => toast.error("Ma'lumotlarni yangilashda xatolik"),
   });
 }
 
