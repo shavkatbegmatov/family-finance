@@ -39,12 +39,16 @@ export function FamilyTreeView() {
 
   const user = useAuthStore((s) => s.user);
 
-  // Set rootPersonId from initial tree data
+  // Set rootPersonId — avval joriy user, keyin backend javobidan
   useEffect(() => {
-    if (treeQuery.data?.rootPersonId && !rootPersonId) {
-      useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
+    if (!rootPersonId) {
+      if (user?.familyMemberId) {
+        useFamilyTreeStore.getState().setRootPersonId(user.familyMemberId);
+      } else if (treeQuery.data?.rootPersonId) {
+        useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
+      }
     }
-  }, [treeQuery.data?.rootPersonId, rootPersonId]);
+  }, [treeQuery.data?.rootPersonId, rootPersonId, user?.familyMemberId]);
 
   // Viewer avtomatik tanlash — labeled tree (qarindoshlik labellari) yoqiladi
   useEffect(() => {
