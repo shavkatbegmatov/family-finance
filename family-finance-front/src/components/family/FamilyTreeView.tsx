@@ -39,23 +39,17 @@ export function FamilyTreeView() {
 
   const user = useAuthStore((s) => s.user);
 
-  // Set rootPersonId — avval joriy user, keyin backend javobidan
+  // Mount paytida rootPersonId va viewerPersonId ni joriy user ga o'rnatish
+  // Har safar tree tab ochilganda user o'zi markazda ko'rinadi
   useEffect(() => {
-    if (!rootPersonId) {
-      if (user?.familyMemberId) {
-        useFamilyTreeStore.getState().setRootPersonId(user.familyMemberId);
-      } else if (treeQuery.data?.rootPersonId) {
-        useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
-      }
-    }
-  }, [treeQuery.data?.rootPersonId, rootPersonId, user?.familyMemberId]);
-
-  // Viewer avtomatik tanlash — labeled tree (qarindoshlik labellari) yoqiladi
-  useEffect(() => {
-    if (!viewerPersonId && user?.familyMemberId) {
+    if (user?.familyMemberId) {
+      useFamilyTreeStore.getState().setRootPersonId(user.familyMemberId);
       useFamilyTreeStore.getState().setViewerPersonId(user.familyMemberId);
+    } else if (treeQuery.data?.rootPersonId && !rootPersonId) {
+      useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
     }
-  }, [viewerPersonId, user?.familyMemberId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.familyMemberId, treeQuery.data?.rootPersonId]);
 
   if (isLoading) {
     return (
