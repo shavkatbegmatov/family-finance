@@ -71,28 +71,41 @@ export function EditPersonModal({
   const handleSubmit = () => {
     if (!firstName.trim()) return;
 
-    const data = {
-      firstName: firstName.trim(),
-      lastName: lastName.trim() || undefined,
-      middleName: middleName.trim() || undefined,
-      gender: gender || undefined,
-      phone: phone || undefined,
-      birthDate: birthDate || undefined,
-      birthPlace: birthPlace.trim() || undefined,
-      deathDate: deathDate || undefined,
-      avatar: avatar.trim() || undefined,
-    };
-
     if (isSelf) {
-      updateSelf.mutate(data, {
-        onSuccess: () => {
-          handleClose();
-          onSuccess();
+      updateSelf.mutate(
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim() || undefined,
+          middleName: middleName.trim() || undefined,
+          gender: gender || undefined,
+          phone: phone || undefined,
+          birthDate: birthDate || undefined,
+          birthPlace: birthPlace.trim() || undefined,
+          avatar: avatar.trim() || undefined,
         },
-      });
+        {
+          onSuccess: () => {
+            handleClose();
+            onSuccess();
+          },
+        }
+      );
     } else {
       updatePerson.mutate(
-        { id: personId, data },
+        {
+          id: personId,
+          data: {
+            firstName: firstName.trim(),
+            lastName: lastName.trim() || undefined,
+            middleName: middleName.trim() || undefined,
+            gender: gender || undefined,
+            phone: phone || undefined,
+            birthDate: birthDate || undefined,
+            birthPlace: birthPlace.trim() || undefined,
+            deathDate: deathDate || undefined,
+            avatar: avatar.trim() || undefined,
+          },
+        },
         {
           onSuccess: () => {
             handleClose();

@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
-  User,
-  Mail,
-  Phone,
   Shield,
   Key,
   Eye,
@@ -22,11 +19,11 @@ import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
-import { ROLES } from '../../config/constants';
 import type { ChangePasswordRequest, User as UserType } from '../../types';
 import { SessionsTab } from './SessionsTab';
 import { LoginActivityTab } from './LoginActivityTab';
 import { ActivityHistoryTab } from './ActivityHistoryTab';
+import { ProfileInfoTab } from './ProfileInfoTab';
 
 type Tab = 'profile' | 'security' | 'sessions' | 'login-activity' | 'activity';
 
@@ -94,12 +91,6 @@ export function ProfilePage() {
     void fetchData();
   }, []);
 
-  // Helper function to get role label
-  const getRoleLabel = (roleCode: string): string => {
-    const role = ROLES[roleCode as keyof typeof ROLES];
-    return role?.label || roleCode;
-  };
-
   const onSubmitPassword = async (data: PasswordFormData) => {
     if (data.newPassword !== data.confirmPassword) {
       toast.error('Yangi parol va tasdiqlash mos kelmadi');
@@ -137,22 +128,6 @@ export function ProfilePage() {
       <span>{text}</span>
     </div>
   );
-
-  const getRoleBadgeColor = (role?: string) => {
-    switch (role) {
-      case 'ADMIN':
-        return 'bg-error/10 text-error border-error/20';
-      case 'MANAGER':
-        return 'bg-warning/10 text-warning border-warning/20';
-      case 'SELLER':
-        return 'bg-info/10 text-info border-info/20';
-      default:
-        return 'bg-base-200 text-base-content/70 border-base-300';
-    }
-  };
-
-  const userInitial = userData?.fullName?.charAt(0)?.toUpperCase() ||
-    userData?.username?.charAt(0)?.toUpperCase() || '?';
 
   if (loading) {
     return (
@@ -210,99 +185,8 @@ export function ProfilePage() {
       </div>
 
       {/* Profile Tab */}
-      {activeTab === 'profile' && (
-        <div className="space-y-6">
-          {/* User Card */}
-          <div className="surface-card p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-              <div
-                className={clsx(
-                  'w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center flex-shrink-0',
-                  'bg-gradient-to-br from-primary/20 to-secondary/20 text-primary',
-                  'ring-4 ring-primary/10'
-                )}
-              >
-                <span className="text-3xl sm:text-4xl font-bold">{userInitial}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold break-words">{userData?.fullName}</h2>
-                <p className="text-sm sm:text-base text-base-content/60 truncate">@{userData?.username}</p>
-                <div
-                  className={clsx(
-                    'inline-flex items-center gap-1 sm:gap-1.5 mt-2 sm:mt-3 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold border',
-                    getRoleBadgeColor(userData?.role)
-                  )}
-                >
-                  <Shield className="h-3.5 w-3.5" />
-                  {userData?.role && getRoleLabel(userData.role)}
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {userData?.active ? (
-                  <span className="badge badge-success gap-1">
-                    <Check className="h-3 w-3" />
-                    Faol
-                  </span>
-                ) : (
-                  <span className="badge badge-error gap-1">
-                    <X className="h-3 w-3" />
-                    Nofaol
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Contact Info */}
-          <div className="surface-card p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6">Kontakt ma'lumotlari</h3>
-            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
-              {/* Email */}
-              <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-base-200/50">
-                <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
-                  <Mail className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50 uppercase tracking-wider">Email</p>
-                  <p className="font-semibold">{userData?.email || 'Kiritilmagan'}</p>
-                </div>
-              </div>
-
-              {/* Phone */}
-              <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-base-200/50">
-                <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
-                  <Phone className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50 uppercase tracking-wider">Telefon</p>
-                  <p className="font-semibold">{userData?.phone || 'Kiritilmagan'}</p>
-                </div>
-              </div>
-
-              {/* Username */}
-              <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-base-200/50">
-                <div className="p-2 sm:p-3 rounded-xl bg-info/10">
-                  <User className="h-5 w-5 text-info" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50 uppercase tracking-wider">Foydalanuvchi nomi</p>
-                  <p className="font-semibold">{userData?.username}</p>
-                </div>
-              </div>
-
-              {/* Role */}
-              <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-base-200/50">
-                <div className="p-2 sm:p-3 rounded-xl bg-warning/10">
-                  <Shield className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50 uppercase tracking-wider">Rol</p>
-                  <p className="font-semibold">{userData?.role && getRoleLabel(userData.role)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {activeTab === 'profile' && userData && (
+        <ProfileInfoTab userData={userData} onUserDataChange={setUserData} />
       )}
 
       {/* Security Tab */}

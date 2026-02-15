@@ -13,6 +13,7 @@ interface AuthState {
   roles: Set<string>;
   isAuthenticated: boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string, permissions?: string[], roles?: string[]) => void;
+  updateUser: (user: User) => void;
   logout: () => void;
   logoutWithRedirect: (delay?: number) => void;
   hasPermission: (permission: string) => boolean;
@@ -47,6 +48,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         });
       },
+
+      updateUser: (user) => set({ user }),
 
       logout: () => {
         localStorage.removeItem('accessToken');

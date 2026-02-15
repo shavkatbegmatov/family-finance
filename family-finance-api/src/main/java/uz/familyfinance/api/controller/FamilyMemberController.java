@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
 import uz.familyfinance.api.dto.request.RegisterSelfRequest;
+import uz.familyfinance.api.dto.request.UpdateSelfRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
@@ -67,7 +68,7 @@ public class FamilyMemberController {
 
     @PutMapping("/update-self")
     public ResponseEntity<ApiResponse<FamilyMemberResponse>> updateSelf(
-            @Valid @RequestBody FamilyMemberRequest request) {
+            @Valid @RequestBody UpdateSelfRequest request) {
         return ResponseEntity.ok(ApiResponse.success(familyMemberService.updateSelf(request)));
     }
 
