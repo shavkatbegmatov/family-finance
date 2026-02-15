@@ -124,7 +124,7 @@ function PersonNodeComponent({ data }: NodeProps) {
       {/* "Siz" indicator */}
       {isCurrentUser && (
         <div className="absolute -top-3 right-2 px-1.5 py-0.5 bg-success text-success-content text-[10px] font-bold rounded-full z-10">
-          Siz
+          Men
         </div>
       )}
 
