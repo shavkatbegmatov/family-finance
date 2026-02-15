@@ -15,20 +15,29 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     Page<Transaction> findByType(TransactionType type, Pageable pageable);
 
-    @Query("SELECT t FROM Transaction t WHERE " +
-           "(:type IS NULL OR t.type = :type) AND " +
-           "(:accountId IS NULL OR t.account.id = :accountId) AND " +
-           "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
-           "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
-           "(:from IS NULL OR t.transactionDate >= :from) AND " +
-           "(:to IS NULL OR t.transactionDate <= :to)")
+    @Query(
+            value = "SELECT t FROM Transaction t WHERE " +
+                    "(:type IS NULL OR t.type = :type) AND " +
+                    "(:accountId IS NULL OR t.account.id = :accountId) AND " +
+                    "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
+                    "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
+                    "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
+                    "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)",
+            countQuery = "SELECT COUNT(t) FROM Transaction t WHERE " +
+                    "(:type IS NULL OR t.type = :type) AND " +
+                    "(:accountId IS NULL OR t.account.id = :accountId) AND " +
+                    "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
+                    "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
+                    "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
+                    "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)"
+    )
     Page<Transaction> findWithFilters(
             @Param("type") TransactionType type,
             @Param("accountId") Long accountId,
             @Param("categoryId") Long categoryId,
             @Param("memberId") Long memberId,
-            @Param("from") LocalDateTime from,
-            @Param("to") LocalDateTime to,
+            @Param("fromDate") LocalDateTime from,
+            @Param("toDate") LocalDateTime to,
             Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND " +
