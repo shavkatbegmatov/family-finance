@@ -71,6 +71,7 @@ public class ExportFormatter {
                 case INCOME -> "Kirim";
                 case EXPENSE -> "Chiqim";
                 case TRANSFER -> "O'tkazma";
+                case REVERSAL -> "Storno";
             };
         }
         if (value instanceof AccountType type) {
@@ -79,6 +80,9 @@ public class ExportFormatter {
                 case BANK_CARD -> "Bank kartasi";
                 case SAVINGS -> "Jamg'arma";
                 case E_WALLET -> "Elektron hamyon";
+                case TERM_DEPOSIT -> "Muddatli depozit";
+                case CREDIT -> "Kredit";
+                case SYSTEM_TRANSIT -> "Tizim tranziti";
             };
         }
         if (value instanceof CategoryType type) {

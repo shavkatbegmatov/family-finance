@@ -202,8 +202,54 @@ export interface UpdateSelfRequest {
   email?: string;
 }
 
+// Card Types
+export type CardType = 'UZCARD' | 'HUMO' | 'VISA' | 'MASTERCARD';
+export type AccountAccessRole = 'OWNER' | 'CO_OWNER' | 'VIEWER';
+export type TransactionStatus = 'CONFIRMED' | 'REVERSED' | 'PENDING';
+export type CurrencyCode = 'UZS' | 'USD' | 'EUR';
+
+export interface Card {
+  id: number;
+  accountId: number;
+  cardType: CardType;
+  cardBin?: string;
+  cardLastFour: string;
+  maskedNumber: string;
+  cardHolderName?: string;
+  expiryDate?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface CardRequest {
+  cardType: CardType;
+  cardNumber: string;
+  cardHolderName?: string;
+  expiryDate?: string;
+}
+
+export interface AccountAccessEntry {
+  id: number;
+  accountId: number;
+  userId: number;
+  userName: string;
+  userFullName: string;
+  role: AccountAccessRole;
+  grantedAt: string;
+  grantedByName?: string;
+}
+
+export interface AccountAccessRequest {
+  userId: number;
+  role: AccountAccessRole;
+}
+
+export interface ReverseTransactionRequest {
+  reason: string;
+}
+
 // Account Types
-export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'E_WALLET';
+export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'TERM_DEPOSIT' | 'E_WALLET' | 'CREDIT';
 
 export interface Account {
   id: number;
@@ -215,6 +261,16 @@ export interface Account {
   icon?: string;
   isActive: boolean;
   createdAt: string;
+  // New banking fields
+  accCode?: string;
+  accCodeFormatted?: string;
+  balanceAccountCode?: string;
+  currencyCode?: string;
+  ownerId?: number;
+  ownerName?: string;
+  description?: string;
+  cards?: Card[];
+  accessList?: AccountAccessEntry[];
 }
 
 export interface AccountRequest {
@@ -224,6 +280,10 @@ export interface AccountRequest {
   balance?: number;
   color?: string;
   icon?: string;
+  // New fields
+  ownerId?: number;
+  currencyCode?: string;
+  description?: string;
 }
 
 // Category Types
@@ -252,7 +312,7 @@ export interface FinanceCategoryRequest {
 }
 
 // Transaction Types
-export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'REVERSAL';
 export type RecurringPattern = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 export interface Transaction {
@@ -273,6 +333,19 @@ export interface Transaction {
   recurringPattern?: RecurringPattern;
   tags?: string;
   createdAt: string;
+  // Banking fields
+  debitAccountId?: number;
+  debitAccountName?: string;
+  debitAccCode?: string;
+  creditAccountId?: number;
+  creditAccountName?: string;
+  creditAccCode?: string;
+  status?: TransactionStatus;
+  balanceBeforeDebit?: number;
+  balanceAfterDebit?: number;
+  balanceBeforeCredit?: number;
+  balanceAfterCredit?: number;
+  originalTransactionId?: number;
 }
 
 export interface TransactionRequest {

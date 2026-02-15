@@ -11,11 +11,19 @@ import uz.familyfinance.api.enums.AccountType;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
     List<Account> findByIsActiveTrue();
     Page<Account> findByIsActiveTrue(Pageable pageable);
     List<Account> findByTypeAndIsActiveTrue(AccountType type);
+
+    Optional<Account> findByAccCode(String accCode);
+
+    Page<Account> findByIsActiveTrueAndTypeNot(AccountType type, Pageable pageable);
+    List<Account> findByIsActiveTrueAndTypeNot(AccountType type);
+
+    List<Account> findByTypeAndCurrencyAndIsActiveTrue(AccountType type, String currency);
 
     @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.isActive = true")
     BigDecimal getTotalBalance();
@@ -27,4 +35,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     @Modifying
     @Query("UPDATE Account a SET a.balance = a.balance + :amount WHERE a.id = :id")
     void addToBalance(@Param("id") Long id, @Param("amount") BigDecimal amount);
+
+    @Query("SELECT COUNT(a) FROM Account a WHERE a.owner.id = :ownerId AND a.balanceAccountCode = :balanceCode AND a.currencyCode = :currencyCode")
+    long countByOwnerAndBalanceCodeAndCurrency(@Param("ownerId") Long ownerId, @Param("balanceCode") String balanceCode, @Param("currencyCode") String currencyCode);
 }

@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.TransactionRequest;
 import uz.familyfinance.api.dto.response.TransactionResponse;
 import uz.familyfinance.api.entity.*;
-import uz.familyfinance.api.enums.BudgetPeriod;
+import uz.familyfinance.api.enums.TransactionStatus;
 import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
@@ -33,12 +33,13 @@ public class TransactionService {
     private final FamilyMemberRepository familyMemberRepository;
     private final BudgetRepository budgetRepository;
     private final StaffNotificationService notificationService;
+    private final AccountService accountService;
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getAll(TransactionType type, Long accountId, Long categoryId,
                                               Long memberId, LocalDateTime from, LocalDateTime to,
                                               Pageable pageable) {
-        return transactionRepository.findWithFilters(type, accountId, categoryId, memberId, from, to, pageable)
+        return transactionRepository.findWithFilters(type, accountId, categoryId, memberId, from, to, null, pageable)
                 .map(this::toResponse);
     }
 
@@ -53,6 +54,13 @@ public class TransactionService {
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Yangi tranzaksiya yaratadi — to'liq Double-Entry mantiq bilan.
+     *
+     * INCOME:   debit = foydalanuvchi hisobi (pul tushdi), credit = tranzit daromad hisobi
+     * EXPENSE:  debit = tranzit xarajat hisobi, credit = foydalanuvchi hisobi (pul chiqdi)
+     * TRANSFER: debit = qabul qiluvchi hisob, credit = jo'natuvchi hisob
+     */
     @Transactional
     public TransactionResponse create(TransactionRequest request) {
         Account account = accountRepository.findById(request.getAccountId())
@@ -67,6 +75,7 @@ public class TransactionService {
                 .isRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false)
                 .recurringPattern(request.getRecurringPattern())
                 .tags(request.getTags())
+                .status(TransactionStatus.CONFIRMED)
                 .build();
 
         // Set category
@@ -83,20 +92,49 @@ public class TransactionService {
             transaction.setFamilyMember(member);
         }
 
-        // Handle transfer
-        if (request.getType() == TransactionType.TRANSFER) {
-            if (request.getToAccountId() == null) {
-                throw new BadRequestException("O'tkazma uchun qabul qiluvchi hisob kerak");
-            }
-            Account toAccount = accountRepository.findById(request.getToAccountId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
-            transaction.setToAccount(toAccount);
+        // Double-Entry mantiq
+        Account debitAccount;
+        Account creditAccount;
+
+        switch (request.getType()) {
+            case INCOME:
+                debitAccount = account; // Pul tushayotgan hisob
+                creditAccount = accountService.findTransitAccount(account.getCurrency(), true);
+                break;
+            case EXPENSE:
+                debitAccount = accountService.findTransitAccount(account.getCurrency(), false);
+                creditAccount = account; // Pul chiqayotgan hisob
+                break;
+            case TRANSFER:
+                if (request.getToAccountId() == null) {
+                    throw new BadRequestException("O'tkazma uchun qabul qiluvchi hisob kerak");
+                }
+                Account toAccount = accountRepository.findById(request.getToAccountId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                transaction.setToAccount(toAccount);
+                debitAccount = toAccount;   // Pul tushayotgan hisob
+                creditAccount = account;     // Pul chiqayotgan hisob
+                break;
+            default:
+                throw new BadRequestException("Noto'g'ri tranzaksiya turi: " + request.getType());
         }
 
-        // Update account balances
-        updateAccountBalances(request.getType(), account,
-                request.getToAccountId() != null ? accountRepository.findById(request.getToAccountId()).orElse(null) : null,
-                request.getAmount());
+        // Balance before snapshot
+        transaction.setDebitAccount(debitAccount);
+        transaction.setCreditAccount(creditAccount);
+        transaction.setBalanceBeforeDebit(debitAccount.getBalance());
+        transaction.setBalanceBeforeCredit(creditAccount.getBalance());
+
+        // Balanslarni yangilash
+        accountRepository.addToBalance(debitAccount.getId(), request.getAmount());
+        accountRepository.addToBalance(creditAccount.getId(), request.getAmount().negate());
+
+        // Balance after snapshot
+        transaction.setBalanceAfterDebit(debitAccount.getBalance().add(request.getAmount()));
+        transaction.setBalanceAfterCredit(creditAccount.getBalance().subtract(request.getAmount()));
+
+        // Eski balance update (backward compatibility)
+        // account va toAccount balanslar allaqachon debit/credit orqali yangilangan
 
         Transaction saved = transactionRepository.save(transaction);
 
@@ -105,6 +143,10 @@ public class TransactionService {
             checkBudgetWarning(request.getCategoryId(), request.getAmount());
         }
 
+        log.info("Tranzaksiya yaratildi: {} {} (debit: {}, credit: {})",
+                request.getType(), request.getAmount(),
+                debitAccount.getAccCode(), creditAccount.getAccCode());
+
         return toResponse(saved);
     }
 
@@ -112,9 +154,19 @@ public class TransactionService {
     public TransactionResponse update(Long id, TransactionRequest request) {
         Transaction existing = findById(id);
 
-        // Reverse old balance changes
-        reverseAccountBalances(existing.getType(), existing.getAccount(),
-                existing.getToAccount(), existing.getAmount());
+        if (existing.getStatus() == TransactionStatus.REVERSED) {
+            throw new BadRequestException("Storno qilingan tranzaksiyani o'zgartirib bo'lmaydi");
+        }
+
+        // Eski double-entry balanslarni qaytarish
+        if (existing.getDebitAccount() != null && existing.getCreditAccount() != null) {
+            accountRepository.addToBalance(existing.getDebitAccount().getId(), existing.getAmount().negate());
+            accountRepository.addToBalance(existing.getCreditAccount().getId(), existing.getAmount());
+        } else {
+            // Eski format (backward compatibility)
+            reverseAccountBalances(existing.getType(), existing.getAccount(),
+                    existing.getToAccount(), existing.getAmount());
+        }
 
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
@@ -140,27 +192,116 @@ public class TransactionService {
             existing.setFamilyMember(null);
         }
 
-        Account toAccount = null;
-        if (request.getType() == TransactionType.TRANSFER && request.getToAccountId() != null) {
-            toAccount = accountRepository.findById(request.getToAccountId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
-            existing.setToAccount(toAccount);
-        } else {
-            existing.setToAccount(null);
+        // Yangi double-entry mantiq
+        Account debitAccount;
+        Account creditAccount;
+
+        switch (request.getType()) {
+            case INCOME:
+                debitAccount = account;
+                creditAccount = accountService.findTransitAccount(account.getCurrency(), true);
+                break;
+            case EXPENSE:
+                debitAccount = accountService.findTransitAccount(account.getCurrency(), false);
+                creditAccount = account;
+                break;
+            case TRANSFER:
+                Account toAccount = null;
+                if (request.getToAccountId() != null) {
+                    toAccount = accountRepository.findById(request.getToAccountId())
+                            .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                    existing.setToAccount(toAccount);
+                } else {
+                    existing.setToAccount(null);
+                }
+                debitAccount = toAccount != null ? toAccount : account;
+                creditAccount = account;
+                break;
+            default:
+                throw new BadRequestException("Noto'g'ri tranzaksiya turi");
         }
 
-        // Apply new balance changes
-        updateAccountBalances(request.getType(), account, toAccount, request.getAmount());
+        existing.setDebitAccount(debitAccount);
+        existing.setCreditAccount(creditAccount);
+        existing.setBalanceBeforeDebit(debitAccount.getBalance());
+        existing.setBalanceBeforeCredit(creditAccount.getBalance());
+
+        // Yangi balanslarni qo'llash
+        accountRepository.addToBalance(debitAccount.getId(), request.getAmount());
+        accountRepository.addToBalance(creditAccount.getId(), request.getAmount().negate());
+
+        existing.setBalanceAfterDebit(debitAccount.getBalance().add(request.getAmount()));
+        existing.setBalanceAfterCredit(creditAccount.getBalance().subtract(request.getAmount()));
 
         return toResponse(transactionRepository.save(existing));
     }
 
+    /**
+     * Tranzaksiyani storno (reverse) qiladi.
+     * Asl tranzaksiya REVERSED holatga o'tadi va teskari REVERSAL tranzaksiya yaratiladi.
+     */
     @Transactional
-    public void delete(Long id) {
-        Transaction transaction = findById(id);
-        reverseAccountBalances(transaction.getType(), transaction.getAccount(),
-                transaction.getToAccount(), transaction.getAmount());
-        transactionRepository.delete(transaction);
+    public TransactionResponse reverse(Long id, String reason) {
+        Transaction original = findById(id);
+
+        if (original.getStatus() == TransactionStatus.REVERSED) {
+            throw new BadRequestException("Bu tranzaksiya allaqachon storno qilingan");
+        }
+
+        if (original.getType() == TransactionType.REVERSAL) {
+            throw new BadRequestException("Storno tranzaksiyasini qayta storno qilib bo'lmaydi");
+        }
+
+        // Teskari tranzaksiya yaratish
+        Transaction reversal = Transaction.builder()
+                .type(TransactionType.REVERSAL)
+                .amount(original.getAmount())
+                .account(original.getAccount())
+                .toAccount(original.getToAccount())
+                .transactionDate(LocalDateTime.now())
+                .description("STORNO: " + (reason != null ? reason : "") +
+                        " (Asl tranzaksiya #" + original.getId() + ")")
+                .status(TransactionStatus.CONFIRMED)
+                .originalTransaction(original)
+                .build();
+
+        // Double-entry: debit va credit teskari
+        if (original.getDebitAccount() != null && original.getCreditAccount() != null) {
+            reversal.setDebitAccount(original.getCreditAccount());  // Teskari
+            reversal.setCreditAccount(original.getDebitAccount());  // Teskari
+
+            Account revDebit = original.getCreditAccount();
+            Account revCredit = original.getDebitAccount();
+
+            reversal.setBalanceBeforeDebit(revDebit.getBalance());
+            reversal.setBalanceBeforeCredit(revCredit.getBalance());
+
+            // Balanslarni qaytarish
+            accountRepository.addToBalance(revDebit.getId(), original.getAmount());
+            accountRepository.addToBalance(revCredit.getId(), original.getAmount().negate());
+
+            reversal.setBalanceAfterDebit(revDebit.getBalance().add(original.getAmount()));
+            reversal.setBalanceAfterCredit(revCredit.getBalance().subtract(original.getAmount()));
+        } else {
+            // Eski format tranzaksiyalar uchun backward compatibility
+            reverseAccountBalances(original.getType(), original.getAccount(),
+                    original.getToAccount(), original.getAmount());
+        }
+
+        // Category va family member ni ko'chirish
+        reversal.setCategory(original.getCategory());
+        reversal.setFamilyMember(original.getFamilyMember());
+
+        Transaction savedReversal = transactionRepository.save(reversal);
+
+        // Asl tranzaksiyani REVERSED ga o'zgartirish
+        original.setStatus(TransactionStatus.REVERSED);
+        original.setReversedBy(savedReversal);
+        transactionRepository.save(original);
+
+        log.info("Tranzaksiya storno qilindi: #{} -> #{}", original.getId(), savedReversal.getId());
+
+        return toResponse(savedReversal);
     }
 
     @Transactional(readOnly = true)
@@ -175,23 +316,6 @@ public class TransactionService {
         LocalDateTime from = LocalDateTime.of(year, month, 1, 0, 0);
         LocalDateTime to = from.plusMonths(1).minusSeconds(1);
         return transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, from, to);
-    }
-
-    private void updateAccountBalances(TransactionType type, Account account, Account toAccount, BigDecimal amount) {
-        switch (type) {
-            case INCOME:
-                accountRepository.addToBalance(account.getId(), amount);
-                break;
-            case EXPENSE:
-                accountRepository.addToBalance(account.getId(), amount.negate());
-                break;
-            case TRANSFER:
-                accountRepository.addToBalance(account.getId(), amount.negate());
-                if (toAccount != null) {
-                    accountRepository.addToBalance(toAccount.getId(), amount);
-                }
-                break;
-        }
     }
 
     private void reverseAccountBalances(TransactionType type, Account account, Account toAccount, BigDecimal amount) {
@@ -253,6 +377,7 @@ public class TransactionService {
         r.setRecurringPattern(t.getRecurringPattern());
         r.setTags(t.getTags());
         r.setCreatedAt(t.getCreatedAt());
+        r.setStatus(t.getStatus() != null ? t.getStatus().name() : "CONFIRMED");
 
         if (t.getAccount() != null) {
             r.setAccountId(t.getAccount().getId());
@@ -262,6 +387,16 @@ public class TransactionService {
             r.setToAccountId(t.getToAccount().getId());
             r.setToAccountName(t.getToAccount().getName());
         }
+        if (t.getDebitAccount() != null) {
+            r.setDebitAccountId(t.getDebitAccount().getId());
+            r.setDebitAccountName(t.getDebitAccount().getName());
+            r.setDebitAccCode(t.getDebitAccount().getAccCode());
+        }
+        if (t.getCreditAccount() != null) {
+            r.setCreditAccountId(t.getCreditAccount().getId());
+            r.setCreditAccountName(t.getCreditAccount().getName());
+            r.setCreditAccCode(t.getCreditAccount().getAccCode());
+        }
         if (t.getCategory() != null) {
             r.setCategoryId(t.getCategory().getId());
             r.setCategoryName(t.getCategory().getName());
@@ -270,6 +405,16 @@ public class TransactionService {
             r.setFamilyMemberId(t.getFamilyMember().getId());
             r.setFamilyMemberName(t.getFamilyMember().getFullName());
         }
+
+        r.setBalanceBeforeDebit(t.getBalanceBeforeDebit());
+        r.setBalanceAfterDebit(t.getBalanceAfterDebit());
+        r.setBalanceBeforeCredit(t.getBalanceBeforeCredit());
+        r.setBalanceAfterCredit(t.getBalanceAfterCredit());
+
+        if (t.getOriginalTransaction() != null) {
+            r.setOriginalTransactionId(t.getOriginalTransaction().getId());
+        }
+
         return r;
     }
 }

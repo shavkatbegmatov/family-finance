@@ -21,6 +21,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
                     "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
                     "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
+                    "(:status IS NULL OR t.status = :status) AND " +
                     "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
                     "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)",
             countQuery = "SELECT COUNT(t) FROM Transaction t WHERE " +
@@ -28,6 +29,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
                     "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
                     "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
+                    "(:status IS NULL OR t.status = :status) AND " +
                     "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
                     "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)"
     )
@@ -38,6 +40,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("memberId") Long memberId,
             @Param("fromDate") LocalDateTime from,
             @Param("toDate") LocalDateTime to,
+            @Param("status") String status,
             Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND " +
@@ -68,4 +71,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     BigDecimal sumExpenseByMemberAndDateRange(@Param("memberId") Long memberId,
                                                @Param("from") LocalDateTime from,
                                                @Param("to") LocalDateTime to);
+
+    List<Transaction> findByOriginalTransactionId(Long originalTransactionId);
 }

@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uz.familyfinance.api.dto.request.ReverseTransactionRequest;
 import uz.familyfinance.api.dto.request.TransactionRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
@@ -67,10 +68,11 @@ public class TransactionController {
         return ResponseEntity.ok(ApiResponse.success(transactionService.update(id, request)));
     }
 
-    @DeleteMapping("/{id}")
-    @RequiresPermission(PermissionCode.TRANSACTIONS_DELETE)
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        transactionService.delete(id);
-        return ResponseEntity.ok(ApiResponse.success(null));
+    @PostMapping("/{id}/reverse")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_REVERSE)
+    public ResponseEntity<ApiResponse<TransactionResponse>> reverse(
+            @PathVariable Long id,
+            @Valid @RequestBody ReverseTransactionRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(transactionService.reverse(id, request.getReason())));
     }
 }
