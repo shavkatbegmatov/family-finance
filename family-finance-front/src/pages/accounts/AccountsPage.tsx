@@ -9,6 +9,8 @@ import {
   Trash2,
   X,
   ArrowRightLeft,
+  Clock,
+  Landmark,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -30,6 +32,8 @@ const ACCOUNT_ICONS: Record<AccountType, typeof Wallet> = {
   BANK_CARD: CreditCard,
   SAVINGS: PiggyBank,
   E_WALLET: Smartphone,
+  TERM_DEPOSIT: Clock,
+  CREDIT: Landmark,
 };
 
 const DEFAULT_COLORS = [

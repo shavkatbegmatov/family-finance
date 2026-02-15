@@ -42,12 +42,15 @@ export const ACCOUNT_TYPES = {
   BANK_CARD: { label: 'Bank kartasi', value: 'BANK_CARD' },
   SAVINGS: { label: "Jamg'arma", value: 'SAVINGS' },
   E_WALLET: { label: 'Elektron hamyon', value: 'E_WALLET' },
+  TERM_DEPOSIT: { label: 'Muddatli depozit', value: 'TERM_DEPOSIT' },
+  CREDIT: { label: 'Kredit', value: 'CREDIT' },
 } as const;
 
 export const TRANSACTION_TYPES = {
   INCOME: { label: 'Daromad', value: 'INCOME', color: 'text-success' },
   EXPENSE: { label: 'Xarajat', value: 'EXPENSE', color: 'text-error' },
   TRANSFER: { label: "O'tkazma", value: 'TRANSFER', color: 'text-info' },
+  REVERSAL: { label: 'Storno', value: 'REVERSAL', color: 'text-warning' },
 } as const;
 
 export const FAMILY_ROLES = {
