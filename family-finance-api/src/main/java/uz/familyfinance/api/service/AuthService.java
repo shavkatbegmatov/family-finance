@@ -179,10 +179,15 @@ public class AuthService {
             // Check if user must change password
             Boolean mustChangePassword = Boolean.TRUE.equals(userDetails.getUser().getMustChangePassword());
 
+            // Resolve familyMemberId
+            Long familyMemberId = familyMemberRepository.findByUserId(userId)
+                    .map(FamilyMember::getId)
+                    .orElse(null);
+
             return JwtResponse.builder()
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
-                    .user(UserResponse.from(userDetails.getUser()))
+                    .user(UserResponse.from(userDetails.getUser(), familyMemberId))
                     .permissions(userDetails.getPermissions())
                     .roles(userDetails.getRoleCodes())
                     .requiresPasswordChange(mustChangePassword)
@@ -235,10 +240,14 @@ public class AuthService {
             );
             String newRefreshToken = tokenProvider.generateStaffRefreshToken(username, user.getId());
 
+            Long familyMemberId = familyMemberRepository.findByUserId(user.getId())
+                    .map(FamilyMember::getId)
+                    .orElse(null);
+
             return JwtResponse.builder()
                     .accessToken(newAccessToken)
                     .refreshToken(newRefreshToken)
-                    .user(UserResponse.from(user))
+                    .user(UserResponse.from(user, familyMemberId))
                     .permissions(userDetails.getPermissions())
                     .roles(userDetails.getRoleCodes())
                     .build();
@@ -249,6 +258,12 @@ public class AuthService {
     public UserResponse getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return UserResponse.from(userDetails.getUser());
+        User user = userDetails.getUser();
+
+        Long familyMemberId = familyMemberRepository.findByUserId(user.getId())
+                .map(FamilyMember::getId)
+                .orElse(null);
+
+        return UserResponse.from(user, familyMemberId);
     }
 }

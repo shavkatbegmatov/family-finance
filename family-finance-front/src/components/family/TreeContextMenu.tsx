@@ -9,6 +9,7 @@ import {
   Eye,
   Trash2,
   Settings2,
+  KeyRound,
 } from 'lucide-react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
@@ -97,6 +98,19 @@ export function TreeContextMenu() {
             'Tahrirlash',
             () => openModal({ type: 'editPerson', personId: contextMenu.personId! })
           )}
+
+          {/* Create account — faqat akkauntisiz a'zolarga */}
+          {!contextMenu.personUserId &&
+            menuItem(
+              <KeyRound className="h-4 w-4 text-base-content/60" />,
+              'Akkaunt yaratish',
+              () =>
+                openModal({
+                  type: 'createAccount',
+                  personId: contextMenu.personId!,
+                  personName: contextMenu.personName || '',
+                })
+            )}
 
           {/* Add spouse */}
           {menuItem(

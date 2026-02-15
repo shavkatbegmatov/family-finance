@@ -1,6 +1,7 @@
-import { Search, Eye, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Search, Eye, ZoomIn, ZoomOut, Maximize2, Locate } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
+import { useAuthStore } from '../../store/authStore';
 import { useActivePersonsQuery } from '../../hooks/useFamilyTreeQueries';
 
 export function FamilyTreeToolbar() {
@@ -14,6 +15,18 @@ export function FamilyTreeToolbar() {
 
   const { data: activePersons } = useActivePersonsQuery();
   const reactFlow = useReactFlow();
+  const currentUser = useAuthStore(s => s.user);
+  const setRootPersonId = useFamilyTreeStore(s => s.setRootPersonId);
+
+  const handleFindMe = () => {
+    if (currentUser?.familyMemberId) {
+      setRootPersonId(currentUser.familyMemberId);
+      setViewerPersonId(currentUser.familyMemberId);
+      setTimeout(() => {
+        reactFlow.fitView({ duration: 300, padding: 0.2 });
+      }, 100);
+    }
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/50 rounded-lg">
@@ -84,8 +97,18 @@ export function FamilyTreeToolbar() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Zoom controls */}
+      {/* Find me + Zoom controls */}
       <div className="flex items-center gap-1">
+        {currentUser?.familyMemberId && (
+          <button
+            className="btn btn-ghost btn-xs gap-1"
+            onClick={handleFindMe}
+            title="Meni top"
+          >
+            <Locate className="h-3.5 w-3.5" />
+            <span className="text-xs hidden sm:inline">Meni top</span>
+          </button>
+        )}
         <button
           className="btn btn-ghost btn-xs btn-square"
           onClick={() => reactFlow.zoomOut({ duration: 200 })}

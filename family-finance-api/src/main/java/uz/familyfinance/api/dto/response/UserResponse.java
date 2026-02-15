@@ -19,8 +19,13 @@ public class UserResponse {
     private String role; // Changed from Role enum to String to support custom roles
     private Boolean active;
     private Boolean mustChangePassword;
+    private Long familyMemberId;
 
     public static UserResponse from(User user) {
+        return from(user, null);
+    }
+
+    public static UserResponse from(User user, Long familyMemberId) {
         // Get role from new RBAC system (roles collection), fallback to legacy role field
         String roleCode;
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
@@ -42,6 +47,7 @@ public class UserResponse {
                 .role(roleCode)
                 .active(user.getActive())
                 .mustChangePassword(user.getMustChangePassword())
+                .familyMemberId(familyMemberId)
                 .build();
     }
 }

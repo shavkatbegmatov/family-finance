@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import type { PersonNodeData } from '../../../../types';
 import type { Gender } from '../../../../types';
 import { useFamilyTreeStore } from '../../../../store/familyTreeStore';
+import { useAuthStore } from '../../../../store/authStore';
 
 const getGenderGradient = (gender?: Gender | null) => {
   switch (gender) {
@@ -41,6 +42,8 @@ function PersonNodeComponent({ data }: NodeProps) {
   const { person, isRoot, label } = nodeData;
   const openModal = useFamilyTreeStore(s => s.openModal);
   const openContextMenu = useFamilyTreeStore(s => s.openContextMenu);
+  const currentUser = useAuthStore(s => s.user);
+  const isCurrentUser = currentUser?.familyMemberId === person.id;
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -117,6 +120,13 @@ function PersonNodeComponent({ data }: NodeProps) {
           </div>
         )}
       </div>
+
+      {/* "Siz" indicator */}
+      {isCurrentUser && (
+        <div className="absolute -top-3 right-2 px-1.5 py-0.5 bg-success text-success-content text-[10px] font-bold rounded-full z-10">
+          Siz
+        </div>
+      )}
 
       {/* Root indicator */}
       {isRoot && (

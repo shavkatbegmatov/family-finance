@@ -8,6 +8,7 @@ export interface User {
   role: string;
   active: boolean;
   mustChangePassword?: boolean;
+  familyMemberId?: number;
 }
 
 export interface LoginRequest {

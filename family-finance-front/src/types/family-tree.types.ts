@@ -121,4 +121,5 @@ export type FamilyTreeModal =
   | { type: 'deleteFamilyUnit'; familyUnitId: number }
   | { type: 'personDetail'; personId: number }
   | { type: 'addParents'; personId: number }
+  | { type: 'createAccount'; personId: number; personName: string }
   | null;

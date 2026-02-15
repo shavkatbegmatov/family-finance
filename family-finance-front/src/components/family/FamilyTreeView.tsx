@@ -37,12 +37,21 @@ export function FamilyTreeView() {
   const error = isLabeled ? labeledQuery.error : treeQuery.error;
   const refetch = isLabeled ? labeledQuery.refetch : treeQuery.refetch;
 
+  const user = useAuthStore((s) => s.user);
+
   // Set rootPersonId from initial tree data
   useEffect(() => {
     if (treeQuery.data?.rootPersonId && !rootPersonId) {
       useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
     }
   }, [treeQuery.data?.rootPersonId, rootPersonId]);
+
+  // Viewer avtomatik tanlash — labeled tree (qarindoshlik labellari) yoqiladi
+  useEffect(() => {
+    if (!viewerPersonId && user?.familyMemberId) {
+      useFamilyTreeStore.getState().setViewerPersonId(user.familyMemberId);
+    }
+  }, [viewerPersonId, user?.familyMemberId]);
 
   if (isLoading) {
     return (
