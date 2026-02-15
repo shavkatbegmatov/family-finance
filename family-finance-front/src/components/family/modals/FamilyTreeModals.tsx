@@ -9,6 +9,7 @@ import { EditFamilyUnitModal } from './EditFamilyUnitModal';
 import { DeletePersonModal } from './DeletePersonModal';
 import { DeleteFamilyUnitModal } from './DeleteFamilyUnitModal';
 import { PersonDetailPanel } from './PersonDetailPanel';
+import { CreateAccountModal } from './CreateAccountModal';
 
 export function FamilyTreeModals() {
   const { activeModal, closeModal } = useFamilyTreeStore();
@@ -115,6 +116,17 @@ export function FamilyTreeModals() {
           isOpen
           personId={activeModal.personId}
           onClose={closeModal}
+        />
+      );
+
+    case 'createAccount':
+      return (
+        <CreateAccountModal
+          isOpen
+          personId={activeModal.personId}
+          personName={activeModal.personName}
+          onClose={closeModal}
+          onSuccess={handleSuccess}
         />
       );
 

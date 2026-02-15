@@ -132,11 +132,27 @@ public class FamilyMemberService {
             User user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
             member.setUser(user);
-        } else {
+        } else if (!Boolean.TRUE.equals(request.getCreateAccount())) {
+            // Faqat createAccount bo'lmaganda user ni null qilish
             member.setUser(null);
         }
 
-        return toResponse(familyMemberRepository.save(member));
+        FamilyMember saved = familyMemberRepository.save(member);
+
+        // Akkaunt yaratish (update orqali ham)
+        if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
+            String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
+                    ? request.getAccountRole() : "MEMBER";
+            CredentialsInfo credentials = userService.createUserForFamilyMember(
+                    saved, roleCode, request.getAccountPassword());
+            User createdUser = userRepository.findByUsername(credentials.getUsername())
+                    .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
+            saved.setUser(createdUser);
+            familyMemberRepository.save(saved);
+            return toResponse(saved, credentials);
+        }
+
+        return toResponse(saved);
     }
 
     @Transactional
