@@ -68,6 +68,10 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     }
   }, [openModal]);
 
+  const handleMoveEnd = useCallback((_event: unknown, viewport: Viewport) => {
+    savedViewport.current = viewport;
+  }, []);
+
   if (isLayouting) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -75,10 +79,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       </div>
     );
   }
-
-  const handleMoveEnd = useCallback((_event: unknown, viewport: Viewport) => {
-    savedViewport.current = viewport;
-  }, []);
 
   return (
     <ReactFlow
