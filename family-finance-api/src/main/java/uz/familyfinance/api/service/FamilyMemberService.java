@@ -104,11 +104,38 @@ public class FamilyMemberService {
             throw new ConflictException("Siz allaqachon oila a'zosiga bog'langansiz");
         });
 
+        // Ismni parse qilish (fullName bitta fieldda kelishi mumkin)
+        String rawName = request.getFirstName().trim();
+        String parsedFirstName = rawName;
+        String parsedLastName = request.getLastName();
+        if (rawName.contains(" ") && (parsedLastName == null || parsedLastName.isBlank())) {
+            String[] parts = rawName.split("\\s+", 2);
+            parsedFirstName = parts[0];
+            parsedLastName = parts[1];
+        }
+
+        // Shajarada mavjud bo'lgan bog'lanmagan member'ni qidirish
+        List<FamilyMember> candidates = familyMemberRepository
+                .findUnlinkedMembersWithRelationships(parsedFirstName, request.getGender());
+
+        if (!candidates.isEmpty()) {
+            FamilyMember existing = candidates.get(0);
+            existing.setUser(currentUser);
+            if (parsedLastName != null) existing.setLastName(parsedLastName);
+            if (request.getMiddleName() != null) existing.setMiddleName(request.getMiddleName());
+            FamilyMember saved = familyMemberRepository.save(existing);
+            currentUser.setFullName(saved.getDisplayName());
+            userRepository.save(currentUser);
+            log.info("User {} linked to existing member {} (auto-matched)", username, saved.getId());
+            return toResponse(saved);
+        }
+
+        // Mavjud hech kim topilmasa — yangi yaratish
         FamilyRole role = request.getGender() == Gender.MALE ? FamilyRole.FATHER : FamilyRole.MOTHER;
 
         FamilyMember member = FamilyMember.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
+                .firstName(parsedFirstName)
+                .lastName(parsedLastName)
                 .middleName(request.getMiddleName())
                 .gender(request.getGender())
                 .role(role)
