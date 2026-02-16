@@ -145,10 +145,8 @@ public class FamilyMemberService {
             User user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
             member.setUser(user);
-        } else if (!Boolean.TRUE.equals(request.getCreateAccount())) {
-            // Faqat createAccount bo'lmaganda user ni null qilish
-            member.setUser(null);
         }
+        // userId yuborilmagan bo'lsa — mavjud bog'lanishni saqlab qolish
 
         FamilyMember saved = familyMemberRepository.save(member);
 
