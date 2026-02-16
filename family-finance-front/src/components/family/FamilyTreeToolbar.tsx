@@ -1,12 +1,13 @@
-import { Search, Eye, ZoomIn, ZoomOut, Maximize2, Locate } from 'lucide-react';
+import { useMemo } from 'react';
+import { Eye, ZoomIn, ZoomOut, Maximize2, Locate } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
 import { useActivePersonsQuery } from '../../hooks/useFamilyTreeQueries';
+import { ComboBox, type ComboBoxOption } from '../ui/ComboBox';
 
 export function FamilyTreeToolbar() {
   const {
-    searchQuery, setSearchQuery,
     viewerPersonId, setViewerPersonId,
     showDeceased, setShowDeceased,
     genderFilter, setGenderFilter,
@@ -18,62 +19,75 @@ export function FamilyTreeToolbar() {
   const currentUser = useAuthStore(s => s.user);
   const setRootPersonId = useFamilyTreeStore(s => s.setRootPersonId);
 
-  const handleFindMe = () => {
-    if (!currentUser?.familyMemberId) return;
+  const personOptions = useMemo(() => {
+    const opts: ComboBoxOption[] = [];
 
-    const nodeId = `person_${currentUser.familyMemberId}`;
+    // "O'zim" — pinned, faqat user familyMemberId bo'lsa
+    if (currentUser?.familyMemberId) {
+      opts.push({
+        value: currentUser.familyMemberId,
+        label: `O'zim (${currentUser.fullName})`,
+        pinned: true,
+        icon: <Locate className="h-3.5 w-3.5" />,
+      });
+    }
+
+    // Barcha a'zolar
+    activePersons?.forEach(p => {
+      opts.push({ value: p.id, label: p.fullName });
+    });
+
+    return opts;
+  }, [activePersons, currentUser?.familyMemberId, currentUser?.fullName]);
+
+  const centerOnNode = (nodeId: string) => {
     const node = reactFlow.getNode(nodeId);
-
     if (node) {
-      // Node allaqachon daraxtda bor — markazga olib kelish
       const x = node.position.x + (node.measured?.width ?? 200) / 2;
       const y = node.position.y + (node.measured?.height ?? 140) / 2;
       reactFlow.setCenter(x, y, { zoom: 1, duration: 500 });
-    } else {
-      // Node yo'q — root o'zgartirib, layout dan keyin markazlash
-      setRootPersonId(currentUser.familyMemberId);
-      setViewerPersonId(currentUser.familyMemberId);
+      return true;
+    }
+    return false;
+  };
+
+  const handlePersonSelect = (val: string | number | undefined) => {
+    const personId = val ? Number(val) : undefined;
+    setViewerPersonId(personId ?? null);
+
+    if (!personId) return;
+
+    const nodeId = `person_${personId}`;
+
+    if (!centerOnNode(nodeId)) {
+      // Node daraxtda yo'q — root o'zgartirib, keyin markazlash
+      setRootPersonId(personId);
       setTimeout(() => {
-        const n = reactFlow.getNode(nodeId);
-        if (n) {
-          const x = n.position.x + (n.measured?.width ?? 200) / 2;
-          const y = n.position.y + (n.measured?.height ?? 140) / 2;
-          reactFlow.setCenter(x, y, { zoom: 1, duration: 500 });
-        } else {
+        if (!centerOnNode(nodeId)) {
           reactFlow.fitView({ duration: 300, padding: 0.2 });
         }
       }, 300);
     }
   };
 
+  const handleFindMe = () => {
+    if (!currentUser?.familyMemberId) return;
+    handlePersonSelect(currentUser.familyMemberId);
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/50 rounded-lg">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-base-content/40" />
-        <input
-          type="text"
-          className="input input-sm input-bordered pl-8 w-40"
-          placeholder="Qidirish..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {/* Viewer selector */}
-      <div className="flex items-center gap-1.5">
-        <Eye className="h-3.5 w-3.5 text-base-content/50" />
-        <select
-          className="select select-sm select-bordered"
-          value={viewerPersonId ?? ''}
-          onChange={(e) => setViewerPersonId(e.target.value ? Number(e.target.value) : null)}
-        >
-          <option value="">Kim sifatida</option>
-          {activePersons?.map(p => (
-            <option key={p.id} value={p.id}>{p.fullName}</option>
-          ))}
-        </select>
-      </div>
+      {/* Viewer selector — ComboBox */}
+      <ComboBox
+        size="sm"
+        icon={<Eye className="h-3.5 w-3.5" />}
+        placeholder="Oila a'zosini tanlang"
+        searchPlaceholder="Ism bo'yicha qidirish..."
+        value={viewerPersonId ?? undefined}
+        onChange={handlePersonSelect}
+        options={personOptions}
+        allowClear
+      />
 
       {/* Depth slider */}
       <div className="flex items-center gap-1.5">
