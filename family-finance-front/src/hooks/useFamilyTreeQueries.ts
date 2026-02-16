@@ -208,7 +208,7 @@ export function useUpdateSelf() {
 export function useRegisterSelf() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { firstName: string; gender: string }) =>
+    mutationFn: (data: { firstName: string; lastName?: string; gender: string }) =>
       familyUnitApi.registerSelf(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });

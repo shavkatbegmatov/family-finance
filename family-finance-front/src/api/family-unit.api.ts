@@ -63,7 +63,7 @@ export const familyUnitApi = {
   createPerson: (data: FamilyMemberRequest) =>
     axiosInstance.post('/v1/family-members', data),
 
-  registerSelf: (data: { firstName: string; gender: string }) =>
+  registerSelf: (data: { firstName: string; lastName?: string; gender: string }) =>
     axiosInstance.post('/v1/family-members/register-self', data),
 
   updatePerson: (id: number, data: FamilyMemberRequest) =>

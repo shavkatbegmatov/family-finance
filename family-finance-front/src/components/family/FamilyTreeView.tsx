@@ -138,7 +138,13 @@ export function FamilyTreeView() {
 
 function RegisterSelfForm() {
   const user = useAuthStore((s) => s.user);
-  const [firstName, setFirstName] = useState(user?.fullName ?? '');
+
+  // fullName format: "Familiya Ism" — birinchi so'z = lastName, qolgani = firstName
+  const nameParts = (user?.fullName ?? '').trim().split(/\s+/);
+  const [lastName, setLastName] = useState(nameParts.length > 1 ? nameParts[0] : '');
+  const [firstName, setFirstName] = useState(
+    nameParts.length > 1 ? nameParts.slice(1).join(' ') : nameParts[0] || ''
+  );
   const [gender, setGender] = useState('');
   const registerSelf = useRegisterSelf();
 
@@ -152,7 +158,11 @@ function RegisterSelfForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName.trim() || !gender) return;
-    registerSelf.mutate({ firstName: firstName.trim(), gender });
+    registerSelf.mutate({
+      firstName: firstName.trim(),
+      lastName: lastName.trim() || undefined,
+      gender,
+    });
   };
 
   return (
@@ -168,6 +178,20 @@ function RegisterSelfForm() {
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
         <div className="form-control">
           <label className="label">
+            <span className="label-text">Familiya</span>
+          </label>
+          <input
+            type="text"
+            className="input input-bordered w-full"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Begmatova"
+            maxLength={100}
+          />
+        </div>
+
+        <div className="form-control">
+          <label className="label">
             <span className="label-text">Ism</span>
           </label>
           <input
@@ -175,6 +199,7 @@ function RegisterSelfForm() {
             className="input input-bordered w-full"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Gulnora"
             maxLength={100}
             required
           />
