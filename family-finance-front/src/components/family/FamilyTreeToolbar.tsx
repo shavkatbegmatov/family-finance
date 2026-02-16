@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Search, Eye, ZoomIn, ZoomOut, Maximize2, Locate } from 'lucide-react';
+import { Eye, ZoomIn, ZoomOut, Maximize2, Locate } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
@@ -8,7 +8,6 @@ import { ComboBox, type ComboBoxOption } from '../ui/ComboBox';
 
 export function FamilyTreeToolbar() {
   const {
-    searchQuery, setSearchQuery,
     viewerPersonId, setViewerPersonId,
     showDeceased, setShowDeceased,
     genderFilter, setGenderFilter,
@@ -78,18 +77,6 @@ export function FamilyTreeToolbar() {
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/50 rounded-lg">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-base-content/40" />
-        <input
-          type="text"
-          className="input input-sm input-bordered pl-8 w-40"
-          placeholder="Qidirish..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
       {/* Viewer selector — ComboBox */}
       <ComboBox
         size="sm"

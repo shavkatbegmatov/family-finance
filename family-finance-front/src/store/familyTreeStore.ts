@@ -29,7 +29,6 @@ interface FamilyTreeState {
   activeModal: FamilyTreeModal;
 
   // Filters
-  searchQuery: string;
   showDeceased: boolean;
   genderFilter: 'ALL' | 'MALE' | 'FEMALE';
 
@@ -44,7 +43,6 @@ interface FamilyTreeState {
   closeContextMenu: () => void;
   openModal: (modal: FamilyTreeModal) => void;
   closeModal: () => void;
-  setSearchQuery: (query: string) => void;
   setShowDeceased: (show: boolean) => void;
   setGenderFilter: (filter: 'ALL' | 'MALE' | 'FEMALE') => void;
   resetFilters: () => void;
@@ -59,7 +57,6 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   selectedFamilyUnitId: null,
   contextMenu: null,
   activeModal: null,
-  searchQuery: '',
   showDeceased: true,
   genderFilter: 'ALL',
 
@@ -73,8 +70,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   closeContextMenu: () => set({ contextMenu: null }),
   openModal: (modal) => set({ activeModal: modal, contextMenu: null }),
   closeModal: () => set({ activeModal: null }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
   setShowDeceased: (show) => set({ showDeceased: show }),
   setGenderFilter: (filter) => set({ genderFilter: filter }),
-  resetFilters: () => set({ searchQuery: '', showDeceased: true, genderFilter: 'ALL' }),
+  resetFilters: () => set({ showDeceased: true, genderFilter: 'ALL' }),
 }));
