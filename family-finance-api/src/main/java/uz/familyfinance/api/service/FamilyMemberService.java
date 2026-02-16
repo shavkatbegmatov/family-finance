@@ -104,6 +104,24 @@ public class FamilyMemberService {
             throw new ConflictException("Siz allaqachon oila a'zosiga bog'langansiz");
         });
 
+        // Shajarada mavjud bo'lgan bog'lanmagan member'ni qidirish
+        List<FamilyMember> candidates = familyMemberRepository
+                .findUnlinkedMembersWithRelationships(
+                        request.getFirstName().trim(), request.getGender());
+
+        if (!candidates.isEmpty()) {
+            FamilyMember existing = candidates.get(0);
+            existing.setUser(currentUser);
+            if (request.getLastName() != null) existing.setLastName(request.getLastName());
+            if (request.getMiddleName() != null) existing.setMiddleName(request.getMiddleName());
+            FamilyMember saved = familyMemberRepository.save(existing);
+            currentUser.setFullName(saved.getDisplayName());
+            userRepository.save(currentUser);
+            log.info("User {} linked to existing member {} (auto-matched)", username, saved.getId());
+            return toResponse(saved);
+        }
+
+        // Mavjud hech kim topilmasa — yangi yaratish
         FamilyRole role = request.getGender() == Gender.MALE ? FamilyRole.FATHER : FamilyRole.MOTHER;
 
         FamilyMember member = FamilyMember.builder()
