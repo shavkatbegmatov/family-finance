@@ -175,27 +175,27 @@ export function ReportsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="tabs tabs-boxed w-fit">
+      <div className="tabs tabs-boxed w-full overflow-x-auto sm:w-fit">
         <button
           className={clsx('tab gap-2', activeTab === 'income-expense' && 'tab-active')}
           onClick={() => setActiveTab('income-expense')}
         >
           <BarChart3 className="h-4 w-4" />
-          Daromad/Xarajat
+          <span className="hidden sm:inline">Daromad/Xarajat</span>
         </button>
         <button
           className={clsx('tab gap-2', activeTab === 'category' && 'tab-active')}
           onClick={() => setActiveTab('category')}
         >
           <PieChart className="h-4 w-4" />
-          Kategoriya
+          <span className="hidden sm:inline">Kategoriya</span>
         </button>
         <button
           className={clsx('tab gap-2', activeTab === 'member' && 'tab-active')}
           onClick={() => setActiveTab('member')}
         >
           <Users className="h-4 w-4" />
-          Oila a'zolari
+          <span className="hidden sm:inline">Oila a'zolari</span>
         </button>
       </div>
 
@@ -405,7 +405,9 @@ export function ReportsPage() {
                 {/* Category Table */}
                 <div className="surface-card p-6">
                   <h2 className="mb-4 text-lg font-semibold">Kategoriya bo'yicha tafsilot</h2>
-                  <div className="overflow-x-auto">
+
+                  {/* Desktop table */}
+                  <div className="hidden overflow-x-auto sm:block">
                     <table className="table table-sm">
                       <thead>
                         <tr>
@@ -439,6 +441,29 @@ export function ReportsPage() {
                         </tr>
                       </tfoot>
                     </table>
+                  </div>
+
+                  {/* Mobile card view */}
+                  <div className="space-y-2 sm:hidden">
+                    {sortedCategories.map((cat, index) => (
+                      <div key={cat.categoryId} className="flex items-center gap-3 rounded-xl border border-base-200 p-3">
+                        <div
+                          className="h-3 w-3 shrink-0 rounded-full"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">{cat.categoryName}</p>
+                          <p className="text-sm text-base-content/60">
+                            {formatCurrency(cat.amount)}
+                            <span className="ml-2 text-base-content/40">{cat.percentage.toFixed(1)}%</span>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between rounded-xl bg-base-200/50 px-3 py-2 font-bold">
+                      <span>Jami</span>
+                      <span>{formatCurrency(totalCategoryAmount)}</span>
+                    </div>
                   </div>
                 </div>
               </>
@@ -496,7 +521,9 @@ export function ReportsPage() {
                 {/* Member Table */}
                 <div className="surface-card p-6">
                   <h2 className="mb-4 text-lg font-semibold">Oila a'zolari bo'yicha tafsilot</h2>
-                  <div className="overflow-x-auto">
+
+                  {/* Desktop table */}
+                  <div className="hidden overflow-x-auto sm:block">
                     <table className="table table-sm">
                       <thead>
                         <tr>
@@ -524,6 +551,28 @@ export function ReportsPage() {
                         </tr>
                       </tfoot>
                     </table>
+                  </div>
+
+                  {/* Mobile card view */}
+                  <div className="space-y-2 sm:hidden">
+                    {members.map((member, index) => (
+                      <div key={member.memberId} className="flex items-center gap-3 rounded-xl border border-base-200 p-3">
+                        <div
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-primary-content"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        >
+                          {member.memberName.charAt(0)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">{member.memberName}</p>
+                          <p className="text-sm text-base-content/60">{formatCurrency(member.totalExpense)}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between rounded-xl bg-base-200/50 px-3 py-2 font-bold">
+                      <span>Jami</span>
+                      <span>{formatCurrency(members.reduce((sum, m) => sum + m.totalExpense, 0))}</span>
+                    </div>
                   </div>
                 </div>
               </>

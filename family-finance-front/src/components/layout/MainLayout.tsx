@@ -6,6 +6,7 @@ import { useCrossTabSync } from '../../hooks/useCrossTabSync';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { BottomNav } from './BottomNav';
 import { PasswordChangeModal } from '../common/PasswordChangeModal';
 
 export function MainLayout() {
@@ -44,10 +45,11 @@ export function MainLayout() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-6 lg:px-8" style={{ scrollbarGutter: 'stable' }}>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-20 pt-6 lg:px-8 lg:pb-6" style={{ scrollbarGutter: 'stable' }}>
           <Outlet />
         </main>
         <Footer />
+        <BottomNav />
       </div>
 
       {/* Password Change Modal - shows if user mustChangePassword */}

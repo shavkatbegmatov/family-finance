@@ -18,21 +18,9 @@ export function Footer() {
   };
 
   return (
-    <footer className="shrink-0 border-t border-base-200/60 bg-base-100/90 backdrop-blur-sm">
-      {/* Mobile Footer - Compact */}
-      <div className="flex items-center justify-between px-4 py-2 lg:hidden">
-        <div className="flex items-center gap-2">
-          <Circle className="h-1.5 w-1.5 fill-success text-success" />
-          <span className="text-[10px] text-base-content/50">© {year} Family Finance</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] tabular-nums text-base-content/40">{formatTime(currentTime)}</span>
-          <span className="rounded bg-base-200/80 px-1.5 py-0.5 text-[10px] font-medium text-primary">v1.0</span>
-        </div>
-      </div>
-
-      {/* Desktop Footer - Full */}
-      <div className="hidden px-6 py-2.5 lg:block">
+    <footer className="hidden shrink-0 border-t border-base-200/60 bg-base-100/90 backdrop-blur-sm lg:block">
+      {/* Desktop Footer */}
+      <div className="px-6 py-2.5">
         <div className="flex items-center justify-between">
           {/* Left section - Brand & Copyright */}
           <div className="flex items-center gap-4">

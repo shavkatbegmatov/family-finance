@@ -532,54 +532,96 @@ export function DashboardPage() {
       {/* Recent Transactions */}
       <ChartCard title="Oxirgi tranzaksiyalar" icon={ArrowLeftRight}>
         {recentTransactions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="table table-sm w-full">
-              <thead>
-                <tr>
-                  <th>Sana</th>
-                  <th>Turi</th>
-                  <th>Kategoriya</th>
-                  <th>Izoh</th>
-                  <th className="text-right">Summa</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTransactions.slice(0, 5).map((tx) => {
-                  const config = transactionTypeConfig[tx.type] || { label: tx.type, color: '', sign: '' };
-                  return (
-                    <tr key={tx.id} className="hover">
-                      <td className="whitespace-nowrap text-sm text-base-content/70">
+          <>
+            {/* Desktop table */}
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="table table-sm w-full">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th>Turi</th>
+                    <th>Kategoriya</th>
+                    <th>Izoh</th>
+                    <th className="text-right">Summa</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTransactions.slice(0, 5).map((tx) => {
+                    const config = transactionTypeConfig[tx.type] || { label: tx.type, color: '', sign: '' };
+                    return (
+                      <tr key={tx.id} className="hover">
+                        <td className="whitespace-nowrap text-sm text-base-content/70">
+                          {new Date(tx.transactionDate).toLocaleDateString('ru-RU', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td>
+                          <span
+                            className={clsx(
+                              'badge badge-sm',
+                              tx.type === 'INCOME' && 'badge-success badge-outline',
+                              tx.type === 'EXPENSE' && 'badge-error badge-outline',
+                              tx.type === 'TRANSFER' && 'badge-info badge-outline'
+                            )}
+                          >
+                            {config.label}
+                          </span>
+                        </td>
+                        <td className="text-sm">{tx.categoryName || '—'}</td>
+                        <td className="max-w-[200px] truncate text-sm text-base-content/60">
+                          {tx.description || '—'}
+                        </td>
+                        <td className={clsx('text-right font-semibold whitespace-nowrap', config.color)}>
+                          {config.sign}{formatCurrency(tx.amount)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card view */}
+            <div className="space-y-2 lg:hidden">
+              {recentTransactions.slice(0, 5).map((tx) => {
+                const config = transactionTypeConfig[tx.type] || { label: tx.type, color: '', sign: '' };
+                return (
+                  <div key={tx.id} className="rounded-xl border border-base-200 p-3">
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={clsx(
+                          'badge badge-sm',
+                          tx.type === 'INCOME' && 'badge-success badge-outline',
+                          tx.type === 'EXPENSE' && 'badge-error badge-outline',
+                          tx.type === 'TRANSFER' && 'badge-info badge-outline'
+                        )}
+                      >
+                        {config.label}
+                      </span>
+                      <span className="text-xs text-base-content/50">
                         {new Date(tx.transactionDate).toLocaleDateString('ru-RU', {
                           day: '2-digit',
                           month: '2-digit',
                           year: 'numeric',
                         })}
-                      </td>
-                      <td>
-                        <span
-                          className={clsx(
-                            'badge badge-sm',
-                            tx.type === 'INCOME' && 'badge-success badge-outline',
-                            tx.type === 'EXPENSE' && 'badge-error badge-outline',
-                            tx.type === 'TRANSFER' && 'badge-info badge-outline'
-                          )}
-                        >
-                          {config.label}
-                        </span>
-                      </td>
-                      <td className="text-sm">{tx.categoryName || '—'}</td>
-                      <td className="max-w-[200px] truncate text-sm text-base-content/60">
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-sm font-medium">{tx.categoryName || '—'}</p>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className="max-w-[60%] truncate text-xs text-base-content/50">
                         {tx.description || '—'}
-                      </td>
-                      <td className={clsx('text-right font-semibold whitespace-nowrap', config.color)}>
+                      </span>
+                      <span className={clsx('font-semibold', config.color)}>
                         {config.sign}{formatCurrency(tx.amount)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <div className="flex h-32 items-center justify-center text-base-content/50">
             Tranzaksiyalar mavjud emas
