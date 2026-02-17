@@ -38,31 +38,33 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     const { pendingFocus: currentFocus } = useFamilyTreeStore.getState();
 
     if (currentFocus && currentFocus.requestId > handledFocusRequestId.current) {
-      // fitView animatsiyasi tugashini kutib, keyin markazlash
-      // Initial load'da fitView prop ishlaydi — 100ms kutamiz
-      const delay = wasInitialLoad ? 100 : 0;
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          const { pendingFocus: latestFocus, setPendingFocus: clearFocus } = useFamilyTreeStore.getState();
-          if (!latestFocus || latestFocus.requestId !== currentFocus.requestId) return;
+      // Node'ni markazga olish — fitView o'rniga
+      requestAnimationFrame(() => {
+        const { pendingFocus: latestFocus, setPendingFocus: clearFocus } = useFamilyTreeStore.getState();
+        if (!latestFocus || latestFocus.requestId !== currentFocus.requestId) return;
 
-          const node = reactFlow.getNode(latestFocus.nodeId);
-          if (!node) return;
+        const node = reactFlow.getNode(latestFocus.nodeId);
+        if (!node) return;
 
-          const x = node.position.x + (node.measured?.width ?? 200) / 2;
-          const y = node.position.y + (node.measured?.height ?? 140) / 2;
-          reactFlow.setCenter(x, y, {
-            zoom: latestFocus.zoom ?? reactFlow.getZoom(),
-            duration: 500,
-          });
-          handledFocusRequestId.current = latestFocus.requestId;
-          clearFocus(null);
+        const x = node.position.x + (node.measured?.width ?? 200) / 2;
+        const y = node.position.y + (node.measured?.height ?? 140) / 2;
+        reactFlow.setCenter(x, y, {
+          zoom: latestFocus.zoom ?? reactFlow.getZoom(),
+          duration: 500,
         });
-      }, delay);
+        handledFocusRequestId.current = latestFocus.requestId;
+        clearFocus(null);
+      });
       return;
     }
 
-    if (wasInitialLoad) return;
+    if (wasInitialLoad) {
+      // Birinchi marta — fitView
+      requestAnimationFrame(() => {
+        reactFlow.fitView({ padding: 0.2 });
+      });
+      return;
+    }
 
     if (savedViewport.current) {
       requestAnimationFrame(() => {
@@ -122,8 +124,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       onNodeClick={handleNodeClick}
       onPaneClick={closeContextMenu}
       onMoveEnd={handleMoveEnd}
-      fitView
-      fitViewOptions={{ padding: 0.2 }}
       minZoom={0.2}
       maxZoom={2.0}
       proOptions={{ hideAttribution: true }}
