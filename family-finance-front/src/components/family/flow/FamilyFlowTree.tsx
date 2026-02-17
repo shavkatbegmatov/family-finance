@@ -37,19 +37,12 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     }
 
     if (pendingFocus && pendingFocus.requestId > handledFocusRequestId.current) {
-      const pendingPersonId = Number(pendingFocus.nodeId.replace('person_', ''));
-      if (!Number.isNaN(pendingPersonId) && treeData.rootPersonId !== pendingPersonId) {
-        return;
-      }
-
       requestAnimationFrame(() => {
         const { pendingFocus: latestPendingFocus, setPendingFocus } = useFamilyTreeStore.getState();
         if (!latestPendingFocus || latestPendingFocus.requestId !== pendingFocus.requestId) return;
 
         const node = reactFlow.getNode(latestPendingFocus.nodeId);
-        if (!node) {
-          return;
-        }
+        if (!node) return; // node hali tayyor emas — keyingi nodes o'zgarishida qayta urinadi
 
         const x = node.position.x + (node.measured?.width ?? 200) / 2;
         const y = node.position.y + (node.measured?.height ?? 140) / 2;
@@ -70,7 +63,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
         reactFlow.setViewport(savedViewport.current!, { duration: 0 });
       });
     }
-  }, [nodes, edges, isLayouting, pendingFocus, reactFlow, treeData.rootPersonId]);
+  }, [nodes, edges, isLayouting, pendingFocus, reactFlow]);
 
   const handleNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
     event.preventDefault();
