@@ -6,9 +6,12 @@ import { Select } from '../../ui/Select';
 import { DateInput } from '../../ui/DateInput';
 import {
   useActivePersonsQuery,
+  useCreatePerson,
+  useCreateFamilyUnit,
+  useAddChild,
 } from '../../../hooks/useFamilyTreeQueries';
 import { MARRIAGE_TYPES } from '../../../config/constants';
-import type { MarriageType } from '../../../types';
+import type { MarriageType, ApiResponse } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
 
 interface AddParentsModalProps {
@@ -43,6 +46,9 @@ export function AddParentsModal({
   const [submitting, setSubmitting] = useState(false);
 
   const { data: activePersons = [] } = useActivePersonsQuery();
+  const createPerson = useCreatePerson();
+  const createFamilyUnit = useCreateFamilyUnit();
+  const addChild = useAddChild();
 
   const personOptions: SelectOption[] = activePersons
     .filter((p) => p.id !== personId)
@@ -87,20 +93,18 @@ export function AddParentsModal({
     setSubmitting(true);
 
     try {
-      const { familyUnitApi } = await import('../../../api/family-unit.api');
-
       // Resolve father
       let resolvedFatherId: number;
       if (fatherMode === 'existing') {
         resolvedFatherId = fatherId as number;
       } else {
-        const res = await familyUnitApi.createPerson({
+        const res = await createPerson.mutateAsync({
           firstName: fatherName.trim(),
           gender: 'MALE',
           birthDate: fatherBirthDate || undefined,
           role: 'FATHER',
         });
-        resolvedFatherId = (res.data as { data: { id: number } }).data.id;
+        resolvedFatherId = (res.data as ApiResponse<{ id: number }>).data.id;
       }
 
       // Resolve mother
@@ -108,34 +112,34 @@ export function AddParentsModal({
       if (motherMode === 'existing') {
         resolvedMotherId = motherId as number;
       } else {
-        const res = await familyUnitApi.createPerson({
+        const res = await createPerson.mutateAsync({
           firstName: motherName.trim(),
           gender: 'FEMALE',
           birthDate: motherBirthDate || undefined,
           role: 'MOTHER',
         });
-        resolvedMotherId = (res.data as { data: { id: number } }).data.id;
+        resolvedMotherId = (res.data as ApiResponse<{ id: number }>).data.id;
       }
 
       // Create family unit
-      const fuRes = await familyUnitApi.createFamilyUnit({
+      const fuRes = await createFamilyUnit.mutateAsync({
         partner1Id: resolvedFatherId,
         partner2Id: resolvedMotherId,
         marriageType,
         marriageDate: marriageDate || undefined,
       });
-      const familyUnitId = (fuRes.data as { data: { id: number } }).data.id;
+      const familyUnitId = (fuRes.data as ApiResponse<{ id: number }>).data.id;
 
       // Add this person as child
-      await familyUnitApi.addChild(familyUnitId, {
-        personId,
-        lineageType: 'BIOLOGICAL',
+      await addChild.mutateAsync({
+        familyUnitId,
+        data: { personId, lineageType: 'BIOLOGICAL' },
       });
 
       handleClose();
       onSuccess();
     } catch {
-      // Error handled
+      // Xatoliklar mutation onError'da ko'rsatiladi
     } finally {
       setSubmitting(false);
     }

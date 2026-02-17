@@ -45,6 +45,13 @@ family-finance-front/.env.local
 family-finance-front/.env.*.local
 
 # =============================================
+# Root node_modules (Claude Code CLI va boshqalar)
+# =============================================
+node_modules/
+package.json
+package-lock.json
+
+# =============================================
 # Claude Code
 # =============================================
 .claude/
