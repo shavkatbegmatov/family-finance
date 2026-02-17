@@ -395,7 +395,7 @@ export function ComboBox({
             )}
           </div>
         </div>,
-        document.body,
+        document.fullscreenElement ?? document.body,
       )}
     </div>
   );

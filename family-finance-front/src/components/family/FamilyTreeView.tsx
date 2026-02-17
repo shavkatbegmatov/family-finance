@@ -43,6 +43,13 @@ export function FamilyTreeView() {
 
   const user = useAuthStore((s) => s.user);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
 
   // Mount paytida rootPersonId va viewerPersonId ni joriy user ga o'rnatish
   // Har safar tree tab ochilganda user o'zi markazda ko'rinadi
@@ -120,16 +127,16 @@ export function FamilyTreeView() {
 
   return (
     <ReactFlowProvider>
-      <div className="relative" ref={containerRef}>
+      <div className={`relative ${isFullscreen ? 'flex flex-col h-screen bg-base-100' : ''}`} ref={containerRef}>
         {/* Toolbar */}
-        <div className="mb-3">
+        <div className={isFullscreen ? '' : 'mb-3'}>
           <FamilyTreeToolbar fullscreenRef={containerRef} />
         </div>
 
         {/* Main content — flex layout when pinned */}
         <div
-          className={`rounded-xl border border-base-200 bg-base-200/30 ${isPinnedDetailOpen ? 'flex' : ''}`}
-          style={{ minHeight: '500px', height: '70vh', maxHeight: '800px' }}
+          className={`${isFullscreen ? '' : 'rounded-xl border border-base-200'} bg-base-200/30 ${isPinnedDetailOpen ? 'flex' : ''}`}
+          style={isFullscreen ? { flex: 1 } : { minHeight: '500px', height: '70vh', maxHeight: '800px' }}
         >
           {/* React Flow container */}
           <div className={isPinnedDetailOpen ? 'flex-1 min-w-0' : 'h-full'}>
