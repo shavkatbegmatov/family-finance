@@ -24,20 +24,39 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
   const isInitialLoad = useRef(true);
   const savedViewport = useRef<Viewport | null>(null);
 
+  const pendingCenterNodeId = useFamilyTreeStore(s => s.pendingCenterNodeId);
+  const setPendingCenterNodeId = useFamilyTreeStore(s => s.setPendingCenterNodeId);
+
   // Birinchi renderdan keyin viewport ni saqlab, keyingi o'zgarishlarda tiklash
+  // Agar pendingCenterNodeId bo'lsa — viewport tiklash o'rniga node markazga olinadi
   useEffect(() => {
     if (isLayouting || nodes.length === 0) return;
 
     if (isInitialLoad.current) {
-      // Birinchi marta — fitView ishlaydi (ReactFlow fitView prop orqali)
       isInitialLoad.current = false;
+      return;
+    }
+
+    if (pendingCenterNodeId) {
+      // Tanlangan node'ni markazga olish
+      requestAnimationFrame(() => {
+        const node = reactFlow.getNode(pendingCenterNodeId);
+        if (node) {
+          const x = node.position.x + (node.measured?.width ?? 200) / 2;
+          const y = node.position.y + (node.measured?.height ?? 140) / 2;
+          reactFlow.setCenter(x, y, { zoom: 1, duration: 500 });
+        } else {
+          reactFlow.fitView({ duration: 300, padding: 0.2 });
+        }
+        setPendingCenterNodeId(null);
+      });
     } else if (savedViewport.current) {
-      // Keyingi o'zgarishlar — viewport ni tiklash
+      // Oddiy o'zgarishlar — viewport ni tiklash
       requestAnimationFrame(() => {
         reactFlow.setViewport(savedViewport.current!, { duration: 0 });
       });
     }
-  }, [nodes, edges, isLayouting, reactFlow]);
+  }, [nodes, edges, isLayouting, reactFlow, pendingCenterNodeId, setPendingCenterNodeId]);
 
   const handleNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
     event.preventDefault();

@@ -31,6 +31,9 @@ interface FamilyTreeState {
   // Sidebar pin
   isSidebarPinned: boolean;
 
+  // Pending center — layout tugagandan keyin node markazga olinadi
+  pendingCenterNodeId: string | null;
+
   // Filters
   showDeceased: boolean;
   genderFilter: 'ALL' | 'MALE' | 'FEMALE';
@@ -47,6 +50,7 @@ interface FamilyTreeState {
   openModal: (modal: FamilyTreeModal) => void;
   closeModal: () => void;
   toggleSidebarPin: () => void;
+  setPendingCenterNodeId: (id: string | null) => void;
   setShowDeceased: (show: boolean) => void;
   setGenderFilter: (filter: 'ALL' | 'MALE' | 'FEMALE') => void;
   resetFilters: () => void;
@@ -62,6 +66,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   contextMenu: null,
   activeModal: null,
   isSidebarPinned: false,
+  pendingCenterNodeId: null,
   showDeceased: true,
   genderFilter: 'ALL',
 
@@ -76,6 +81,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   openModal: (modal) => set({ activeModal: modal, contextMenu: null }),
   closeModal: () => set({ activeModal: null, isSidebarPinned: false }),
   toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
+  setPendingCenterNodeId: (id) => set({ pendingCenterNodeId: id }),
   setShowDeceased: (show) => set({ showDeceased: show }),
   setGenderFilter: (filter) => set({ genderFilter: filter }),
   resetFilters: () => set({ showDeceased: true, genderFilter: 'ALL' }),

@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback, useEffect, useRef, type RefObject } from 'react';
+import { useMemo, useState, useCallback, useEffect, type RefObject } from 'react';
 import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize } from 'lucide-react';
-import { useReactFlow, useNodes } from '@xyflow/react';
+import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
 import { useActivePersonsQuery } from '../../hooks/useFamilyTreeQueries';
@@ -44,8 +44,7 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
     return opts;
   }, [activePersons, currentUser?.familyMemberId, currentUser?.fullName]);
 
-  const pendingCenterRef = useRef<string | null>(null);
-  const nodes = useNodes();
+  const setPendingCenterNodeId = useFamilyTreeStore(s => s.setPendingCenterNodeId);
 
   const centerOnNode = useCallback((nodeId: string) => {
     const node = reactFlow.getNode(nodeId);
@@ -57,15 +56,6 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
     }
     return false;
   }, [reactFlow]);
-
-  // Node'lar yangilanganda kutilayotgan markazlashni bajarish
-  useEffect(() => {
-    if (!pendingCenterRef.current) return;
-    const nodeId = pendingCenterRef.current;
-    if (centerOnNode(nodeId)) {
-      pendingCenterRef.current = null;
-    }
-  }, [nodes, centerOnNode]);
 
   const handlePersonSelect = (val: string | number | undefined) => {
     const personId = val ? Number(val) : undefined;
@@ -81,13 +71,13 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
     if (viewerChanged) {
       setViewerPersonId(personId);
       setRootPersonId(personId);
-      // Node'lar qayta yaratiladi — effect orqali markazlash
-      pendingCenterRef.current = nodeId;
+      // Layout qayta hisoblanadi — FamilyFlowTree markazlaydi
+      setPendingCenterNodeId(nodeId);
     } else {
       // Viewer allaqachon shu shaxs — to'g'ridan-to'g'ri markazlash
       if (!centerOnNode(nodeId)) {
         setRootPersonId(personId);
-        pendingCenterRef.current = nodeId;
+        setPendingCenterNodeId(nodeId);
       }
     }
   };
