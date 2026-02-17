@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Users, Plus, AlertTriangle, RefreshCw, UserPlus } from 'lucide-react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FamilyFlowTree } from './flow/FamilyFlowTree';
@@ -117,12 +117,14 @@ export function FamilyTreeView() {
   const isPinnedDetailOpen =
     isSidebarPinned && activeModal?.type === 'personDetail';
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   return (
     <ReactFlowProvider>
-      <div className="relative">
+      <div className="relative" ref={containerRef}>
         {/* Toolbar */}
         <div className="mb-3">
-          <FamilyTreeToolbar />
+          <FamilyTreeToolbar fullscreenRef={containerRef} />
         </div>
 
         {/* Main content — flex layout when pinned */}

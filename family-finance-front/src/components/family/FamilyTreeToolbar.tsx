@@ -1,12 +1,16 @@
-import { useMemo } from 'react';
-import { Eye, ZoomIn, ZoomOut, Maximize2, Locate } from 'lucide-react';
+import { useMemo, useState, useCallback, useEffect, type RefObject } from 'react';
+import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
 import { useActivePersonsQuery } from '../../hooks/useFamilyTreeQueries';
 import { ComboBox, type ComboBoxOption } from '../ui/ComboBox';
 
-export function FamilyTreeToolbar() {
+interface FamilyTreeToolbarProps {
+  fullscreenRef?: RefObject<HTMLElement | null>;
+}
+
+export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
   const {
     viewerPersonId, setViewerPersonId,
     showDeceased, setShowDeceased,
@@ -74,6 +78,24 @@ export function FamilyTreeToolbar() {
     if (!currentUser?.familyMemberId) return;
     handlePersonSelect(currentUser.familyMemberId);
   };
+
+  // Fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!fullscreenRef?.current) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      void fullscreenRef.current.requestFullscreen();
+    }
+  }, [fullscreenRef]);
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/50 rounded-lg">
@@ -155,6 +177,14 @@ export function FamilyTreeToolbar() {
         >
           <ZoomIn className="h-3.5 w-3.5" />
         </button>
+        <div className="w-px h-4 bg-base-content/15" />
+        <button
+          className="btn btn-ghost btn-xs font-mono"
+          onClick={() => reactFlow.zoomTo(1, { duration: 200 })}
+          title="1:1 masshtab (100%)"
+        >
+          1:1
+        </button>
         <button
           className="btn btn-ghost btn-xs btn-square"
           onClick={() => reactFlow.fitView({ duration: 300, padding: 0.2 })}
@@ -162,6 +192,15 @@ export function FamilyTreeToolbar() {
         >
           <Maximize2 className="h-3.5 w-3.5" />
         </button>
+        {fullscreenRef && (
+          <button
+            className="btn btn-ghost btn-xs btn-square"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'To\'liq ekrandan chiqish' : 'To\'liq ekran'}
+          >
+            {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Fullscreen className="h-3.5 w-3.5" />}
+          </button>
+        )}
       </div>
     </div>
   );
