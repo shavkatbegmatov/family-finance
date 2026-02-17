@@ -52,12 +52,16 @@ export function FamilyTreeView() {
   }, []);
 
   // Mount paytida rootPersonId va viewerPersonId ni joriy user ga o'rnatish
-  // Har safar tree tab ochilganda user o'zi markazda ko'rinadi
+  // Faqat birinchi marta — keyingi tanlovlarni qaytarib yubormasligi uchun
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (!isInitialMount.current) return;
     if (user?.familyMemberId) {
+      isInitialMount.current = false;
       useFamilyTreeStore.getState().setRootPersonId(user.familyMemberId);
       useFamilyTreeStore.getState().setViewerPersonId(user.familyMemberId);
     } else if (treeQuery.data?.rootPersonId && !rootPersonId) {
+      isInitialMount.current = false;
       useFamilyTreeStore.getState().setRootPersonId(treeQuery.data.rootPersonId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
