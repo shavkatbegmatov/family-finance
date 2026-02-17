@@ -42,6 +42,20 @@ const categoryColors: Record<string, string> = {
   other: 'badge-ghost',
 };
 
+// Telefon raqamni formatlash (display uchun)
+function formatPhoneDisplay(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  // 998XXYYYYYYY formatni +998 (XX) YYY-YY-YY ga aylantirish
+  if (digits.length === 12 && digits.startsWith('998')) {
+    const code = digits.slice(3, 5);
+    const p1 = digits.slice(5, 8);
+    const p2 = digits.slice(8, 10);
+    const p3 = digits.slice(10, 12);
+    return `+998 (${code}) ${p1}-${p2}-${p3}`;
+  }
+  return phone;
+}
+
 // Gender ga qarab gradient
 function getGenderGradient(gender?: string) {
   if (gender === 'MALE') return 'from-blue-400 to-blue-600';
@@ -141,7 +155,21 @@ export function PersonDetailPanel({
 
         {/* ===== Ism va qarindoshlik ===== */}
         <div className="px-6 mt-3">
-          <h2 className="text-2xl font-bold">{person?.fullName}</h2>
+          <div>
+            <h2 className="text-2xl font-bold leading-tight">
+              {person?.firstName}
+            </h2>
+            {person?.lastName && (
+              <p className="text-lg font-semibold text-base-content/70 leading-tight">
+                {person.lastName}
+              </p>
+            )}
+            {person?.middleName && (
+              <p className="text-sm italic text-base-content/50 mt-0.5">
+                {person.middleName}
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {person?.gender && (
               <span className="badge badge-sm badge-outline">
@@ -218,7 +246,7 @@ export function PersonDetailPanel({
                     href={`tel:${person.phone}`}
                     className="link link-hover link-primary"
                   >
-                    {person.phone}
+                    {formatPhoneDisplay(person.phone)}
                   </a>
                 </p>
               </div>

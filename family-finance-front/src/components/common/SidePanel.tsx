@@ -35,7 +35,7 @@ export function SidePanel({ isOpen, onClose, children }: SidePanelProps) {
       />
       {/* Panel */}
       <div
-        className="absolute right-0 top-0 h-full w-full sm:w-[420px] bg-base-100 shadow-2xl overflow-y-auto animate-slide-in-right"
+        className="absolute right-0 top-0 h-full w-full sm:w-[360px] bg-base-100 shadow-2xl overflow-y-auto animate-slide-in-right"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
