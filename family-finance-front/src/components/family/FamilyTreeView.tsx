@@ -42,6 +42,7 @@ export function FamilyTreeView() {
   const refetch = isLabeled ? labeledQuery.refetch : treeQuery.refetch;
 
   const user = useAuthStore((s) => s.user);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Mount paytida rootPersonId va viewerPersonId ni joriy user ga o'rnatish
   // Har safar tree tab ochilganda user o'zi markazda ko'rinadi
@@ -116,8 +117,6 @@ export function FamilyTreeView() {
 
   const isPinnedDetailOpen =
     isSidebarPinned && activeModal?.type === 'personDetail';
-
-  const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <ReactFlowProvider>
