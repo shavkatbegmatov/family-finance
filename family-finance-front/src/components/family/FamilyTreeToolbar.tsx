@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback, useEffect, type RefObject } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef, type RefObject } from 'react';
 import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize } from 'lucide-react';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, useNodes } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
 import { useActivePersonsQuery } from '../../hooks/useFamilyTreeQueries';
@@ -44,7 +44,10 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
     return opts;
   }, [activePersons, currentUser?.familyMemberId, currentUser?.fullName]);
 
-  const centerOnNode = (nodeId: string) => {
+  const pendingCenterRef = useRef<string | null>(null);
+  const nodes = useNodes();
+
+  const centerOnNode = useCallback((nodeId: string) => {
     const node = reactFlow.getNode(nodeId);
     if (node) {
       const x = node.position.x + (node.measured?.width ?? 200) / 2;
@@ -53,24 +56,39 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
       return true;
     }
     return false;
-  };
+  }, [reactFlow]);
+
+  // Node'lar yangilanganda kutilayotgan markazlashni bajarish
+  useEffect(() => {
+    if (!pendingCenterRef.current) return;
+    const nodeId = pendingCenterRef.current;
+    if (centerOnNode(nodeId)) {
+      pendingCenterRef.current = null;
+    }
+  }, [nodes, centerOnNode]);
 
   const handlePersonSelect = (val: string | number | undefined) => {
     const personId = val ? Number(val) : undefined;
-    setViewerPersonId(personId ?? null);
 
-    if (!personId) return;
+    if (!personId) {
+      setViewerPersonId(null);
+      return;
+    }
 
     const nodeId = `person_${personId}`;
+    const viewerChanged = viewerPersonId !== personId;
 
-    if (!centerOnNode(nodeId)) {
-      // Node daraxtda yo'q — root o'zgartirib, keyin markazlash
+    if (viewerChanged) {
+      setViewerPersonId(personId);
       setRootPersonId(personId);
-      setTimeout(() => {
-        if (!centerOnNode(nodeId)) {
-          reactFlow.fitView({ duration: 300, padding: 0.2 });
-        }
-      }, 300);
+      // Node'lar qayta yaratiladi — effect orqali markazlash
+      pendingCenterRef.current = nodeId;
+    } else {
+      // Viewer allaqachon shu shaxs — to'g'ridan-to'g'ri markazlash
+      if (!centerOnNode(nodeId)) {
+        setRootPersonId(personId);
+        pendingCenterRef.current = nodeId;
+      }
     }
   };
 
