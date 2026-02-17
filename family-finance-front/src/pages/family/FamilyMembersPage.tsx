@@ -233,12 +233,33 @@ export function FamilyMembersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="section-title">Oila a'zolari</h1>
-          <p className="section-subtitle">Oila a'zolarini boshqarish</p>
+    <div className="space-y-3">
+      {/* Header + Tabs — bitta qatorda */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="section-title text-xl">Oila a'zolari</h1>
+          <div className="flex gap-0.5 bg-base-200 rounded-lg p-0.5">
+            <button
+              className={clsx(
+                'btn btn-xs gap-1.5',
+                activeTab === 'list' ? 'btn-primary' : 'btn-ghost'
+              )}
+              onClick={() => setActiveTab('list')}
+            >
+              <List className="h-3.5 w-3.5" />
+              Ro'yxat
+            </button>
+            <button
+              className={clsx(
+                'btn btn-xs gap-1.5',
+                activeTab === 'tree' ? 'btn-primary' : 'btn-ghost'
+              )}
+              onClick={() => setActiveTab('tree')}
+            >
+              <TreePine className="h-3.5 w-3.5" />
+              Daraxti
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="pill">
@@ -261,35 +282,9 @@ export function FamilyMembersPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-base-200 rounded-lg p-1 w-fit">
-        <button
-          className={clsx(
-            'btn btn-sm gap-2',
-            activeTab === 'list' ? 'btn-primary' : 'btn-ghost'
-          )}
-          onClick={() => setActiveTab('list')}
-        >
-          <List className="h-4 w-4" />
-          Ro'yxat
-        </button>
-        <button
-          className={clsx(
-            'btn btn-sm gap-2',
-            activeTab === 'tree' ? 'btn-primary' : 'btn-ghost'
-          )}
-          onClick={() => setActiveTab('tree')}
-        >
-          <TreePine className="h-4 w-4" />
-          Oila daraxti
-        </button>
-      </div>
-
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
-        <div className="surface-card p-4 sm:p-6 overflow-x-auto">
-          <FamilyTreeView />
-        </div>
+        <FamilyTreeView />
       )}
 
       {/* ============ LIST VIEW ============ */}

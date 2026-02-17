@@ -103,7 +103,7 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
   }, [fullscreenRef]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/50 rounded-lg">
+    <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-base-200/50 rounded-lg">
       <ComboBox
         size="sm"
         icon={<Eye className="h-3.5 w-3.5" />}
