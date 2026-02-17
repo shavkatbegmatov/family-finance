@@ -16,8 +16,10 @@ import { useAuthStore } from '../../store/authStore';
 import { usePermission } from '../../hooks/usePermission';
 
 export function TreeContextMenu() {
-  const { contextMenu, closeContextMenu, openModal, setRootPersonId } =
-    useFamilyTreeStore();
+  const contextMenu = useFamilyTreeStore((s) => s.contextMenu);
+  const closeContextMenu = useFamilyTreeStore((s) => s.closeContextMenu);
+  const openModal = useFamilyTreeStore((s) => s.openModal);
+  const focusPerson = useFamilyTreeStore((s) => s.focusPerson);
   const user = useAuthStore((s) => s.user);
   const { canUpdateFamily, canCreateFamily, canDeleteFamily } = usePermission();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -152,7 +154,7 @@ export function TreeContextMenu() {
             menuItem(
               <Eye className="h-4 w-4 text-base-content/60" />,
               'Markazga olish',
-              () => setRootPersonId(contextMenu.personId!)
+              () => focusPerson(contextMenu.personId!, 'context-eye')
             )}
 
           {/* Delete person — canDeleteFamily + not self */}

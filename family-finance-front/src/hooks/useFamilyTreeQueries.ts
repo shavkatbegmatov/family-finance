@@ -43,6 +43,7 @@ export function useTreeQuery(personId?: number, depth = 5) {
       return (res.data as ApiResponse<TreeResponse>).data;
     },
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -54,6 +55,7 @@ export function useLabeledTreeQuery(personId: number, viewerId: number, depth = 
       return (res.data as ApiResponse<TreeResponse>).data;
     },
     enabled: !!personId && !!viewerId,
+    placeholderData: (previousData) => previousData,
   });
 }
 

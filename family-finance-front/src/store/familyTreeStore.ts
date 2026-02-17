@@ -11,6 +11,15 @@ interface ContextMenuState {
   personUserId?: number | null;
 }
 
+type FocusSource = 'select' | 'find-me' | 'context-eye';
+
+interface PendingFocusState {
+  nodeId: string;
+  zoom?: number;
+  requestId: number;
+  source: FocusSource;
+}
+
 interface FamilyTreeState {
   // Navigation
   rootPersonId: number | null;
@@ -32,7 +41,8 @@ interface FamilyTreeState {
   isSidebarPinned: boolean;
 
   // Pending center — layout tugagandan keyin node markazga olinadi
-  pendingCenterNodeId: string | null;
+  pendingFocus: PendingFocusState | null;
+  focusRequestSeq: number;
 
   // Filters
   showDeceased: boolean;
@@ -50,7 +60,8 @@ interface FamilyTreeState {
   openModal: (modal: FamilyTreeModal) => void;
   closeModal: () => void;
   toggleSidebarPin: () => void;
-  setPendingCenterNodeId: (id: string | null) => void;
+  setPendingFocus: (focus: PendingFocusState | null) => void;
+  focusPerson: (personId: number, source: FocusSource) => void;
   setShowDeceased: (show: boolean) => void;
   setGenderFilter: (filter: 'ALL' | 'MALE' | 'FEMALE') => void;
   resetFilters: () => void;
@@ -66,7 +77,8 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   contextMenu: null,
   activeModal: null,
   isSidebarPinned: false,
-  pendingCenterNodeId: null,
+  pendingFocus: null,
+  focusRequestSeq: 0,
   showDeceased: true,
   genderFilter: 'ALL',
 
@@ -81,7 +93,23 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   openModal: (modal) => set({ activeModal: modal, contextMenu: null }),
   closeModal: () => set({ activeModal: null, isSidebarPinned: false }),
   toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
-  setPendingCenterNodeId: (id) => set({ pendingCenterNodeId: id }),
+  setPendingFocus: (focus) => set({ pendingFocus: focus }),
+  focusPerson: (personId, source) =>
+    set((state) => {
+      const requestId = state.focusRequestSeq + 1;
+      return {
+        rootPersonId: personId,
+        focusedPersonId: personId,
+        viewerPersonId: personId,
+        pendingFocus: {
+          nodeId: `person_${personId}`,
+          zoom: 1.1,
+          requestId,
+          source,
+        },
+        focusRequestSeq: requestId,
+      };
+    }),
   setShowDeceased: (show) => set({ showDeceased: show }),
   setGenderFilter: (filter) => set({ genderFilter: filter }),
   resetFilters: () => set({ showDeceased: true, genderFilter: 'ALL' }),

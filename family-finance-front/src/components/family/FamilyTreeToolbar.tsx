@@ -11,22 +11,24 @@ interface FamilyTreeToolbarProps {
 }
 
 export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
-  const {
-    viewerPersonId, setViewerPersonId,
-    showDeceased, setShowDeceased,
-    genderFilter, setGenderFilter,
-    depth, setDepth,
-  } = useFamilyTreeStore();
+  const viewerPersonId = useFamilyTreeStore((s) => s.viewerPersonId);
+  const setViewerPersonId = useFamilyTreeStore((s) => s.setViewerPersonId);
+  const setPendingFocus = useFamilyTreeStore((s) => s.setPendingFocus);
+  const focusPerson = useFamilyTreeStore((s) => s.focusPerson);
+  const showDeceased = useFamilyTreeStore((s) => s.showDeceased);
+  const setShowDeceased = useFamilyTreeStore((s) => s.setShowDeceased);
+  const genderFilter = useFamilyTreeStore((s) => s.genderFilter);
+  const setGenderFilter = useFamilyTreeStore((s) => s.setGenderFilter);
+  const depth = useFamilyTreeStore((s) => s.depth);
+  const setDepth = useFamilyTreeStore((s) => s.setDepth);
 
   const { data: activePersons } = useActivePersonsQuery();
   const reactFlow = useReactFlow();
-  const currentUser = useAuthStore(s => s.user);
-  const setRootPersonId = useFamilyTreeStore(s => s.setRootPersonId);
+  const currentUser = useAuthStore((s) => s.user);
 
   const personOptions = useMemo(() => {
     const opts: ComboBoxOption[] = [];
 
-    // "O'zim" — pinned, faqat user familyMemberId bo'lsa
     if (currentUser?.familyMemberId) {
       opts.push({
         value: currentUser.familyMemberId,
@@ -36,58 +38,30 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
       });
     }
 
-    // Barcha a'zolar
-    activePersons?.forEach(p => {
+    activePersons?.forEach((p) => {
       opts.push({ value: p.id, label: p.fullName });
     });
 
     return opts;
   }, [activePersons, currentUser?.familyMemberId, currentUser?.fullName]);
 
-  const setPendingCenterNodeId = useFamilyTreeStore(s => s.setPendingCenterNodeId);
-
-  const centerOnNode = useCallback((nodeId: string) => {
-    const node = reactFlow.getNode(nodeId);
-    if (node) {
-      const x = node.position.x + (node.measured?.width ?? 200) / 2;
-      const y = node.position.y + (node.measured?.height ?? 140) / 2;
-      reactFlow.setCenter(x, y, { zoom: 1, duration: 500 });
-      return true;
-    }
-    return false;
-  }, [reactFlow]);
-
   const handlePersonSelect = (val: string | number | undefined) => {
     const personId = val ? Number(val) : undefined;
 
     if (!personId) {
       setViewerPersonId(null);
+      setPendingFocus(null);
       return;
     }
 
-    const nodeId = `person_${personId}`;
-    const viewerChanged = viewerPersonId !== personId;
-
-    if (viewerChanged) {
-      setViewerPersonId(personId);
-      setRootPersonId(personId);
-      // Layout qayta hisoblanadi — FamilyFlowTree markazlaydi
-      setPendingCenterNodeId(nodeId);
-    } else {
-      // Viewer allaqachon shu shaxs — to'g'ridan-to'g'ri markazlash
-      if (!centerOnNode(nodeId)) {
-        setRootPersonId(personId);
-        setPendingCenterNodeId(nodeId);
-      }
-    }
+    focusPerson(personId, 'select');
   };
 
   const handleFindMe = () => {
     if (!currentUser?.familyMemberId) return;
-    handlePersonSelect(currentUser.familyMemberId);
+    focusPerson(currentUser.familyMemberId, 'find-me');
   };
 
-  // Fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -107,7 +81,6 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 bg-base-200/50 rounded-lg">
-      {/* Viewer selector — ComboBox */}
       <ComboBox
         size="sm"
         icon={<Eye className="h-3.5 w-3.5" />}
@@ -119,7 +92,6 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
         allowClear
       />
 
-      {/* Depth slider */}
       <div className="flex items-center gap-1.5">
         <span className="text-xs text-base-content/50">Chuqurlik:</span>
         <input
@@ -133,7 +105,6 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
         <span className="text-xs font-medium w-4">{depth}</span>
       </div>
 
-      {/* Filters */}
       <div className="flex items-center gap-1">
         <label className="label cursor-pointer gap-1 p-0">
           <input
@@ -156,10 +127,8 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
         <option value="FEMALE">Ayol</option>
       </select>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Find me + Zoom controls */}
       <div className="flex items-center gap-1">
         {currentUser?.familyMemberId && (
           <button
@@ -204,7 +173,7 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
           <button
             className="btn btn-ghost btn-xs btn-square"
             onClick={toggleFullscreen}
-            title={isFullscreen ? 'To\'liq ekrandan chiqish' : 'To\'liq ekran'}
+            title={isFullscreen ? "To'liq ekrandan chiqish" : "To'liq ekran"}
           >
             {isFullscreen ? <Minimize className="h-3.5 w-3.5" /> : <Fullscreen className="h-3.5 w-3.5" />}
           </button>
