@@ -24,9 +24,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
   const isInitialLoad = useRef(true);
   const savedViewport = useRef<Viewport | null>(null);
 
-  const pendingCenterNodeId = useFamilyTreeStore(s => s.pendingCenterNodeId);
-  const setPendingCenterNodeId = useFamilyTreeStore(s => s.setPendingCenterNodeId);
-
   // Birinchi renderdan keyin viewport ni saqlab, keyingi o'zgarishlarda tiklash
   // Agar pendingCenterNodeId bo'lsa — viewport tiklash o'rniga node markazga olinadi
   useEffect(() => {
@@ -36,6 +33,8 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       isInitialLoad.current = false;
       return;
     }
+
+    const { pendingCenterNodeId, setPendingCenterNodeId } = useFamilyTreeStore.getState();
 
     if (pendingCenterNodeId) {
       // Tanlangan node'ni markazga olish
@@ -56,7 +55,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
         reactFlow.setViewport(savedViewport.current!, { duration: 0 });
       });
     }
-  }, [nodes, edges, isLayouting, reactFlow, pendingCenterNodeId, setPendingCenterNodeId]);
+  }, [nodes, edges, isLayouting, reactFlow]);
 
   const handleNodeContextMenu: NodeMouseHandler = useCallback((event, node) => {
     event.preventDefault();
