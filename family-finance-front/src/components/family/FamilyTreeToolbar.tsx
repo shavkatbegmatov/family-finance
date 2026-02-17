@@ -45,6 +45,15 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
     return opts;
   }, [activePersons, currentUser?.familyMemberId, currentUser?.fullName]);
 
+  const centerOnNode = useCallback((nodeId: string, zoom?: number) => {
+    const node = reactFlow.getNode(nodeId);
+    if (!node) return false;
+    const x = node.position.x + (node.measured?.width ?? 200) / 2;
+    const y = node.position.y + (node.measured?.height ?? 140) / 2;
+    reactFlow.setCenter(x, y, { zoom: zoom ?? 1, duration: 500 });
+    return true;
+  }, [reactFlow]);
+
   const handlePersonSelect = (val: string | number | undefined) => {
     const personId = val ? Number(val) : undefined;
 
@@ -54,12 +63,26 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
       return;
     }
 
+    // Agar viewer allaqachon shu shaxs — node hozir daraxtda, to'g'ridan-to'g'ri markazlash
+    if (viewerPersonId === personId) {
+      centerOnNode(`person_${personId}`, 1.1);
+      return;
+    }
+
     focusPerson(personId, 'select');
   };
 
   const handleFindMe = () => {
     if (!currentUser?.familyMemberId) return;
-    focusPerson(currentUser.familyMemberId, 'find-me');
+    const userId = currentUser.familyMemberId;
+
+    // Agar allaqachon o'zim tanlangan — to'g'ridan-to'g'ri markazlash
+    if (viewerPersonId === userId) {
+      centerOnNode(`person_${userId}`, 1.1);
+      return;
+    }
+
+    focusPerson(userId, 'find-me');
   };
 
   const [isFullscreen, setIsFullscreen] = useState(false);
