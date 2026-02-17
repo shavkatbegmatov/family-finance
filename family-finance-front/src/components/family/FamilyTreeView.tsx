@@ -5,6 +5,7 @@ import { FamilyFlowTree } from './flow/FamilyFlowTree';
 import { FamilyTreeToolbar } from './FamilyTreeToolbar';
 import { TreeContextMenu } from './TreeContextMenu';
 import { FamilyTreeModals } from './modals/FamilyTreeModals';
+import { PersonDetailPanel } from './modals/PersonDetailPanel';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useTreeQuery, useLabeledTreeQuery, useRegisterSelf } from '../../hooks/useFamilyTreeQueries';
 import { useAuthStore } from '../../store/authStore';
@@ -17,6 +18,9 @@ export function FamilyTreeView() {
     viewerPersonId,
     depth,
     openModal,
+    activeModal,
+    isSidebarPinned,
+    closeModal,
   } = useFamilyTreeStore();
 
   // Use labeled tree if viewer is selected, otherwise use normal tree
@@ -110,6 +114,9 @@ export function FamilyTreeView() {
     );
   }
 
+  const isPinnedDetailOpen =
+    isSidebarPinned && activeModal?.type === 'personDetail';
+
   return (
     <ReactFlowProvider>
       <div className="relative">
@@ -118,12 +125,26 @@ export function FamilyTreeView() {
           <FamilyTreeToolbar />
         </div>
 
-        {/* React Flow container */}
+        {/* Main content — flex layout when pinned */}
         <div
-          className="rounded-xl border border-base-200 bg-base-200/30"
+          className={`rounded-xl border border-base-200 bg-base-200/30 ${isPinnedDetailOpen ? 'flex' : ''}`}
           style={{ minHeight: '500px', height: '70vh', maxHeight: '800px' }}
         >
-          <FamilyFlowTree treeData={treeData} />
+          {/* React Flow container */}
+          <div className={isPinnedDetailOpen ? 'flex-1 min-w-0' : 'h-full'}>
+            <FamilyFlowTree treeData={treeData} />
+          </div>
+
+          {/* Pinned sidebar */}
+          {isPinnedDetailOpen && (
+            <div className="border-l border-base-300 h-full">
+              <PersonDetailPanel
+                isOpen
+                personId={activeModal.personId}
+                onClose={closeModal}
+              />
+            </div>
+          )}
         </div>
 
         {/* Context menu */}

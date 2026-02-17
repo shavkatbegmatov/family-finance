@@ -12,7 +12,7 @@ import { PersonDetailPanel } from './PersonDetailPanel';
 import { CreateAccountModal } from './CreateAccountModal';
 
 export function FamilyTreeModals() {
-  const { activeModal, closeModal } = useFamilyTreeStore();
+  const { activeModal, closeModal, isSidebarPinned } = useFamilyTreeStore();
 
   if (!activeModal) return null;
 
@@ -111,6 +111,8 @@ export function FamilyTreeModals() {
       );
 
     case 'personDetail':
+      // Pinned holatda FamilyTreeView o'zi render qiladi
+      if (isSidebarPinned) return null;
       return (
         <PersonDetailPanel
           isOpen

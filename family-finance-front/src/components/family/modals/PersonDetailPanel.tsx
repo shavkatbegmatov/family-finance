@@ -7,6 +7,8 @@ import {
   Heart,
   Crown,
   UserCircle,
+  Pin,
+  PinOff,
 } from 'lucide-react';
 import { SidePanel } from '../../common/SidePanel';
 import {
@@ -77,7 +79,7 @@ export function PersonDetailPanel({
   const { data: activePersons = [] } = useActivePersonsQuery();
   const { data: familyUnits = [], isLoading: loadingUnits } =
     useFamilyUnitsByPersonQuery(personId);
-  const { viewerPersonId, openModal } = useFamilyTreeStore();
+  const { viewerPersonId, openModal, isSidebarPinned, toggleSidebarPin } = useFamilyTreeStore();
   const { data: relationship } = useRelationshipQuery(
     viewerPersonId ?? 0,
     personId
@@ -116,18 +118,27 @@ export function PersonDetailPanel({
   };
 
   return (
-    <SidePanel isOpen={isOpen} onClose={onClose}>
+    <SidePanel isOpen={isOpen} onClose={onClose} pinned={isSidebarPinned}>
       <div className="flex flex-col h-full">
         {/* ===== Header ===== */}
         <div
           className={`relative bg-gradient-to-br ${getGenderGradient(person?.gender)} p-6 pb-16`}
         >
-          <button
-            className="absolute top-4 right-4 btn btn-circle btn-sm btn-ghost text-white/80 hover:text-white hover:bg-white/20"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-1">
+            <button
+              className={`btn btn-circle btn-sm btn-ghost text-white/80 hover:text-white hover:bg-white/20 ${isSidebarPinned ? 'bg-white/20' : ''}`}
+              onClick={toggleSidebarPin}
+              title={isSidebarPinned ? 'Pindan tushirish' : 'Pin qilish'}
+            >
+              {isSidebarPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+            </button>
+            <button
+              className="btn btn-circle btn-sm btn-ghost text-white/80 hover:text-white hover:bg-white/20"
+              onClick={onClose}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
           {person?.deathDate && (
             <span className="absolute top-4 left-4 badge badge-sm bg-black/30 border-0 text-white gap-1">

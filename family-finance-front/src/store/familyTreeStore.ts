@@ -28,6 +28,9 @@ interface FamilyTreeState {
   // Modal
   activeModal: FamilyTreeModal;
 
+  // Sidebar pin
+  isSidebarPinned: boolean;
+
   // Filters
   showDeceased: boolean;
   genderFilter: 'ALL' | 'MALE' | 'FEMALE';
@@ -43,6 +46,7 @@ interface FamilyTreeState {
   closeContextMenu: () => void;
   openModal: (modal: FamilyTreeModal) => void;
   closeModal: () => void;
+  toggleSidebarPin: () => void;
   setShowDeceased: (show: boolean) => void;
   setGenderFilter: (filter: 'ALL' | 'MALE' | 'FEMALE') => void;
   resetFilters: () => void;
@@ -57,6 +61,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   selectedFamilyUnitId: null,
   contextMenu: null,
   activeModal: null,
+  isSidebarPinned: false,
   showDeceased: true,
   genderFilter: 'ALL',
 
@@ -69,7 +74,8 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   openContextMenu: (state) => set({ contextMenu: state }),
   closeContextMenu: () => set({ contextMenu: null }),
   openModal: (modal) => set({ activeModal: modal, contextMenu: null }),
-  closeModal: () => set({ activeModal: null }),
+  closeModal: () => set({ activeModal: null, isSidebarPinned: false }),
+  toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
   setShowDeceased: (show) => set({ showDeceased: show }),
   setGenderFilter: (filter) => set({ genderFilter: filter }),
   resetFilters: () => set({ showDeceased: true, genderFilter: 'ALL' }),
