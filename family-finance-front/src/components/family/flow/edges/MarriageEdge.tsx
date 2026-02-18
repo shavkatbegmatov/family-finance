@@ -20,10 +20,6 @@ function MarriageEdgeComponent(props: EdgeProps) {
     borderRadius: 0,
   });
   const edgePath = buildPathWithBridges(anchoredRoutePoints, edgeData.bridges, 6) || fallbackPath;
-  const connectionPoints = [
-    { x: sourceX, y: sourceY },
-    { x: targetX, y: targetY },
-  ];
   const junctionPoints = edgeData.junctions ?? [];
 
   const isActive = status === 'ACTIVE';
@@ -57,18 +53,6 @@ function MarriageEdgeComponent(props: EdgeProps) {
           strokeLinecap: 'square',
         }}
       />
-      {connectionPoints.map((point, index) => (
-        <circle
-          key={`conn-${index}`}
-          cx={point.x}
-          cy={point.y}
-          r={2.6}
-          fill={strokeColor}
-          stroke="#ffffff"
-          strokeWidth={1}
-          pointerEvents="none"
-        />
-      ))}
       {junctionPoints.map((junction, index) => (
         <circle
           key={`junction-${index}`}

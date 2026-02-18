@@ -20,10 +20,6 @@ function ChildEdgeComponent(props: EdgeProps) {
     borderRadius: 0,
   });
   const edgePath = buildPathWithBridges(anchoredRoutePoints, edgeData.bridges, 5) || fallbackPath;
-  const connectionPoints = [
-    { x: sourceX, y: sourceY },
-    { x: targetX, y: targetY },
-  ];
   const junctionPoints = edgeData.junctions ?? [];
 
   let strokeDasharray: string | undefined;
@@ -69,18 +65,6 @@ function ChildEdgeComponent(props: EdgeProps) {
           strokeLinecap: 'square',
         }}
       />
-      {connectionPoints.map((point, index) => (
-        <circle
-          key={`conn-${index}`}
-          cx={point.x}
-          cy={point.y}
-          r={2.4}
-          fill={strokeColor}
-          stroke="#ffffff"
-          strokeWidth={1}
-          pointerEvents="none"
-        />
-      ))}
       {junctionPoints.map((junction, index) => (
         <circle
           key={`junction-${index}`}
