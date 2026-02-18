@@ -31,7 +31,6 @@ const CROSSING_EPSILON = 0.5;
 const BRIDGE_MIN_SPACING = 16;
 const JUNCTION_MIN_SPACING = 12;
 const MARRIAGE_LANE_GAP = 12;
-const CHILD_LANE_GAP = 14;
 const TREE_DENSITY_PROFILE = {
   nodeNode: '60',
   edgeNode: '25',
@@ -433,6 +432,29 @@ export function useElkLayout(treeData: TreeResponse | null) {
         if (rfNode) rfNode.position.x = centerX;
       }
 
+      // 2.5-qadam: Bir oiladagi farzandlarni bir balandlikka tekislash
+      for (const familyUnit of treeData.familyUnits) {
+        const childIds = familyUnit.children
+          .filter((c) => addedPersons.has(c.personId))
+          .map((c) => `person_${c.personId}`);
+        if (childIds.length < 2) continue;
+
+        let minY = Infinity;
+        for (const id of childIds) {
+          const b = nodeBounds.get(id);
+          if (b && b.y < minY) minY = b.y;
+        }
+        if (!Number.isFinite(minY)) continue;
+
+        for (const id of childIds) {
+          const b = nodeBounds.get(id);
+          if (!b) continue;
+          b.y = minY;
+          const rfNode = rfNodes.find((n) => n.id === id);
+          if (rfNode) rfNode.position.y = minY;
+        }
+      }
+
       // 3-qadam: Marriage edge handle'larini haqiqiy pozitsiyaga qarab tuzatish
       for (const edge of plannedEdges) {
         if (edge.kind !== 'marriage') continue;
@@ -465,13 +487,11 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
       plannedEdges.forEach((plannedEdge) => {
         const elkEdge = elkEdgesById.get(plannedEdge.id);
-        const elkRoutePoints = routePointsFromSections(elkEdge?.sections);
         const fallbackRoutePoints = buildFallbackRoute(plannedEdge, nodeBounds);
 
-        // Marriage edge'larda ELK route mos kelmaydi — fallback ishlatamiz
-        const useElkRoute = elkRoutePoints.length >= 2 && plannedEdge.kind !== 'marriage';
-        const routePoints = useElkRoute ? elkRoutePoints : fallbackRoutePoints;
-        const routingSource = useElkRoute ? 'elk' : 'fallback';
+        // Chiziqlar doim qat'iy ortogonal ko'rinishi uchun fallback route ishlatamiz.
+        const routePoints = fallbackRoutePoints;
+        const routingSource: 'elk' | 'fallback' = 'fallback';
         const elkSections = toSectionData(elkEdge?.sections);
 
         routePointsByEdge.set(plannedEdge.id, routePoints);
@@ -638,30 +658,6 @@ function compareEdges(a: Edge, b: Edge, nodeBounds: Map<string, NodeBounds>) {
   return a.id.localeCompare(b.id);
 }
 
-function routePointsFromSections(sections: ElkEdgeSection[] | undefined): EdgeRoutePoint[] {
-  if (!sections || sections.length === 0) return [];
-
-  const ordered = orderSections(sections);
-  const points: EdgeRoutePoint[] = [];
-
-  for (const section of ordered) {
-    const sectionPoints = [
-      section.startPoint,
-      ...(section.bendPoints ?? []),
-      section.endPoint,
-    ];
-
-    for (const point of sectionPoints) {
-      points.push({
-        x: roundTo2(point.x),
-        y: roundTo2(point.y),
-      });
-    }
-  }
-
-  return normalizeRoutePoints(points);
-}
-
 function toSectionData(sections: ElkEdgeSection[] | undefined): EdgeSectionData[] {
   if (!sections || sections.length === 0) return [];
 
@@ -680,45 +676,6 @@ function toSectionData(sections: ElkEdgeSection[] | undefined): EdgeSectionData[
       y: roundTo2(point.y),
     })),
   }));
-}
-
-function orderSections(sections: ElkEdgeSection[]): ElkEdgeSection[] {
-  if (sections.length <= 1) return sections;
-
-  const byId = new Map<string, ElkEdgeSection>();
-  const hasIncoming = new Set<string>();
-
-  for (const section of sections) {
-    byId.set(section.id, section);
-  }
-
-  for (const section of sections) {
-    for (const outgoingId of section.outgoingSections ?? []) {
-      hasIncoming.add(outgoingId);
-    }
-  }
-
-  let current: ElkEdgeSection | undefined = sections.find((section) => !hasIncoming.has(section.id)) ?? sections[0];
-
-  const ordered: ElkEdgeSection[] = [];
-  const visited = new Set<string>();
-
-  while (current && !visited.has(current.id)) {
-    ordered.push(current);
-    visited.add(current.id);
-
-    const outgoingIds: string[] = current.outgoingSections ?? [];
-    const nextId: string | undefined = outgoingIds.find((outgoingId: string) => !visited.has(outgoingId));
-    current = nextId ? byId.get(nextId) : undefined;
-  }
-
-  for (const section of sections) {
-    if (!visited.has(section.id)) {
-      ordered.push(section);
-    }
-  }
-
-  return ordered;
 }
 
 function buildFallbackRoute(edge: PlannedEdge, nodeBounds: Map<string, NodeBounds>): EdgeRoutePoint[] {
@@ -750,9 +707,8 @@ function buildFallbackRoute(edge: PlannedEdge, nodeBounds: Map<string, NodeBound
     ]);
   }
 
-  const laneOffset = getCenteredOffset(edge.laneIndex, edge.laneCount, CHILD_LANE_GAP);
-  const launchX = source.x + laneOffset;
-  const channelY = source.y + 20;
+  const launchX = source.x;
+  const channelY = source.y + 24;
 
   return normalizeRoutePoints([
     source,
