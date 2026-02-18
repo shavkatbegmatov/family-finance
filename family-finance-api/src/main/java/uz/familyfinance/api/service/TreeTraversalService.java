@@ -30,10 +30,17 @@ public class TreeTraversalService {
      */
     @Transactional(readOnly = true)
     public FamilyTreeV2Response getTree(Long personId, int maxDepth) {
-        Long rootId = personId != null ? personId : resolveFamilyMemberId();
+        Long fallbackRootId = resolveFamilyMemberId();
+        Long effectiveRootId = personId != null ? personId : fallbackRootId;
 
-        FamilyMember root = familyMemberRepository.findById(rootId)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + rootId));
+        FamilyMember root = findMemberOrThrow(effectiveRootId);
+        if (!isMemberActive(root)) {
+            effectiveRootId = fallbackRootId;
+            root = findMemberOrThrow(effectiveRootId);
+            if (!isMemberActive(root)) {
+                throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + effectiveRootId);
+            }
+        }
 
         Set<Long> visitedPersons = new HashSet<>();
         Set<Long> visitedUnits = new HashSet<>();
@@ -42,8 +49,8 @@ public class TreeTraversalService {
 
         // BFS queue: [personId, currentDepth]
         Queue<long[]> queue = new LinkedList<>();
-        queue.add(new long[]{rootId, 0});
-        visitedPersons.add(rootId);
+        queue.add(new long[]{effectiveRootId, 0});
+        visitedPersons.add(effectiveRootId);
 
         while (!queue.isEmpty()) {
             long[] current = queue.poll();
@@ -51,7 +58,7 @@ public class TreeTraversalService {
             int currentDepth = (int) current[1];
 
             FamilyMember person = familyMemberRepository.findById(currentPersonId).orElse(null);
-            if (person == null) continue;
+            if (person == null || !isMemberActive(person)) continue;
             if (!allPersons.stream().anyMatch(p -> p.getId().equals(currentPersonId))) {
                 allPersons.add(person);
             }
@@ -66,6 +73,7 @@ public class TreeTraversalService {
                 }
                 // Boshqa partnerni qo'shish
                 for (FamilyPartner partner : unit.getPartners()) {
+                    if (!isMemberActive(partner.getPerson())) continue;
                     Long pid = partner.getPerson().getId();
                     if (visitedPersons.add(pid)) {
                         queue.add(new long[]{pid, currentDepth + 1});
@@ -73,6 +81,7 @@ public class TreeTraversalService {
                 }
                 // Farzandlarni qo'shish
                 for (FamilyChild child : unit.getChildren()) {
+                    if (!isMemberActive(child.getPerson())) continue;
                     Long cid = child.getPerson().getId();
                     if (visitedPersons.add(cid)) {
                         queue.add(new long[]{cid, currentDepth + 1});
@@ -88,6 +97,7 @@ public class TreeTraversalService {
                 }
                 // Ota-onalarni (partnerlarni) qo'shish
                 for (FamilyPartner partner : unit.getPartners()) {
+                    if (!isMemberActive(partner.getPerson())) continue;
                     Long pid = partner.getPerson().getId();
                     if (visitedPersons.add(pid)) {
                         queue.add(new long[]{pid, currentDepth + 1});
@@ -95,6 +105,7 @@ public class TreeTraversalService {
                 }
                 // Aka-ukalarni qo'shish (boshqa farzandlar)
                 for (FamilyChild sibling : unit.getChildren()) {
+                    if (!isMemberActive(sibling.getPerson())) continue;
                     Long sid = sibling.getPerson().getId();
                     if (visitedPersons.add(sid)) {
                         queue.add(new long[]{sid, currentDepth + 1});
@@ -104,7 +115,7 @@ public class TreeTraversalService {
         }
 
         FamilyTreeV2Response response = new FamilyTreeV2Response();
-        response.setRootPersonId(rootId);
+        response.setRootPersonId(effectiveRootId);
         response.setPersons(allPersons.stream()
                 .sorted(Comparator.comparing(FamilyMember::getId))
                 .map(this::toMemberDto)
@@ -121,6 +132,9 @@ public class TreeTraversalService {
     public FamilyTreeV2Response getAncestors(Long personId) {
         FamilyMember root = familyMemberRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
+        if (!isMemberActive(root)) {
+            throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + personId);
+        }
 
         Set<Long> visitedPersons = new HashSet<>();
         Set<Long> visitedUnits = new HashSet<>();
@@ -134,7 +148,7 @@ public class TreeTraversalService {
         while (!queue.isEmpty()) {
             Long currentId = queue.poll();
             FamilyMember person = familyMemberRepository.findById(currentId).orElse(null);
-            if (person == null) continue;
+            if (person == null || !isMemberActive(person)) continue;
             if (!allPersons.stream().anyMatch(p -> p.getId().equals(currentId))) {
                 allPersons.add(person);
             }
@@ -146,6 +160,7 @@ public class TreeTraversalService {
                     allUnits.add(unit);
                 }
                 for (FamilyPartner partner : unit.getPartners()) {
+                    if (!isMemberActive(partner.getPerson())) continue;
                     Long pid = partner.getPerson().getId();
                     if (visitedPersons.add(pid)) {
                         queue.add(pid);
@@ -171,6 +186,9 @@ public class TreeTraversalService {
     public FamilyTreeV2Response getDescendants(Long personId) {
         FamilyMember root = familyMemberRepository.findById(personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
+        if (!isMemberActive(root)) {
+            throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + personId);
+        }
 
         Set<Long> visitedPersons = new HashSet<>();
         Set<Long> visitedUnits = new HashSet<>();
@@ -184,7 +202,7 @@ public class TreeTraversalService {
         while (!queue.isEmpty()) {
             Long currentId = queue.poll();
             FamilyMember person = familyMemberRepository.findById(currentId).orElse(null);
-            if (person == null) continue;
+            if (person == null || !isMemberActive(person)) continue;
             if (!allPersons.stream().anyMatch(p -> p.getId().equals(currentId))) {
                 allPersons.add(person);
             }
@@ -197,6 +215,7 @@ public class TreeTraversalService {
                 }
                 // Boshqa partnerni ham qo'shish
                 for (FamilyPartner partner : unit.getPartners()) {
+                    if (!isMemberActive(partner.getPerson())) continue;
                     Long pid = partner.getPerson().getId();
                     if (visitedPersons.add(pid)) {
                         // Partner qo'shiladi lekin uning farzandlari uchun BFS davom etmaydi
@@ -208,6 +227,7 @@ public class TreeTraversalService {
                 }
                 // Farzandlarni queue ga qo'shish
                 for (FamilyChild child : unit.getChildren()) {
+                    if (!isMemberActive(child.getPerson())) continue;
                     Long cid = child.getPerson().getId();
                     if (visitedPersons.add(cid)) {
                         queue.add(cid);
@@ -239,6 +259,15 @@ public class TreeTraversalService {
                         "Profilingiz oila a'zosiga bog'lanmagan. Avval oila a'zosi yaratib, foydalanuvchi akkauntingizga bog'lang."));
 
         return member.getId();
+    }
+
+    private boolean isMemberActive(FamilyMember member) {
+        return member != null && !Boolean.FALSE.equals(member.getIsActive());
+    }
+
+    private FamilyMember findMemberOrThrow(Long personId) {
+        return familyMemberRepository.findById(personId)
+                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
     }
 
     private FamilyTreeMemberDto toMemberDto(FamilyMember m) {
