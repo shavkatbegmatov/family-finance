@@ -30,6 +30,7 @@ export const FAMILY_UNIT_BUS_NODE_HEIGHT = 16;
 const CROSSING_EPSILON = 0.5;
 const BRIDGE_MIN_SPACING = 16;
 const JUNCTION_MIN_SPACING = 12;
+const BUS_CENTER_ALIGN_EPSILON = 1.5;
 const CHILD_LAYER_TOLERANCE = 72;
 const CROSSING_SWEEP_MAX_PASSES = 8;
 const TREE_DENSITY_PROFILE = {
@@ -534,9 +535,12 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
         const busCenterX = busBounds.x + busBounds.width / 2;
         const childCenterX = childBounds.x + childBounds.width / 2;
-        const newSourceHandle: PortHandleId = childCenterX <= busCenterX
-          ? 'child-out-left'
-          : 'child-out-right';
+        const alignedToCenter = Math.abs(childCenterX - busCenterX) <= BUS_CENTER_ALIGN_EPSILON;
+        const newSourceHandle: PortHandleId = alignedToCenter
+          ? 'child-out-center'
+          : childCenterX < busCenterX
+            ? 'child-out-left'
+            : 'child-out-right';
 
         edge.sourceHandle = newSourceHandle;
         edge.sourcePortId = toPortId(edge.source, newSourceHandle);
