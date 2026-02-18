@@ -19,6 +19,9 @@ function ChildEdgeComponent(props: EdgeProps) {
     data,
   } = props;
   const edgeData = (data ?? {}) as ChildEdgeData;
+  const hoverActive = Boolean((edgeData as { hoverActive?: boolean }).hoverActive);
+  const isHighlighted = Boolean((edgeData as { isHighlighted?: boolean }).isHighlighted);
+  const isDimmed = Boolean((edgeData as { isDimmed?: boolean }).isDimmed);
   const lineageType = edgeData.lineageType || 'BIOLOGICAL';
   const edgeKind = edgeData.edgeKind || 'child';
   const anchoredRoutePoints = getAnchoredRoutePoints(edgeData.routePoints, sourceX, sourceY, targetX, targetY);
@@ -46,7 +49,7 @@ function ChildEdgeComponent(props: EdgeProps) {
 
   let strokeDasharray: string | undefined;
   let strokeColor = '#64748b'; // slate
-  const strokeWidth = 1.5;
+  const baseStrokeWidth = 1.5;
 
   if (edgeKind === 'trunk') {
     strokeColor = '#475569';
@@ -74,6 +77,10 @@ function ChildEdgeComponent(props: EdgeProps) {
     }
   }
 
+  const strokeWidth = isHighlighted ? baseStrokeWidth + 0.8 : baseStrokeWidth;
+  const edgeOpacity = hoverActive && isDimmed ? 0.2 : 1;
+  const edgeFilter = isHighlighted ? `drop-shadow(0 0 6px ${strokeColor})` : undefined;
+
   return (
     <>
       <BaseEdge
@@ -85,6 +92,9 @@ function ChildEdgeComponent(props: EdgeProps) {
           fill: 'none',
           strokeLinejoin: 'miter',
           strokeLinecap: 'square',
+          opacity: edgeOpacity,
+          filter: edgeFilter,
+          transition: 'stroke-width 140ms ease, opacity 140ms ease, filter 140ms ease',
         }}
       />
       {junctionPoints.map((junction, index) => (
@@ -96,6 +106,8 @@ function ChildEdgeComponent(props: EdgeProps) {
           fill="#ffffff"
           stroke={strokeColor}
           strokeWidth={1.6}
+          opacity={edgeOpacity}
+          style={isHighlighted ? { filter: edgeFilter } : undefined}
           pointerEvents="none"
         />
       ))}
@@ -108,6 +120,8 @@ function ChildEdgeComponent(props: EdgeProps) {
           fill={BUS_KNOT_FILL}
           stroke={BUS_KNOT_STROKE}
           strokeWidth={1}
+          opacity={edgeOpacity}
+          style={isHighlighted ? { filter: edgeFilter } : undefined}
           pointerEvents="none"
         />
       ))}

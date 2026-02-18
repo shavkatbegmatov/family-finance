@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect, useMemo } from 'react';
+import { useCallback, useRef, useEffect, useMemo, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -66,6 +66,26 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
   const isInitialLoad = useRef(true);
   const savedViewport = useRef<Viewport | null>(null);
   const handledFocusRequestId = useRef(0);
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+
+  const renderedEdges = useMemo(() => {
+    if (!hoveredNodeId) return edges;
+
+    return edges.map((edge) => {
+      const edgeData = (edge.data ?? {}) as Record<string, unknown>;
+      const isHighlighted = edge.source === hoveredNodeId || edge.target === hoveredNodeId;
+
+      return {
+        ...edge,
+        data: {
+          ...edgeData,
+          hoverActive: true,
+          isHighlighted,
+          isDimmed: !isHighlighted,
+        },
+      };
+    });
+  }, [edges, hoveredNodeId]);
 
   useEffect(() => {
     if (isLayouting || nodes.length === 0) return;
@@ -142,11 +162,20 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     }
   }, [openModal]);
 
+  const handleNodeMouseEnter: NodeMouseHandler = useCallback((_event, node) => {
+    setHoveredNodeId(node.id);
+  }, []);
+
+  const handleNodeMouseLeave: NodeMouseHandler = useCallback(() => {
+    setHoveredNodeId(null);
+  }, []);
+
   const handleMoveEnd = useCallback((_event: unknown, viewport: Viewport) => {
     savedViewport.current = viewport;
   }, []);
 
   const handlePaneClick = useCallback(() => {
+    setHoveredNodeId(null);
     closeContextMenu();
     if (!isSidebarPinned && activeModal?.type === 'personDetail') {
       closeModal();
@@ -164,11 +193,13 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
   return (
     <ReactFlow
       nodes={nodes}
-      edges={edges}
+      edges={renderedEdges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onNodeContextMenu={handleNodeContextMenu}
       onNodeClick={handleNodeClick}
+      onNodeMouseEnter={handleNodeMouseEnter}
+      onNodeMouseLeave={handleNodeMouseLeave}
       onPaneClick={handlePaneClick}
       onMoveEnd={handleMoveEnd}
       minZoom={0.2}

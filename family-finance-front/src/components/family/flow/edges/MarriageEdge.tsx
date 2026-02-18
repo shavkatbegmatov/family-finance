@@ -16,6 +16,9 @@ function MarriageEdgeComponent(props: EdgeProps) {
     data,
   } = props;
   const edgeData = (data ?? {}) as MarriageEdgeData;
+  const hoverActive = Boolean((edgeData as { hoverActive?: boolean }).hoverActive);
+  const isHighlighted = Boolean((edgeData as { isHighlighted?: boolean }).isHighlighted);
+  const isDimmed = Boolean((edgeData as { isDimmed?: boolean }).isDimmed);
   const marriageType = edgeData.marriageType;
   const status = edgeData.status;
   const anchoredRoutePoints = getAnchoredRoutePoints(edgeData.routePoints, sourceX, sourceY, targetX, targetY);
@@ -54,17 +57,24 @@ function MarriageEdgeComponent(props: EdgeProps) {
     strokeWidth = 1.5;
   }
 
+  const edgeOpacity = hoverActive && isDimmed ? 0.2 : 1;
+  const edgeFilter = isHighlighted ? `drop-shadow(0 0 7px ${strokeColor})` : undefined;
+  const renderedStrokeWidth = isHighlighted ? strokeWidth + 0.9 : strokeWidth;
+
   return (
     <>
       <BaseEdge
         path={edgePath}
         style={{
           stroke: strokeColor,
-          strokeWidth,
+          strokeWidth: renderedStrokeWidth,
           strokeDasharray,
           fill: 'none',
           strokeLinejoin: 'miter',
           strokeLinecap: 'square',
+          opacity: edgeOpacity,
+          filter: edgeFilter,
+          transition: 'stroke-width 140ms ease, opacity 140ms ease, filter 140ms ease',
         }}
       />
       {junctionPoints.map((junction, index) => (
@@ -76,6 +86,8 @@ function MarriageEdgeComponent(props: EdgeProps) {
           fill="#ffffff"
           stroke={strokeColor}
           strokeWidth={1.6}
+          opacity={edgeOpacity}
+          style={isHighlighted ? { filter: edgeFilter } : undefined}
           pointerEvents="none"
         />
       ))}
@@ -88,6 +100,8 @@ function MarriageEdgeComponent(props: EdgeProps) {
           fill={strokeColor}
           stroke="#ffffff"
           strokeWidth={1.2}
+          opacity={edgeOpacity}
+          style={isHighlighted ? { filter: edgeFilter } : undefined}
           pointerEvents="none"
         />
       ))}
