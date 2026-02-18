@@ -1,6 +1,7 @@
 import type { EdgeBridgePoint, EdgeRoutePoint } from '../../../../types';
 
 const DEFAULT_BRIDGE_RADIUS = 6;
+const ENABLE_EDGE_BRIDGES = import.meta.env.VITE_FAMILY_TREE_EDGE_BRIDGES === 'true';
 
 function n(value: number) {
   return Math.round(value * 100) / 100;
@@ -12,9 +13,12 @@ export function buildPathWithBridges(
   bridgeRadius = DEFAULT_BRIDGE_RADIUS,
 ): string {
   if (!routePoints || routePoints.length < 2) return '';
+  if (!ENABLE_EDGE_BRIDGES || !bridges || bridges.length === 0) {
+    return buildPolylinePath(routePoints);
+  }
 
   const bridgesBySegment = new Map<number, EdgeBridgePoint[]>();
-  (bridges ?? []).forEach((bridge) => {
+  bridges.forEach((bridge) => {
     const list = bridgesBySegment.get(bridge.segmentIndex) ?? [];
     list.push(bridge);
     bridgesBySegment.set(bridge.segmentIndex, list);
@@ -61,6 +65,17 @@ export function buildPathWithBridges(
     }
 
     path += ` L ${n(next.x)} ${n(next.y)}`;
+  }
+
+  return path;
+}
+
+function buildPolylinePath(routePoints: EdgeRoutePoint[]) {
+  const start = routePoints[0];
+  let path = `M ${n(start.x)} ${n(start.y)}`;
+
+  for (let i = 1; i < routePoints.length; i++) {
+    path += ` L ${n(routePoints[i].x)} ${n(routePoints[i].y)}`;
   }
 
   return path;
