@@ -63,6 +63,8 @@ type PortHandleId =
   | 'partner-right'
   | 'children-out'
   | 'trunk-in'
+  | 'child-out-left'
+  | 'child-out-right'
   | 'child-out-center';
 
 interface NodeBounds {
@@ -248,15 +250,17 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
         sortedChildren.forEach((child, childIndex) => {
           const childNodeId = `person_${child.personId}`;
+          const childSourceHandle: PortHandleId =
+            childIndex <= (sortedChildren.length - 1) / 2 ? 'child-out-left' : 'child-out-right';
 
           plannedEdges.push({
             id: `edge_child_${familyUnit.id}_${child.personId}`,
             familyUnitId: familyUnit.id,
             source: busNodeId,
             target: childNodeId,
-            sourceHandle: 'child-out-center',
+            sourceHandle: childSourceHandle,
             targetHandle: 'parent-in',
-            sourcePortId: toPortId(busNodeId, 'child-out-center'),
+            sourcePortId: toPortId(busNodeId, childSourceHandle),
             targetPortId: toPortId(childNodeId, 'parent-in'),
             type: 'childEdge',
             kind: 'child',
@@ -492,6 +496,24 @@ export function useElkLayout(treeData: TreeResponse | null) {
         edge.targetPortId = toPortId(edge.target, newTargetHandle);
       }
 
+      // 3.5-qadam: Child edge'larni bus node'ning chap/o'ng tomonidan chiqarish
+      for (const edge of plannedEdges) {
+        if (edge.kind !== 'child') continue;
+
+        const busBounds = nodeBounds.get(edge.source);
+        const childBounds = nodeBounds.get(edge.target);
+        if (!busBounds || !childBounds) continue;
+
+        const busCenterX = busBounds.x + busBounds.width / 2;
+        const childCenterX = childBounds.x + childBounds.width / 2;
+        const newSourceHandle: PortHandleId = childCenterX <= busCenterX
+          ? 'child-out-left'
+          : 'child-out-right';
+
+        edge.sourceHandle = newSourceHandle;
+        edge.sourcePortId = toPortId(edge.source, newSourceHandle);
+      }
+
       const elkEdgesById = new Map<string, ElkExtendedEdge>();
       collectLayoutEdges(layoutResult, elkEdgesById);
 
@@ -611,7 +633,9 @@ function buildFamilyPairPorts(nodeId: string): ElkPort[] {
 function buildFamilyBusPorts(nodeId: string): ElkPort[] {
   return [
     createPort(nodeId, 'trunk-in', 'NORTH', 0),
-    createPort(nodeId, 'child-out-center', 'SOUTH', 0),
+    createPort(nodeId, 'child-out-left', 'WEST', 1),
+    createPort(nodeId, 'child-out-right', 'EAST', 2),
+    createPort(nodeId, 'child-out-center', 'SOUTH', 3),
   ];
 }
 
@@ -719,7 +743,7 @@ function buildFallbackRoute(edge: PlannedEdge, nodeBounds: Map<string, NodeBound
   }
 
   const launchX = source.x;
-  const channelY = source.y + 24;
+  const channelY = source.y;
 
   return normalizeRoutePoints([
     source,
@@ -771,8 +795,12 @@ function getHandlePoint(nodeId: string, handleId: PortHandleId, nodeBounds: Map<
     switch (handleId) {
       case 'trunk-in':
         return { x: centerX, y: bounds.y };
+      case 'child-out-left':
+        return { x: bounds.x, y: centerY };
+      case 'child-out-right':
+        return { x: bounds.x + bounds.width, y: centerY };
       case 'child-out-center':
-        return { x: centerX, y: bounds.y + bounds.height };
+        return { x: centerX, y: centerY };
       default:
         return { x: centerX, y: centerY };
     }

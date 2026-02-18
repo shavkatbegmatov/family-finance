@@ -123,7 +123,21 @@ function getAnchoredRoutePoints(
   if (!routePoints || routePoints.length < 2) return routePoints;
 
   const anchored = routePoints.slice();
-  anchored[0] = { x: sourceX, y: sourceY };
-  anchored[anchored.length - 1] = { x: targetX, y: targetY };
+  const first = anchored[0];
+  const last = anchored[anchored.length - 1];
+
+  if (isReasonableAnchor(first, sourceX, sourceY)) {
+    anchored[0] = { x: sourceX, y: sourceY };
+  }
+  if (isReasonableAnchor(last, targetX, targetY)) {
+    anchored[anchored.length - 1] = { x: targetX, y: targetY };
+  }
+
   return anchored;
+}
+
+function isReasonableAnchor(point: EdgeRoutePoint, x: number, y: number) {
+  const dx = point.x - x;
+  const dy = point.y - y;
+  return Math.hypot(dx, dy) <= 80;
 }

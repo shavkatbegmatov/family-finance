@@ -43,6 +43,19 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
           type="source"
           position={Position.Bottom}
           className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+          style={{ top: '50%', transform: 'translate(-50%, -50%)' }}
+        />
+        <Handle
+          id="child-out-left"
+          type="source"
+          position={Position.Left}
+          className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        />
+        <Handle
+          id="child-out-right"
+          type="source"
+          position={Position.Right}
+          className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
         />
         <div className="w-[14px] h-[14px] rounded-full bg-primary/25 border border-primary/50 shadow-sm" />
       </div>
