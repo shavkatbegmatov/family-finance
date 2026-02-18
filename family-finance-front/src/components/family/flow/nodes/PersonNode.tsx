@@ -87,8 +87,10 @@ function PersonNodeComponent({ data }: NodeProps) {
     ? displayFirstName.charAt(0).toUpperCase()
     : '?';
   const isDead = !!person.deathDate;
-  const connectionHandleClass =
-    '!w-2.5 !h-2.5 !rounded-full !bg-base-100 !border !border-base-content/45 !opacity-100 !z-20 !pointer-events-none';
+  const targetHandleClass =
+    '!w-2.5 !h-2.5 !rounded-full !bg-base-100 !border-2 !border-primary/75 !opacity-100 !z-20 !pointer-events-none !shadow-sm';
+  const sourceHandleClass =
+    '!w-2.5 !h-2.5 !rounded-full !bg-primary !border-2 !border-base-100 !opacity-100 !z-20 !pointer-events-none !shadow-sm';
 
   return (
     <div
@@ -106,25 +108,26 @@ function PersonNodeComponent({ data }: NodeProps) {
         id="parent-in"
         type="target"
         position={Position.Top}
-        className={connectionHandleClass}
+        className={targetHandleClass}
+        style={label ? { top: -12 } : undefined}
       />
       <Handle
         id="child-out"
         type="source"
         position={Position.Bottom}
-        className={connectionHandleClass}
+        className={sourceHandleClass}
       />
       <Handle
         id="spouse-left"
         type="source"
         position={Position.Left}
-        className={connectionHandleClass}
+        className={sourceHandleClass}
       />
       <Handle
         id="spouse-right"
         type="source"
         position={Position.Right}
-        className={connectionHandleClass}
+        className={sourceHandleClass}
       />
 
       {/* Relationship label badge */}

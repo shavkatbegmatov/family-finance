@@ -14,8 +14,10 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
 
   const isActive = familyUnit.status === 'ACTIVE';
   const marriageLabel = MARRIAGE_TYPES[familyUnit.marriageType]?.label || familyUnit.marriageType;
-  const pairHandleClass =
-    '!w-2.5 !h-2.5 !rounded-full !bg-base-100 !border !border-base-content/45 !opacity-100 !z-20 !pointer-events-none';
+  const targetHandleClass =
+    '!w-2.5 !h-2.5 !rounded-full !bg-base-100 !border-2 !border-primary/75 !opacity-100 !z-20 !pointer-events-none !shadow-sm';
+  const sourceHandleClass =
+    '!w-2.5 !h-2.5 !rounded-full !bg-primary !border-2 !border-base-100 !opacity-100 !z-20 !pointer-events-none !shadow-sm';
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -59,19 +61,19 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
         id="partner-left"
         type="target"
         position={Position.Left}
-        className={pairHandleClass}
+        className={targetHandleClass}
       />
       <Handle
         id="partner-right"
         type="target"
         position={Position.Right}
-        className={pairHandleClass}
+        className={targetHandleClass}
       />
       <Handle
         id="children-out"
         type="source"
         position={Position.Bottom}
-        className={pairHandleClass}
+        className={sourceHandleClass}
       />
 
       {/* Small junction dot */}
