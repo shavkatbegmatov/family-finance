@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -9,6 +9,7 @@ import {
   type Viewport,
 } from '@xyflow/react';
 import { useElkLayout } from '../../../hooks/useElkLayout';
+import { useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
 import { nodeTypes, edgeTypes } from './nodeTypes';
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
 import type { TreeResponse, PersonNodeData } from '../../../types';
@@ -18,7 +19,43 @@ export interface FamilyFlowTreeProps {
 }
 
 export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
-  const { nodes, edges, isLayouting } = useElkLayout(treeData);
+  const { data: activePersons = [] } = useActivePersonsQuery();
+
+  const effectiveTreeData = useMemo<TreeResponse>(() => {
+    if (!treeData.persons.length || !activePersons.length) {
+      return treeData;
+    }
+
+    const activeById = new Map(activePersons.map((person) => [person.id, person]));
+
+    return {
+      ...treeData,
+      persons: treeData.persons.map((treePerson) => {
+        const activePerson = activeById.get(treePerson.id);
+        if (!activePerson) return treePerson;
+
+        return {
+          ...treePerson,
+          firstName: activePerson.firstName ?? treePerson.firstName,
+          lastName: activePerson.lastName ?? treePerson.lastName,
+          middleName: activePerson.middleName ?? treePerson.middleName,
+          fullName: activePerson.fullName ?? treePerson.fullName,
+          role: activePerson.role ?? treePerson.role,
+          gender: activePerson.gender ?? treePerson.gender,
+          birthDate: activePerson.birthDate ?? treePerson.birthDate,
+          birthPlace: activePerson.birthPlace ?? treePerson.birthPlace,
+          deathDate: activePerson.deathDate ?? treePerson.deathDate,
+          phone: activePerson.phone ?? treePerson.phone,
+          avatar: activePerson.avatar ?? treePerson.avatar,
+          isActive: activePerson.isActive ?? treePerson.isActive,
+          userId: activePerson.userId ?? treePerson.userId,
+          relationshipLabel: treePerson.relationshipLabel,
+        };
+      }),
+    };
+  }, [treeData, activePersons]);
+
+  const { nodes, edges, isLayouting } = useElkLayout(effectiveTreeData);
   const closeContextMenu = useFamilyTreeStore((s) => s.closeContextMenu);
   const openModal = useFamilyTreeStore((s) => s.openModal);
   const openContextMenu = useFamilyTreeStore((s) => s.openContextMenu);

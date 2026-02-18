@@ -43,68 +43,13 @@ const getAge = (birthDate?: string, deathDate?: string): string => {
   return `${age} yosh`;
 };
 
-const isSameToken = (left?: string, right?: string) =>
-  (left ?? '').trim().toLocaleLowerCase() === (right ?? '').trim().toLocaleLowerCase();
-
-const toTokens = (value?: string) =>
-  (value ?? '').trim().split(/\s+/).filter(Boolean);
-
-const removeTokenOnce = (tokens: string[], target: string) => {
-  const targetLower = target.toLocaleLowerCase();
-  const idx = tokens.findIndex((token) => token.toLocaleLowerCase() === targetLower);
-  if (idx < 0) return tokens;
-  return [...tokens.slice(0, idx), ...tokens.slice(idx + 1)];
-};
-
-const endsWithTokens = (tokens: string[], suffix: string[]) => {
-  if (suffix.length === 0 || suffix.length > tokens.length) return false;
-  const offset = tokens.length - suffix.length;
-  return suffix.every((token, idx) => isSameToken(tokens[offset + idx], token));
-};
-
-const stripTrailingTokens = (tokens: string[], trailingValue?: string) => {
-  const trailingTokens = toTokens(trailingValue);
-  if (trailingTokens.length === 0) return tokens;
-  if (endsWithTokens(tokens, trailingTokens)) {
-    return tokens.slice(0, tokens.length - trailingTokens.length);
-  }
-  return tokens;
-};
-
-const sanitizeFirstName = (firstName?: string, middleName?: string) => {
-  const firstTokens = toTokens(firstName);
-  if (firstTokens.length === 0) return '';
-  const cleaned = stripTrailingTokens(firstTokens, middleName);
-  return cleaned.join(' ').trim();
-};
-
-const getFirstNameFallback = (fullName?: string, lastName?: string, middleName?: string) => {
-  let tokens = toTokens(fullName);
-  if (tokens.length === 0) return NODE_PLACEHOLDER;
-
-  const normalizedLastName = lastName?.trim();
-  if (normalizedLastName) {
-    if (isSameToken(tokens[0], normalizedLastName)) {
-      tokens = tokens.slice(1);
-    } else if (isSameToken(tokens[tokens.length - 1], normalizedLastName)) {
-      tokens = tokens.slice(0, tokens.length - 1);
-    } else {
-      tokens = removeTokenOnce(tokens, normalizedLastName);
-    }
-  }
-
-  tokens = stripTrailingTokens(tokens, middleName);
-  const rest = tokens.join(' ').trim();
-  return rest || NODE_PLACEHOLDER;
-};
-
-const getNameLines = (firstName?: string, lastName?: string, middleName?: string, fullName?: string) => {
-  const normalizedFirstName = sanitizeFirstName(firstName, middleName);
+const getNameLines = (firstName?: string, lastName?: string, middleName?: string) => {
+  const normalizedFirstName = firstName?.trim();
   const normalizedLastName = lastName?.trim();
   const normalizedMiddleName = middleName?.trim();
 
   return {
-    displayFirstName: normalizedFirstName || getFirstNameFallback(fullName, normalizedLastName, normalizedMiddleName),
+    displayFirstName: normalizedFirstName || NODE_PLACEHOLDER,
     displayLastName: normalizedLastName || NODE_PLACEHOLDER,
     displayMiddleName: normalizedMiddleName || NODE_PLACEHOLDER,
   };
@@ -137,7 +82,6 @@ function PersonNodeComponent({ data }: NodeProps) {
     person.firstName,
     person.lastName,
     person.middleName,
-    person.fullName,
   );
   const avatarInitial = displayFirstName !== NODE_PLACEHOLDER
     ? displayFirstName.charAt(0).toUpperCase()
