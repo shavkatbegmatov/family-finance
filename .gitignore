@@ -70,3 +70,6 @@ package-lock.json
 *.bak
 *.tmp
 *.orig
+/ff002.jpg
+/ff001.jpg
+/ff003.jpg

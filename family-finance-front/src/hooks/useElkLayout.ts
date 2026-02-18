@@ -382,6 +382,76 @@ export function useElkLayout(treeData: TreeResponse | null) {
         }
       }
 
+      // Partnerlarning pozitsiyalarini tekshirish va agar teskari bo'lsa — swap qilish
+      // sortedPartners: erkak(index=0)=left, ayol(index=1)=right bo'lishi kerak
+      // Agar ELK ularni teskari joylashtirgan bo'lsa — X pozitsiyalarini almashtiramiz
+      for (const familyUnit of treeData.familyUnits) {
+        const sortedPartners = familyUnit.partners
+          .filter((p) => addedPersons.has(p.personId))
+          .slice()
+          .sort((a, b) => {
+            const genderDiff = getPartnerGenderRank(a, personsMap) - getPartnerGenderRank(b, personsMap);
+            if (genderDiff !== 0) return genderDiff;
+            const roleDiff = (PARTNER_ROLE_ORDER[a.role] ?? 99) - (PARTNER_ROLE_ORDER[b.role] ?? 99);
+            if (roleDiff !== 0) return roleDiff;
+            return a.personId - b.personId;
+          });
+
+        if (sortedPartners.length < 2) continue;
+
+        const leftPartner = sortedPartners[0]; // erkak — chapda bo'lishi kerak
+        const rightPartner = sortedPartners[1]; // ayol — o'ngda bo'lishi kerak
+
+        const leftNodeId = `person_${leftPartner.personId}`;
+        const rightNodeId = `person_${rightPartner.personId}`;
+
+        const leftBounds = nodeBounds.get(leftNodeId);
+        const rightBounds = nodeBounds.get(rightNodeId);
+        if (!leftBounds || !rightBounds) continue;
+
+        const leftCenterX = leftBounds.x + leftBounds.width / 2;
+        const rightCenterX = rightBounds.x + rightBounds.width / 2;
+
+        // Agar "chap bo'lishi kerak" bo'lgan node aslida o'ngda bo'lsa — swap
+        if (leftCenterX > rightCenterX) {
+          const tempX = leftBounds.x;
+          leftBounds.x = rightBounds.x;
+          rightBounds.x = tempX;
+
+          // rfNodes dagi pozitsiyalarni ham yangilash
+          const leftRfNode = rfNodes.find((n) => n.id === leftNodeId);
+          const rightRfNode = rfNodes.find((n) => n.id === rightNodeId);
+          if (leftRfNode && rightRfNode) {
+            const tempPos = leftRfNode.position.x;
+            leftRfNode.position.x = rightRfNode.position.x;
+            rightRfNode.position.x = tempPos;
+          }
+        }
+      }
+
+      // Marriage edge handle'larini haqiqiy pozitsiyaga qarab tuzatish
+      for (const edge of plannedEdges) {
+        if (edge.kind !== 'marriage') continue;
+
+        const personBounds = nodeBounds.get(edge.source);
+        const pairBounds = nodeBounds.get(edge.target);
+        if (!personBounds || !pairBounds) continue;
+
+        const personCenterX = personBounds.x + personBounds.width / 2;
+        const pairCenterX = pairBounds.x + pairBounds.width / 2;
+
+        // Person FamilyUnit'dan chapda → o'ng portdan chiqib chap portga kiradi
+        // Person FamilyUnit'dan o'ngda → chap portdan chiqib o'ng portga kiradi
+        const personIsLeft = personCenterX <= pairCenterX;
+        const newSourceHandle: PortHandleId = personIsLeft ? 'spouse-right' : 'spouse-left';
+        const newTargetHandle: PortHandleId = personIsLeft ? 'partner-left' : 'partner-right';
+
+        edge.sourceHandle = newSourceHandle;
+        edge.targetHandle = newTargetHandle;
+        edge.sourcePortId = toPortId(edge.source, newSourceHandle);
+        edge.targetPortId = toPortId(edge.target, newTargetHandle);
+      }
+
       const elkEdgesById = new Map<string, ElkExtendedEdge>();
       collectLayoutEdges(layoutResult, elkEdgesById);
 
@@ -394,8 +464,10 @@ export function useElkLayout(treeData: TreeResponse | null) {
         const elkRoutePoints = routePointsFromSections(elkEdge?.sections);
         const fallbackRoutePoints = buildFallbackRoute(plannedEdge, nodeBounds);
 
-        const routePoints = elkRoutePoints.length >= 2 ? elkRoutePoints : fallbackRoutePoints;
-        const routingSource = elkRoutePoints.length >= 2 ? 'elk' : 'fallback';
+        // Marriage edge'larda ELK route mos kelmaydi — fallback ishlatamiz
+        const useElkRoute = elkRoutePoints.length >= 2 && plannedEdge.kind !== 'marriage';
+        const routePoints = useElkRoute ? elkRoutePoints : fallbackRoutePoints;
+        const routingSource = useElkRoute ? 'elk' : 'fallback';
         const elkSections = toSectionData(elkEdge?.sections);
 
         routePointsByEdge.set(plannedEdge.id, routePoints);
