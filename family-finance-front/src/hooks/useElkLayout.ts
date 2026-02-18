@@ -30,7 +30,6 @@ export const FAMILY_UNIT_BUS_NODE_HEIGHT = 14;
 const CROSSING_EPSILON = 0.5;
 const BRIDGE_MIN_SPACING = 16;
 const JUNCTION_MIN_SPACING = 12;
-const MARRIAGE_LANE_GAP = 12;
 const CHILD_LAYER_TOLERANCE = 72;
 const CROSSING_SWEEP_MAX_PASSES = 8;
 const TREE_DENSITY_PROFILE = {
@@ -189,7 +188,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
           const personNodeId = `person_${partner.personId}`;
           const side = getPartnerSide(partnerIndex, sortedPartners.length);
 
-          const sourceHandle: PortHandleId = side === 'left' ? 'spouse-right' : 'spouse-left';
+          const sourceHandle: PortHandleId = 'child-out';
           const targetHandle: PortHandleId = side === 'left' ? 'partner-left' : 'partner-right';
 
           plannedEdges.push({
@@ -470,11 +469,9 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
         const personCenterX = personBounds.x + personBounds.width / 2;
         const pairCenterX = pairBounds.x + pairBounds.width / 2;
-
-        // Person FamilyUnit'dan chapda → o'ng portdan chiqib chap portga kiradi
-        // Person FamilyUnit'dan o'ngda → chap portdan chiqib o'ng portga kiradi
+        // Nikoh chizig'i person node pastidan chiqadi, pair node'ga esa chap/o'ng tomondan kiradi.
         const personIsLeft = personCenterX <= pairCenterX;
-        const newSourceHandle: PortHandleId = personIsLeft ? 'spouse-right' : 'spouse-left';
+        const newSourceHandle: PortHandleId = 'child-out';
         const newTargetHandle: PortHandleId = personIsLeft ? 'partner-left' : 'partner-right';
 
         edge.sourceHandle = newSourceHandle;
@@ -688,12 +685,9 @@ function buildFallbackRoute(edge: PlannedEdge, nodeBounds: Map<string, NodeBound
   const target = getHandlePoint(edge.target, edge.targetHandle, nodeBounds);
 
   if (edge.kind === 'marriage') {
-    const laneOffset = getCenteredOffset(edge.laneIndex, edge.laneCount, MARRIAGE_LANE_GAP);
-    const corridorX = (source.x + target.x) / 2 + laneOffset;
     return normalizeRoutePoints([
       source,
-      { x: corridorX, y: source.y },
-      { x: corridorX, y: target.y },
+      { x: source.x, y: target.y },
       target,
     ]);
   }
@@ -953,11 +947,6 @@ function sortMarkersByRoute<T extends EdgeBridgePoint | EdgeJunctionPoint>(
     });
     markerMap.set(edgeId, sorted);
   });
-}
-
-function getCenteredOffset(index: number, count: number, gap: number) {
-  if (count <= 1) return 0;
-  return (index - (count - 1) / 2) * gap;
 }
 
 function getNodeCenterX(nodeBounds: Map<string, NodeBounds>, nodeId: string) {
@@ -1221,3 +1210,4 @@ function fallbackLayout(
   setNodes(rfNodes);
   setEdges(rfEdges);
 }
+
