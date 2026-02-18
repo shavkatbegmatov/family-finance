@@ -98,6 +98,18 @@ interface Segment {
   orientation: 'H' | 'V';
 }
 
+interface SharedPointOccurrence {
+  edgeId: string;
+  segmentIndex: number;
+  isEndpoint: boolean;
+}
+
+interface SharedPointBucket {
+  x: number;
+  y: number;
+  occurrences: SharedPointOccurrence[];
+}
+
 interface ElkExtendedEdgeWithPorts extends ElkExtendedEdge {
   sourcePort?: string;
   targetPort?: string;
@@ -863,10 +875,104 @@ function detectEdgeIntersections(
     }
   }
 
+  detectSharedRouteJunctions(plannedEdges, routePointsByEdge, junctionsByEdge);
+
   sortMarkersByRoute(bridgesByEdge, routePointsByEdge);
   sortMarkersByRoute(junctionsByEdge, routePointsByEdge);
 
   return { bridgesByEdge, junctionsByEdge };
+}
+
+function detectSharedRouteJunctions(
+  plannedEdges: PlannedEdge[],
+  routePointsByEdge: Map<string, EdgeRoutePoint[]>,
+  junctionsByEdge: Map<string, EdgeJunctionPoint[]>,
+) {
+  const edgeById = new Map<string, PlannedEdge>();
+  for (const edge of plannedEdges) {
+    edgeById.set(edge.id, edge);
+  }
+
+  const sharedBuckets = new Map<string, SharedPointBucket>();
+
+  for (const edge of plannedEdges) {
+    const routePoints = routePointsByEdge.get(edge.id) ?? [];
+    if (routePoints.length < 2) continue;
+
+    const lastPointIndex = routePoints.length - 1;
+    const maxSegmentIndex = Math.max(0, routePoints.length - 2);
+
+    for (let pointIndex = 0; pointIndex <= lastPointIndex; pointIndex++) {
+      const point = routePoints[pointIndex];
+      const roundedX = roundTo2(point.x);
+      const roundedY = roundTo2(point.y);
+      const key = `${roundedX}|${roundedY}`;
+
+      const segmentIndex = pointIndex === 0
+        ? 0
+        : Math.min(pointIndex - 1, maxSegmentIndex);
+      const isEndpoint = pointIndex === 0 || pointIndex === lastPointIndex;
+
+      const bucket = sharedBuckets.get(key);
+      if (bucket) {
+        bucket.occurrences.push({
+          edgeId: edge.id,
+          segmentIndex,
+          isEndpoint,
+        });
+        continue;
+      }
+
+      sharedBuckets.set(key, {
+        x: roundedX,
+        y: roundedY,
+        occurrences: [{
+          edgeId: edge.id,
+          segmentIndex,
+          isEndpoint,
+        }],
+      });
+    }
+  }
+
+  for (const bucket of sharedBuckets.values()) {
+    const uniqueEdgeIds = Array.from(new Set(bucket.occurrences.map((o) => o.edgeId)));
+    if (uniqueEdgeIds.length < 2) continue;
+
+    // Node handle ustidagi endpointlarda markerni ko'paytirmaslik uchun faqat line-line tutashuvni qoldiramiz.
+    if (bucket.occurrences.every((o) => o.isEndpoint)) continue;
+
+    if (!hasRelatedEdgePair(uniqueEdgeIds, edgeById)) continue;
+
+    for (const occurrence of bucket.occurrences) {
+      addMarkerPoint(
+        junctionsByEdge,
+        occurrence.edgeId,
+        occurrence.segmentIndex,
+        bucket.x,
+        bucket.y,
+        JUNCTION_MIN_SPACING,
+      );
+    }
+  }
+}
+
+function hasRelatedEdgePair(edgeIds: string[], edgeById: Map<string, PlannedEdge>) {
+  for (let i = 0; i < edgeIds.length; i++) {
+    const edgeA = edgeById.get(edgeIds[i]);
+    if (!edgeA) continue;
+
+    for (let j = i + 1; j < edgeIds.length; j++) {
+      const edgeB = edgeById.get(edgeIds[j]);
+      if (!edgeB) continue;
+
+      if (isRelatedEdgePair(edgeA, edgeB)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 function collectSegments(edgeId: string, routePoints: EdgeRoutePoint[]): Segment[] {
