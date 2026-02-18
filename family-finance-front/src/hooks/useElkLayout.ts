@@ -832,7 +832,7 @@ function getHandlePoint(nodeId: string, handleId: PortHandleId, nodeBounds: Map<
       case 'child-out-right':
         return { x: bounds.x + bounds.width, y: centerY };
       case 'child-out-center':
-        return { x: centerX, y: centerY };
+        return { x: centerX, y: bounds.y + bounds.height };
       default:
         return { x: centerX, y: centerY };
     }

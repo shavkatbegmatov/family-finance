@@ -43,7 +43,6 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
           type="source"
           position={Position.Bottom}
           className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
-          style={{ top: '50%', transform: 'translate(-50%, -50%)' }}
         />
         <Handle
           id="child-out-left"
