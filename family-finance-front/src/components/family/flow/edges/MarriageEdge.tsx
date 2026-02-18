@@ -1,17 +1,21 @@
 import { memo } from 'react';
 import { BaseEdge, getStraightPath, type EdgeProps } from '@xyflow/react';
+import type { MarriageEdgeData } from '../../../../types';
+import { buildPathWithBridges } from './pathUtils';
 
 function MarriageEdgeComponent(props: EdgeProps) {
   const { sourceX, sourceY, targetX, targetY, data } = props;
-  const marriageType = (data as { marriageType?: string })?.marriageType;
-  const status = (data as { status?: string })?.status;
+  const edgeData = (data ?? {}) as MarriageEdgeData;
+  const marriageType = edgeData.marriageType;
+  const status = edgeData.status;
 
-  const [edgePath] = getStraightPath({
+  const [fallbackPath] = getStraightPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
   });
+  const edgePath = buildPathWithBridges(edgeData.routePoints, edgeData.bridges, 6) || fallbackPath;
 
   const isActive = status === 'ACTIVE';
   const isDivorced = marriageType === 'DIVORCED' || !isActive;
@@ -38,6 +42,9 @@ function MarriageEdgeComponent(props: EdgeProps) {
         stroke: strokeColor,
         strokeWidth,
         strokeDasharray,
+        fill: 'none',
+        strokeLinejoin: 'round',
+        strokeLinecap: 'round',
       }}
     />
   );

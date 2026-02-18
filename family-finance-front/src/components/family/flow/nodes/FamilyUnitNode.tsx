@@ -8,7 +8,7 @@ import { formatDate } from '../../../../config/constants';
 
 function FamilyUnitNodeComponent({ data }: NodeProps) {
   const nodeData = data as unknown as FamilyUnitNodeData;
-  const { familyUnit } = nodeData;
+  const { familyUnit, variant = 'pair' } = nodeData;
   const [showTooltip, setShowTooltip] = useState(false);
   const openContextMenu = useFamilyTreeStore(s => s.openContextMenu);
 
@@ -25,6 +25,26 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
     });
   };
 
+  if (variant === 'bus') {
+    return (
+      <div className="relative pointer-events-none">
+        <Handle
+          id="trunk-in"
+          type="target"
+          position={Position.Top}
+          className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        />
+        <Handle
+          id="child-out-center"
+          type="source"
+          position={Position.Bottom}
+          className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        />
+        <div className="w-[12px] h-[12px] rounded-full bg-base-300/40 border border-base-300/70" />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative"
@@ -33,8 +53,24 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
       onContextMenu={handleContextMenu}
     >
       {/* Handles */}
-      <Handle type="target" position={Position.Top} className="!w-2 !h-1 !bg-base-300 !border-0" />
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-1 !bg-base-300 !border-0" />
+      <Handle
+        id="partner-left"
+        type="target"
+        position={Position.Left}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
+      <Handle
+        id="partner-right"
+        type="target"
+        position={Position.Right}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
+      <Handle
+        id="children-out"
+        type="source"
+        position={Position.Bottom}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
 
       {/* Small junction dot */}
       <div

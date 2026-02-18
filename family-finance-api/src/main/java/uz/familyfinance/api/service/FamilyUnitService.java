@@ -17,6 +17,7 @@ import uz.familyfinance.api.enums.PartnerRole;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -209,28 +210,39 @@ public class FamilyUnitService {
         r.setMarriageDate(unit.getMarriageDate());
         r.setDivorceDate(unit.getDivorceDate());
 
-        r.setPartners(unit.getPartners().stream().map(p -> {
-            PartnerResponse pr = new PartnerResponse();
-            pr.setId(p.getId());
-            pr.setPersonId(p.getPerson().getId());
-            pr.setFullName(p.getPerson().getFullName());
-            pr.setAvatar(p.getPerson().getAvatar());
-            pr.setGender(p.getPerson().getGender());
-            pr.setRole(p.getRole());
-            return pr;
-        }).collect(Collectors.toList()));
+        r.setPartners(unit.getPartners().stream()
+                .sorted(Comparator
+                        .comparing(FamilyPartner::getRole)
+                        .thenComparing(p -> p.getPerson().getId()))
+                .map(p -> {
+                    PartnerResponse pr = new PartnerResponse();
+                    pr.setId(p.getId());
+                    pr.setPersonId(p.getPerson().getId());
+                    pr.setFullName(p.getPerson().getFullName());
+                    pr.setAvatar(p.getPerson().getAvatar());
+                    pr.setGender(p.getPerson().getGender());
+                    pr.setRole(p.getRole());
+                    return pr;
+                })
+                .collect(Collectors.toList()));
 
-        r.setChildren(unit.getChildren().stream().map(c -> {
-            ChildResponse cr = new ChildResponse();
-            cr.setId(c.getId());
-            cr.setPersonId(c.getPerson().getId());
-            cr.setFullName(c.getPerson().getFullName());
-            cr.setAvatar(c.getPerson().getAvatar());
-            cr.setGender(c.getPerson().getGender());
-            cr.setLineageType(c.getLineageType());
-            cr.setBirthOrder(c.getBirthOrder());
-            return cr;
-        }).collect(Collectors.toList()));
+        r.setChildren(unit.getChildren().stream()
+                .sorted(Comparator
+                        .comparing(FamilyChild::getBirthOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(c -> c.getPerson().getBirthDate(), Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(c -> c.getPerson().getId()))
+                .map(c -> {
+                    ChildResponse cr = new ChildResponse();
+                    cr.setId(c.getId());
+                    cr.setPersonId(c.getPerson().getId());
+                    cr.setFullName(c.getPerson().getFullName());
+                    cr.setAvatar(c.getPerson().getAvatar());
+                    cr.setGender(c.getPerson().getGender());
+                    cr.setLineageType(c.getLineageType());
+                    cr.setBirthOrder(c.getBirthOrder());
+                    return cr;
+                })
+                .collect(Collectors.toList()));
 
         return r;
     }

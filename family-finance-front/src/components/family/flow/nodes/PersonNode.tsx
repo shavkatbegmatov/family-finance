@@ -72,9 +72,31 @@ function PersonNodeComponent({ data }: NodeProps) {
       onContextMenu={handleContextMenu}
       onClick={() => openModal({ type: 'personDetail', personId: person.id })}
     >
-      {/* Handles for edges */}
-      <Handle type="target" position={Position.Top} className="!w-3 !h-1.5 !bg-base-300 !border-0 !rounded-sm" />
-      <Handle type="source" position={Position.Bottom} className="!w-3 !h-1.5 !bg-base-300 !border-0 !rounded-sm" />
+      {/* Handles for relationship routing */}
+      <Handle
+        id="parent-in"
+        type="target"
+        position={Position.Top}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
+      <Handle
+        id="child-out"
+        type="source"
+        position={Position.Bottom}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
+      <Handle
+        id="spouse-left"
+        type="source"
+        position={Position.Left}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
+      <Handle
+        id="spouse-right"
+        type="source"
+        position={Position.Right}
+        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+      />
 
       {/* Relationship label badge */}
       {label && (

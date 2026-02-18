@@ -85,8 +85,8 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
         isRoot: data.isRoot,
         personUserId: data.person.userId,
       });
-    } else if (node.id.startsWith('fu_')) {
-      const fuId = Number(node.id.replace('fu_', ''));
+    } else if (node.id.startsWith('fu_pair_')) {
+      const fuId = Number(node.id.replace('fu_pair_', ''));
       openContextMenu({
         x: (event as unknown as React.MouseEvent).clientX,
         y: (event as unknown as React.MouseEvent).clientY,
@@ -134,7 +134,8 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       <Background gap={20} size={1} color="oklch(var(--bc) / 0.07)" />
       <MiniMap
         nodeColor={(node) => {
-          if (node.id.startsWith('fu_')) return '#6366f1';
+          if (node.id.startsWith('fu_pair_')) return '#6366f1';
+          if (node.id.startsWith('fu_bus_')) return '#94a3b8';
           const gender = (node.data as { person?: { gender?: string } })?.person?.gender;
           if (gender === 'MALE') return '#60a5fa';
           if (gender === 'FEMALE') return '#f472b6';

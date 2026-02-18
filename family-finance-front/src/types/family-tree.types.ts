@@ -107,9 +107,40 @@ export interface PersonNodeData {
 
 export interface FamilyUnitNodeData {
   familyUnit: FamilyUnitDto;
+  variant?: 'pair' | 'bus';
 }
 
 export type FamilyEdgeType = 'marriage' | 'child';
+
+export type FamilyEdgeKind = 'marriage' | 'child' | 'trunk';
+
+export interface EdgeRoutePoint {
+  x: number;
+  y: number;
+}
+
+export interface EdgeBridgePoint {
+  x: number;
+  y: number;
+  segmentIndex: number;
+}
+
+export interface FamilyEdgeRenderData extends Record<string, unknown> {
+  edgeKind?: FamilyEdgeKind;
+  laneIndex?: number;
+  laneCount?: number;
+  routePoints?: EdgeRoutePoint[];
+  bridges?: EdgeBridgePoint[];
+}
+
+export interface MarriageEdgeData extends FamilyEdgeRenderData {
+  marriageType?: MarriageType;
+  status?: FamilyUnitStatus;
+}
+
+export interface ChildEdgeData extends FamilyEdgeRenderData {
+  lineageType?: LineageType;
+}
 
 // ============ Modal Types ============
 export type FamilyTreeModal =

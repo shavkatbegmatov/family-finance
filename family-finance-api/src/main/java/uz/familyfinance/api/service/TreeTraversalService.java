@@ -105,8 +105,14 @@ public class TreeTraversalService {
 
         FamilyTreeV2Response response = new FamilyTreeV2Response();
         response.setRootPersonId(rootId);
-        response.setPersons(allPersons.stream().map(this::toMemberDto).collect(Collectors.toList()));
-        response.setFamilyUnits(allUnits.stream().map(familyUnitService::toResponse).collect(Collectors.toList()));
+        response.setPersons(allPersons.stream()
+                .sorted(Comparator.comparing(FamilyMember::getId))
+                .map(this::toMemberDto)
+                .collect(Collectors.toList()));
+        response.setFamilyUnits(allUnits.stream()
+                .sorted(Comparator.comparing(FamilyUnit::getId))
+                .map(familyUnitService::toResponse)
+                .collect(Collectors.toList()));
 
         return response;
     }
@@ -150,8 +156,14 @@ public class TreeTraversalService {
 
         FamilyTreeV2Response response = new FamilyTreeV2Response();
         response.setRootPersonId(personId);
-        response.setPersons(allPersons.stream().map(this::toMemberDto).collect(Collectors.toList()));
-        response.setFamilyUnits(allUnits.stream().map(familyUnitService::toResponse).collect(Collectors.toList()));
+        response.setPersons(allPersons.stream()
+                .sorted(Comparator.comparing(FamilyMember::getId))
+                .map(this::toMemberDto)
+                .collect(Collectors.toList()));
+        response.setFamilyUnits(allUnits.stream()
+                .sorted(Comparator.comparing(FamilyUnit::getId))
+                .map(familyUnitService::toResponse)
+                .collect(Collectors.toList()));
         return response;
     }
 
@@ -206,8 +218,14 @@ public class TreeTraversalService {
 
         FamilyTreeV2Response response = new FamilyTreeV2Response();
         response.setRootPersonId(personId);
-        response.setPersons(allPersons.stream().map(this::toMemberDto).collect(Collectors.toList()));
-        response.setFamilyUnits(allUnits.stream().map(familyUnitService::toResponse).collect(Collectors.toList()));
+        response.setPersons(allPersons.stream()
+                .sorted(Comparator.comparing(FamilyMember::getId))
+                .map(this::toMemberDto)
+                .collect(Collectors.toList()));
+        response.setFamilyUnits(allUnits.stream()
+                .sorted(Comparator.comparing(FamilyUnit::getId))
+                .map(familyUnitService::toResponse)
+                .collect(Collectors.toList()));
         return response;
     }
 
