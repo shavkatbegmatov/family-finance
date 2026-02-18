@@ -43,61 +43,46 @@ const getAge = (birthDate?: string, deathDate?: string): string => {
   return `${age} yosh`;
 };
 
-const PATRONYMIC_SUFFIXES = ['ovich', 'ovna', 'evich', 'evna'];
-const PATRONYMIC_TAIL_TOKENS = ["o'g'li", 'o‘g‘li', 'ogli', 'qizi'];
-
 const isSameToken = (left?: string, right?: string) =>
   (left ?? '').trim().toLocaleLowerCase() === (right ?? '').trim().toLocaleLowerCase();
 
-const inferMiddleFromRemainder = (tokens: string[]) => {
-  if (tokens.length === 0) return '';
+const removeTokenOnce = (tokens: string[], target: string) => {
+  const targetLower = target.toLocaleLowerCase();
+  const idx = tokens.findIndex((token) => token.toLocaleLowerCase() === targetLower);
+  if (idx < 0) return tokens;
+  return [...tokens.slice(0, idx), ...tokens.slice(idx + 1)];
+};
 
-  const lastToken = tokens[tokens.length - 1]?.toLocaleLowerCase() ?? '';
-  if (PATRONYMIC_SUFFIXES.some((suffix) => lastToken.endsWith(suffix))) {
-    return tokens[tokens.length - 1];
+const getFirstNameFallback = (fullName?: string, lastName?: string) => {
+  const tokens = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return NODE_PLACEHOLDER;
+
+  const normalizedLastName = lastName?.trim();
+  if (!normalizedLastName) return tokens.join(' ');
+
+  if (isSameToken(tokens[0], normalizedLastName)) {
+    const rest = tokens.slice(1).join(' ').trim();
+    return rest || NODE_PLACEHOLDER;
   }
 
-  if (tokens.length >= 2 && PATRONYMIC_TAIL_TOKENS.includes(lastToken)) {
-    return `${tokens[tokens.length - 2]} ${tokens[tokens.length - 1]}`;
+  if (isSameToken(tokens[tokens.length - 1], normalizedLastName)) {
+    const rest = tokens.slice(0, tokens.length - 1).join(' ').trim();
+    return rest || NODE_PLACEHOLDER;
   }
 
-  return '';
+  const rest = removeTokenOnce(tokens, normalizedLastName).join(' ').trim();
+  return rest || NODE_PLACEHOLDER;
 };
 
 const getNameLines = (firstName?: string, lastName?: string, middleName?: string, fullName?: string) => {
   const normalizedFirstName = firstName?.trim();
   const normalizedLastName = lastName?.trim();
   const normalizedMiddleName = middleName?.trim();
-  const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
-  const fallbackLastName = normalizedLastName || parts[0] || NODE_PLACEHOLDER;
-  const remainderTokens =
-    parts.length > 0 && isSameToken(parts[0], fallbackLastName)
-      ? parts.slice(1)
-      : parts.slice(normalizedLastName ? 0 : 1);
-
-  let resolvedFirstName = normalizedFirstName || remainderTokens.join(' ').trim();
-  let resolvedMiddleName = normalizedMiddleName || '';
-
-  if (!resolvedMiddleName) {
-    const inferredMiddle = inferMiddleFromRemainder(remainderTokens);
-    if (inferredMiddle) {
-      resolvedMiddleName = inferredMiddle;
-      const middleTokenCount = inferredMiddle.split(/\s+/).filter(Boolean).length;
-      const firstTokens = remainderTokens.slice(0, Math.max(0, remainderTokens.length - middleTokenCount));
-      if (!normalizedFirstName) {
-        resolvedFirstName = firstTokens.join(' ').trim();
-      }
-    }
-  }
-
-  if (!resolvedFirstName) {
-    resolvedFirstName = parts[0] || NODE_PLACEHOLDER;
-  }
 
   return {
-    displayFirstName: resolvedFirstName || NODE_PLACEHOLDER,
-    displayLastName: fallbackLastName || NODE_PLACEHOLDER,
-    displayMiddleName: resolvedMiddleName || NODE_PLACEHOLDER,
+    displayFirstName: normalizedFirstName || getFirstNameFallback(fullName, normalizedLastName),
+    displayLastName: normalizedLastName || NODE_PLACEHOLDER,
+    displayMiddleName: normalizedMiddleName || NODE_PLACEHOLDER,
   };
 };
 

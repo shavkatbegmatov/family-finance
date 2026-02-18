@@ -120,7 +120,9 @@ public class KinshipCalculatorService {
             LabeledTreePersonDto labeled = new LabeledTreePersonDto();
             labeled.setId(person.getId());
             labeled.setFullName(person.getFullName());
+            labeled.setFirstName(person.getFirstName());
             labeled.setLastName(person.getLastName());
+            labeled.setMiddleName(person.getMiddleName());
             labeled.setRole(person.getRole());
             labeled.setGender(person.getGender());
             labeled.setBirthDate(person.getBirthDate());
@@ -147,7 +149,7 @@ public class KinshipCalculatorService {
     }
 
     /**
-     * BFS bilan ajdodlar xaritasi — har bir ajdod uchun necha qadam yuqoriga ekanligini saqlash
+     * BFS bilan ajdodlar xaritasi ??? har bir ajdod uchun necha qadam yuqoriga ekanligini saqlash
      */
     private Map<Long, Integer> buildAncestorMap(Long personId) {
         Map<Long, Integer> ancestors = new HashMap<>();
@@ -216,7 +218,7 @@ public class KinshipCalculatorService {
             Long currentId = queue.poll();
 
             if (currentId.equals(ancestorId)) {
-                // Yo'l topildi — birinchi ota-onaning jinsini topish
+                // Yo'l topildi ??? birinchi ota-onaning jinsini topish
                 Long firstParentId = currentId;
                 Long child = currentId;
                 while (parentMap.containsKey(child)) {
@@ -286,7 +288,7 @@ public class KinshipCalculatorService {
      * Qayin munosabatlarini tekshirish (spouse ning ota-onasi / farzandning jufti)
      */
     private String checkInLawRelationship(Long viewerId, Long targetId) {
-        // 1. Target viewer ning juftining ota-onasimi? → Qayn ota/ona
+        // 1. Target viewer ning juftining ota-onasimi? ??? Qayn ota/ona
         List<FamilyUnit> viewerSpouseUnits = familyUnitRepository.findByPartnerId(viewerId);
         for (FamilyUnit spouseUnit : viewerSpouseUnits) {
             List<FamilyPartner> partners = familyPartnerRepository.findByFamilyUnitId(spouseUnit.getId());
@@ -308,7 +310,7 @@ public class KinshipCalculatorService {
             }
         }
 
-        // 2. Target viewer ning farzandining jufti mi? → Kuyov/Kelin
+        // 2. Target viewer ning farzandining jufti mi? ??? Kuyov/Kelin
         List<FamilyUnit> viewerParentUnits = familyUnitRepository.findByPartnerId(viewerId);
         for (FamilyUnit parentUnit : viewerParentUnits) {
             List<FamilyChild> children = familyChildRepository.findByFamilyUnitId(parentUnit.getId());

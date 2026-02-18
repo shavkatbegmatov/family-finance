@@ -26,7 +26,7 @@ public class TreeTraversalService {
     private final FamilyUnitService familyUnitService;
 
     /**
-     * BFS bilan ikki tomonga kengayish — yuqoriga (ota-onalar) va pastga (farzandlar)
+     * BFS bilan ikki tomonga kengayish ??? yuqoriga (ota-onalar) va pastga (farzandlar)
      */
     @Transactional(readOnly = true)
     public FamilyTreeV2Response getTree(Long personId, int maxDepth) {
@@ -58,7 +58,7 @@ public class TreeTraversalService {
 
             if (currentDepth >= maxDepth) continue;
 
-            // 1. Person partner bo'lgan FamilyUnit lar (pastga — farzandlar)
+            // 1. Person partner bo'lgan FamilyUnit lar (pastga ??? farzandlar)
             List<FamilyUnit> partnerUnits = familyUnitRepository.findByPartnerIdWithRelations(currentPersonId);
             for (FamilyUnit unit : partnerUnits) {
                 if (visitedUnits.add(unit.getId())) {
@@ -80,7 +80,7 @@ public class TreeTraversalService {
                 }
             }
 
-            // 2. Person farzand bo'lgan FamilyUnit lar (yuqoriga — ota-onalar)
+            // 2. Person farzand bo'lgan FamilyUnit lar (yuqoriga ??? ota-onalar)
             List<FamilyUnit> childUnits = familyUnitRepository.findByChildIdWithRelations(currentPersonId);
             for (FamilyUnit unit : childUnits) {
                 if (visitedUnits.add(unit.getId())) {
@@ -139,7 +139,7 @@ public class TreeTraversalService {
                 allPersons.add(person);
             }
 
-            // Faqat yuqoriga — farzand bo'lgan unit lar
+            // Faqat yuqoriga ??? farzand bo'lgan unit lar
             List<FamilyUnit> childUnits = familyUnitRepository.findByChildIdWithRelations(currentId);
             for (FamilyUnit unit : childUnits) {
                 if (visitedUnits.add(unit.getId())) {
@@ -189,7 +189,7 @@ public class TreeTraversalService {
                 allPersons.add(person);
             }
 
-            // Faqat pastga — partner bo'lgan unit lar
+            // Faqat pastga ??? partner bo'lgan unit lar
             List<FamilyUnit> partnerUnits = familyUnitRepository.findByPartnerIdWithRelations(currentId);
             for (FamilyUnit unit : partnerUnits) {
                 if (visitedUnits.add(unit.getId())) {
@@ -245,7 +245,9 @@ public class TreeTraversalService {
         FamilyTreeMemberDto dto = new FamilyTreeMemberDto();
         dto.setId(m.getId());
         dto.setFullName(m.getFullName());
+        dto.setFirstName(m.getFirstName());
         dto.setLastName(m.getLastName());
+        dto.setMiddleName(m.getMiddleName());
         dto.setRole(m.getRole());
         dto.setGender(m.getGender());
         dto.setBirthDate(m.getBirthDate());

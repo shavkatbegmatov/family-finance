@@ -10,7 +10,9 @@ import java.time.LocalDate;
 public class FamilyTreeMemberDto {
     private Long id;
     private String fullName;
+    private String firstName;
     private String lastName;
+    private String middleName;
     private FamilyRole role;
     private Gender gender;
     private LocalDate birthDate;
