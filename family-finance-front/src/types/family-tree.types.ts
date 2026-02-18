@@ -125,6 +125,12 @@ export interface EdgeBridgePoint {
   segmentIndex: number;
 }
 
+export interface EdgeJunctionPoint {
+  x: number;
+  y: number;
+  segmentIndex: number;
+}
+
 export interface EdgeSectionPoint {
   x: number;
   y: number;
@@ -139,12 +145,14 @@ export interface EdgeSectionData {
 
 export interface FamilyEdgeRenderData extends Record<string, unknown> {
   edgeKind?: FamilyEdgeKind;
+  familyUnitId?: number;
   laneIndex?: number;
   laneCount?: number;
   routePoints?: EdgeRoutePoint[];
   elkSections?: EdgeSectionData[];
   routingSource?: 'elk' | 'fallback';
   bridges?: EdgeBridgePoint[];
+  junctions?: EdgeJunctionPoint[];
 }
 
 export interface MarriageEdgeData extends FamilyEdgeRenderData {

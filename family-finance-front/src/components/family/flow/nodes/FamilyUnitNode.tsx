@@ -40,7 +40,7 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
           position={Position.Bottom}
           className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
         />
-        <div className="w-[12px] h-[12px] rounded-full bg-base-300/40 border border-base-300/70" />
+        <div className="w-[14px] h-[14px] rounded-full bg-primary/25 border border-primary/50 shadow-sm" />
       </div>
     );
   }

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
-import type { ChildEdgeData } from '../../../../types';
+import type { ChildEdgeData, EdgeRoutePoint } from '../../../../types';
 import { buildPathWithBridges } from './pathUtils';
 
 function ChildEdgeComponent(props: EdgeProps) {
@@ -8,6 +8,7 @@ function ChildEdgeComponent(props: EdgeProps) {
   const edgeData = (data ?? {}) as ChildEdgeData;
   const lineageType = edgeData.lineageType || 'BIOLOGICAL';
   const edgeKind = edgeData.edgeKind || 'child';
+  const anchoredRoutePoints = getAnchoredRoutePoints(edgeData.routePoints, sourceX, sourceY, targetX, targetY);
 
   const [fallbackPath] = getSmoothStepPath({
     sourceX,
@@ -18,7 +19,12 @@ function ChildEdgeComponent(props: EdgeProps) {
     targetPosition,
     borderRadius: 0,
   });
-  const edgePath = buildPathWithBridges(edgeData.routePoints, edgeData.bridges, 5) || fallbackPath;
+  const edgePath = buildPathWithBridges(anchoredRoutePoints, edgeData.bridges, 5) || fallbackPath;
+  const connectionPoints = [
+    { x: sourceX, y: sourceY },
+    { x: targetX, y: targetY },
+  ];
+  const junctionPoints = edgeData.junctions ?? [];
 
   let strokeDasharray: string | undefined;
   let strokeColor = '#64748b'; // slate
@@ -51,18 +57,59 @@ function ChildEdgeComponent(props: EdgeProps) {
   }
 
   return (
-    <BaseEdge
-      path={edgePath}
-      style={{
-        stroke: strokeColor,
-        strokeWidth,
-        strokeDasharray,
-        fill: 'none',
-        strokeLinejoin: 'miter',
-        strokeLinecap: 'square',
-      }}
-    />
+    <>
+      <BaseEdge
+        path={edgePath}
+        style={{
+          stroke: strokeColor,
+          strokeWidth,
+          strokeDasharray,
+          fill: 'none',
+          strokeLinejoin: 'miter',
+          strokeLinecap: 'square',
+        }}
+      />
+      {connectionPoints.map((point, index) => (
+        <circle
+          key={`conn-${index}`}
+          cx={point.x}
+          cy={point.y}
+          r={2.4}
+          fill={strokeColor}
+          stroke="#ffffff"
+          strokeWidth={1}
+          pointerEvents="none"
+        />
+      ))}
+      {junctionPoints.map((junction, index) => (
+        <circle
+          key={`junction-${index}`}
+          cx={junction.x}
+          cy={junction.y}
+          r={3.2}
+          fill="#ffffff"
+          stroke={strokeColor}
+          strokeWidth={1.6}
+          pointerEvents="none"
+        />
+      ))}
+    </>
   );
 }
 
 export const ChildEdge = memo(ChildEdgeComponent);
+
+function getAnchoredRoutePoints(
+  routePoints: EdgeRoutePoint[] | undefined,
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+) {
+  if (!routePoints || routePoints.length < 2) return routePoints;
+
+  const anchored = routePoints.slice();
+  anchored[0] = { x: sourceX, y: sourceY };
+  anchored[anchored.length - 1] = { x: targetX, y: targetY };
+  return anchored;
+}

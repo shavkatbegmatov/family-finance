@@ -12,6 +12,8 @@ import type {
   PersonNodeData,
   FamilyUnitNodeData,
   EdgeRoutePoint,
+  EdgeBridgePoint,
+  EdgeJunctionPoint,
   FamilyEdgeKind,
   MarriageEdgeData,
   ChildEdgeData,
@@ -22,10 +24,12 @@ export const PERSON_NODE_WIDTH = 200;
 export const PERSON_NODE_HEIGHT = 140;
 export const FAMILY_UNIT_PAIR_NODE_WIDTH = 40;
 export const FAMILY_UNIT_PAIR_NODE_HEIGHT = 20;
-export const FAMILY_UNIT_BUS_NODE_WIDTH = 12;
-export const FAMILY_UNIT_BUS_NODE_HEIGHT = 12;
+export const FAMILY_UNIT_BUS_NODE_WIDTH = 14;
+export const FAMILY_UNIT_BUS_NODE_HEIGHT = 14;
 
 const CROSSING_EPSILON = 0.5;
+const BRIDGE_MIN_SPACING = 16;
+const JUNCTION_MIN_SPACING = 12;
 const MARRIAGE_LANE_GAP = 12;
 const CHILD_LANE_GAP = 14;
 const TREE_DENSITY_PROFILE = {
@@ -33,6 +37,14 @@ const TREE_DENSITY_PROFILE = {
   edgeNode: '20',
   nodeNodeBetweenLayers: '108',
   edgeNodeBetweenLayers: '30',
+} as const;
+const NODE_PORT_LAYOUT_OPTIONS = {
+  'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
+  'org.eclipse.elk.portAlignment.default': 'CENTER',
+  'org.eclipse.elk.portAlignment.north': 'CENTER',
+  'org.eclipse.elk.portAlignment.south': 'CENTER',
+  'org.eclipse.elk.portAlignment.west': 'CENTER',
+  'org.eclipse.elk.portAlignment.east': 'CENTER',
 } as const;
 
 const elk = new ELK();
@@ -60,6 +72,7 @@ interface NodeBounds {
 
 interface PlannedEdge {
   id: string;
+  familyUnitId: number;
   source: string;
   target: string;
   sourceHandle: PortHandleId;
@@ -73,6 +86,14 @@ interface PlannedEdge {
   marriageType?: MarriageEdgeData['marriageType'];
   status?: MarriageEdgeData['status'];
   lineageType?: ChildEdgeData['lineageType'];
+}
+
+interface Segment {
+  edgeId: string;
+  segmentIndex: number;
+  a: EdgeRoutePoint;
+  b: EdgeRoutePoint;
+  orientation: 'H' | 'V';
 }
 
 interface ElkExtendedEdgeWithPorts extends ElkExtendedEdge {
@@ -124,9 +145,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
           id: nodeId,
           width: PERSON_NODE_WIDTH,
           height: PERSON_NODE_HEIGHT,
-          layoutOptions: {
-            'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
-          },
+          layoutOptions: NODE_PORT_LAYOUT_OPTIONS,
           ports: buildPersonPorts(nodeId),
         });
       });
@@ -139,9 +158,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
           id: pairNodeId,
           width: FAMILY_UNIT_PAIR_NODE_WIDTH,
           height: FAMILY_UNIT_PAIR_NODE_HEIGHT,
-          layoutOptions: {
-            'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
-          },
+          layoutOptions: NODE_PORT_LAYOUT_OPTIONS,
           ports: buildFamilyPairPorts(pairNodeId),
         });
 
@@ -149,9 +166,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
           id: busNodeId,
           width: FAMILY_UNIT_BUS_NODE_WIDTH,
           height: FAMILY_UNIT_BUS_NODE_HEIGHT,
-          layoutOptions: {
-            'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
-          },
+          layoutOptions: NODE_PORT_LAYOUT_OPTIONS,
           ports: buildFamilyBusPorts(busNodeId),
         });
 
@@ -159,6 +174,9 @@ export function useElkLayout(treeData: TreeResponse | null) {
           .filter((partner) => addedPersons.has(partner.personId))
           .slice()
           .sort((a, b) => {
+            const genderDiff = getPartnerGenderRank(a, personsMap) - getPartnerGenderRank(b, personsMap);
+            if (genderDiff !== 0) return genderDiff;
+
             const roleDiff = (PARTNER_ROLE_ORDER[a.role] ?? 99) - (PARTNER_ROLE_ORDER[b.role] ?? 99);
             if (roleDiff !== 0) return roleDiff;
             return a.personId - b.personId;
@@ -173,6 +191,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
           plannedEdges.push({
             id: `edge_marriage_${familyUnit.id}_${partner.personId}`,
+            familyUnitId: familyUnit.id,
             source: personNodeId,
             target: pairNodeId,
             sourceHandle,
@@ -190,6 +209,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
         plannedEdges.push({
           id: `edge_trunk_${familyUnit.id}`,
+          familyUnitId: familyUnit.id,
           source: pairNodeId,
           target: busNodeId,
           sourceHandle: 'children-out',
@@ -217,6 +237,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
 
           plannedEdges.push({
             id: `edge_child_${familyUnit.id}_${child.personId}`,
+            familyUnitId: familyUnit.id,
             source: busNodeId,
             target: childNodeId,
             sourceHandle: 'child-out-center',
@@ -254,6 +275,7 @@ export function useElkLayout(treeData: TreeResponse | null) {
           'org.eclipse.elk.layered.considerModelOrder.portModelOrder': 'true',
           'org.eclipse.elk.layered.unnecessaryBendpoints': 'true',
           'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+          'org.eclipse.elk.portAlignment.default': 'CENTER',
           'org.eclipse.elk.json.edgeCoords': 'true',
           'org.eclipse.elk.json.shapeCoords': 'true',
         },
@@ -335,7 +357,11 @@ export function useElkLayout(treeData: TreeResponse | null) {
       const elkEdgesById = new Map<string, ElkExtendedEdge>();
       collectLayoutEdges(layoutResult, elkEdgesById);
 
-      const rfEdges: Edge[] = plannedEdges.map((plannedEdge) => {
+      const routePointsByEdge = new Map<string, EdgeRoutePoint[]>();
+      const routingSourceByEdge = new Map<string, 'elk' | 'fallback'>();
+      const elkSectionsByEdge = new Map<string, EdgeSectionData[]>();
+
+      plannedEdges.forEach((plannedEdge) => {
         const elkEdge = elkEdgesById.get(plannedEdge.id);
         const elkRoutePoints = routePointsFromSections(elkEdge?.sections);
         const fallbackRoutePoints = buildFallbackRoute(plannedEdge, nodeBounds);
@@ -344,17 +370,33 @@ export function useElkLayout(treeData: TreeResponse | null) {
         const routingSource = elkRoutePoints.length >= 2 ? 'elk' : 'fallback';
         const elkSections = toSectionData(elkEdge?.sections);
 
+        routePointsByEdge.set(plannedEdge.id, routePoints);
+        routingSourceByEdge.set(plannedEdge.id, routingSource);
+        elkSectionsByEdge.set(plannedEdge.id, elkSections);
+      });
+
+      const { bridgesByEdge, junctionsByEdge } = detectEdgeIntersections(plannedEdges, routePointsByEdge);
+
+      const rfEdges: Edge[] = plannedEdges.map((plannedEdge) => {
+        const routePoints = routePointsByEdge.get(plannedEdge.id) ?? [];
+        const routingSource = routingSourceByEdge.get(plannedEdge.id) ?? 'fallback';
+        const elkSections = elkSectionsByEdge.get(plannedEdge.id) ?? [];
+        const bridges = bridgesByEdge.get(plannedEdge.id) ?? [];
+        const junctions = junctionsByEdge.get(plannedEdge.id) ?? [];
+
         if (plannedEdge.type === 'marriageEdge') {
           const data: MarriageEdgeData = {
             marriageType: plannedEdge.marriageType,
             status: plannedEdge.status,
             edgeKind: plannedEdge.kind,
+            familyUnitId: plannedEdge.familyUnitId,
             laneIndex: plannedEdge.laneIndex,
             laneCount: plannedEdge.laneCount,
             routePoints,
             elkSections,
             routingSource,
-            bridges: [],
+            bridges,
+            junctions,
           };
 
           return {
@@ -371,12 +413,14 @@ export function useElkLayout(treeData: TreeResponse | null) {
         const data: ChildEdgeData = {
           lineageType: plannedEdge.lineageType,
           edgeKind: plannedEdge.kind,
+          familyUnitId: plannedEdge.familyUnitId,
           laneIndex: plannedEdge.laneIndex,
           laneCount: plannedEdge.laneCount,
           routePoints,
           elkSections,
           routingSource,
-          bridges: [],
+          bridges,
+          junctions,
         };
 
         return {
@@ -452,6 +496,16 @@ function toPortId(nodeId: string, handleId: PortHandleId) {
 function getPartnerSide(index: number, total: number): PortSide {
   if (total <= 1) return 'left';
   return index <= (total - 1) / 2 ? 'left' : 'right';
+}
+
+function getPartnerGenderRank(
+  partner: { personId: number; gender?: string | null },
+  personsMap: Map<number, TreePerson>,
+) {
+  const gender = partner.gender ?? personsMap.get(partner.personId)?.gender;
+  if (gender === 'MALE') return 0;
+  if (gender === 'FEMALE') return 1;
+  return 2;
 }
 
 function collectLayoutEdges(node: ElkNode, edgeMap: Map<string, ElkExtendedEdge>) {
@@ -700,6 +754,142 @@ function normalizeRoutePoints(points: EdgeRoutePoint[]): EdgeRoutePoint[] {
   return compact;
 }
 
+function detectEdgeIntersections(
+  plannedEdges: PlannedEdge[],
+  routePointsByEdge: Map<string, EdgeRoutePoint[]>,
+) {
+  const bridgesByEdge = new Map<string, EdgeBridgePoint[]>();
+  const junctionsByEdge = new Map<string, EdgeJunctionPoint[]>();
+  const segmentsByEdge = new Map<string, Segment[]>();
+
+  for (const edge of plannedEdges) {
+    const routePoints = routePointsByEdge.get(edge.id) ?? [];
+    segmentsByEdge.set(edge.id, collectSegments(edge.id, routePoints));
+  }
+
+  for (let i = 0; i < plannedEdges.length; i++) {
+    const edgeA = plannedEdges[i];
+    const segmentsA = segmentsByEdge.get(edgeA.id) ?? [];
+
+    for (let j = i + 1; j < plannedEdges.length; j++) {
+      const edgeB = plannedEdges[j];
+      const segmentsB = segmentsByEdge.get(edgeB.id) ?? [];
+      const relatedEdges = isRelatedEdgePair(edgeA, edgeB);
+
+      for (const segmentA of segmentsA) {
+        for (const segmentB of segmentsB) {
+          const horizontal = segmentA.orientation === 'H' ? segmentA : (segmentB.orientation === 'H' ? segmentB : null);
+          const vertical = segmentA.orientation === 'V' ? segmentA : (segmentB.orientation === 'V' ? segmentB : null);
+          if (!horizontal || !vertical) continue;
+
+          const ix = vertical.a.x;
+          const iy = horizontal.a.y;
+
+          const minHX = Math.min(horizontal.a.x, horizontal.b.x);
+          const maxHX = Math.max(horizontal.a.x, horizontal.b.x);
+          const minVY = Math.min(vertical.a.y, vertical.b.y);
+          const maxVY = Math.max(vertical.a.y, vertical.b.y);
+
+          if (ix <= minHX + CROSSING_EPSILON || ix >= maxHX - CROSSING_EPSILON) continue;
+          if (iy <= minVY + CROSSING_EPSILON || iy >= maxVY - CROSSING_EPSILON) continue;
+
+          if (relatedEdges) {
+            addMarkerPoint(junctionsByEdge, horizontal.edgeId, horizontal.segmentIndex, ix, iy, JUNCTION_MIN_SPACING);
+            continue;
+          }
+
+          addMarkerPoint(bridgesByEdge, horizontal.edgeId, horizontal.segmentIndex, ix, iy, BRIDGE_MIN_SPACING);
+        }
+      }
+    }
+  }
+
+  sortMarkersByRoute(bridgesByEdge, routePointsByEdge);
+  sortMarkersByRoute(junctionsByEdge, routePointsByEdge);
+
+  return { bridgesByEdge, junctionsByEdge };
+}
+
+function collectSegments(edgeId: string, routePoints: EdgeRoutePoint[]): Segment[] {
+  const segments: Segment[] = [];
+
+  for (let i = 0; i < routePoints.length - 1; i++) {
+    const a = routePoints[i];
+    const b = routePoints[i + 1];
+
+    if (Math.abs(a.x - b.x) < CROSSING_EPSILON && Math.abs(a.y - b.y) < CROSSING_EPSILON) {
+      continue;
+    }
+
+    if (Math.abs(a.y - b.y) < CROSSING_EPSILON) {
+      segments.push({ edgeId, segmentIndex: i, a, b, orientation: 'H' });
+      continue;
+    }
+
+    if (Math.abs(a.x - b.x) < CROSSING_EPSILON) {
+      segments.push({ edgeId, segmentIndex: i, a, b, orientation: 'V' });
+    }
+  }
+
+  return segments;
+}
+
+function isRelatedEdgePair(edgeA: PlannedEdge, edgeB: PlannedEdge) {
+  if (edgeA.familyUnitId === edgeB.familyUnitId) return true;
+  if (edgeA.source === edgeB.source) return true;
+  if (edgeA.target === edgeB.target) return true;
+  if (edgeA.source === edgeB.target) return true;
+  if (edgeA.target === edgeB.source) return true;
+  return false;
+}
+
+function addMarkerPoint<T extends EdgeBridgePoint | EdgeJunctionPoint>(
+  markerMap: Map<string, T[]>,
+  edgeId: string,
+  segmentIndex: number,
+  x: number,
+  y: number,
+  minSpacing: number,
+) {
+  const existing = markerMap.get(edgeId) ?? [];
+
+  const tooClose = existing.some((marker) =>
+    marker.segmentIndex === segmentIndex &&
+    Math.abs(marker.x - x) < minSpacing &&
+    Math.abs(marker.y - y) < minSpacing,
+  );
+  if (tooClose) return;
+
+  existing.push({
+    x: roundTo2(x),
+    y: roundTo2(y),
+    segmentIndex,
+  } as T);
+  markerMap.set(edgeId, existing);
+}
+
+function sortMarkersByRoute<T extends EdgeBridgePoint | EdgeJunctionPoint>(
+  markerMap: Map<string, T[]>,
+  routePointsByEdge: Map<string, EdgeRoutePoint[]>,
+) {
+  markerMap.forEach((markers, edgeId) => {
+    const routePoints = routePointsByEdge.get(edgeId) ?? [];
+    const sorted = markers.slice().sort((a, b) => {
+      if (a.segmentIndex !== b.segmentIndex) return a.segmentIndex - b.segmentIndex;
+
+      const current = routePoints[a.segmentIndex];
+      const next = routePoints[a.segmentIndex + 1];
+      if (!current || !next) return a.x - b.x;
+
+      const sameY = Math.abs(current.y - next.y) < CROSSING_EPSILON;
+      if (!sameY) return a.y - b.y;
+
+      return next.x >= current.x ? a.x - b.x : b.x - a.x;
+    });
+    markerMap.set(edgeId, sorted);
+  });
+}
+
 function getCenteredOffset(index: number, count: number, gap: number) {
   if (count <= 1) return 0;
   return (index - (count - 1) / 2) * gap;
@@ -760,7 +950,10 @@ function fallbackLayout(
           data: {
             lineageType: child.lineageType,
             edgeKind: 'child',
+            familyUnitId: familyUnit.id,
             routingSource: 'fallback',
+            bridges: [],
+            junctions: [],
           } satisfies ChildEdgeData,
         });
       });

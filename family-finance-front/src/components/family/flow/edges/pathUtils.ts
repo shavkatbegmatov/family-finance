@@ -1,7 +1,7 @@
 import type { EdgeBridgePoint, EdgeRoutePoint } from '../../../../types';
 
 const DEFAULT_BRIDGE_RADIUS = 6;
-const ENABLE_EDGE_BRIDGES = import.meta.env.VITE_FAMILY_TREE_EDGE_BRIDGES === 'true';
+const ENABLE_EDGE_BRIDGES = import.meta.env.VITE_FAMILY_TREE_EDGE_BRIDGES !== 'false';
 
 function n(value: number) {
   return Math.round(value * 100) / 100;
