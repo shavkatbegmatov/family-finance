@@ -43,43 +43,61 @@ const getAge = (birthDate?: string, deathDate?: string): string => {
   return `${age} yosh`;
 };
 
-const getNameLines = (firstName?: string, lastName?: string, fullName?: string) => {
+const PATRONYMIC_SUFFIXES = ['ovich', 'ovna', 'evich', 'evna'];
+const PATRONYMIC_TAIL_TOKENS = ["o'g'li", 'o‘g‘li', 'ogli', 'qizi'];
+
+const isSameToken = (left?: string, right?: string) =>
+  (left ?? '').trim().toLocaleLowerCase() === (right ?? '').trim().toLocaleLowerCase();
+
+const inferMiddleFromRemainder = (tokens: string[]) => {
+  if (tokens.length === 0) return '';
+
+  const lastToken = tokens[tokens.length - 1]?.toLocaleLowerCase() ?? '';
+  if (PATRONYMIC_SUFFIXES.some((suffix) => lastToken.endsWith(suffix))) {
+    return tokens[tokens.length - 1];
+  }
+
+  if (tokens.length >= 2 && PATRONYMIC_TAIL_TOKENS.includes(lastToken)) {
+    return `${tokens[tokens.length - 2]} ${tokens[tokens.length - 1]}`;
+  }
+
+  return '';
+};
+
+const getNameLines = (firstName?: string, lastName?: string, middleName?: string, fullName?: string) => {
   const normalizedFirstName = firstName?.trim();
   const normalizedLastName = lastName?.trim();
+  const normalizedMiddleName = middleName?.trim();
   const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
-  const lowerLastName = normalizedLastName?.toLocaleLowerCase();
-  const fullWithoutLastName =
-    normalizedLastName && parts.length > 0 && parts[0].toLocaleLowerCase() === lowerLastName
-      ? parts.slice(1).join(' ').trim()
-      : '';
+  const fallbackLastName = normalizedLastName || parts[0] || NODE_PLACEHOLDER;
+  const remainderTokens =
+    parts.length > 0 && isSameToken(parts[0], fallbackLastName)
+      ? parts.slice(1)
+      : parts.slice(normalizedLastName ? 0 : 1);
 
-  if (normalizedFirstName && normalizedLastName) {
-    return {
-      displayFirstName: normalizedFirstName,
-      displayLastName: normalizedLastName,
-    };
+  let resolvedFirstName = normalizedFirstName || remainderTokens.join(' ').trim();
+  let resolvedMiddleName = normalizedMiddleName || '';
+
+  if (!resolvedMiddleName) {
+    const inferredMiddle = inferMiddleFromRemainder(remainderTokens);
+    if (inferredMiddle) {
+      resolvedMiddleName = inferredMiddle;
+      const middleTokenCount = inferredMiddle.split(/\s+/).filter(Boolean).length;
+      const firstTokens = remainderTokens.slice(0, Math.max(0, remainderTokens.length - middleTokenCount));
+      if (!normalizedFirstName) {
+        resolvedFirstName = firstTokens.join(' ').trim();
+      }
+    }
   }
 
-  if (normalizedFirstName) {
-    return {
-      displayFirstName: normalizedFirstName,
-      displayLastName: parts.length > 1 ? parts.slice(1).join(' ') : NODE_PLACEHOLDER,
-    };
-  }
-
-  if (normalizedLastName) {
-    return {
-      displayFirstName:
-        (normalizedFirstName && normalizedFirstName.toLocaleLowerCase() !== lowerLastName
-          ? normalizedFirstName
-          : fullWithoutLastName) || NODE_PLACEHOLDER,
-      displayLastName: normalizedLastName,
-    };
+  if (!resolvedFirstName) {
+    resolvedFirstName = parts[0] || NODE_PLACEHOLDER;
   }
 
   return {
-    displayFirstName: parts[0] ?? NODE_PLACEHOLDER,
-    displayLastName: parts.length > 1 ? parts.slice(1).join(' ') : NODE_PLACEHOLDER,
+    displayFirstName: resolvedFirstName || NODE_PLACEHOLDER,
+    displayLastName: fallbackLastName || NODE_PLACEHOLDER,
+    displayMiddleName: resolvedMiddleName || NODE_PLACEHOLDER,
   };
 };
 
@@ -106,7 +124,15 @@ function PersonNodeComponent({ data }: NodeProps) {
 
   const ageStr = getAge(person.birthDate, person.deathDate);
   const birthPlaceStr = person.birthPlace?.trim() || NODE_PLACEHOLDER;
-  const { displayFirstName, displayLastName } = getNameLines(person.firstName, person.lastName, person.fullName);
+  const { displayFirstName, displayLastName, displayMiddleName } = getNameLines(
+    person.firstName,
+    person.lastName,
+    person.middleName,
+    person.fullName,
+  );
+  const avatarInitial = displayFirstName !== NODE_PLACEHOLDER
+    ? displayFirstName.charAt(0).toUpperCase()
+    : '?';
   const isDead = !!person.deathDate;
 
   return (
@@ -164,13 +190,25 @@ function PersonNodeComponent({ data }: NodeProps) {
           {person.avatar ? (
             <img src={person.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
           ) : (
-            displayFirstName.charAt(0).toUpperCase()
+            avatarInitial
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm truncate leading-5 text-base-content">{displayFirstName}</div>
+          <div
+            className="font-semibold text-sm leading-4 text-base-content break-words overflow-hidden"
+            style={{
+              display: '-webkit-box',
+              WebkitBoxOrient: 'vertical',
+              WebkitLineClamp: 2,
+            }}
+          >
+            {displayFirstName}
+          </div>
           <div className="text-[11px] uppercase tracking-[0.06em] text-base-content/55 truncate leading-4">
             {displayLastName}
+          </div>
+          <div className="text-[10px] text-info/80 italic truncate leading-4">
+            {displayMiddleName}
           </div>
         </div>
       </div>
