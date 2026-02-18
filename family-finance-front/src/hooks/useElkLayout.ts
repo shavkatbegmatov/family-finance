@@ -382,54 +382,58 @@ export function useElkLayout(treeData: TreeResponse | null) {
         }
       }
 
-      // Partnerlarning pozitsiyalarini tekshirish va agar teskari bo'lsa — swap qilish
-      // sortedPartners: erkak(index=0)=left, ayol(index=1)=right bo'lishi kerak
-      // Agar ELK ularni teskari joylashtirgan bo'lsa — X pozitsiyalarini almashtiramiz
+      // 1-qadam: Partnerlar Y balandligini tenglashtirish
       for (const familyUnit of treeData.familyUnits) {
-        const sortedPartners = familyUnit.partners
+        const partnerIds = familyUnit.partners
           .filter((p) => addedPersons.has(p.personId))
-          .slice()
-          .sort((a, b) => {
-            const genderDiff = getPartnerGenderRank(a, personsMap) - getPartnerGenderRank(b, personsMap);
-            if (genderDiff !== 0) return genderDiff;
-            const roleDiff = (PARTNER_ROLE_ORDER[a.role] ?? 99) - (PARTNER_ROLE_ORDER[b.role] ?? 99);
-            if (roleDiff !== 0) return roleDiff;
-            return a.personId - b.personId;
-          });
+          .map((p) => `person_${p.personId}`);
+        if (partnerIds.length < 2) continue;
 
-        if (sortedPartners.length < 2) continue;
+        // Eng past Y (eng katta qiymat) ni topish
+        let maxY = -Infinity;
+        for (const id of partnerIds) {
+          const b = nodeBounds.get(id);
+          if (b && b.y > maxY) maxY = b.y;
+        }
 
-        const leftPartner = sortedPartners[0]; // erkak — chapda bo'lishi kerak
-        const rightPartner = sortedPartners[1]; // ayol — o'ngda bo'lishi kerak
-
-        const leftNodeId = `person_${leftPartner.personId}`;
-        const rightNodeId = `person_${rightPartner.personId}`;
-
-        const leftBounds = nodeBounds.get(leftNodeId);
-        const rightBounds = nodeBounds.get(rightNodeId);
-        if (!leftBounds || !rightBounds) continue;
-
-        const leftCenterX = leftBounds.x + leftBounds.width / 2;
-        const rightCenterX = rightBounds.x + rightBounds.width / 2;
-
-        // Agar "chap bo'lishi kerak" bo'lgan node aslida o'ngda bo'lsa — swap
-        if (leftCenterX > rightCenterX) {
-          const tempX = leftBounds.x;
-          leftBounds.x = rightBounds.x;
-          rightBounds.x = tempX;
-
-          // rfNodes dagi pozitsiyalarni ham yangilash
-          const leftRfNode = rfNodes.find((n) => n.id === leftNodeId);
-          const rightRfNode = rfNodes.find((n) => n.id === rightNodeId);
-          if (leftRfNode && rightRfNode) {
-            const tempPos = leftRfNode.position.x;
-            leftRfNode.position.x = rightRfNode.position.x;
-            rightRfNode.position.x = tempPos;
-          }
+        // Barcha partnerlarni bir xil Y ga qo'yish
+        for (const id of partnerIds) {
+          const b = nodeBounds.get(id);
+          if (!b) continue;
+          b.y = maxY;
+          const rfNode = rfNodes.find((n) => n.id === id);
+          if (rfNode) rfNode.position.y = maxY;
         }
       }
 
-      // Marriage edge handle'larini haqiqiy pozitsiyaga qarab tuzatish
+      // 2-qadam: Pair node ni partnerlar orasiga markazlashtirish
+      for (const familyUnit of treeData.familyUnits) {
+        const partnerIds = familyUnit.partners
+          .filter((p) => addedPersons.has(p.personId))
+          .map((p) => `person_${p.personId}`);
+        if (partnerIds.length < 2) continue;
+
+        const pairNodeId = `fu_pair_${familyUnit.id}`;
+        const pairBounds = nodeBounds.get(pairNodeId);
+        if (!pairBounds) continue;
+
+        // Partnerlarning chap va o'ng chekkalarini topish
+        let minX = Infinity, maxX = -Infinity;
+        for (const id of partnerIds) {
+          const b = nodeBounds.get(id);
+          if (!b) continue;
+          if (b.x < minX) minX = b.x;
+          if (b.x + b.width > maxX) maxX = b.x + b.width;
+        }
+
+        // Pair nodeni gorizontal o'rtaga qo'yish
+        const centerX = (minX + maxX) / 2 - pairBounds.width / 2;
+        pairBounds.x = centerX;
+        const rfNode = rfNodes.find((n) => n.id === pairNodeId);
+        if (rfNode) rfNode.position.x = centerX;
+      }
+
+      // 3-qadam: Marriage edge handle'larini haqiqiy pozitsiyaga qarab tuzatish
       for (const edge of plannedEdges) {
         if (edge.kind !== 'marriage') continue;
 

@@ -43,6 +43,46 @@ const getAge = (birthDate?: string, deathDate?: string): string => {
   return `${age} yosh`;
 };
 
+const getNameLines = (firstName?: string, lastName?: string, fullName?: string) => {
+  const normalizedFirstName = firstName?.trim();
+  const normalizedLastName = lastName?.trim();
+  const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+  const lowerLastName = normalizedLastName?.toLocaleLowerCase();
+  const fullWithoutLastName =
+    normalizedLastName && parts.length > 0 && parts[0].toLocaleLowerCase() === lowerLastName
+      ? parts.slice(1).join(' ').trim()
+      : '';
+
+  if (normalizedFirstName && normalizedLastName) {
+    return {
+      displayFirstName: normalizedFirstName,
+      displayLastName: normalizedLastName,
+    };
+  }
+
+  if (normalizedFirstName) {
+    return {
+      displayFirstName: normalizedFirstName,
+      displayLastName: parts.length > 1 ? parts.slice(1).join(' ') : NODE_PLACEHOLDER,
+    };
+  }
+
+  if (normalizedLastName) {
+    return {
+      displayFirstName:
+        (normalizedFirstName && normalizedFirstName.toLocaleLowerCase() !== lowerLastName
+          ? normalizedFirstName
+          : fullWithoutLastName) || NODE_PLACEHOLDER,
+      displayLastName: normalizedLastName,
+    };
+  }
+
+  return {
+    displayFirstName: parts[0] ?? NODE_PLACEHOLDER,
+    displayLastName: parts.length > 1 ? parts.slice(1).join(' ') : NODE_PLACEHOLDER,
+  };
+};
+
 function PersonNodeComponent({ data }: NodeProps) {
   const nodeData = data as unknown as PersonNodeData;
   const { person, isRoot, label } = nodeData;
@@ -66,6 +106,7 @@ function PersonNodeComponent({ data }: NodeProps) {
 
   const ageStr = getAge(person.birthDate, person.deathDate);
   const birthPlaceStr = person.birthPlace?.trim() || NODE_PLACEHOLDER;
+  const { displayFirstName, displayLastName } = getNameLines(person.firstName, person.lastName, person.fullName);
   const isDead = !!person.deathDate;
 
   return (
@@ -123,11 +164,14 @@ function PersonNodeComponent({ data }: NodeProps) {
           {person.avatar ? (
             <img src={person.avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
           ) : (
-            person.fullName.charAt(0).toUpperCase()
+            displayFirstName.charAt(0).toUpperCase()
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm truncate leading-5">{person.fullName}</div>
+          <div className="font-semibold text-sm truncate leading-5 text-base-content">{displayFirstName}</div>
+          <div className="text-[11px] uppercase tracking-[0.06em] text-base-content/55 truncate leading-4">
+            {displayLastName}
+          </div>
         </div>
       </div>
 
