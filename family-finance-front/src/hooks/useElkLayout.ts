@@ -861,14 +861,30 @@ function detectEdgeIntersections(
           const minVY = Math.min(vertical.a.y, vertical.b.y);
           const maxVY = Math.max(vertical.a.y, vertical.b.y);
 
-          if (ix <= minHX + CROSSING_EPSILON || ix >= maxHX - CROSSING_EPSILON) continue;
-          if (iy <= minVY + CROSSING_EPSILON || iy >= maxVY - CROSSING_EPSILON) continue;
+          const onHorizontal = ix >= minHX - CROSSING_EPSILON && ix <= maxHX + CROSSING_EPSILON;
+          const onVertical = iy >= minVY - CROSSING_EPSILON && iy <= maxVY + CROSSING_EPSILON;
+          if (!onHorizontal || !onVertical) continue;
+
+          const horizontalInterior = ix > minHX + CROSSING_EPSILON && ix < maxHX - CROSSING_EPSILON;
+          const verticalInterior = iy > minVY + CROSSING_EPSILON && iy < maxVY - CROSSING_EPSILON;
 
           if (relatedEdges) {
-            addMarkerPoint(junctionsByEdge, horizontal.edgeId, horizontal.segmentIndex, ix, iy, JUNCTION_MIN_SPACING);
+            // T-tutashuvlar uchun (bir segment endpoint'i boshqa segment ichiga tegsa) ham junction qo'yiladi.
+            if (!horizontalInterior && !verticalInterior) continue;
+            const ownerSegment = horizontalInterior ? horizontal : vertical;
+            addMarkerPoint(
+              junctionsByEdge,
+              ownerSegment.edgeId,
+              ownerSegment.segmentIndex,
+              ix,
+              iy,
+              JUNCTION_MIN_SPACING,
+            );
             continue;
           }
 
+          // Unrelated edge'larda faqat haqiqiy kesishuv (ikkalasi ham interior) bridge bo'ladi.
+          if (!horizontalInterior || !verticalInterior) continue;
           addMarkerPoint(bridgesByEdge, horizontal.edgeId, horizontal.segmentIndex, ix, iy, BRIDGE_MIN_SPACING);
         }
       }
