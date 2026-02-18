@@ -233,7 +233,7 @@ export function FamilyMembersPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className={activeTab === 'tree' ? 'h-full min-h-0 flex flex-col gap-3' : 'space-y-3'}>
       {/* Header + Tabs — bitta qatorda */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -284,7 +284,7 @@ export function FamilyMembersPage() {
 
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
-        <div className="-mx-4 lg:-mx-8">
+        <div className="-mx-4 lg:-mx-8 flex-1 min-h-0">
           <FamilyTreeView />
         </div>
       )}

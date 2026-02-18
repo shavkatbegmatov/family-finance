@@ -132,7 +132,7 @@ export function FamilyTreeView() {
   return (
     <ReactFlowProvider>
       <div
-        className={`relative ${isFullscreen ? 'flex flex-col h-screen bg-base-100' : ''}`}
+        className={`relative flex flex-col min-h-0 ${isFullscreen ? 'h-screen bg-base-100' : 'h-full'}`}
         ref={containerRef}
       >
         {/* Toolbar */}
@@ -141,10 +141,7 @@ export function FamilyTreeView() {
         </div>
 
         {/* Main content */}
-        <div
-          className="bg-base-200/30"
-          style={isFullscreen ? { flex: 1 } : { height: 'calc(100vh - 180px)', minHeight: '400px' }}
-        >
+        <div className="bg-base-200/30 flex-1 min-h-0">
           {/* React Flow container */}
           <div className="h-full">
             <FamilyFlowTree treeData={treeData} />
