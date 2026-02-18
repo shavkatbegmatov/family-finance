@@ -31,10 +31,15 @@ function ChildEdgeComponent(props: EdgeProps) {
   });
   const edgePath = buildPathWithBridges(anchoredRoutePoints, edgeData.bridges, 5) || fallbackPath;
   const junctionPoints = edgeData.junctions ?? [];
-  const endpointPoints = [
-    { key: 'source', x: sourceX, y: sourceY, visible: isBusNode(source) },
-    { key: 'target', x: targetX, y: targetY, visible: isBusNode(target) },
-  ].filter((point) => point.visible);
+  const endpointPoints = getBusEndpointPoints(
+    edgeData.routePoints,
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+  );
 
   let strokeDasharray: string | undefined;
   let strokeColor = '#64748b'; // slate
@@ -111,6 +116,38 @@ export const ChildEdge = memo(ChildEdgeComponent);
 
 function isBusNode(nodeId: string) {
   return nodeId.startsWith('fu_bus_');
+}
+
+function getBusEndpointPoints(
+  routePoints: EdgeRoutePoint[] | undefined,
+  sourceNodeId: string,
+  targetNodeId: string,
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+) {
+  const points: Array<{ key: 'source' | 'target'; x: number; y: number }> = [];
+  const first = routePoints?.[0];
+  const last = routePoints && routePoints.length > 0 ? routePoints[routePoints.length - 1] : undefined;
+
+  if (isBusNode(sourceNodeId)) {
+    points.push({
+      key: 'source',
+      x: first?.x ?? sourceX,
+      y: first?.y ?? sourceY,
+    });
+  }
+
+  if (isBusNode(targetNodeId)) {
+    points.push({
+      key: 'target',
+      x: last?.x ?? targetX,
+      y: last?.y ?? targetY,
+    });
+  }
+
+  return points;
 }
 
 function getAnchoredRoutePoints(

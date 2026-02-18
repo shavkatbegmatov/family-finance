@@ -475,6 +475,34 @@ export function useElkLayout(treeData: TreeResponse | null) {
       // 2.75-qadam: Barycenter + adjacent swap bilan child edge crossinglarini kamaytirish
       reduceChildEdgeCrossings(treeData, addedPersons, nodeBounds, rfNodes);
 
+      // 2.9-qadam: Bus node'ni farzandlar o'rtasiga markazlashtirish
+      for (const familyUnit of treeData.familyUnits) {
+        const busNodeId = `fu_bus_${familyUnit.id}`;
+        const busBounds = nodeBounds.get(busNodeId);
+        if (!busBounds) continue;
+
+        const childCenters = familyUnit.children
+          .filter((child) => addedPersons.has(child.personId))
+          .map((child) => nodeBounds.get(`person_${child.personId}`))
+          .filter((bounds): bounds is NodeBounds => !!bounds)
+          .map((bounds) => bounds.x + bounds.width / 2)
+          .sort((a, b) => a - b);
+        if (childCenters.length === 0) continue;
+
+        const middleIndex = Math.floor(childCenters.length / 2);
+        const anchorCenterX = childCenters.length % 2 === 1
+          ? childCenters[middleIndex]
+          : (childCenters[middleIndex - 1] + childCenters[middleIndex]) / 2;
+
+        const nextX = anchorCenterX - busBounds.width / 2;
+        busBounds.x = nextX;
+
+        const rfNode = rfNodes.find((node) => node.id === busNodeId);
+        if (rfNode) {
+          rfNode.position.x = nextX;
+        }
+      }
+
       // 3-qadam: Marriage edge handle'larini haqiqiy pozitsiyaga qarab tuzatish
       for (const edge of plannedEdges) {
         if (edge.kind !== 'marriage') continue;
