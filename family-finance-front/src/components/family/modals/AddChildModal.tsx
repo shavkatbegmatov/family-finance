@@ -24,13 +24,15 @@ export function AddChildModal({
   onClose,
   onSuccess,
 }: AddChildModalProps) {
-  const [mode, setMode] = useState<ModalMode>('existing');
+  const [mode, setMode] = useState<ModalMode>('new');
 
   // Existing person selection
   const [selectedPersonId, setSelectedPersonId] = useState<number | ''>('');
 
   // New person form
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [birthDate, setBirthDate] = useState('');
 
@@ -55,9 +57,11 @@ export function AddChildModal({
   );
 
   const resetForm = () => {
-    setMode('existing');
+    setMode('new');
     setSelectedPersonId('');
     setFirstName('');
+    setLastName('');
+    setMiddleName('');
     setGender('');
     setBirthDate('');
     setLineageType('BIOLOGICAL');
@@ -103,6 +107,8 @@ export function AddChildModal({
       try {
         const res = await familyUnitApi.createPerson({
           firstName: firstName.trim(),
+          lastName: lastName.trim() || undefined,
+          middleName: middleName.trim() || undefined,
           gender: gender || undefined,
           birthDate: birthDate || undefined,
           role: 'CHILD',
@@ -153,35 +159,23 @@ export function AddChildModal({
           {/* Mode tabs */}
           <div className="flex gap-1 bg-base-200 rounded-lg p-1 mt-4">
             <button
-              className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setMode('existing')}
-            >
-              <Users className="h-4 w-4" />
-              Mavjud shaxs
-            </button>
-            <button
               className={`btn btn-sm flex-1 gap-1 ${mode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setMode('new')}
             >
               <User className="h-4 w-4" />
               Yangi shaxs
             </button>
+            <button
+              className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setMode('existing')}
+            >
+              <Users className="h-4 w-4" />
+              Mavjud shaxs
+            </button>
           </div>
 
           <div className="mt-4 space-y-4">
-            {mode === 'existing' ? (
-              <Select
-                label="Shaxsni tanlang"
-                required
-                value={selectedPersonId || undefined}
-                onChange={(val) =>
-                  setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
-                }
-                options={personOptions}
-                placeholder="Tanlang..."
-                icon={<Users className="h-4 w-4" />}
-              />
-            ) : (
+            {mode === 'new' ? (
               <>
                 <TextInput
                   label="Ism"
@@ -190,6 +184,18 @@ export function AddChildModal({
                   onChange={setFirstName}
                   placeholder="Ism"
                   leadingIcon={<User className="h-5 w-5" />}
+                />
+                <TextInput
+                  label="Familiya"
+                  value={lastName}
+                  onChange={setLastName}
+                  placeholder="Familiya"
+                />
+                <TextInput
+                  label="Otasining ismi"
+                  value={middleName}
+                  onChange={setMiddleName}
+                  placeholder="Otasining ismi"
                 />
                 <Select
                   label="Jinsi"
@@ -205,25 +211,39 @@ export function AddChildModal({
                   max={new Date().toISOString().slice(0, 10)}
                 />
               </>
+            ) : (
+              <Select
+                label="Shaxsni tanlang"
+                required
+                value={selectedPersonId || undefined}
+                onChange={(val) =>
+                  setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
+                }
+                options={personOptions}
+                placeholder="Tanlang..."
+                icon={<Users className="h-4 w-4" />}
+              />
             )}
 
-            {/* Lineage info */}
-            <div className="divider text-xs text-base-content/40">Farzandlik turi</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select
+                label="Farzandlik turi"
+                required
+                value={lineageType}
+                onChange={(val) => setLineageType(val as LineageType)}
+                options={lineageOptions}
+              />
 
-            <Select
-              label="Tur"
-              required
-              value={lineageType}
-              onChange={(val) => setLineageType(val as LineageType)}
-              options={lineageOptions}
-            />
-
-            <TextInput
-              label="Tug'ilish tartibi"
-              value={birthOrder ? String(birthOrder) : ''}
-              onChange={(val) => setBirthOrder(val ? Number(val) : '')}
-              placeholder="1, 2, 3..."
-            />
+              <TextInput
+                label="Tug'ilish tartibi"
+                value={birthOrder ? String(birthOrder) : ''}
+                onChange={(val) => {
+                  const normalized = val.replace(/[^\d]/g, '');
+                  setBirthOrder(normalized ? Number(normalized) : '');
+                }}
+                placeholder="1, 2, 3..."
+              />
+            </div>
           </div>
 
           {/* Actions */}
