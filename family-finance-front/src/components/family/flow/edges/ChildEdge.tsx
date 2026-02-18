@@ -3,6 +3,9 @@ import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import type { ChildEdgeData, EdgeRoutePoint } from '../../../../types';
 import { buildPathWithBridges } from './pathUtils';
 
+const BUS_KNOT_FILL = '#14b8a6';
+const BUS_KNOT_STROKE = '#0f766e';
+
 function ChildEdgeComponent(props: EdgeProps) {
   const {
     source,
@@ -102,8 +105,8 @@ function ChildEdgeComponent(props: EdgeProps) {
           cx={point.x}
           cy={point.y}
           r={2.9}
-          fill={strokeColor}
-          stroke="#ffffff"
+          fill={BUS_KNOT_FILL}
+          stroke={BUS_KNOT_STROKE}
           strokeWidth={1}
           pointerEvents="none"
         />
