@@ -87,12 +87,14 @@ function PersonNodeComponent({ data }: NodeProps) {
     ? displayFirstName.charAt(0).toUpperCase()
     : '?';
   const isDead = !!person.deathDate;
+  const connectionHandleClass =
+    '!w-2.5 !h-2.5 !rounded-full !bg-base-100 !border !border-base-content/45 !opacity-100 !z-20 !pointer-events-none';
 
   return (
     <div
       className={clsx(
         'relative bg-base-100 rounded-xl border-2 shadow-md p-3 w-[200px] h-[140px] cursor-pointer flex flex-col',
-        'transition-all hover:shadow-lg hover:scale-[1.02]',
+        'transition-shadow duration-200 hover:shadow-xl',
         getGenderBorderColor(person.gender, isRoot),
         isDead && 'opacity-70'
       )}
@@ -104,25 +106,25 @@ function PersonNodeComponent({ data }: NodeProps) {
         id="parent-in"
         type="target"
         position={Position.Top}
-        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        className={connectionHandleClass}
       />
       <Handle
         id="child-out"
         type="source"
         position={Position.Bottom}
-        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        className={connectionHandleClass}
       />
       <Handle
         id="spouse-left"
         type="source"
         position={Position.Left}
-        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        className={connectionHandleClass}
       />
       <Handle
         id="spouse-right"
         type="source"
         position={Position.Right}
-        className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
+        className={connectionHandleClass}
       />
 
       {/* Relationship label badge */}
