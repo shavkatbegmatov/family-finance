@@ -148,7 +148,7 @@ function PersonNodeComponent({ data }: NodeProps) {
         </div>
         <div className="min-w-0 flex-1">
           <div
-            className="font-semibold text-sm leading-4 text-base-content break-words overflow-hidden"
+            className="font-semibold text-[15px] leading-[18px] text-base-content break-words overflow-hidden"
             style={{
               display: '-webkit-box',
               WebkitBoxOrient: 'vertical',

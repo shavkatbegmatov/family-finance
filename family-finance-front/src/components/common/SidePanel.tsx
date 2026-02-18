@@ -38,15 +38,12 @@ export function SidePanel({ isOpen, onClose, children, pinned = false }: SidePan
 
   // Overlay rejim (default)
   const content = (
-    <div className="fixed inset-0 z-[9998]">
+    <div className="fixed inset-0 z-[9998] pointer-events-none">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/15 animate-fade-in"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/15 animate-fade-in" />
       {/* Panel */}
       <div
-        className="absolute right-0 top-0 h-full w-full sm:w-[360px] bg-base-100 shadow-2xl overflow-y-auto animate-slide-in-right"
+        className="absolute right-0 top-0 h-full w-full sm:w-[360px] bg-base-100 shadow-2xl overflow-y-auto animate-slide-in-right pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {children}

@@ -57,8 +57,11 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
 
   const { nodes, edges, isLayouting } = useElkLayout(effectiveTreeData);
   const closeContextMenu = useFamilyTreeStore((s) => s.closeContextMenu);
+  const closeModal = useFamilyTreeStore((s) => s.closeModal);
   const openModal = useFamilyTreeStore((s) => s.openModal);
   const openContextMenu = useFamilyTreeStore((s) => s.openContextMenu);
+  const activeModal = useFamilyTreeStore((s) => s.activeModal);
+  const isSidebarPinned = useFamilyTreeStore((s) => s.isSidebarPinned);
   const reactFlow = useReactFlow();
   const isInitialLoad = useRef(true);
   const savedViewport = useRef<Viewport | null>(null);
@@ -143,6 +146,13 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     savedViewport.current = viewport;
   }, []);
 
+  const handlePaneClick = useCallback(() => {
+    closeContextMenu();
+    if (!isSidebarPinned && activeModal?.type === 'personDetail') {
+      closeModal();
+    }
+  }, [closeContextMenu, isSidebarPinned, activeModal, closeModal]);
+
   if (isLayouting) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -159,7 +169,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       edgeTypes={edgeTypes}
       onNodeContextMenu={handleNodeContextMenu}
       onNodeClick={handleNodeClick}
-      onPaneClick={closeContextMenu}
+      onPaneClick={handlePaneClick}
       onMoveEnd={handleMoveEnd}
       minZoom={0.2}
       maxZoom={2.0}
