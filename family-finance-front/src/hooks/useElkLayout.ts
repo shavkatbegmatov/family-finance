@@ -31,6 +31,8 @@ const CROSSING_EPSILON = 0.5;
 const BRIDGE_MIN_SPACING = 16;
 const JUNCTION_MIN_SPACING = 12;
 const MARRIAGE_LANE_GAP = 12;
+const CHILD_LAYER_TOLERANCE = 72;
+const CROSSING_SWEEP_MAX_PASSES = 8;
 const TREE_DENSITY_PROFILE = {
   nodeNode: '60',
   edgeNode: '25',
@@ -454,6 +456,9 @@ export function useElkLayout(treeData: TreeResponse | null) {
           if (rfNode) rfNode.position.y = minY;
         }
       }
+
+      // 2.75-qadam: Barycenter + adjacent swap bilan child edge crossinglarini kamaytirish
+      reduceChildEdgeCrossings(treeData, addedPersons, nodeBounds, rfNodes);
 
       // 3-qadam: Marriage edge handle'larini haqiqiy pozitsiyaga qarab tuzatish
       for (const edge of plannedEdges) {
@@ -965,6 +970,199 @@ function getNodeY(nodeBounds: Map<string, NodeBounds>, nodeId: string) {
   const bounds = nodeBounds.get(nodeId);
   if (!bounds) return 0;
   return bounds.y;
+}
+
+function reduceChildEdgeCrossings(
+  treeData: TreeResponse,
+  addedPersons: Set<number>,
+  nodeBounds: Map<string, NodeBounds>,
+  rfNodes: Node[],
+) {
+  const sourceXsByChild = collectParentSourceXsByChild(treeData, addedPersons, nodeBounds);
+  if (sourceXsByChild.size < 2) return;
+
+  const childIds = Array.from(sourceXsByChild.keys()).filter((id) => nodeBounds.has(id));
+  if (childIds.length < 2) return;
+
+  const layers = groupNodesByYLayer(childIds, nodeBounds, CHILD_LAYER_TOLERANCE);
+  if (layers.length === 0) return;
+
+  const rfNodeById = new Map<string, Node>();
+  for (const node of rfNodes) {
+    rfNodeById.set(node.id, node);
+  }
+
+  for (const layerIds of layers) {
+    if (layerIds.length < 2) continue;
+
+    const sortedByX = layerIds
+      .slice()
+      .sort((a, b) => getNodeCenterX(nodeBounds, a) - getNodeCenterX(nodeBounds, b));
+    const xSlots = sortedByX
+      .map((id) => nodeBounds.get(id)?.x)
+      .filter((x): x is number => Number.isFinite(x));
+    if (xSlots.length !== layerIds.length) continue;
+
+    let orderedIds = layerIds
+      .slice()
+      .sort((a, b) => {
+        const baryA = getChildBarycenterX(a, sourceXsByChild, nodeBounds);
+        const baryB = getChildBarycenterX(b, sourceXsByChild, nodeBounds);
+        if (Math.abs(baryA - baryB) > CROSSING_EPSILON) return baryA - baryB;
+        return getNodeCenterX(nodeBounds, a) - getNodeCenterX(nodeBounds, b);
+      });
+
+    let currentCrossings = countLayerCrossings(orderedIds, sourceXsByChild);
+
+    for (let pass = 0; pass < CROSSING_SWEEP_MAX_PASSES; pass++) {
+      let changed = false;
+
+      for (let i = 0; i < orderedIds.length - 1; i++) {
+        const swapped = orderedIds.slice();
+        const first = swapped[i];
+        swapped[i] = swapped[i + 1];
+        swapped[i + 1] = first;
+
+        const nextCrossings = countLayerCrossings(swapped, sourceXsByChild);
+        if (nextCrossings < currentCrossings) {
+          orderedIds = swapped;
+          currentCrossings = nextCrossings;
+          changed = true;
+        }
+      }
+
+      if (!changed) break;
+    }
+
+    for (let i = 0; i < orderedIds.length; i++) {
+      const nodeId = orderedIds[i];
+      const bounds = nodeBounds.get(nodeId);
+      if (!bounds) continue;
+
+      const nextX = xSlots[i];
+      if (!Number.isFinite(nextX)) continue;
+
+      bounds.x = nextX;
+      const rfNode = rfNodeById.get(nodeId);
+      if (rfNode) {
+        rfNode.position.x = nextX;
+      }
+    }
+  }
+}
+
+function collectParentSourceXsByChild(
+  treeData: TreeResponse,
+  addedPersons: Set<number>,
+  nodeBounds: Map<string, NodeBounds>,
+) {
+  const sourceXsByChild = new Map<string, number[]>();
+
+  for (const familyUnit of treeData.familyUnits) {
+    const busNodeBounds = nodeBounds.get(`fu_bus_${familyUnit.id}`);
+    if (!busNodeBounds) continue;
+    const sourceX = busNodeBounds.x + busNodeBounds.width / 2;
+
+    for (const child of familyUnit.children) {
+      if (!addedPersons.has(child.personId)) continue;
+      const childNodeId = `person_${child.personId}`;
+      const list = sourceXsByChild.get(childNodeId) ?? [];
+      list.push(sourceX);
+      sourceXsByChild.set(childNodeId, list);
+    }
+  }
+
+  return sourceXsByChild;
+}
+
+function groupNodesByYLayer(
+  nodeIds: string[],
+  nodeBounds: Map<string, NodeBounds>,
+  tolerance: number,
+) {
+  const sorted = nodeIds
+    .slice()
+    .filter((id) => nodeBounds.has(id))
+    .sort((a, b) => {
+      const diffY = getNodeY(nodeBounds, a) - getNodeY(nodeBounds, b);
+      if (Math.abs(diffY) > CROSSING_EPSILON) return diffY;
+      return getNodeCenterX(nodeBounds, a) - getNodeCenterX(nodeBounds, b);
+    });
+
+  const layers: string[][] = [];
+  let currentLayer: string[] = [];
+  let currentAnchorY: number | null = null;
+
+  for (const nodeId of sorted) {
+    const y = getNodeY(nodeBounds, nodeId);
+    if (currentAnchorY === null || Math.abs(y - currentAnchorY) <= tolerance) {
+      currentLayer.push(nodeId);
+      currentAnchorY = currentAnchorY === null ? y : (currentAnchorY * (currentLayer.length - 1) + y) / currentLayer.length;
+      continue;
+    }
+
+    if (currentLayer.length > 0) {
+      layers.push(currentLayer);
+    }
+    currentLayer = [nodeId];
+    currentAnchorY = y;
+  }
+
+  if (currentLayer.length > 0) {
+    layers.push(currentLayer);
+  }
+
+  return layers;
+}
+
+function getChildBarycenterX(
+  childNodeId: string,
+  sourceXsByChild: Map<string, number[]>,
+  nodeBounds: Map<string, NodeBounds>,
+) {
+  const sourceXs = sourceXsByChild.get(childNodeId) ?? [];
+  if (sourceXs.length === 0) return getNodeCenterX(nodeBounds, childNodeId);
+  const sum = sourceXs.reduce((acc, x) => acc + x, 0);
+  return sum / sourceXs.length;
+}
+
+function countLayerCrossings(order: string[], sourceXsByChild: Map<string, number[]>) {
+  if (order.length < 2) return 0;
+
+  const rankByChild = new Map<string, number>();
+  order.forEach((childId, index) => {
+    rankByChild.set(childId, index);
+  });
+
+  const links: Array<{ sourceX: number; targetRank: number }> = [];
+  for (const childId of order) {
+    const targetRank = rankByChild.get(childId);
+    if (targetRank === undefined) continue;
+
+    const sourceXs = sourceXsByChild.get(childId) ?? [];
+    for (const sourceX of sourceXs) {
+      links.push({ sourceX, targetRank });
+    }
+  }
+
+  let crossings = 0;
+  for (let i = 0; i < links.length - 1; i++) {
+    const left = links[i];
+    for (let j = i + 1; j < links.length; j++) {
+      const right = links[j];
+      if (left.targetRank === right.targetRank) continue;
+
+      const sourceDelta = left.sourceX - right.sourceX;
+      if (Math.abs(sourceDelta) <= CROSSING_EPSILON) continue;
+
+      const targetDelta = left.targetRank - right.targetRank;
+      if (sourceDelta * targetDelta < -CROSSING_EPSILON) {
+        crossings++;
+      }
+    }
+  }
+
+  return crossings;
 }
 
 function roundTo2(value: number) {
