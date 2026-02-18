@@ -3,6 +3,8 @@ import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import type { MarriageEdgeData, EdgeRoutePoint } from '../../../../types';
 import { buildPathWithBridges } from './pathUtils';
 
+const KNOT_MASK_FILL = '#0a1734';
+
 function MarriageEdgeComponent(props: EdgeProps) {
   const {
     source,
@@ -78,32 +80,48 @@ function MarriageEdgeComponent(props: EdgeProps) {
         }}
       />
       {junctionPoints.map((junction, index) => (
-        <circle
-          key={`junction-${index}`}
-          cx={junction.x}
-          cy={junction.y}
-          r={3.3}
-          fill="#ffffff"
-          stroke={strokeColor}
-          strokeWidth={1.6}
-          opacity={edgeOpacity}
-          style={isHighlighted ? { filter: edgeFilter } : undefined}
-          pointerEvents="none"
-        />
+        <g key={`junction-${index}`} pointerEvents="none">
+          <circle
+            cx={junction.x}
+            cy={junction.y}
+            r={4.2}
+            fill={KNOT_MASK_FILL}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+          <circle
+            cx={junction.x}
+            cy={junction.y}
+            r={3.3}
+            fill="#ffffff"
+            stroke={strokeColor}
+            strokeWidth={1.6}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+        </g>
       ))}
       {endpointPoints.map((point) => (
-        <circle
-          key={point.key}
-          cx={point.x}
-          cy={point.y}
-          r={3.6}
-          fill={strokeColor}
-          stroke="#ffffff"
-          strokeWidth={1.2}
-          opacity={edgeOpacity}
-          style={isHighlighted ? { filter: edgeFilter } : undefined}
-          pointerEvents="none"
-        />
+        <g key={point.key} pointerEvents="none">
+          <circle
+            cx={point.x}
+            cy={point.y}
+            r={4.4}
+            fill={KNOT_MASK_FILL}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+          <circle
+            cx={point.x}
+            cy={point.y}
+            r={3.6}
+            fill={strokeColor}
+            stroke="#ffffff"
+            strokeWidth={1.2}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+        </g>
       ))}
     </>
   );

@@ -929,13 +929,21 @@ function detectEdgeIntersections(
           const verticalInterior = iy > minVY + CROSSING_EPSILON && iy < maxVY - CROSSING_EPSILON;
 
           if (relatedEdges) {
-            // T-tutashuvlar uchun (bir segment endpoint'i boshqa segment ichiga tegsa) ham junction qo'yiladi.
+            // Related edge'larda marker ikkala segmentga ham qo'yiladi:
+            // shu bilan marker ustidan o'tuvchi chiziq ham maskalanadi.
             if (!horizontalInterior && !verticalInterior) continue;
-            const ownerSegment = horizontalInterior ? horizontal : vertical;
             addMarkerPoint(
               junctionsByEdge,
-              ownerSegment.edgeId,
-              ownerSegment.segmentIndex,
+              horizontal.edgeId,
+              horizontal.segmentIndex,
+              ix,
+              iy,
+              JUNCTION_MIN_SPACING,
+            );
+            addMarkerPoint(
+              junctionsByEdge,
+              vertical.edgeId,
+              vertical.segmentIndex,
               ix,
               iy,
               JUNCTION_MIN_SPACING,

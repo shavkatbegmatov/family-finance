@@ -5,6 +5,7 @@ import { buildPathWithBridges } from './pathUtils';
 
 const BUS_KNOT_FILL = '#14b8a6';
 const BUS_KNOT_STROKE = '#0f766e';
+const KNOT_MASK_FILL = '#0a1734';
 
 function ChildEdgeComponent(props: EdgeProps) {
   const {
@@ -98,32 +99,48 @@ function ChildEdgeComponent(props: EdgeProps) {
         }}
       />
       {junctionPoints.map((junction, index) => (
-        <circle
-          key={`junction-${index}`}
-          cx={junction.x}
-          cy={junction.y}
-          r={3.2}
-          fill="#ffffff"
-          stroke={strokeColor}
-          strokeWidth={1.6}
-          opacity={edgeOpacity}
-          style={isHighlighted ? { filter: edgeFilter } : undefined}
-          pointerEvents="none"
-        />
+        <g key={`junction-${index}`} pointerEvents="none">
+          <circle
+            cx={junction.x}
+            cy={junction.y}
+            r={4.1}
+            fill={KNOT_MASK_FILL}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+          <circle
+            cx={junction.x}
+            cy={junction.y}
+            r={3.2}
+            fill="#ffffff"
+            stroke={strokeColor}
+            strokeWidth={1.6}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+        </g>
       ))}
       {endpointPoints.map((point) => (
-        <circle
-          key={point.key}
-          cx={point.x}
-          cy={point.y}
-          r={2.9}
-          fill={BUS_KNOT_FILL}
-          stroke={BUS_KNOT_STROKE}
-          strokeWidth={1}
-          opacity={edgeOpacity}
-          style={isHighlighted ? { filter: edgeFilter } : undefined}
-          pointerEvents="none"
-        />
+        <g key={point.key} pointerEvents="none">
+          <circle
+            cx={point.x}
+            cy={point.y}
+            r={3.8}
+            fill={KNOT_MASK_FILL}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+          <circle
+            cx={point.x}
+            cy={point.y}
+            r={2.9}
+            fill={BUS_KNOT_FILL}
+            stroke={BUS_KNOT_STROKE}
+            strokeWidth={1}
+            opacity={edgeOpacity}
+            style={isHighlighted ? { filter: edgeFilter } : undefined}
+          />
+        </g>
       ))}
     </>
   );
