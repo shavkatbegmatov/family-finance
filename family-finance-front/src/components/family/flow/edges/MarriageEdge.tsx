@@ -4,7 +4,17 @@ import type { MarriageEdgeData, EdgeRoutePoint } from '../../../../types';
 import { buildPathWithBridges } from './pathUtils';
 
 function MarriageEdgeComponent(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props;
+  const {
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    data,
+  } = props;
   const edgeData = (data ?? {}) as MarriageEdgeData;
   const marriageType = edgeData.marriageType;
   const status = edgeData.status;
@@ -21,6 +31,10 @@ function MarriageEdgeComponent(props: EdgeProps) {
   });
   const edgePath = buildPathWithBridges(anchoredRoutePoints, edgeData.bridges, 6) || fallbackPath;
   const junctionPoints = edgeData.junctions ?? [];
+  const endpointPoints = [
+    { key: 'source', x: sourceX, y: sourceY, visible: isBusNode(source) },
+    { key: 'target', x: targetX, y: targetY, visible: isBusNode(target) },
+  ].filter((point) => point.visible);
 
   const isActive = status === 'ACTIVE';
   const isDivorced = marriageType === 'DIVORCED' || !isActive;
@@ -65,11 +79,27 @@ function MarriageEdgeComponent(props: EdgeProps) {
           pointerEvents="none"
         />
       ))}
+      {endpointPoints.map((point) => (
+        <circle
+          key={point.key}
+          cx={point.x}
+          cy={point.y}
+          r={3.6}
+          fill={strokeColor}
+          stroke="#ffffff"
+          strokeWidth={1.2}
+          pointerEvents="none"
+        />
+      ))}
     </>
   );
 }
 
 export const MarriageEdge = memo(MarriageEdgeComponent);
+
+function isBusNode(nodeId: string) {
+  return nodeId.startsWith('fu_bus_');
+}
 
 function getAnchoredRoutePoints(
   routePoints: EdgeRoutePoint[] | undefined,

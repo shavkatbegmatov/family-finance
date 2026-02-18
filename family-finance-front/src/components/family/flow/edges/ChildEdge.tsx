@@ -4,7 +4,17 @@ import type { ChildEdgeData, EdgeRoutePoint } from '../../../../types';
 import { buildPathWithBridges } from './pathUtils';
 
 function ChildEdgeComponent(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props;
+  const {
+    source,
+    target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    data,
+  } = props;
   const edgeData = (data ?? {}) as ChildEdgeData;
   const lineageType = edgeData.lineageType || 'BIOLOGICAL';
   const edgeKind = edgeData.edgeKind || 'child';
@@ -21,6 +31,10 @@ function ChildEdgeComponent(props: EdgeProps) {
   });
   const edgePath = buildPathWithBridges(anchoredRoutePoints, edgeData.bridges, 5) || fallbackPath;
   const junctionPoints = edgeData.junctions ?? [];
+  const endpointPoints = [
+    { key: 'source', x: sourceX, y: sourceY, visible: isBusNode(source) },
+    { key: 'target', x: targetX, y: targetY, visible: isBusNode(target) },
+  ].filter((point) => point.visible);
 
   let strokeDasharray: string | undefined;
   let strokeColor = '#64748b'; // slate
@@ -77,11 +91,27 @@ function ChildEdgeComponent(props: EdgeProps) {
           pointerEvents="none"
         />
       ))}
+      {endpointPoints.map((point) => (
+        <circle
+          key={point.key}
+          cx={point.x}
+          cy={point.y}
+          r={3.4}
+          fill={strokeColor}
+          stroke="#ffffff"
+          strokeWidth={1.1}
+          pointerEvents="none"
+        />
+      ))}
     </>
   );
 }
 
 export const ChildEdge = memo(ChildEdgeComponent);
+
+function isBusNode(nodeId: string) {
+  return nodeId.startsWith('fu_bus_');
+}
 
 function getAnchoredRoutePoints(
   routePoints: EdgeRoutePoint[] | undefined,
