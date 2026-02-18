@@ -33,10 +33,12 @@ const JUNCTION_MIN_SPACING = 12;
 const MARRIAGE_LANE_GAP = 12;
 const CHILD_LANE_GAP = 14;
 const TREE_DENSITY_PROFILE = {
-  nodeNode: '56',
-  edgeNode: '20',
-  nodeNodeBetweenLayers: '108',
-  edgeNodeBetweenLayers: '30',
+  nodeNode: '60',
+  edgeNode: '25',
+  edgeEdge: '15',
+  nodeNodeBetweenLayers: '100',
+  edgeNodeBetweenLayers: '25',
+  edgeEdgeBetweenLayers: '15',
 } as const;
 const NODE_PORT_LAYOUT_OPTIONS = {
   'org.eclipse.elk.portConstraints': 'FIXED_ORDER',
@@ -264,18 +266,44 @@ export function useElkLayout(treeData: TreeResponse | null) {
       const elkGraph: ElkNode = {
         id: 'root',
         layoutOptions: {
+          // Algoritm
           'org.eclipse.elk.algorithm': 'layered',
           'org.eclipse.elk.direction': 'DOWN',
+
+          // Crossing Minimization — eng muhim qism
+          'org.eclipse.elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+          'org.eclipse.elk.layered.crossingMinimization.greedySwitch.type': 'TWO_SIDED',
+          'org.eclipse.elk.layered.thoroughness': '10',
+
+          // Model Order — crossing ga ustunlik, model order tie-breaker sifatida
+          'org.eclipse.elk.layered.considerModelOrder.strategy': 'PREFER_EDGES',
+          'org.eclipse.elk.layered.considerModelOrder.crossingCounterNodeInfluence': '0.001',
+          'org.eclipse.elk.layered.considerModelOrder.crossingCounterPortInfluence': '0.001',
+
+          // Node Placement — to'g'ri chiziqlarni afzal ko'rish
+          'org.eclipse.elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+          'org.eclipse.elk.layered.nodePlacement.favorStraightEdges': 'true',
+          'org.eclipse.elk.layered.nodePlacement.bk.edgeStraightening': 'IMPROVE_STRAIGHTNESS',
+
+          // Edge Routing
+          'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+          'org.eclipse.elk.layered.unnecessaryBendpoints': 'true',
+
+          // Spacing
           'org.eclipse.elk.spacing.nodeNode': TREE_DENSITY_PROFILE.nodeNode,
           'org.eclipse.elk.spacing.edgeNode': TREE_DENSITY_PROFILE.edgeNode,
+          'org.eclipse.elk.spacing.edgeEdge': TREE_DENSITY_PROFILE.edgeEdge,
           'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': TREE_DENSITY_PROFILE.nodeNodeBetweenLayers,
           'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': TREE_DENSITY_PROFILE.edgeNodeBetweenLayers,
-          'org.eclipse.elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-          'org.eclipse.elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-          'org.eclipse.elk.layered.considerModelOrder.portModelOrder': 'true',
-          'org.eclipse.elk.layered.unnecessaryBendpoints': 'true',
-          'org.eclipse.elk.edgeRouting': 'ORTHOGONAL',
+          'org.eclipse.elk.layered.spacing.edgeEdgeBetweenLayers': TREE_DENSITY_PROFILE.edgeEdgeBetweenLayers,
+
+          // Compaction — ortiqcha bo'shliqni yo'qotish
+          'org.eclipse.elk.layered.compaction.postCompaction.strategy': 'LEFT_RIGHT_CONSTRAINT_LOCKING',
+
+          // Port
           'org.eclipse.elk.portAlignment.default': 'CENTER',
+
+          // JSON
           'org.eclipse.elk.json.edgeCoords': 'true',
           'org.eclipse.elk.json.shapeCoords': 'true',
         },
