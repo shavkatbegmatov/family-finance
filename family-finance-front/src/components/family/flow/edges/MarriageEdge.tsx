@@ -1,19 +1,22 @@
 import { memo } from 'react';
-import { BaseEdge, getStraightPath, type EdgeProps } from '@xyflow/react';
+import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/react';
 import type { MarriageEdgeData } from '../../../../types';
 import { buildPathWithBridges } from './pathUtils';
 
 function MarriageEdgeComponent(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, data } = props;
+  const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = props;
   const edgeData = (data ?? {}) as MarriageEdgeData;
   const marriageType = edgeData.marriageType;
   const status = edgeData.status;
 
-  const [fallbackPath] = getStraightPath({
+  const [fallbackPath] = getSmoothStepPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 0,
   });
   const edgePath = buildPathWithBridges(edgeData.routePoints, edgeData.bridges, 6) || fallbackPath;
 
@@ -43,8 +46,8 @@ function MarriageEdgeComponent(props: EdgeProps) {
         strokeWidth,
         strokeDasharray,
         fill: 'none',
-        strokeLinejoin: 'round',
-        strokeLinecap: 'round',
+        strokeLinejoin: 'miter',
+        strokeLinecap: 'square',
       }}
     />
   );

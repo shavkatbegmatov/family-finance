@@ -28,6 +28,12 @@ export const FAMILY_UNIT_BUS_NODE_HEIGHT = 12;
 const CROSSING_EPSILON = 0.5;
 const MARRIAGE_LANE_GAP = 12;
 const CHILD_LANE_GAP = 14;
+const TREE_DENSITY_PROFILE = {
+  nodeNode: '56',
+  edgeNode: '20',
+  nodeNodeBetweenLayers: '108',
+  edgeNodeBetweenLayers: '30',
+} as const;
 
 const elk = new ELK();
 
@@ -239,10 +245,10 @@ export function useElkLayout(treeData: TreeResponse | null) {
         layoutOptions: {
           'org.eclipse.elk.algorithm': 'layered',
           'org.eclipse.elk.direction': 'DOWN',
-          'org.eclipse.elk.spacing.nodeNode': '80',
-          'org.eclipse.elk.spacing.edgeNode': '36',
-          'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': '150',
-          'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': '60',
+          'org.eclipse.elk.spacing.nodeNode': TREE_DENSITY_PROFILE.nodeNode,
+          'org.eclipse.elk.spacing.edgeNode': TREE_DENSITY_PROFILE.edgeNode,
+          'org.eclipse.elk.layered.spacing.nodeNodeBetweenLayers': TREE_DENSITY_PROFILE.nodeNodeBetweenLayers,
+          'org.eclipse.elk.layered.spacing.edgeNodeBetweenLayers': TREE_DENSITY_PROFILE.edgeNodeBetweenLayers,
           'org.eclipse.elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
           'org.eclipse.elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
           'org.eclipse.elk.layered.considerModelOrder.portModelOrder': 'true',
@@ -588,7 +594,7 @@ function buildFallbackRoute(edge: PlannedEdge, nodeBounds: Map<string, NodeBound
 
   const laneOffset = getCenteredOffset(edge.laneIndex, edge.laneCount, CHILD_LANE_GAP);
   const launchX = source.x + laneOffset;
-  const channelY = source.y + 28;
+  const channelY = source.y + 20;
 
   return normalizeRoutePoints([
     source,

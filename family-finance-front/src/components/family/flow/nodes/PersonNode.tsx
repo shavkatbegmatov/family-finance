@@ -7,6 +7,8 @@ import type { Gender } from '../../../../types';
 import { useFamilyTreeStore } from '../../../../store/familyTreeStore';
 import { useAuthStore } from '../../../../store/authStore';
 
+const NODE_PLACEHOLDER = '-';
+
 const getGenderGradient = (gender?: Gender | null) => {
   switch (gender) {
     case 'MALE': return 'bg-gradient-to-br from-blue-400 to-blue-600';
@@ -24,10 +26,14 @@ const getGenderBorderColor = (gender?: Gender | null, isRoot?: boolean) => {
   }
 };
 
-const getAge = (birthDate?: string, deathDate?: string): string | null => {
-  if (!birthDate) return null;
+const getAge = (birthDate?: string, deathDate?: string): string => {
+  if (!birthDate) return NODE_PLACEHOLDER;
   const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return NODE_PLACEHOLDER;
+
   const end = deathDate ? new Date(deathDate) : new Date();
+  if (Number.isNaN(end.getTime())) return NODE_PLACEHOLDER;
+
   let age = end.getFullYear() - birth.getFullYear();
   const monthDiff = end.getMonth() - birth.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && end.getDate() < birth.getDate())) {
@@ -59,12 +65,13 @@ function PersonNodeComponent({ data }: NodeProps) {
   };
 
   const ageStr = getAge(person.birthDate, person.deathDate);
+  const birthPlaceStr = person.birthPlace?.trim() || NODE_PLACEHOLDER;
   const isDead = !!person.deathDate;
 
   return (
     <div
       className={clsx(
-        'relative bg-base-100 rounded-xl border-2 shadow-md p-3 w-[200px] cursor-pointer',
+        'relative bg-base-100 rounded-xl border-2 shadow-md p-3 w-[200px] h-[140px] cursor-pointer flex flex-col',
         'transition-all hover:shadow-lg hover:scale-[1.02]',
         getGenderBorderColor(person.gender, isRoot),
         isDead && 'opacity-70'
@@ -120,24 +127,20 @@ function PersonNodeComponent({ data }: NodeProps) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm truncate">{person.fullName}</div>
+          <div className="font-semibold text-sm truncate leading-5">{person.fullName}</div>
         </div>
       </div>
 
       {/* Info */}
-      <div className="space-y-1">
-        {ageStr && (
-          <div className="flex items-center gap-1.5 text-xs text-base-content/60">
-            <Calendar className="h-3 w-3 shrink-0" />
-            <span className="truncate">{ageStr}</span>
-          </div>
-        )}
-        {person.birthPlace && (
-          <div className="flex items-center gap-1.5 text-xs text-base-content/60">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span className="truncate">{person.birthPlace}</span>
-          </div>
-        )}
+      <div className="mt-auto space-y-1">
+        <div className="flex items-center gap-1.5 text-xs text-base-content/60 min-h-[16px]">
+          <Calendar className="h-3 w-3 shrink-0" />
+          <span className="truncate">{ageStr}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-base-content/60 min-h-[16px]">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="truncate">{birthPlaceStr}</span>
+        </div>
       </div>
 
       {/* "Siz" indicator */}

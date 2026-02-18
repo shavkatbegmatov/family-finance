@@ -16,7 +16,7 @@ function ChildEdgeComponent(props: EdgeProps) {
     targetY,
     sourcePosition,
     targetPosition,
-    borderRadius: 8,
+    borderRadius: 0,
   });
   const edgePath = buildPathWithBridges(edgeData.routePoints, edgeData.bridges, 5) || fallbackPath;
 
@@ -58,8 +58,8 @@ function ChildEdgeComponent(props: EdgeProps) {
         strokeWidth,
         strokeDasharray,
         fill: 'none',
-        strokeLinejoin: 'round',
-        strokeLinecap: 'round',
+        strokeLinejoin: 'miter',
+        strokeLinecap: 'square',
       }}
     />
   );
