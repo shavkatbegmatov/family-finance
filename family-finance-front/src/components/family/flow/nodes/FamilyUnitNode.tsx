@@ -57,7 +57,7 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
           position={Position.Right}
           className="!w-2 !h-2 !bg-transparent !border-0 !opacity-0"
         />
-        <div className="w-[14px] h-[14px] rounded-full bg-primary/25 border border-primary/50 shadow-sm" />
+        <div className="w-[16px] h-[16px] rounded-full bg-primary/25 border border-primary/50 shadow-sm" />
       </div>
     );
   }
@@ -120,3 +120,4 @@ function FamilyUnitNodeComponent({ data }: NodeProps) {
 }
 
 export const FamilyUnitNode = memo(FamilyUnitNodeComponent);
+

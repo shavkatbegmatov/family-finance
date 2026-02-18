@@ -101,10 +101,10 @@ function ChildEdgeComponent(props: EdgeProps) {
           key={point.key}
           cx={point.x}
           cy={point.y}
-          r={3.4}
+          r={2.9}
           fill={strokeColor}
           stroke="#ffffff"
-          strokeWidth={1.1}
+          strokeWidth={1}
           pointerEvents="none"
         />
       ))}
@@ -178,3 +178,4 @@ function isReasonableAnchor(point: EdgeRoutePoint, x: number, y: number) {
   const dy = point.y - y;
   return Math.hypot(dx, dy) <= 80;
 }
+

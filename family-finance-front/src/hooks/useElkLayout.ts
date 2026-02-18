@@ -24,8 +24,8 @@ export const PERSON_NODE_WIDTH = 200;
 export const PERSON_NODE_HEIGHT = 140;
 export const FAMILY_UNIT_PAIR_NODE_WIDTH = 40;
 export const FAMILY_UNIT_PAIR_NODE_HEIGHT = 20;
-export const FAMILY_UNIT_BUS_NODE_WIDTH = 14;
-export const FAMILY_UNIT_BUS_NODE_HEIGHT = 14;
+export const FAMILY_UNIT_BUS_NODE_WIDTH = 16;
+export const FAMILY_UNIT_BUS_NODE_HEIGHT = 16;
 
 const CROSSING_EPSILON = 0.5;
 const BRIDGE_MIN_SPACING = 16;
@@ -1388,4 +1388,5 @@ function fallbackLayout(
   setNodes(rfNodes);
   setEdges(rfEdges);
 }
+
 
