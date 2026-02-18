@@ -8,11 +8,19 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { BottomNav } from './BottomNav';
 import { PasswordChangeModal } from '../common/PasswordChangeModal';
+import { useFamilyTreeStore } from '../../store/familyTreeStore';
 
 export function MainLayout() {
   const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const isSidebarPinned = useFamilyTreeStore((s) => s.isSidebarPinned);
+  const activeModal = useFamilyTreeStore((s) => s.activeModal);
+
+  const isPinnedFamilyDetailOpen =
+    location.pathname.startsWith('/family') &&
+    isSidebarPinned &&
+    activeModal?.type === 'personDetail';
 
   // Professional session monitoring:
   // - Checks session every 60 seconds
@@ -43,7 +51,7 @@ export function MainLayout() {
   return (
     <div className="flex h-screen overflow-hidden text-base-content">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <div className={`flex min-w-0 flex-1 flex-col overflow-hidden ${isPinnedFamilyDetailOpen ? 'sm:pr-[360px]' : ''}`}>
         <Header />
         <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-20 pt-4 lg:px-8 lg:pb-6">
           <Outlet />

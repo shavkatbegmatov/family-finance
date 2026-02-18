@@ -131,33 +131,35 @@ export function FamilyTreeView() {
 
   return (
     <ReactFlowProvider>
-      <div className={`relative ${isFullscreen ? 'flex flex-col h-screen bg-base-100' : ''}`} ref={containerRef}>
+      <div
+        className={`relative ${isFullscreen ? 'flex flex-col h-screen bg-base-100' : ''}`}
+        ref={containerRef}
+      >
         {/* Toolbar */}
         <div className={isFullscreen ? '' : 'mb-2'}>
           <FamilyTreeToolbar fullscreenRef={containerRef} />
         </div>
 
-        {/* Main content — flex layout when pinned */}
+        {/* Main content */}
         <div
-          className={`${isFullscreen ? '' : 'rounded-xl border border-base-200'} bg-base-200/30 ${isPinnedDetailOpen ? 'flex' : ''}`}
+          className={`${isFullscreen ? '' : 'rounded-xl border border-base-200'} bg-base-200/30`}
           style={isFullscreen ? { flex: 1 } : { height: 'calc(100vh - 180px)', minHeight: '400px' }}
         >
           {/* React Flow container */}
-          <div className={isPinnedDetailOpen ? 'flex-1 min-w-0' : 'h-full'}>
+          <div className="h-full">
             <FamilyFlowTree treeData={treeData} />
           </div>
 
-          {/* Pinned sidebar */}
-          {isPinnedDetailOpen && (
-            <div className="border-l border-base-300 h-full">
-              <PersonDetailPanel
-                isOpen
-                personId={activeModal.personId}
-                onClose={closeModal}
-              />
-            </div>
-          )}
         </div>
+
+        {/* Pinned sidebar */}
+        {isPinnedDetailOpen && (
+          <PersonDetailPanel
+            isOpen
+            personId={activeModal.personId}
+            onClose={closeModal}
+          />
+        )}
 
         {/* Context menu */}
         <TreeContextMenu />

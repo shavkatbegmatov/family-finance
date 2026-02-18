@@ -16,21 +16,22 @@ export function SidePanel({ isOpen, onClose, children, pinned = false }: SidePan
       }
     };
 
-    if (isOpen) {
+    // Pinned holatda panel faqat X orqali yopiladi.
+    if (isOpen && !pinned) {
       document.addEventListener('keydown', handleEscape);
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, pinned]);
 
   if (!isOpen) return null;
 
   // Pinned rejim — portal va backdrop yo'q
   if (pinned) {
     return (
-      <div className="h-full w-full sm:w-[360px] bg-base-100 shadow-2xl overflow-y-auto animate-slide-in-right shrink-0">
+      <div className="fixed inset-y-0 right-0 z-[9998] h-screen w-full sm:w-[360px] sm:min-w-[360px] bg-base-100 shadow-2xl overflow-y-auto animate-slide-in-right border-l border-base-300">
         {children}
       </div>
     );
