@@ -284,7 +284,9 @@ export function FamilyMembersPage() {
 
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
-        <FamilyTreeView />
+        <div className="-mx-4 lg:-mx-8">
+          <FamilyTreeView />
+        </div>
       )}
 
       {/* ============ LIST VIEW ============ */}

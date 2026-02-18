@@ -142,7 +142,7 @@ export function FamilyTreeView() {
 
         {/* Main content */}
         <div
-          className={`${isFullscreen ? '' : 'rounded-xl border border-base-200'} bg-base-200/30`}
+          className="bg-base-200/30"
           style={isFullscreen ? { flex: 1 } : { height: 'calc(100vh - 180px)', minHeight: '400px' }}
         >
           {/* React Flow container */}
