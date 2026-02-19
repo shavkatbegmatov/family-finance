@@ -11,6 +11,8 @@ export const PermissionCode = {
   TRANSACTIONS_UPDATE: 'TRANSACTIONS_UPDATE',
   TRANSACTIONS_DELETE: 'TRANSACTIONS_DELETE',
   TRANSACTIONS_EXPORT: 'TRANSACTIONS_EXPORT',
+  TRANSACTIONS_CONFIRM: 'TRANSACTIONS_CONFIRM',
+  TRANSACTIONS_CANCEL: 'TRANSACTIONS_CANCEL',
 
   // ACCOUNTS
   ACCOUNTS_VIEW: 'ACCOUNTS_VIEW',
@@ -117,6 +119,8 @@ export function usePermission() {
   const canUpdateTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_UPDATE), [permissions]);
   const canDeleteTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_DELETE), [permissions]);
   const canExportTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_EXPORT), [permissions]);
+  const canConfirmTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_CONFIRM), [permissions]);
+  const canCancelTransactions = useMemo(() => permissions.has(PermissionCode.TRANSACTIONS_CANCEL), [permissions]);
 
   // Accounts
   const canViewAccounts = useMemo(() => permissions.has(PermissionCode.ACCOUNTS_VIEW), [permissions]);
@@ -186,7 +190,7 @@ export function usePermission() {
     hasPermission, hasAnyPermission, hasAllPermissions, hasRole,
     permissions, roles,
     canViewDashboard,
-    canViewTransactions, canCreateTransactions, canUpdateTransactions, canDeleteTransactions, canExportTransactions,
+    canViewTransactions, canCreateTransactions, canUpdateTransactions, canDeleteTransactions, canExportTransactions, canConfirmTransactions, canCancelTransactions,
     canViewAccounts, canCreateAccounts, canUpdateAccounts, canDeleteAccounts, canTransferAccounts,
     canViewCategories, canCreateCategories, canUpdateCategories, canDeleteCategories,
     canViewBudgets, canCreateBudgets, canUpdateBudgets, canDeleteBudgets,

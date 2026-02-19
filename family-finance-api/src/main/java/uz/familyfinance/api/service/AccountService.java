@@ -8,18 +8,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.AccountRequest;
 import uz.familyfinance.api.dto.response.AccountAccessResponse;
+import uz.familyfinance.api.dto.response.AccountBalanceSummaryResponse;
 import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
 import uz.familyfinance.api.entity.Account;
 import uz.familyfinance.api.entity.FamilyMember;
+import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
 import uz.familyfinance.api.enums.CurrencyCode;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.AccountRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.TransactionRepository;
 import uz.familyfinance.api.util.AccCodeGenerator;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,15 +37,17 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final TransactionRepository transactionRepository;
+
+    @Transactional(readOnly = true)
+    public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status, Pageable pageable) {
+        return accountRepository.findWithFilters(search, accountType, status, pageable)
+                .map(this::toResponse);
+    }
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, Pageable pageable) {
-        if (search != null && !search.isBlank()) {
-            return accountRepository.search(search, pageable).map(this::toResponse);
-        }
-        // SYSTEM_TRANSIT hisoblarini filtrlash
-        return accountRepository.findByIsActiveTrueAndTypeNot(AccountType.SYSTEM_TRANSIT, pageable)
-                .map(this::toResponse);
+        return getAll(search, null, null, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -82,16 +90,22 @@ public class AccountService {
         // Balans hisob kodini AccountType dan olish
         String balanceAccountCode = request.getType().getBalanceCode();
 
+        BigDecimal initialBalance = request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO;
+
         Account account = Account.builder()
                 .name(request.getName())
                 .type(request.getType())
                 .currency(currency)
-                .balance(request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO)
+                .balance(initialBalance)
+                .openingBalance(request.getOpeningBalance() != null ? request.getOpeningBalance() : initialBalance)
                 .color(request.getColor())
                 .icon(request.getIcon())
                 .balanceAccountCode(balanceAccountCode)
                 .currencyCode(currencyCode)
                 .description(request.getDescription())
+                .bankName(request.getBankName())
+                .bankMfo(request.getBankMfo())
+                .bankInn(request.getBankInn())
                 .build();
 
         // Owner ni bog'lash
@@ -122,6 +136,9 @@ public class AccountService {
         account.setColor(request.getColor());
         account.setIcon(request.getIcon());
         account.setDescription(request.getDescription());
+        account.setBankName(request.getBankName());
+        account.setBankMfo(request.getBankMfo());
+        account.setBankInn(request.getBankInn());
 
         if (request.getOwnerId() != null) {
             FamilyMember owner = familyMemberRepository.findById(request.getOwnerId())
@@ -130,6 +147,58 @@ public class AccountService {
         }
 
         return toResponse(accountRepository.save(account));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AccountResponse> getMyAccounts(Long userId, Pageable pageable) {
+        return accountRepository.findMyAccounts(userId, pageable).map(this::toResponse);
+    }
+
+    @Transactional
+    public AccountResponse changeStatus(Long id, AccountStatus newStatus) {
+        Account account = findById(id);
+        AccountStatus currentStatus = account.getStatus();
+
+        if (currentStatus == AccountStatus.CLOSED) {
+            throw new BadRequestException("Yopilgan hisobning holatini o'zgartirib bo'lmaydi");
+        }
+        if (currentStatus == newStatus) {
+            throw new BadRequestException("Hisob allaqachon " + newStatus + " holatida");
+        }
+
+        account.setStatus(newStatus);
+        if (newStatus == AccountStatus.CLOSED) {
+            account.setIsActive(false);
+        }
+
+        log.info("Hisob holati o'zgartirildi: {} -> {} (ID: {})", currentStatus, newStatus, id);
+        return toResponse(accountRepository.save(account));
+    }
+
+    @Transactional(readOnly = true)
+    public AccountBalanceSummaryResponse getBalanceSummary(Long id, LocalDate dateFrom, LocalDate dateTo) {
+        Account account = findById(id);
+
+        LocalDateTime from = dateFrom != null ? dateFrom.atStartOfDay() : null;
+        LocalDateTime to = dateTo != null ? dateTo.atTime(23, 59, 59) : null;
+
+        BigDecimal debitTurnover = transactionRepository.sumDebitTurnover(id, from, to);
+        BigDecimal creditTurnover = transactionRepository.sumCreditTurnover(id, from, to);
+        BigDecimal openingBal = account.getOpeningBalance() != null ? account.getOpeningBalance() : BigDecimal.ZERO;
+        BigDecimal closingBalance = openingBal.add(debitTurnover).subtract(creditTurnover);
+
+        return AccountBalanceSummaryResponse.builder()
+                .accountId(account.getId())
+                .accCode(account.getAccCode())
+                .accountName(account.getName())
+                .accountType(account.getType())
+                .openingBalance(openingBal)
+                .debitTurnover(debitTurnover)
+                .creditTurnover(creditTurnover)
+                .closingBalance(closingBalance)
+                .periodStart(dateFrom)
+                .periodEnd(dateTo)
+                .build();
     }
 
     @Transactional
@@ -195,6 +264,11 @@ public class AccountService {
         r.setBalanceAccountCode(a.getBalanceAccountCode());
         r.setCurrencyCode(a.getCurrencyCode());
         r.setDescription(a.getDescription());
+        r.setStatus(a.getStatus() != null ? a.getStatus().name() : "ACTIVE");
+        r.setOpeningBalance(a.getOpeningBalance());
+        r.setBankName(a.getBankName());
+        r.setBankMfo(a.getBankMfo());
+        r.setBankInn(a.getBankInn());
         if (a.getOwner() != null) {
             r.setOwnerId(a.getOwner().getId());
             r.setOwnerName(a.getOwner().getFullName());

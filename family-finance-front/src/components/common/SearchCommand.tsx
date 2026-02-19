@@ -199,7 +199,7 @@ export function SearchCommand() {
     try {
       const [transactionsRes, accountsRes, membersRes, debtsRes] = await Promise.allSettled([
         transactionsApi.getAll(0, 5),
-        accountsApi.getAll(0, 5),
+        accountsApi.getAll({ page: 0, size: 5 }),
         familyMembersApi.getAll(0, 5),
         familyDebtsApi.getAll(0, 5),
       ]);

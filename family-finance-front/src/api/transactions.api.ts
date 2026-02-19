@@ -17,4 +17,8 @@ export const transactionsApi = {
   create: (data: TransactionRequest) => axiosInstance.post('/v1/transactions', data),
   update: (id: number, data: TransactionRequest) => axiosInstance.put(`/v1/transactions/${id}`, data),
   reverse: (id: number, reason: string) => axiosInstance.post(`/v1/transactions/${id}/reverse`, { reason }),
+  getByAccount: (accountId: number, page = 0, size = 10) =>
+    axiosInstance.get(`/v1/transactions/account/${accountId}`, { params: { page, size } }),
+  confirm: (id: number) => axiosInstance.patch(`/v1/transactions/${id}/confirm`),
+  cancel: (id: number, reason: string) => axiosInstance.patch(`/v1/transactions/${id}/cancel`, { reason }),
 };

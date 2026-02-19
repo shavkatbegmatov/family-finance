@@ -73,4 +73,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                @Param("to") LocalDateTime to);
 
     List<Transaction> findByOriginalTransactionId(Long originalTransactionId);
+
+    @Query("SELECT t FROM Transaction t WHERE " +
+           "(t.debitAccount.id = :accountId OR t.creditAccount.id = :accountId OR t.account.id = :accountId) " +
+           "ORDER BY t.transactionDate DESC")
+    Page<Transaction> findByAccountId(@Param("accountId") Long accountId, Pageable pageable);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.debitAccount.id = :accountId " +
+           "AND t.status = 'CONFIRMED' " +
+           "AND (CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) " +
+           "AND (CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)")
+    BigDecimal sumDebitTurnover(@Param("accountId") Long accountId,
+                                @Param("fromDate") LocalDateTime fromDate,
+                                @Param("toDate") LocalDateTime toDate);
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.creditAccount.id = :accountId " +
+           "AND t.status = 'CONFIRMED' " +
+           "AND (CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) " +
+           "AND (CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)")
+    BigDecimal sumCreditTurnover(@Param("accountId") Long accountId,
+                                  @Param("fromDate") LocalDateTime fromDate,
+                                  @Param("toDate") LocalDateTime toDate);
 }

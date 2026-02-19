@@ -12,11 +12,14 @@ import uz.familyfinance.api.dto.request.AccountAccessRequest;
 import uz.familyfinance.api.dto.request.AccountRequest;
 import uz.familyfinance.api.dto.request.CardRequest;
 import uz.familyfinance.api.dto.response.AccountAccessResponse;
+import uz.familyfinance.api.dto.response.AccountBalanceSummaryResponse;
 import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
 import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.enums.AccountStatus;
+import uz.familyfinance.api.enums.AccountType;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.RequiresPermission;
@@ -26,6 +29,7 @@ import uz.familyfinance.api.service.CardService;
 
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -42,10 +46,40 @@ public class AccountController {
     public ResponseEntity<ApiResponse<PagedResponse<AccountResponse>>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String search) {
-        Page<AccountResponse> result = accountService.getAll(search,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) AccountType accountType,
+            @RequestParam(required = false) AccountStatus status) {
+        Page<AccountResponse> result = accountService.getAll(search, accountType, status,
                 PageRequest.of(page, size, Sort.by("createdAt").descending()));
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
+    }
+
+    @GetMapping("/my")
+    @RequiresPermission(PermissionCode.ACCOUNTS_VIEW)
+    public ResponseEntity<ApiResponse<PagedResponse<AccountResponse>>> getMyAccounts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Page<AccountResponse> result = accountService.getMyAccounts(userDetails.getUser().getId(),
+                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
+    }
+
+    @PatchMapping("/{id}/status")
+    @RequiresPermission(PermissionCode.ACCOUNTS_UPDATE)
+    public ResponseEntity<ApiResponse<AccountResponse>> changeStatus(
+            @PathVariable Long id,
+            @RequestParam AccountStatus status) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.changeStatus(id, status)));
+    }
+
+    @GetMapping("/{id}/balance-summary")
+    @RequiresPermission(PermissionCode.ACCOUNTS_VIEW)
+    public ResponseEntity<ApiResponse<AccountBalanceSummaryResponse>> getBalanceSummary(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDate dateFrom,
+            @RequestParam(required = false) LocalDate dateTo) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.getBalanceSummary(id, dateFrom, dateTo)));
     }
 
     @GetMapping("/list")

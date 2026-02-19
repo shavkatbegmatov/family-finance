@@ -75,4 +75,29 @@ public class TransactionController {
             @Valid @RequestBody ReverseTransactionRequest request) {
         return ResponseEntity.ok(ApiResponse.success(transactionService.reverse(id, request.getReason())));
     }
+
+    @GetMapping("/account/{accountId}")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_VIEW)
+    public ResponseEntity<ApiResponse<PagedResponse<TransactionResponse>>> getByAccount(
+            @PathVariable Long accountId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<TransactionResponse> result = transactionService.getByAccount(accountId,
+                PageRequest.of(page, size, Sort.by("transactionDate").descending()));
+        return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
+    }
+
+    @PatchMapping("/{id}/confirm")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_CONFIRM)
+    public ResponseEntity<ApiResponse<TransactionResponse>> confirm(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(transactionService.confirm(id)));
+    }
+
+    @PatchMapping("/{id}/cancel")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_CANCEL)
+    public ResponseEntity<ApiResponse<TransactionResponse>> cancel(
+            @PathVariable Long id,
+            @RequestBody ReverseTransactionRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(transactionService.cancel(id, request.getReason())));
+    }
 }

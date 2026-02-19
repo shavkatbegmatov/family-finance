@@ -1,193 +1,275 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Wallet,
-  CreditCard,
-  PiggyBank,
-  Smartphone,
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-  ArrowRightLeft,
-  Clock,
-  Landmark,
+  Wallet, CreditCard, PiggyBank, Smartphone, Landmark, Receipt,
+  Plus, RefreshCw, Eye, Edit2, Search, Banknote,
 } from 'lucide-react';
-import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { accountsApi } from '../../api/accounts.api';
-import type { Account, AccountRequest, AccountType, ApiResponse, PagedResponse } from '../../types';
-import { formatCurrency, ACCOUNT_TYPES } from '../../config/constants';
-import { CurrencyInput } from '../../components/ui/CurrencyInput';
+import type {
+  Account, AccountType, AccountStatus, AccountFilters,
+  ApiResponse, PagedResponse,
+} from '../../types';
+import {
+  formatCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
+} from '../../config/constants';
+import { DataTable, type Column } from '../../components/ui/DataTable';
 import { Select } from '../../components/ui/Select';
-import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { AccountFormModal } from './AccountFormModal';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const ACCOUNT_ICONS: Record<AccountType, typeof Wallet> = {
-  CASH: Wallet,
+const ACCOUNT_ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
+  CASH: Banknote,
   BANK_CARD: CreditCard,
   SAVINGS: PiggyBank,
   E_WALLET: Smartphone,
-  TERM_DEPOSIT: Clock,
-  CREDIT: Landmark,
+  TERM_DEPOSIT: Landmark,
+  CREDIT: Receipt,
 };
 
-const DEFAULT_COLORS = [
-  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444',
-  '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
-  '#14b8a6', '#6366f1', '#d946ef', '#0ea5e9',
-];
-
-const ICON_OPTIONS: { value: string; label: string; Icon: typeof Wallet }[] = [
-  { value: 'Wallet', label: 'Hamyon', Icon: Wallet },
-  { value: 'CreditCard', label: 'Karta', Icon: CreditCard },
-  { value: 'PiggyBank', label: "Jamg'arma", Icon: PiggyBank },
-  { value: 'Smartphone', label: 'Telefon', Icon: Smartphone },
-  { value: 'ArrowRightLeft', label: "O'tkazma", Icon: ArrowRightLeft },
-];
-
 function getAccountIcon(type: AccountType) {
-  return ACCOUNT_ICONS[type] ?? Wallet;
+  return ACCOUNT_ICON_MAP[type] ?? Wallet;
+}
+
+function getStatusBadge(status?: AccountStatus) {
+  const s = status || 'ACTIVE';
+  const info = ACCOUNT_STATUSES[s];
+  if (!info) return <span className="badge badge-ghost badge-sm">{s}</span>;
+  return <span className={`badge ${info.badge} badge-sm`}>{info.label}</span>;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export function AccountsPage() {
-  // Data state
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [totalBalance, setTotalBalance] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+type TabType = 'all' | 'my';
 
-  // Modal state
+export function AccountsPage() {
+  const navigate = useNavigate();
+
+  // Data
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Tabs & Filters
+  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState<AccountType | undefined>(undefined);
+  const [filterStatus, setFilterStatus] = useState<AccountStatus | undefined>(undefined);
+
+  // Modal
   const [showModal, setShowModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
-  // Delete confirmation
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-
-  // Form state
-  const [formName, setFormName] = useState('');
-  const [formType, setFormType] = useState<AccountType>('CASH');
-  const [formBalance, setFormBalance] = useState(0);
-  const [formColor, setFormColor] = useState(DEFAULT_COLORS[0]);
-  const [formIcon, setFormIcon] = useState('Wallet');
+  // Highlight
+  const [highlightId, setHighlightId] = useState<number | null>(null);
 
   // -----------------------------------------------------------------------
   // Data fetching
   // -----------------------------------------------------------------------
 
   const fetchAccounts = useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await accountsApi.getAll();
-      const data = res.data as ApiResponse<PagedResponse<Account>>;
-      setAccounts(data.data.content);
+      if (activeTab === 'my') {
+        const res = await accountsApi.getMy(page, pageSize);
+        const data = res.data as ApiResponse<PagedResponse<Account>>;
+        setAccounts(data.data.content);
+        setTotalElements(data.data.totalElements);
+        setTotalPages(data.data.totalPages);
+      } else {
+        const filters: AccountFilters = { page, size: pageSize };
+        if (search) filters.search = search;
+        if (filterType) filters.accountType = filterType;
+        if (filterStatus) filters.status = filterStatus;
+
+        const res = await accountsApi.getAll(filters);
+        const data = res.data as ApiResponse<PagedResponse<Account>>;
+        setAccounts(data.data.content);
+        setTotalElements(data.data.totalElements);
+        setTotalPages(data.data.totalPages);
+      }
     } catch {
       toast.error('Hisoblarni yuklashda xatolik');
+    } finally {
+      setLoading(false);
     }
-  }, []);
-
-  const fetchTotalBalance = useCallback(async () => {
-    try {
-      const balanceRes = await accountsApi.getTotalBalance();
-      const data = balanceRes.data as ApiResponse<number>;
-      setTotalBalance(data.data);
-    } catch {
-      // silently fail - balance is supplementary
-    }
-  }, []);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    await Promise.all([fetchAccounts(), fetchTotalBalance()]);
-    setLoading(false);
-  }, [fetchAccounts, fetchTotalBalance]);
+  }, [activeTab, page, pageSize, search, filterType, filterStatus]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    fetchAccounts();
+  }, [fetchAccounts]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setPage(0);
+  }, [search, filterType, filterStatus, activeTab]);
 
   // -----------------------------------------------------------------------
-  // Modal helpers
+  // Handlers
   // -----------------------------------------------------------------------
 
-  const openCreateModal = () => {
+  const handleRefresh = () => fetchAccounts();
+
+  const openCreate = () => {
     setEditingAccount(null);
-    setFormName('');
-    setFormType('CASH');
-    setFormBalance(0);
-    setFormColor(DEFAULT_COLORS[0]);
-    setFormIcon('Wallet');
     setShowModal(true);
   };
 
-  const openEditModal = (account: Account) => {
+  const openEdit = (account: Account) => {
     setEditingAccount(account);
-    setFormName(account.name);
-    setFormType(account.type);
-    setFormBalance(account.balance);
-    setFormColor(account.color || DEFAULT_COLORS[0]);
-    setFormIcon(account.icon || 'Wallet');
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingAccount(null);
+  const handleModalSuccess = () => {
+    fetchAccounts();
   };
 
+  // Debounced search
+  const [searchInput, setSearchInput] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(searchInput), 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   // -----------------------------------------------------------------------
-  // CRUD
+  // Table columns
   // -----------------------------------------------------------------------
 
-  const handleSubmit = async () => {
-    if (!formName.trim()) {
-      toast.error('Hisob nomini kiriting');
-      return;
-    }
+  const columns: Column<Account>[] = [
+    {
+      key: 'accCode',
+      header: 'Kod',
+      className: 'w-32',
+      render: (item) => (
+        <span className="font-mono text-xs text-base-content/60">
+          {item.accCodeFormatted || item.accCode || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'name',
+      header: 'Hisob',
+      sortable: true,
+      render: (item) => {
+        const Icon = getAccountIcon(item.type);
+        const color = item.color || '#3b82f6';
+        return (
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${color}15` }}
+            >
+              <Icon className="h-4 w-4" style={{ color }} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium truncate">{item.name}</p>
+              <p className="text-xs text-base-content/50">
+                {ACCOUNT_TYPES[item.type]?.label ?? item.type}
+                {item.currency && item.currency !== 'UZS' ? ` • ${item.currency}` : ''}
+              </p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'balance',
+      header: 'Joriy saldo',
+      sortable: true,
+      className: 'text-right',
+      render: (item) => (
+        <span className="font-semibold tabular-nums">{formatCurrency(item.balance)}</span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Holat',
+      className: 'w-28',
+      render: (item) => getStatusBadge(item.status),
+    },
+    {
+      key: 'accessList',
+      header: 'Foydalanuvchilar',
+      className: 'w-20 text-center',
+      render: (item) => (
+        <span className="text-sm text-base-content/60">
+          {item.accessList?.length ?? 0}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      className: 'w-24',
+      render: (item) => (
+        <div className="flex items-center gap-1 justify-end">
+          <button
+            className="btn btn-ghost btn-xs btn-square"
+            onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${item.id}`); }}
+            title="Batafsil"
+          >
+            <Eye className="h-3.5 w-3.5" />
+          </button>
+          <PermissionGate permission={PermissionCode.ACCOUNTS_UPDATE}>
+            <button
+              className="btn btn-ghost btn-xs btn-square"
+              onClick={(e) => { e.stopPropagation(); openEdit(item); }}
+              title="Tahrirlash"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+          </PermissionGate>
+        </div>
+      ),
+    },
+  ];
 
-    setSubmitting(true);
-    try {
-      const payload: AccountRequest = {
-        name: formName.trim(),
-        type: formType,
-        balance: formBalance,
-        color: formColor,
-        icon: formIcon,
-      };
+  // -----------------------------------------------------------------------
+  // Mobile card
+  // -----------------------------------------------------------------------
 
-      if (editingAccount) {
-        await accountsApi.update(editingAccount.id, payload);
-        toast.success('Hisob yangilandi');
-      } else {
-        await accountsApi.create(payload);
-        toast.success('Yangi hisob yaratildi');
-      }
+  const renderMobileCard = (item: Account) => {
+    const Icon = getAccountIcon(item.type);
+    const color = item.color || '#3b82f6';
 
-      closeModal();
-      await loadData();
-    } catch {
-      toast.error('Saqlashda xatolik yuz berdi');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    try {
-      await accountsApi.delete(id);
-      toast.success("Hisob o'chirildi");
-      setDeletingId(null);
-      await loadData();
-    } catch {
-      toast.error("O'chirishda xatolik yuz berdi");
-    }
+    return (
+      <div
+        className="surface-card p-4 cursor-pointer"
+        style={{ borderLeft: `3px solid ${color}` }}
+        onClick={() => navigate(`/accounts/${item.id}`)}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${color}15` }}
+            >
+              <Icon className="h-5 w-5" style={{ color }} />
+            </div>
+            <div>
+              <p className="font-medium">{item.name}</p>
+              <p className="text-xs text-base-content/50">
+                {ACCOUNT_TYPES[item.type]?.label} {item.accCodeFormatted ? `• ${item.accCodeFormatted}` : ''}
+              </p>
+            </div>
+          </div>
+          {getStatusBadge(item.status)}
+        </div>
+        <div className="mt-3 text-right">
+          <p className="text-lg font-bold">{formatCurrency(item.balance)}</p>
+        </div>
+      </div>
+    );
   };
 
   // -----------------------------------------------------------------------
@@ -195,295 +277,118 @@ export function AccountsPage() {
   // -----------------------------------------------------------------------
 
   return (
-    <div className="space-y-6">
-      {/* ---- Header ---- */}
+    <div className="space-y-5">
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Hisoblar</h1>
-          <p className="mt-1 text-sm text-base-content/60">
-            Moliyaviy hisoblaringiz
-          </p>
-        </div>
-
-        <PermissionGate permission={PermissionCode.ACCOUNTS_CREATE}>
-          <button
-            className="btn btn-primary gap-2"
-            onClick={openCreateModal}
-          >
-            <Plus className="h-4 w-4" />
-            Yangi hisob
-          </button>
-        </PermissionGate>
-      </div>
-
-      {/* ---- Total Balance Card ---- */}
-      <div className="surface-card p-6">
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-            <Wallet className="h-7 w-7 text-primary" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <Wallet className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-medium text-base-content/60">
-              Umumiy balans
-            </p>
-            <p className="text-3xl font-bold tracking-tight">
-              {loading ? (
-                <span className="inline-block h-9 w-48 animate-pulse rounded-lg bg-base-300" />
-              ) : (
-                formatCurrency(totalBalance)
-              )}
+            <h1 className="text-2xl font-bold">Hisoblar</h1>
+            <p className="text-sm text-base-content/60">
+              {totalElements} ta hisob
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button className="btn btn-ghost btn-sm btn-square" onClick={handleRefresh} title="Yangilash">
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <PermissionGate permission={PermissionCode.ACCOUNTS_CREATE}>
+            <button className="btn btn-primary btn-sm gap-2" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Yangi hisob
+            </button>
+          </PermissionGate>
+        </div>
       </div>
 
-      {/* ---- Accounts Grid ---- */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="surface-card p-5 space-y-3 animate-pulse">
-              <div className="h-10 w-10 rounded-xl bg-base-300" />
-              <div className="h-4 w-2/3 rounded bg-base-300" />
-              <div className="h-6 w-1/2 rounded bg-base-300" />
-            </div>
-          ))}
-        </div>
-      ) : accounts.length === 0 ? (
-        <div className="surface-card p-12 text-center">
-          <Wallet className="mx-auto h-12 w-12 text-base-content/20" />
-          <p className="mt-4 text-lg font-medium text-base-content/60">
-            Hali hisob mavjud emas
-          </p>
-          <p className="mt-1 text-sm text-base-content/40">
-            Birinchi hisobingizni yaratish uchun "Yangi hisob" tugmasini bosing
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {accounts.map((account) => {
-            const Icon = getAccountIcon(account.type);
-            const color = account.color || '#3b82f6';
+      {/* Tabs */}
+      <div className="tabs tabs-boxed w-fit">
+        <button
+          className={`tab ${activeTab === 'all' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          Barcha hisoblar
+        </button>
+        <button
+          className={`tab ${activeTab === 'my' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('my')}
+        >
+          Mening hisoblarim
+        </button>
+      </div>
 
-            return (
-              <div
-                key={account.id}
-                className="surface-card group relative overflow-hidden transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-                style={{ borderLeft: `4px solid ${color}` }}
-              >
-                {/* Delete confirmation overlay */}
-                {deletingId === account.id && (
-                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/90 backdrop-blur-sm">
-                    <div className="text-center space-y-3 p-4">
-                      <p className="text-sm font-medium">
-                        "{account.name}" hisobini o'chirmoqchimisiz?
-                      </p>
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          className="btn btn-error btn-sm"
-                          onClick={() => handleDelete(account.id)}
-                        >
-                          O'chirish
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setDeletingId(null)}
-                        >
-                          Bekor qilish
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-5">
-                  {/* Top row: icon + actions */}
-                  <div className="flex items-start justify-between">
-                    <div
-                      className="flex h-11 w-11 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${color}15` }}
-                    >
-                      <Icon className="h-5 w-5" style={{ color }} />
-                    </div>
-
-                    {/* Hover actions */}
-                    <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                      <PermissionGate permission={PermissionCode.ACCOUNTS_UPDATE}>
-                        <button
-                          className="btn btn-ghost btn-xs btn-square"
-                          onClick={() => openEditModal(account)}
-                          title="Tahrirlash"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={PermissionCode.ACCOUNTS_DELETE}>
-                        <button
-                          className="btn btn-ghost btn-xs btn-square text-error"
-                          onClick={() => setDeletingId(account.id)}
-                          title="O'chirish"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                    </div>
-                  </div>
-
-                  {/* Account info */}
-                  <div className="mt-4">
-                    <h3 className="font-semibold text-base-content">
-                      {account.name}
-                    </h3>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-xs text-base-content/50">
-                        {ACCOUNT_TYPES[account.type]?.label ?? account.type}
-                      </span>
-                      <span className="text-xs text-base-content/30">/</span>
-                      <span className="text-xs text-base-content/50">
-                        {account.currency || 'UZS'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Balance */}
-                  <div className="mt-4">
-                    <p className="text-2xl font-bold tracking-tight">
-                      {formatCurrency(account.balance)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* Filters */}
+      {activeTab === 'all' && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/40" />
+            <input
+              type="text"
+              className="input input-bordered input-sm w-full pl-9"
+              placeholder="Qidirish (nom yoki kod)..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+          {/* Type filter */}
+          <div className="w-44">
+            <Select
+              placeholder="Hisob turi"
+              value={filterType || ''}
+              onChange={(val) => setFilterType(val ? val as AccountType : undefined)}
+              options={[
+                { value: '', label: 'Barchasi' },
+                ...Object.values(ACCOUNT_TYPES).map((t) => ({ value: t.value, label: t.label })),
+              ]}
+            />
+          </div>
+          {/* Status filter */}
+          <div className="w-40">
+            <Select
+              placeholder="Holat"
+              value={filterStatus || ''}
+              onChange={(val) => setFilterStatus(val ? val as AccountStatus : undefined)}
+              options={[
+                { value: '', label: 'Barchasi' },
+                ...Object.values(ACCOUNT_STATUSES).map((s) => ({ value: s.value, label: s.label })),
+              ]}
+            />
+          </div>
         </div>
       )}
 
-      {/* ---- Add / Edit Modal ---- */}
-      <ModalPortal isOpen={showModal} onClose={closeModal}>
-        <div className="surface-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
-          {/* Modal Header */}
-          <div className="flex items-center justify-between border-b border-base-200 p-5">
-            <h3 className="text-lg font-semibold">
-              {editingAccount ? 'Hisobni tahrirlash' : 'Yangi hisob yaratish'}
-            </h3>
-            <button
-              className="btn btn-ghost btn-sm btn-square"
-              onClick={closeModal}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+      {/* Data Table */}
+      <DataTable<Account>
+        data={accounts}
+        columns={columns}
+        keyExtractor={(item) => item.id}
+        loading={loading}
+        totalElements={totalElements}
+        totalPages={totalPages}
+        currentPage={page}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPageSize(size); setPage(0); }}
+        onRowClick={(item) => navigate(`/accounts/${item.id}`)}
+        renderMobileCard={renderMobileCard}
+        emptyIcon={<Wallet className="h-12 w-12 text-base-content/20" />}
+        emptyTitle="Hisob topilmadi"
+        emptyDescription="Filterlarni o'zgartirib ko'ring yoki yangi hisob yarating"
+        highlightId={highlightId}
+        onHighlightComplete={() => setHighlightId(null)}
+      />
 
-          {/* Modal Body */}
-          <div className="space-y-5 p-5">
-            {/* Name */}
-            <div className="form-control">
-              <label className="label py-1">
-                <span className="label-text text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Hisob nomi
-                </span>
-              </label>
-              <input
-                type="text"
-                className="input input-bordered w-full"
-                placeholder="Masalan: Asosiy karta"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                autoFocus
-              />
-            </div>
-
-            {/* Type */}
-            <Select
-              label="Hisob turi"
-              value={formType}
-              onChange={(val) => setFormType(val as AccountType)}
-              options={Object.values(ACCOUNT_TYPES).map((t) => ({
-                value: t.value,
-                label: t.label,
-              }))}
-            />
-
-            {/* Balance */}
-            <CurrencyInput
-              label={editingAccount ? 'Balans' : 'Boshlang\'ich balans'}
-              value={formBalance}
-              onChange={setFormBalance}
-              showQuickButtons
-            />
-
-            {/* Color Picker */}
-            <div className="form-control">
-              <label className="label py-1">
-                <span className="label-text text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Rang
-                </span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {DEFAULT_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={clsx(
-                      'h-8 w-8 rounded-full border-2 transition-transform hover:scale-110',
-                      formColor === c
-                        ? 'border-base-content scale-110 ring-2 ring-primary/30'
-                        : 'border-transparent'
-                    )}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setFormColor(c)}
-                    title={c}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Icon Picker */}
-            <div className="form-control">
-              <label className="label py-1">
-                <span className="label-text text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Ikonka
-                </span>
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {ICON_OPTIONS.map(({ value, label, Icon: IconComp }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={clsx(
-                      'flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all',
-                      formIcon === value
-                        ? 'border-primary bg-primary/10 text-primary font-medium'
-                        : 'border-base-300 hover:border-base-content/30'
-                    )}
-                    onClick={() => setFormIcon(value)}
-                  >
-                    <IconComp className="h-4 w-4" />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Modal Footer */}
-          <div className="flex items-center justify-end gap-3 border-t border-base-200 p-5">
-            <button className="btn btn-ghost" onClick={closeModal}>
-              Bekor qilish
-            </button>
-            <button
-              className={clsx('btn btn-primary', submitting && 'loading')}
-              onClick={handleSubmit}
-              disabled={submitting || !formName.trim()}
-            >
-              {submitting
-                ? 'Saqlanmoqda...'
-                : editingAccount
-                  ? 'Saqlash'
-                  : 'Yaratish'}
-            </button>
-          </div>
-        </div>
-      </ModalPortal>
+      {/* Modal */}
+      <AccountFormModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={handleModalSuccess}
+        editingAccount={editingAccount}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TransactionsPage = lazy(() => import('../pages/transactions/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
 const AccountsPage = lazy(() => import('../pages/accounts/AccountsPage').then(m => ({ default: m.AccountsPage })));
+const AccountDetailPage = lazy(() => import('../pages/accounts/AccountDetailPage').then(m => ({ default: m.AccountDetailPage })));
 const CategoriesPage = lazy(() => import('../pages/categories/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
 const BudgetPage = lazy(() => import('../pages/budget/BudgetPage').then(m => ({ default: m.BudgetPage })));
 const SavingsPage = lazy(() => import('../pages/savings/SavingsPage').then(m => ({ default: m.SavingsPage })));
@@ -76,6 +77,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: 'Hisoblar' },
+      },
+      {
+        path: 'accounts/:id',
+        element: (
+          <ProtectedRoute permission={PermissionCode.ACCOUNTS_VIEW}>
+            <LazyRoute><AccountDetailPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Hisob tafsilotlari' },
       },
       {
         path: 'categories',

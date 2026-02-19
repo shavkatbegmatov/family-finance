@@ -24,6 +24,11 @@ public class AccountResponse {
     private Long ownerId;
     private String ownerName;
     private String description;
+    private String status;
+    private BigDecimal openingBalance;
+    private String bankName;
+    private String bankMfo;
+    private String bankInn;
     private List<CardResponse> cards;
     private List<AccountAccessResponse> accessList;
 }

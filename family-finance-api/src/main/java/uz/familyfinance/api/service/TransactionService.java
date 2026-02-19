@@ -66,6 +66,9 @@ public class TransactionService {
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
 
+        // TODO(human): FROZEN/CLOSED hisobga tranzaksiya yaratishni to'sish validatsiyasi
+        // account.getStatus() ni tekshiring va mos xatolik qaytaring
+
         Transaction transaction = Transaction.builder()
                 .type(request.getType())
                 .amount(request.getAmount())
@@ -302,6 +305,60 @@ public class TransactionService {
         log.info("Tranzaksiya storno qilindi: #{} -> #{}", original.getId(), savedReversal.getId());
 
         return toResponse(savedReversal);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<TransactionResponse> getByAccount(Long accountId, Pageable pageable) {
+        return transactionRepository.findByAccountId(accountId, pageable).map(this::toResponse);
+    }
+
+    @Transactional
+    public TransactionResponse confirm(Long id) {
+        Transaction transaction = findById(id);
+
+        if (transaction.getStatus() != TransactionStatus.PENDING) {
+            throw new BadRequestException("Faqat PENDING holatdagi tranzaksiyani tasdiqlash mumkin");
+        }
+
+        transaction.setStatus(TransactionStatus.CONFIRMED);
+
+        // Balanslarni yangilash
+        if (transaction.getDebitAccount() != null && transaction.getCreditAccount() != null) {
+            accountRepository.addToBalance(transaction.getDebitAccount().getId(), transaction.getAmount());
+            accountRepository.addToBalance(transaction.getCreditAccount().getId(), transaction.getAmount().negate());
+
+            transaction.setBalanceAfterDebit(transaction.getDebitAccount().getBalance().add(transaction.getAmount()));
+            transaction.setBalanceAfterCredit(transaction.getCreditAccount().getBalance().subtract(transaction.getAmount()));
+        }
+
+        log.info("Tranzaksiya tasdiqlandi: #{}", id);
+        return toResponse(transactionRepository.save(transaction));
+    }
+
+    @Transactional
+    public TransactionResponse cancel(Long id, String reason) {
+        Transaction transaction = findById(id);
+
+        if (transaction.getStatus() == TransactionStatus.REVERSED) {
+            throw new BadRequestException("Allaqachon bekor qilingan tranzaksiyani qayta bekor qilib bo'lmaydi");
+        }
+
+        // Agar CONFIRMED bo'lsa, balanslarni qaytarish
+        if (transaction.getStatus() == TransactionStatus.CONFIRMED) {
+            if (transaction.getDebitAccount() != null && transaction.getCreditAccount() != null) {
+                accountRepository.addToBalance(transaction.getDebitAccount().getId(), transaction.getAmount().negate());
+                accountRepository.addToBalance(transaction.getCreditAccount().getId(), transaction.getAmount());
+            } else {
+                reverseAccountBalances(transaction.getType(), transaction.getAccount(),
+                        transaction.getToAccount(), transaction.getAmount());
+            }
+        }
+
+        transaction.setStatus(TransactionStatus.REVERSED);
+        transaction.setDescription(transaction.getDescription() + " [BEKOR QILINDI: " + (reason != null ? reason : "") + "]");
+
+        log.info("Tranzaksiya bekor qilindi: #{}, sabab: {}", id, reason);
+        return toResponse(transactionRepository.save(transaction));
     }
 
     @Transactional(readOnly = true)

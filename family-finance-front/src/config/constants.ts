@@ -46,6 +46,23 @@ export const ACCOUNT_TYPES = {
   CREDIT: { label: 'Kredit', value: 'CREDIT' },
 } as const;
 
+export const ACCOUNT_STATUSES = {
+  ACTIVE: { label: 'Faol', value: 'ACTIVE', badge: 'badge-success' },
+  FROZEN: { label: 'Muzlatilgan', value: 'FROZEN', badge: 'badge-warning' },
+  CLOSED: { label: 'Yopilgan', value: 'CLOSED', badge: 'badge-error' },
+} as const;
+
+export const CARD_TYPES = ['UZCARD', 'HUMO', 'VISA', 'MASTERCARD'] as const;
+
+export const ACCOUNT_ICONS: Record<string, string> = {
+  CASH: 'Banknote',
+  BANK_CARD: 'CreditCard',
+  SAVINGS: 'PiggyBank',
+  TERM_DEPOSIT: 'Landmark',
+  E_WALLET: 'Smartphone',
+  CREDIT: 'Receipt',
+} as const;
+
 export const TRANSACTION_TYPES = {
   INCOME: { label: 'Daromad', value: 'INCOME', color: 'text-success' },
   EXPENSE: { label: 'Xarajat', value: 'EXPENSE', color: 'text-error' },

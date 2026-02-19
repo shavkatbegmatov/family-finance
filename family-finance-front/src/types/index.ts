@@ -250,6 +250,7 @@ export interface ReverseTransactionRequest {
 
 // Account Types
 export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'TERM_DEPOSIT' | 'E_WALLET' | 'CREDIT';
+export type AccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED';
 
 export interface Account {
   id: number;
@@ -261,7 +262,7 @@ export interface Account {
   icon?: string;
   isActive: boolean;
   createdAt: string;
-  // New banking fields
+  // Banking fields
   accCode?: string;
   accCodeFormatted?: string;
   balanceAccountCode?: string;
@@ -269,6 +270,11 @@ export interface Account {
   ownerId?: number;
   ownerName?: string;
   description?: string;
+  status?: AccountStatus;
+  openingBalance?: number;
+  bankName?: string;
+  bankMfo?: string;
+  bankInn?: string;
   cards?: Card[];
   accessList?: AccountAccessEntry[];
 }
@@ -280,10 +286,38 @@ export interface AccountRequest {
   balance?: number;
   color?: string;
   icon?: string;
-  // New fields
   ownerId?: number;
   currencyCode?: string;
   description?: string;
+  openingBalance?: number;
+  bankName?: string;
+  bankMfo?: string;
+  bankInn?: string;
+  cardNumber?: string;
+  cardHolderName?: string;
+  cardExpiryDate?: string;
+  cardType?: string;
+}
+
+export interface AccountBalanceSummary {
+  accountId: number;
+  accCode: string;
+  accountName: string;
+  accountType: AccountType;
+  openingBalance: number;
+  debitTurnover: number;
+  creditTurnover: number;
+  closingBalance: number;
+  periodStart?: string;
+  periodEnd?: string;
+}
+
+export interface AccountFilters {
+  page?: number;
+  size?: number;
+  search?: string;
+  accountType?: AccountType;
+  status?: AccountStatus;
 }
 
 // Category Types

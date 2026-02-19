@@ -18,4 +18,14 @@ public class AccountRequest {
     private Long ownerId;
     private String currencyCode;
     private String description;
+
+    @PositiveOrZero private BigDecimal openingBalance;
+    private String bankName;
+    private String bankMfo;
+    private String bankInn;
+
+    private String cardNumber;
+    private String cardHolderName;
+    private String cardExpiryDate;
+    private String cardType;
 }
