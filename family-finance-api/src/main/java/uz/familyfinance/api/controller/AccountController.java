@@ -1,6 +1,5 @@
 package uz.familyfinance.api.controller;
 
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +16,6 @@ import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
-import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
 import uz.familyfinance.api.enums.PermissionCode;
@@ -48,9 +46,10 @@ public class AccountController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) AccountType accountType,
-            @RequestParam(required = false) AccountStatus status) {
+            @RequestParam(required = false) AccountStatus status,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         Page<AccountResponse> result = accountService.getAll(search, accountType, status,
-                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+                PageRequest.of(page, size, Sort.by("createdAt").descending()), userDetails);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
     }
 
@@ -69,8 +68,9 @@ public class AccountController {
     @RequiresPermission(PermissionCode.ACCOUNTS_UPDATE)
     public ResponseEntity<ApiResponse<AccountResponse>> changeStatus(
             @PathVariable Long id,
-            @RequestParam AccountStatus status) {
-        return ResponseEntity.ok(ApiResponse.success(accountService.changeStatus(id, status)));
+            @RequestParam AccountStatus status,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.changeStatus(id, status, userDetails)));
     }
 
     @GetMapping("/{id}/balance-summary")
@@ -78,14 +78,17 @@ public class AccountController {
     public ResponseEntity<ApiResponse<AccountBalanceSummaryResponse>> getBalanceSummary(
             @PathVariable Long id,
             @RequestParam(required = false) LocalDate dateFrom,
-            @RequestParam(required = false) LocalDate dateTo) {
-        return ResponseEntity.ok(ApiResponse.success(accountService.getBalanceSummary(id, dateFrom, dateTo)));
+            @RequestParam(required = false) LocalDate dateTo,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(
+                accountService.getBalanceSummary(id, dateFrom, dateTo, userDetails)));
     }
 
     @GetMapping("/list")
     @RequiresPermission(PermissionCode.ACCOUNTS_VIEW)
-    public ResponseEntity<ApiResponse<List<AccountResponse>>> getAllActive() {
-        return ResponseEntity.ok(ApiResponse.success(accountService.getAllActive()));
+    public ResponseEntity<ApiResponse<List<AccountResponse>>> getAllActive(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.getAllActive(userDetails)));
     }
 
     @GetMapping("/total-balance")
@@ -96,27 +99,35 @@ public class AccountController {
 
     @GetMapping("/{id}")
     @RequiresPermission(PermissionCode.ACCOUNTS_VIEW)
-    public ResponseEntity<ApiResponse<AccountResponse>> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(accountService.getById(id)));
+    public ResponseEntity<ApiResponse<AccountResponse>> getById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.getById(id, userDetails)));
     }
 
     @GetMapping("/by-code/{accCode}")
     @RequiresPermission(PermissionCode.ACCOUNTS_VIEW)
-    public ResponseEntity<ApiResponse<AccountResponse>> getByAccCode(@PathVariable String accCode) {
-        return ResponseEntity.ok(ApiResponse.success(accountService.getByAccCode(accCode)));
+    public ResponseEntity<ApiResponse<AccountResponse>> getByAccCode(
+            @PathVariable String accCode,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.getByAccCode(accCode, userDetails)));
     }
 
     @PostMapping
     @RequiresPermission(PermissionCode.ACCOUNTS_CREATE)
-    public ResponseEntity<ApiResponse<AccountResponse>> create(@Valid @RequestBody AccountRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(accountService.create(request)));
+    public ResponseEntity<ApiResponse<AccountResponse>> create(
+            @Valid @RequestBody AccountRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.create(request, userDetails)));
     }
 
     @PutMapping("/{id}")
     @RequiresPermission(PermissionCode.ACCOUNTS_UPDATE)
-    public ResponseEntity<ApiResponse<AccountResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody AccountRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(accountService.update(id, request)));
+    public ResponseEntity<ApiResponse<AccountResponse>> update(
+            @PathVariable Long id,
+            @Valid @RequestBody AccountRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(ApiResponse.success(accountService.update(id, request, userDetails)));
     }
 
     @DeleteMapping("/{id}")
@@ -153,14 +164,16 @@ public class AccountController {
     public ResponseEntity<ApiResponse<AccountAccessResponse>> grantAccess(
             @PathVariable Long id, @Valid @RequestBody AccountAccessRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        User grantedBy = userDetails.getUser();
-        return ResponseEntity.ok(ApiResponse.success(accountAccessService.grantAccess(id, request, grantedBy)));
+        return ResponseEntity.ok(ApiResponse.success(
+                accountAccessService.grantAccess(id, request, userDetails)));
     }
 
     @DeleteMapping("/{id}/access/{userId}")
     @RequiresPermission(PermissionCode.ACCOUNTS_ACCESS_MANAGE)
-    public ResponseEntity<ApiResponse<Void>> revokeAccess(@PathVariable Long id, @PathVariable Long userId) {
-        accountAccessService.revokeAccess(id, userId);
+    public ResponseEntity<ApiResponse<Void>> revokeAccess(
+            @PathVariable Long id, @PathVariable Long userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        accountAccessService.revokeAccess(id, userId, userDetails);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

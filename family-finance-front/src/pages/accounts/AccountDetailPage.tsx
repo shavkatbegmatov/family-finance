@@ -308,6 +308,7 @@ export function AccountDetailPage() {
               <span className={`badge ${ACCOUNT_STATUSES[status]?.badge || 'badge-ghost'} badge-sm`}>
                 {ACCOUNT_STATUSES[status]?.label || status}
               </span>
+              {/* TODO(human): myAccessRole badge qo'shing — account.myAccessRole qiymatiga qarab */}
             </div>
             <p className="text-xs text-base-content/50">
               {account.accCodeFormatted || account.accCode || ''} • {ACCOUNT_TYPES[account.type]?.label}
@@ -372,6 +373,7 @@ export function AccountDetailPage() {
           <div className="space-y-3">
             {[
               ['Tur', ACCOUNT_TYPES[account.type]?.label || account.type],
+              ['Ko\'rinish', account.scope === 'FAMILY' ? 'Oilaviy' : 'Shaxsiy'],
               ['Valyuta', account.currency || 'UZS'],
               ['Rang', account.color || '—'],
               ['Yaratilgan', formatDate(account.createdAt)],

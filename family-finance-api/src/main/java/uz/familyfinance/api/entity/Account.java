@@ -7,6 +7,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.audit.AuditEntityListener;
 import uz.familyfinance.api.entity.base.BaseEntity;
+import uz.familyfinance.api.enums.AccountScope;
 import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
 
@@ -56,6 +57,11 @@ public class Account extends BaseEntity implements Auditable {
     @Column(length = 20, nullable = false)
     @Builder.Default
     private AccountStatus status = AccountStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Builder.Default
+    private AccountScope scope = AccountScope.PERSONAL;
 
     @Column(name = "opening_balance", precision = 19, scale = 2)
     @Builder.Default
@@ -120,6 +126,7 @@ public class Account extends BaseEntity implements Auditable {
         map.put("icon", this.icon);
         map.put("isActive", this.isActive);
         map.put("status", this.status);
+        map.put("scope", this.scope);
         map.put("openingBalance", this.openingBalance);
         map.put("bankName", this.bankName);
         if (this.owner != null) {

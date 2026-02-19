@@ -25,6 +25,8 @@ public class AccountResponse {
     private String ownerName;
     private String description;
     private String status;
+    private String scope;
+    private String myAccessRole;
     private BigDecimal openingBalance;
     private String bankName;
     private String bankMfo;

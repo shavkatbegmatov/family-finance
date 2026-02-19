@@ -43,6 +43,20 @@ function getStatusBadge(status?: AccountStatus) {
   return <span className={`badge ${info.badge} badge-sm`}>{info.label}</span>;
 }
 
+const ACCESS_ROLE_MAP: Record<string, { label: string; badge: string }> = {
+  OWNER: { label: 'Egasi', badge: 'badge-primary' },
+  CO_OWNER: { label: 'Hamkor', badge: 'badge-secondary' },
+  VIEWER: { label: 'Kuzatuvchi', badge: 'badge-ghost' },
+  FAMILY_MEMBER: { label: 'Oilaviy', badge: 'badge-info' },
+};
+
+function getAccessRoleBadge(role?: string) {
+  if (!role) return <span className="text-xs text-base-content/30">—</span>;
+  const info = ACCESS_ROLE_MAP[role];
+  if (!info) return <span className="badge badge-ghost badge-sm">{role}</span>;
+  return <span className={`badge ${info.badge} badge-sm`}>{info.label}</span>;
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -198,14 +212,10 @@ export function AccountsPage() {
       render: (item) => getStatusBadge(item.status),
     },
     {
-      key: 'accessList',
-      header: 'Foydalanuvchilar',
-      className: 'w-20 text-center',
-      render: (item) => (
-        <span className="text-sm text-base-content/60">
-          {item.accessList?.length ?? 0}
-        </span>
-      ),
+      key: 'myAccessRole',
+      header: 'Ruxsat',
+      className: 'w-28',
+      render: (item) => getAccessRoleBadge(item.myAccessRole),
     },
     {
       key: 'actions',
@@ -263,7 +273,10 @@ export function AccountsPage() {
               </p>
             </div>
           </div>
-          {getStatusBadge(item.status)}
+          <div className="flex items-center gap-1">
+            {getAccessRoleBadge(item.myAccessRole)}
+            {getStatusBadge(item.status)}
+          </div>
         </div>
         <div className="mt-3 text-right">
           <p className="text-lg font-bold">{formatCurrency(item.balance)}</p>

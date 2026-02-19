@@ -140,6 +140,13 @@ public class CustomUserDetails implements UserDetails {
     }
 
     /**
+     * Check if user has ADMIN role
+     */
+    public boolean isAdmin() {
+        return roleCodes.contains("ADMIN");
+    }
+
+    /**
      * Get primary role code (first one if multiple)
      */
     public String getPrimaryRoleCode() {

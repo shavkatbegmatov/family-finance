@@ -251,6 +251,7 @@ export interface ReverseTransactionRequest {
 // Account Types
 export type AccountType = 'CASH' | 'BANK_CARD' | 'SAVINGS' | 'TERM_DEPOSIT' | 'E_WALLET' | 'CREDIT';
 export type AccountStatus = 'ACTIVE' | 'FROZEN' | 'CLOSED';
+export type AccountScope = 'PERSONAL' | 'FAMILY';
 
 export interface Account {
   id: number;
@@ -271,6 +272,8 @@ export interface Account {
   ownerName?: string;
   description?: string;
   status?: AccountStatus;
+  scope?: AccountScope;
+  myAccessRole?: string;
   openingBalance?: number;
   bankName?: string;
   bankMfo?: string;
@@ -282,6 +285,7 @@ export interface Account {
 export interface AccountRequest {
   name: string;
   type: AccountType;
+  scope?: AccountScope;
   currency?: string;
   balance?: number;
   color?: string;

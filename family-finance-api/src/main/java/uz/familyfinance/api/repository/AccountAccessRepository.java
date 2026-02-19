@@ -23,4 +23,7 @@ public interface AccountAccessRepository extends JpaRepository<AccountAccess, Lo
     boolean existsByAccountIdAndUserId(Long accountId, Long userId);
 
     void deleteByAccountIdAndUserId(Long accountId, Long userId);
+
+    @Query("SELECT aa.role FROM AccountAccess aa WHERE aa.account.id = :accountId AND aa.user.id = :userId")
+    Optional<AccountAccessRole> findRoleByAccountIdAndUserId(@Param("accountId") Long accountId, @Param("userId") Long userId);
 }

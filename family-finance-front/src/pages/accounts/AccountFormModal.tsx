@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { accountsApi } from '../../api/accounts.api';
-import type { Account, AccountRequest, AccountType } from '../../types';
+import type { Account, AccountRequest, AccountType, AccountScope } from '../../types';
 import { ACCOUNT_TYPES, ACCOUNT_ICONS, CARD_TYPES } from '../../config/constants';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { Select } from '../../components/ui/Select';
@@ -49,6 +49,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
   const [currency, setCurrency] = useState('UZS');
   const [balance, setBalance] = useState(0);
   const [openingBalance, setOpeningBalance] = useState(0);
+  const [scope, setScope] = useState<AccountScope>('PERSONAL');
   const [color, setColor] = useState(DEFAULT_COLORS[0]);
   const [description, setDescription] = useState('');
 
@@ -75,6 +76,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
         setBalance(editingAccount.balance);
         setOpeningBalance(editingAccount.openingBalance ?? editingAccount.balance);
         setColor(editingAccount.color || DEFAULT_COLORS[0]);
+        setScope(editingAccount.scope || 'PERSONAL');
         setDescription(editingAccount.description || '');
         setBankName(editingAccount.bankName || '');
         setBankMfo(editingAccount.bankMfo || '');
@@ -90,6 +92,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
         setBalance(0);
         setOpeningBalance(0);
         setColor(DEFAULT_COLORS[0]);
+        setScope('PERSONAL');
         setDescription('');
         setBankName('');
         setBankMfo('');
@@ -116,6 +119,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
       const payload: AccountRequest = {
         name: name.trim(),
         type,
+        scope,
         currency,
         balance: isEdit ? undefined : balance,
         color,
@@ -214,6 +218,43 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
             onChange={isEdit ? () => {} : (v) => { setBalance(v); setOpeningBalance(v); }}
             disabled={isEdit}
           />
+
+          {/* Scope */}
+          <div className="form-control">
+            <label className="label py-1">
+              <span className="label-text text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+                Ko'rinish doirasi
+              </span>
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="scope"
+                  className="radio radio-sm radio-primary"
+                  checked={scope === 'PERSONAL'}
+                  onChange={() => setScope('PERSONAL')}
+                />
+                <div>
+                  <span className="text-sm font-medium">Shaxsiy</span>
+                  <p className="text-xs text-base-content/50">Faqat ruxsat berilganlar ko'radi</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="scope"
+                  className="radio radio-sm radio-primary"
+                  checked={scope === 'FAMILY'}
+                  onChange={() => setScope('FAMILY')}
+                />
+                <div>
+                  <span className="text-sm font-medium">Oilaviy</span>
+                  <p className="text-xs text-base-content/50">Barcha oila a'zolari ko'radi</p>
+                </div>
+              </label>
+            </div>
+          </div>
 
           {/* Description */}
           <div className="form-control">

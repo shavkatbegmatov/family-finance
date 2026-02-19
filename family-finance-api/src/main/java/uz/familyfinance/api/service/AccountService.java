@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.AccountRequest;
@@ -13,14 +14,18 @@ import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
 import uz.familyfinance.api.entity.Account;
 import uz.familyfinance.api.entity.FamilyMember;
+import uz.familyfinance.api.enums.AccountAccessRole;
+import uz.familyfinance.api.enums.AccountScope;
 import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
 import uz.familyfinance.api.enums.CurrencyCode;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.AccountAccessRepository;
 import uz.familyfinance.api.repository.AccountRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.TransactionRepository;
+import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.util.AccCodeGenerator;
 
 import java.math.BigDecimal;
@@ -36,36 +41,41 @@ import java.util.stream.Collectors;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final AccountAccessRepository accountAccessRepository;
+    private final AccountAccessService accountAccessService;
     private final FamilyMemberRepository familyMemberRepository;
     private final TransactionRepository transactionRepository;
 
     @Transactional(readOnly = true)
-    public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status, Pageable pageable) {
-        return accountRepository.findWithFilters(search, accountType, status, pageable)
-                .map(this::toResponse);
+    public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
+                                         Pageable pageable, CustomUserDetails currentUser) {
+        return accountRepository.findAccessibleAccounts(
+                currentUser.getId(), currentUser.isAdmin(),
+                search, accountType, status, pageable
+        ).map(a -> toResponseWithAccessRole(a, currentUser.getId()));
     }
 
     @Transactional(readOnly = true)
-    public Page<AccountResponse> getAll(String search, Pageable pageable) {
-        return getAll(search, null, null, pageable);
+    public List<AccountResponse> getAllActive(CustomUserDetails currentUser) {
+        return accountRepository.findAccessibleActiveAccounts(currentUser.getId(), currentUser.isAdmin())
+                .stream()
+                .map(a -> toResponseWithAccessRole(a, currentUser.getId()))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<AccountResponse> getAllActive() {
-        return accountRepository.findByIsActiveTrueAndTypeNot(AccountType.SYSTEM_TRANSIT).stream()
-                .map(this::toResponse).collect(Collectors.toList());
+    public AccountResponse getById(Long id, CustomUserDetails currentUser) {
+        Account account = findById(id);
+        checkAccess(account, currentUser);
+        return toDetailedResponseWithAccessRole(account, currentUser.getId());
     }
 
     @Transactional(readOnly = true)
-    public AccountResponse getById(Long id) {
-        return toDetailedResponse(findById(id));
-    }
-
-    @Transactional(readOnly = true)
-    public AccountResponse getByAccCode(String accCode) {
+    public AccountResponse getByAccCode(String accCode, CustomUserDetails currentUser) {
         Account account = accountRepository.findByAccCode(accCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi: " + accCode));
-        return toDetailedResponse(account);
+        checkAccess(account, currentUser);
+        return toDetailedResponseWithAccessRole(account, currentUser.getId());
     }
 
     @Transactional(readOnly = true)
@@ -74,23 +84,22 @@ public class AccountService {
     }
 
     @Transactional
-    public AccountResponse create(AccountRequest request) {
+    public AccountResponse create(AccountRequest request, CustomUserDetails currentUser) {
         // Valyuta kodini aniqlash
         String currency = request.getCurrency() != null ? request.getCurrency() : "UZS";
         String currencyCode;
         try {
             currencyCode = CurrencyCode.fromAlphabeticCode(currency).getNumericCode();
         } catch (IllegalArgumentException e) {
-            currencyCode = "000"; // default UZS
+            currencyCode = "000";
         }
         if (request.getCurrencyCode() != null) {
             currencyCode = request.getCurrencyCode();
         }
 
-        // Balans hisob kodini AccountType dan olish
         String balanceAccountCode = request.getType().getBalanceCode();
-
         BigDecimal initialBalance = request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO;
+        AccountScope scope = request.getScope() != null ? request.getScope() : AccountScope.PERSONAL;
 
         Account account = Account.builder()
                 .name(request.getName())
@@ -106,6 +115,7 @@ public class AccountService {
                 .bankName(request.getBankName())
                 .bankMfo(request.getBankMfo())
                 .bankInn(request.getBankInn())
+                .scope(scope)
                 .build();
 
         // Owner ni bog'lash
@@ -123,13 +133,18 @@ public class AccountService {
         account.setAccCode(accCode);
         account = accountRepository.save(account);
 
-        log.info("Yangi hisob yaratildi: {} (acc_code: {})", account.getName(), accCode);
-        return toResponse(account);
+        // OWNER access yaratish
+        accountAccessService.createOwnerAccess(account, currentUser.getUser());
+
+        log.info("Yangi hisob yaratildi: {} (acc_code: {}, scope: {})", account.getName(), accCode, scope);
+        return toResponseWithAccessRole(account, currentUser.getId());
     }
 
     @Transactional
-    public AccountResponse update(Long id, AccountRequest request) {
+    public AccountResponse update(Long id, AccountRequest request, CustomUserDetails currentUser) {
         Account account = findById(id);
+        checkWriteAccess(account, currentUser);
+
         account.setName(request.getName());
         account.setType(request.getType());
         account.setCurrency(request.getCurrency() != null ? request.getCurrency() : "UZS");
@@ -140,25 +155,31 @@ public class AccountService {
         account.setBankMfo(request.getBankMfo());
         account.setBankInn(request.getBankInn());
 
+        if (request.getScope() != null) {
+            account.setScope(request.getScope());
+        }
+
         if (request.getOwnerId() != null) {
             FamilyMember owner = familyMemberRepository.findById(request.getOwnerId())
                     .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + request.getOwnerId()));
             account.setOwner(owner);
         }
 
-        return toResponse(accountRepository.save(account));
+        return toResponseWithAccessRole(accountRepository.save(account), currentUser.getId());
     }
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getMyAccounts(Long userId, Pageable pageable) {
-        return accountRepository.findMyAccounts(userId, pageable).map(this::toResponse);
+        return accountRepository.findMyAccountsWithScope(userId, pageable)
+                .map(a -> toResponseWithAccessRole(a, userId));
     }
 
     @Transactional
-    public AccountResponse changeStatus(Long id, AccountStatus newStatus) {
+    public AccountResponse changeStatus(Long id, AccountStatus newStatus, CustomUserDetails currentUser) {
         Account account = findById(id);
-        AccountStatus currentStatus = account.getStatus();
+        checkOwnerAccess(account, currentUser);
 
+        AccountStatus currentStatus = account.getStatus();
         if (currentStatus == AccountStatus.CLOSED) {
             throw new BadRequestException("Yopilgan hisobning holatini o'zgartirib bo'lmaydi");
         }
@@ -172,12 +193,14 @@ public class AccountService {
         }
 
         log.info("Hisob holati o'zgartirildi: {} -> {} (ID: {})", currentStatus, newStatus, id);
-        return toResponse(accountRepository.save(account));
+        return toResponseWithAccessRole(accountRepository.save(account), currentUser.getId());
     }
 
     @Transactional(readOnly = true)
-    public AccountBalanceSummaryResponse getBalanceSummary(Long id, LocalDate dateFrom, LocalDate dateTo) {
+    public AccountBalanceSummaryResponse getBalanceSummary(Long id, LocalDate dateFrom, LocalDate dateTo,
+                                                            CustomUserDetails currentUser) {
         Account account = findById(id);
+        checkAccess(account, currentUser);
 
         LocalDateTime from = dateFrom != null ? dateFrom.atStartOfDay() : null;
         LocalDateTime to = dateTo != null ? dateTo.atTime(23, 59, 59) : null;
@@ -213,9 +236,6 @@ public class AccountService {
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi: " + id));
     }
 
-    /**
-     * Berilgan valyuta va tur bo'yicha tranzit hisobni topadi.
-     */
     @Transactional(readOnly = true)
     public Account findTransitAccount(String currency, boolean isIncome) {
         String prefix = isIncome ? "Tizim: Daromad tranziti" : "Tizim: Xarajat tranziti";
@@ -227,8 +247,66 @@ public class AccountService {
                         "Tranzit hisob topilmadi: " + prefix + " (" + currency + ")"));
     }
 
+    // -----------------------------------------------------------------------
+    // Access check helpers
+    // -----------------------------------------------------------------------
+
+    private void checkAccess(Account account, CustomUserDetails currentUser) {
+        if (currentUser.isAdmin()) return;
+        if (account.getScope() == AccountScope.FAMILY) return;
+        if (!accountRepository.canUserAccessAccount(account.getId(), currentUser.getId(), false)) {
+            throw new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q");
+        }
+    }
+
+    private void checkWriteAccess(Account account, CustomUserDetails currentUser) {
+        if (currentUser.isAdmin()) return;
+        AccountAccessRole role = accountAccessRepository
+                .findRoleByAccountIdAndUserId(account.getId(), currentUser.getId())
+                .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
+        if (role == AccountAccessRole.VIEWER) {
+            throw new AccessDeniedException("Bu hisobni tahrirlash huquqingiz yo'q");
+        }
+    }
+
+    private void checkOwnerAccess(Account account, CustomUserDetails currentUser) {
+        if (currentUser.isAdmin()) return;
+        AccountAccessRole role = accountAccessRepository
+                .findRoleByAccountIdAndUserId(account.getId(), currentUser.getId())
+                .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
+        if (role != AccountAccessRole.OWNER) {
+            throw new AccessDeniedException("Bu amalni faqat hisob egasi bajara oladi");
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Response mapping
+    // -----------------------------------------------------------------------
+
+    private String resolveAccessRole(Account account, Long userId) {
+        if (account.getScope() == AccountScope.FAMILY) {
+            return accountAccessRepository.findRoleByAccountIdAndUserId(account.getId(), userId)
+                    .map(Enum::name)
+                    .orElse("FAMILY_MEMBER");
+        }
+        return accountAccessRepository.findRoleByAccountIdAndUserId(account.getId(), userId)
+                .map(Enum::name)
+                .orElse(null);
+    }
+
+    private AccountResponse toResponseWithAccessRole(Account a, Long userId) {
+        AccountResponse r = toResponse(a);
+        r.setMyAccessRole(resolveAccessRole(a, userId));
+        return r;
+    }
+
+    private AccountResponse toDetailedResponseWithAccessRole(Account a, Long userId) {
+        AccountResponse r = toDetailedResponse(a);
+        r.setMyAccessRole(resolveAccessRole(a, userId));
+        return r;
+    }
+
     private String generateAccCode(Account account, String balanceAccountCode, String currencyCode) {
-        // FamilyId ni aniqlash
         long familyId = 0;
         int memberId = 0;
 
@@ -237,12 +315,10 @@ public class AccountService {
             memberId = (int) (account.getOwner().getId() % 100);
         }
 
-        // Tartib raqamini aniqlash (shu turdagi hisoblar soni + 1)
         long ownerId = account.getOwner() != null ? account.getOwner().getId() : 0;
         long count = accountRepository.countByOwnerAndBalanceCodeAndCurrency(
                 ownerId, balanceAccountCode, currencyCode);
-        int serialNumber = (int) count; // Hozirgi hisob o'zi ham hisobga kiritilgan
-
+        int serialNumber = (int) count;
         if (serialNumber < 1) serialNumber = 1;
 
         return AccCodeGenerator.generate(balanceAccountCode, currencyCode, familyId, memberId, serialNumber);
@@ -265,6 +341,7 @@ public class AccountService {
         r.setCurrencyCode(a.getCurrencyCode());
         r.setDescription(a.getDescription());
         r.setStatus(a.getStatus() != null ? a.getStatus().name() : "ACTIVE");
+        r.setScope(a.getScope() != null ? a.getScope().name() : "PERSONAL");
         r.setOpeningBalance(a.getOpeningBalance());
         r.setBankName(a.getBankName());
         r.setBankMfo(a.getBankMfo());
@@ -276,9 +353,6 @@ public class AccountService {
         return r;
     }
 
-    /**
-     * Batafsil response: kartalar va access list bilan.
-     */
     private AccountResponse toDetailedResponse(Account a) {
         AccountResponse r = toResponse(a);
 

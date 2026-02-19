@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
+import uz.familyfinance.api.enums.AccountScope;
 import uz.familyfinance.api.enums.AccountType;
 import java.math.BigDecimal;
 
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 public class AccountRequest {
     @NotBlank private String name;
     @NotNull private AccountType type;
+    private AccountScope scope;
     private String currency = "UZS";
     @PositiveOrZero(message = "Boshlang'ich balans manfiy bo'lishi mumkin emas") private BigDecimal balance;
     private String color;

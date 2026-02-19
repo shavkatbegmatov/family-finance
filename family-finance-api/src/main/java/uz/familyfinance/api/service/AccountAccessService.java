@@ -2,6 +2,7 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.AccountAccessRequest;
@@ -15,6 +16,7 @@ import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.AccountAccessRepository;
 import uz.familyfinance.api.repository.AccountRepository;
 import uz.familyfinance.api.repository.UserRepository;
+import uz.familyfinance.api.security.CustomUserDetails;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,7 +46,10 @@ public class AccountAccessService {
     }
 
     @Transactional
-    public AccountAccessResponse grantAccess(Long accountId, AccountAccessRequest request, User grantedBy) {
+    public AccountAccessResponse grantAccess(Long accountId, AccountAccessRequest request,
+                                              CustomUserDetails currentUser) {
+        checkManagePermission(accountId, currentUser);
+
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi: " + accountId));
 
@@ -60,7 +65,7 @@ public class AccountAccessService {
                 .user(user)
                 .role(request.getRole())
                 .grantedAt(LocalDateTime.now())
-                .grantedBy(grantedBy)
+                .grantedBy(currentUser.getUser())
                 .build();
 
         return toResponse(accessRepository.save(access));
@@ -85,7 +90,9 @@ public class AccountAccessService {
     }
 
     @Transactional
-    public void revokeAccess(Long accountId, Long userId) {
+    public void revokeAccess(Long accountId, Long userId, CustomUserDetails currentUser) {
+        checkManagePermission(accountId, currentUser);
+
         AccountAccess access = accessRepository.findByAccountIdAndUserId(accountId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Huquq topilmadi"));
 
@@ -101,9 +108,6 @@ public class AccountAccessService {
         accessRepository.delete(access);
     }
 
-    /**
-     * Foydalanuvchining hisobga muayyan darajadagi huquqi borligini tekshiradi.
-     */
     @Transactional(readOnly = true)
     public boolean hasAccess(Long accountId, Long userId, AccountAccessRole minimumRole) {
         return accessRepository.findByAccountIdAndUserId(accountId, userId)
@@ -111,9 +115,6 @@ public class AccountAccessService {
                 .orElse(false);
     }
 
-    /**
-     * Foydalanuvchining hisobga OWNER huquqi bilan AccessEntry yaratadi (hisob yaratilganda).
-     */
     @Transactional
     public void createOwnerAccess(Account account, User owner) {
         AccountAccess access = AccountAccess.builder()
@@ -125,10 +126,18 @@ public class AccountAccessService {
         accessRepository.save(access);
     }
 
+    private void checkManagePermission(Long accountId, CustomUserDetails currentUser) {
+        if (currentUser.isAdmin()) return;
+        AccountAccessRole role = accessRepository
+                .findRoleByAccountIdAndUserId(accountId, currentUser.getId())
+                .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
+        if (role != AccountAccessRole.OWNER) {
+            throw new AccessDeniedException("Faqat hisob egasi huquqlarni boshqara oladi");
+        }
+    }
+
     private boolean hasMinimumRole(AccountAccessRole actual, AccountAccessRole minimum) {
-        int actualLevel = getRoleLevel(actual);
-        int minimumLevel = getRoleLevel(minimum);
-        return actualLevel >= minimumLevel;
+        return getRoleLevel(actual) >= getRoleLevel(minimum);
     }
 
     private int getRoleLevel(AccountAccessRole role) {
