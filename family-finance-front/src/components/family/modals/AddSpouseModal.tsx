@@ -3,6 +3,7 @@ import { X, User, Users } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { TextInput } from '../../ui/TextInput';
 import { Select } from '../../ui/Select';
+import { PersonSelect } from '../../ui/PersonSelect';
 import { DateInput } from '../../ui/DateInput';
 import { useCreateFamilyUnit, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
 import { MARRIAGE_TYPES, GENDERS } from '../../../config/constants';
@@ -170,16 +171,15 @@ export function AddSpouseModal({
 
           <div className="mt-4 space-y-4">
             {mode === 'existing' ? (
-              <Select
+              <PersonSelect
                 label="Shaxsni tanlang"
                 required
                 value={selectedPersonId || undefined}
-                onChange={(val) =>
+                onChange={(val: string | number | undefined) =>
                   setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
                 }
                 options={personOptions}
-                placeholder="Tanlang..."
-                icon={<Users className="h-4 w-4" />}
+                placeholder="Shaxsni qidiring..."
               />
             ) : (
               <>

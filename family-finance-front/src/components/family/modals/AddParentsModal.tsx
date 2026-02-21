@@ -3,6 +3,7 @@ import { X, User } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { TextInput } from '../../ui/TextInput';
 import { Select } from '../../ui/Select';
+import { PersonSelect } from '../../ui/PersonSelect';
 import { DateInput } from '../../ui/DateInput';
 import {
   useActivePersonsQuery,
@@ -183,15 +184,15 @@ export function AddParentsModal({
                 </div>
               </div>
               {fatherMode === 'existing' ? (
-                <Select
+                <PersonSelect
                   label="Shaxsni tanlang"
                   required
                   value={fatherId || undefined}
-                  onChange={(val) =>
+                  onChange={(val: string | number | undefined) =>
                     setFatherId(typeof val === 'number' ? val : Number(val) || '')
                   }
                   options={personOptions}
-                  placeholder="Tanlang..."
+                  placeholder="Shaxsni qidiring..."
                 />
               ) : (
                 <div className="space-y-2">
@@ -233,15 +234,15 @@ export function AddParentsModal({
                 </div>
               </div>
               {motherMode === 'existing' ? (
-                <Select
+                <PersonSelect
                   label="Shaxsni tanlang"
                   required
                   value={motherId || undefined}
-                  onChange={(val) =>
+                  onChange={(val: string | number | undefined) =>
                     setMotherId(typeof val === 'number' ? val : Number(val) || '')
                   }
                   options={personOptions}
-                  placeholder="Tanlang..."
+                  placeholder="Shaxsni qidiring..."
                 />
               ) : (
                 <div className="space-y-2">
