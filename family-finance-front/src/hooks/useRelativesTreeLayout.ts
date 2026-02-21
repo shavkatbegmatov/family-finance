@@ -9,8 +9,8 @@ import type {
 
 export const PERSON_NODE_WIDTH = 200;
 export const PERSON_NODE_HEIGHT = 140;
-export const X_SPACING = 250;
-export const Y_SPACING = 200;
+export const X_SPACING = 130;
+export const Y_SPACING = 100;
 
 export function useRelativesTreeLayout(treeData: TreeResponse | null) {
     return useMemo(() => {
@@ -21,6 +21,10 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
         const { persons, familyUnits, rootPersonId } = treeData;
 
         const validPersonIds = new Set(persons.map(p => p.id));
+
+        const rootPerson = persons.find(p => p.id === rootPersonId);
+        const isRootFemale = rootPerson?.gender === 'FEMALE';
+        const sortDir = isRootFemale ? -1 : 1;
 
         // 1. Transform TreeResponse to relatives-tree Node format
         const rtNodes: Node[] = persons.map((person) => {
@@ -69,6 +73,11 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                 }
             });
 
+            spouses.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
+            children.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
+            parents.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
+            siblings.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
+
             return {
                 id,
                 gender,
@@ -81,9 +90,17 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
 
         // We must ensure the root node exists in our rtNodes
         const rootIdStr = String(rootPersonId);
-        if (!rtNodes.find((n) => n.id === rootIdStr)) {
+        const rootIndex = rtNodes.findIndex((n) => n.id === rootIdStr);
+        if (rootIndex === -1) {
             return { nodes: [], edges: [], isLayouting: false }; // Fallback
         }
+
+        // HACK: relatives-tree natively sorts couples left-to-right based EXCLUSIVELY on the root node's gender.
+        // If root is MALE, it sorts Male -> Female. If root is FEMALE, it sorts Female -> Male.
+        // To guarantee a deterministic visual order (Male always Left, Female always Right), we spoof
+        // the root node's topological gender as 'male' for the layout calculation. The visual components
+        // use the original person data, so this topology hack does not affect UI text or colors.
+        rtNodes[rootIndex] = { ...rtNodes[rootIndex], gender: 'male' as Gender };
 
         try {
             // 2. Calculate layout
@@ -170,6 +187,18 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                     }
                 });
 
+                const p1Id = parseInt(sourceNodeId.split('_')[1], 10);
+                const p2Id = parseInt(targetNodeId.split('_')[1], 10);
+
+                let isSpouseEdge = false;
+                if (!isNaN(p1Id) && !isNaN(p2Id) && y1 === y2 && Math.abs(x1 - x2) === 2) {
+                    isSpouseEdge = familyUnits.some(fu =>
+                        fu.partners.length >= 2 &&
+                        fu.partners.some(p => p.personId === p1Id) &&
+                        fu.partners.some(p => p.personId === p2Id)
+                    );
+                }
+
                 // Custom edge type to render raw SVG lines given absolute coordinates
                 // We subtract 1 from the topological coordinate to naturally map back to our
                 // Node (left, top) bounds which represent the visual space for ReactFlow positions.
@@ -183,9 +212,26 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                         startY: (y1 - 1) * Y_SPACING + PERSON_NODE_HEIGHT / 2,
                         endX: (x2 - 1) * X_SPACING + PERSON_NODE_WIDTH / 2,
                         endY: (y2 - 1) * Y_SPACING + PERSON_NODE_HEIGHT / 2,
-                    },
+                        isSpouseEdge,
+                    } as Record<string, unknown>, // satisfying xyflow requirements but will be mutated below safely
                 };
             });
+
+            // 5. Apply Horizontal Mirroring if the root was Female
+            // strictly to enforce Male-Left visual ordering.
+            if (isRootFemale) {
+                rfNodes.forEach(rn => {
+                    // Mirror the node's top-left X coordinate.
+                    rn.position.x = -rn.position.x - PERSON_NODE_WIDTH;
+                });
+                rfEdges.forEach(re => {
+                    if (re.data) {
+                        // Mirror the absolute X coordinates of the connectors.
+                        re.data.startX = -(re.data.startX as number);
+                        re.data.endX = -(re.data.endX as number);
+                    }
+                });
+            }
 
             return {
                 nodes: rfNodes,

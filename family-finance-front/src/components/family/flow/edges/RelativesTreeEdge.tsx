@@ -6,10 +6,18 @@ export function RelativesTreeEdge({
 }: EdgeProps) {
     if (!data) return null;
 
-    const { startX, startY, endX, endY } = data as { startX: number, startY: number, endX: number, endY: number };
+    const { startX, startY, endX, endY, isSpouseEdge } = data as {
+        startX: number, startY: number, endX: number, endY: number, isSpouseEdge?: boolean
+    };
 
-    const strokeWidth = 2;
-    const strokeColor = '#94a3b8'; // tailwind slate-400 equivalent for generic lines
+    const strokeWidth = isSpouseEdge ? 3 : 2;
+    // For spouses we use primary color (teal) or secondary. Let's use Tailwind primary hex or a CSS variable.
+    // In our theme primary is teal-like. But a custom color for marriage is also nice. Let's use pink-500 #ec4899 or secondary color.
+    // Actually, text-primary from DaisyUI is typically a teal color in this project.
+    // Let's use a distinct color, like #ec4899 (Pink) for marriage, or just use CSS var if supported.
+    // Let's go with #ec4899 for distinctiveness.
+    const strokeColor = isSpouseEdge ? '#ec4899' : '#94a3b8';
+    const dashArray = isSpouseEdge ? '5 5' : undefined;
 
     let path = '';
 
@@ -45,6 +53,7 @@ export function RelativesTreeEdge({
                 fill="none"
                 stroke={strokeColor}
                 strokeWidth={strokeWidth}
+                strokeDasharray={dashArray}
                 className="react-flow__edge-path"
             />
         </>
