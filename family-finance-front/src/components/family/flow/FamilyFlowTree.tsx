@@ -64,7 +64,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
   const isSidebarPinned = useFamilyTreeStore((s) => s.isSidebarPinned);
   const reactFlow = useReactFlow();
   const isInitialLoad = useRef(true);
-  const savedViewport = useRef<Viewport | null>(null);
   const handledFocusRequestId = useRef(0);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
@@ -106,12 +105,24 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
         const node = reactFlow.getNode(latestFocus.nodeId);
         if (!node) return;
 
-        const x = node.position.x + (node.measured?.width ?? 200) / 2;
-        const y = node.position.y + (node.measured?.height ?? 140) / 2;
-        reactFlow.setCenter(x, y, {
-          zoom: latestFocus.zoom ?? reactFlow.getZoom(),
-          duration: 500,
-        });
+        if (latestFocus.source === 'select' && latestFocus.oldPos && latestFocus.oldViewport) {
+          const newX = node.position.x;
+          const newY = node.position.y;
+          const zoom = latestFocus.oldViewport.zoom;
+
+          const newViewportX = latestFocus.oldViewport.x + (latestFocus.oldPos.x - newX) * zoom;
+          const newViewportY = latestFocus.oldViewport.y + (latestFocus.oldPos.y - newY) * zoom;
+
+          reactFlow.setViewport({ x: newViewportX, y: newViewportY, zoom }, { duration: 0 });
+        } else {
+          const x = node.position.x + (node.measured?.width ?? 200) / 2;
+          const y = node.position.y + (node.measured?.height ?? 140) / 2;
+          reactFlow.setCenter(x, y, {
+            zoom: latestFocus.zoom ?? reactFlow.getZoom(),
+            duration: 500,
+          });
+        }
+
         handledFocusRequestId.current = latestFocus.requestId;
         clearFocus(null);
       });
@@ -124,12 +135,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
         reactFlow.fitView({ padding: 0.2 });
       });
       return;
-    }
-
-    if (savedViewport.current) {
-      requestAnimationFrame(() => {
-        reactFlow.setViewport(savedViewport.current!, { duration: 0 });
-      });
     }
   }, [nodes, edges, isLayouting, reactFlow]);
 
@@ -170,10 +175,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     setHoveredNodeId(null);
   }, []);
 
-  const handleMoveEnd = useCallback((_event: unknown, viewport: Viewport) => {
-    savedViewport.current = viewport;
-  }, []);
-
   const handlePaneClick = useCallback(() => {
     setHoveredNodeId(null);
     closeContextMenu();
@@ -201,7 +202,6 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       onNodeMouseEnter={handleNodeMouseEnter}
       onNodeMouseLeave={handleNodeMouseLeave}
       onPaneClick={handlePaneClick}
-      onMoveEnd={handleMoveEnd}
       minZoom={0.2}
       maxZoom={2.0}
       proOptions={{ hideAttribution: true }}

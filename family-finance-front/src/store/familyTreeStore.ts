@@ -18,6 +18,8 @@ interface PendingFocusState {
   zoom?: number;
   requestId: number;
   source: FocusSource;
+  oldPos?: { x: number; y: number };
+  oldViewport?: { x: number; y: number; zoom: number };
 }
 
 interface FamilyTreeState {
@@ -61,7 +63,7 @@ interface FamilyTreeState {
   closeModal: () => void;
   toggleSidebarPin: () => void;
   setPendingFocus: (focus: PendingFocusState | null) => void;
-  focusPerson: (personId: number, source: FocusSource) => void;
+  focusPerson: (personId: number, source: FocusSource, oldPos?: { x: number; y: number }, oldViewport?: { x: number; y: number; zoom: number }) => void;
   setShowDeceased: (show: boolean) => void;
   setGenderFilter: (filter: 'ALL' | 'MALE' | 'FEMALE') => void;
   resetFilters: () => void;
@@ -94,7 +96,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   closeModal: () => set({ activeModal: null, isSidebarPinned: false }),
   toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
   setPendingFocus: (focus) => set({ pendingFocus: focus }),
-  focusPerson: (personId, source) =>
+  focusPerson: (personId, source, oldPos, oldViewport) =>
     set((state) => {
       const requestId = state.focusRequestSeq + 1;
       return {
@@ -103,9 +105,11 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
         viewerPersonId: personId,
         pendingFocus: {
           nodeId: `person_${personId}`,
-          zoom: 1.1,
+          zoom: source === 'find-me' ? 1.1 : undefined,
           requestId,
           source,
+          oldPos,
+          oldViewport,
         },
         focusRequestSeq: requestId,
       };

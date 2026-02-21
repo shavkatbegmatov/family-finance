@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { Calendar, MapPin, Network } from 'lucide-react';
 import clsx from 'clsx';
 import type { PersonNodeData } from '../../../../types';
@@ -55,13 +55,14 @@ const getNameLines = (firstName?: string, lastName?: string, middleName?: string
   };
 };
 
-function PersonNodeComponent({ data }: NodeProps) {
+function PersonNodeComponent({ id, data }: NodeProps) {
   const nodeData = data as unknown as PersonNodeData;
   const { person, isRoot, label, hasSubTree } = nodeData;
   const focusPerson = useFamilyTreeStore(s => s.focusPerson);
   const openModal = useFamilyTreeStore(s => s.openModal);
   const openContextMenu = useFamilyTreeStore(s => s.openContextMenu);
   const currentUser = useAuthStore(s => s.user);
+  const reactFlow = useReactFlow();
   const isCurrentUser = currentUser?.familyMemberId === person.id;
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -203,7 +204,9 @@ function PersonNodeComponent({ data }: NodeProps) {
           data-tip="Shu shaxsdan daraxtni ko'rish"
           onClick={(e) => {
             e.stopPropagation();
-            focusPerson(person.id, 'select');
+            const node = reactFlow.getNode(id);
+            const vp = reactFlow.getViewport();
+            focusPerson(person.id, 'select', node?.position, vp);
           }}
           title="Shu shaxsdan boshlab daraxtni ko'rish"
         >
