@@ -103,6 +103,7 @@ export interface PersonNodeData {
   person: TreePerson;
   isRoot: boolean;
   label?: string;
+  hasSubTree?: boolean;
 }
 
 export interface FamilyUnitNodeData {

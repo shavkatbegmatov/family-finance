@@ -125,6 +125,7 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                             person,
                             isRoot: person.id === rootPersonId,
                             label: person.relationshipLabel,
+                            hasSubTree: layoutNode.hasSubTree,
                         } satisfies PersonNodeData,
                     });
                 }
