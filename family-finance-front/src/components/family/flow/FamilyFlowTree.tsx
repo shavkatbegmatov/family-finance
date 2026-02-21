@@ -8,7 +8,7 @@ import {
   type NodeMouseHandler,
   type Viewport,
 } from '@xyflow/react';
-import { useElkLayout } from '../../../hooks/useElkLayout';
+import { useRelativesTreeLayout } from '../../../hooks/useRelativesTreeLayout';
 import { useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
 import { nodeTypes, edgeTypes } from './nodeTypes';
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
@@ -55,7 +55,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     };
   }, [treeData, activePersons]);
 
-  const { nodes, edges, isLayouting } = useElkLayout(effectiveTreeData);
+  const { nodes, edges, isLayouting } = useRelativesTreeLayout(effectiveTreeData);
   const closeContextMenu = useFamilyTreeStore((s) => s.closeContextMenu);
   const closeModal = useFamilyTreeStore((s) => s.closeModal);
   const openModal = useFamilyTreeStore((s) => s.openModal);
