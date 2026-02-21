@@ -5,6 +5,7 @@ import {
   Moon,
   Monitor,
   Clock,
+  Users,
 } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -14,8 +15,9 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { useUIStore } from '../../store/uiStore';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { FamilyGroupSettings } from './FamilyGroupSettings';
 
-type Tab = 'appearance' | 'debts';
+type Tab = 'appearance' | 'debts' | 'family-group';
 
 const DEFAULT_DEBT_DUE_DAYS = 30;
 
@@ -98,6 +100,13 @@ export function SettingsPage() {
         >
           <Clock className="h-4 w-4" />
           Qarzlar
+        </button>
+        <button
+          className={clsx('tab gap-2', activeTab === 'family-group' && 'tab-active')}
+          onClick={() => setActiveTab('family-group')}
+        >
+          <Users className="h-4 w-4" />
+          Mening guruhim
         </button>
       </div>
 
@@ -232,6 +241,11 @@ export function SettingsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Family Group Tab */}
+      {activeTab === 'family-group' && (
+        <FamilyGroupSettings />
       )}
     </div>
   );
