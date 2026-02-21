@@ -100,7 +100,7 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                 if (layoutNode.placeholder) {
                     rfNodes.push({
                         id: `placeholder_${layoutNode.id}`,
-                        type: 'personNode', // Or a new placeholder node type
+                        type: 'placeholderNode', // Use simple invisible node
                         position: {
                             x: layoutNode.left * X_SPACING,
                             y: layoutNode.top * Y_SPACING,
@@ -135,18 +135,43 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
             const rfEdges: ReactFlowEdge[] = layoutData.connectors.map((connector: Connector, index: number) => {
                 const [x1, y1, x2, y2] = connector;
 
+                // React Flow culls edges if their source and target nodes are out of viewport.
+                // To prevent connectors from disappearing, we bind them to the real nodes
+                // closest to their start and end coordinates.
+                let sourceNodeId = rfNodes.length > 0 ? rfNodes[0].id : 'dummy';
+                let targetNodeId = rfNodes.length > 0 ? rfNodes[0].id : 'dummy';
+                let minSourceDist = Infinity;
+                let minTargetDist = Infinity;
+
+                rfNodes.forEach((rn) => {
+                    const nodeX = rn.position.x / X_SPACING;
+                    const nodeY = rn.position.y / Y_SPACING;
+
+                    const d1 = Math.abs(nodeX - x1) + Math.abs(nodeY - y1);
+                    if (d1 < minSourceDist) {
+                        minSourceDist = d1;
+                        sourceNodeId = rn.id;
+                    }
+
+                    const d2 = Math.abs(nodeX - x2) + Math.abs(nodeY - y2);
+                    if (d2 < minTargetDist) {
+                        minTargetDist = d2;
+                        targetNodeId = rn.id;
+                    }
+                });
+
                 // Custom edge type to render raw SVG lines given absolute coordinates
                 return {
                     id: `conn_${index}`,
                     type: 'relativesTreeEdge',
-                    source: 'dummy', // ReactFlow requires source/target, but we will override rendering with absolute coordinates
-                    target: 'dummy',
+                    source: sourceNodeId,
+                    target: targetNodeId,
                     data: {
                         startX: x1 * X_SPACING + PERSON_NODE_WIDTH / 2, // Center of node
                         startY: y1 * Y_SPACING + PERSON_NODE_HEIGHT / 2,
                         endX: x2 * X_SPACING + PERSON_NODE_WIDTH / 2,
                         endY: y2 * Y_SPACING + PERSON_NODE_HEIGHT / 2,
-                    }
+                    },
                 };
             });
 
