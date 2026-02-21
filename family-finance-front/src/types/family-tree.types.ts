@@ -150,7 +150,7 @@ export interface FamilyEdgeRenderData extends Record<string, unknown> {
   laneCount?: number;
   routePoints?: EdgeRoutePoint[];
   elkSections?: EdgeSectionData[];
-  routingSource?: 'elk' | 'fallback';
+  routingSource?: 'elk' | 'fallback' | 'obstacle-aware';
   bridges?: EdgeBridgePoint[];
   junctions?: EdgeJunctionPoint[];
 }

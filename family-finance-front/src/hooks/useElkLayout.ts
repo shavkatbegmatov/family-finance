@@ -19,6 +19,10 @@ import type {
   ChildEdgeData,
   EdgeSectionData,
 } from '../types';
+import {
+  buildRoutingContext,
+  routeEdgeWithObstacleAvoidance,
+} from './useElkLayout.routing';
 
 export const PERSON_NODE_WIDTH = 200;
 export const PERSON_NODE_HEIGHT = 140;
@@ -28,6 +32,7 @@ export const FAMILY_UNIT_BUS_NODE_WIDTH = 16;
 export const FAMILY_UNIT_BUS_NODE_HEIGHT = 16;
 
 const CROSSING_EPSILON = 0.5;
+const PERSON_MARGIN_FOR_ROUTING = 8;
 const BRIDGE_MIN_SPACING = 16;
 const JUNCTION_MIN_SPACING = 12;
 const BUS_CENTER_ALIGN_EPSILON = 1.5;
@@ -550,17 +555,28 @@ export function useElkLayout(treeData: TreeResponse | null) {
       collectLayoutEdges(layoutResult, elkEdgesById);
 
       const routePointsByEdge = new Map<string, EdgeRoutePoint[]>();
-      const routingSourceByEdge = new Map<string, 'elk' | 'fallback'>();
+      const routingSourceByEdge = new Map<string, 'elk' | 'fallback' | 'obstacle-aware'>();
       const elkSectionsByEdge = new Map<string, EdgeSectionData[]>();
+
+      const routingCtx = buildRoutingContext(nodeBounds, PERSON_MARGIN_FOR_ROUTING);
 
       plannedEdges.forEach((plannedEdge) => {
         const elkEdge = elkEdgesById.get(plannedEdge.id);
-        const fallbackRoutePoints = buildFallbackRoute(plannedEdge, nodeBounds);
-
-        // Chiziqlar doim qat'iy ortogonal ko'rinishi uchun fallback route ishlatamiz.
-        const routePoints = fallbackRoutePoints;
-        const routingSource: 'elk' | 'fallback' = 'fallback';
         const elkSections = toSectionData(elkEdge?.sections);
+
+        const source = getHandlePoint(plannedEdge.source, plannedEdge.sourceHandle, nodeBounds);
+        const target = getHandlePoint(plannedEdge.target, plannedEdge.targetHandle, nodeBounds);
+
+        const routePoints = normalizeRoutePoints(
+          routeEdgeWithObstacleAvoidance(
+            source, target,
+            plannedEdge.kind,
+            plannedEdge.source,
+            plannedEdge.target,
+            routingCtx,
+          ),
+        );
+        const routingSource: 'elk' | 'fallback' | 'obstacle-aware' = 'obstacle-aware';
 
         routePointsByEdge.set(plannedEdge.id, routePoints);
         routingSourceByEdge.set(plannedEdge.id, routingSource);
@@ -746,44 +762,6 @@ function toSectionData(sections: ElkEdgeSection[] | undefined): EdgeSectionData[
       y: roundTo2(point.y),
     })),
   }));
-}
-
-function buildFallbackRoute(edge: PlannedEdge, nodeBounds: Map<string, NodeBounds>): EdgeRoutePoint[] {
-  const source = getHandlePoint(edge.source, edge.sourceHandle, nodeBounds);
-  const target = getHandlePoint(edge.target, edge.targetHandle, nodeBounds);
-
-  if (edge.kind === 'marriage') {
-    return normalizeRoutePoints([
-      source,
-      { x: source.x, y: target.y },
-      target,
-    ]);
-  }
-
-  if (edge.kind === 'trunk') {
-    if (Math.abs(source.x - target.x) < 1) {
-      return [source, target];
-    }
-
-    const midY = (source.y + target.y) / 2;
-    return normalizeRoutePoints([
-      source,
-      { x: source.x, y: midY },
-      { x: target.x, y: midY },
-      target,
-    ]);
-  }
-
-  const launchX = source.x;
-  const channelY = source.y;
-
-  return normalizeRoutePoints([
-    source,
-    { x: launchX, y: source.y },
-    { x: launchX, y: channelY },
-    { x: target.x, y: channelY },
-    target,
-  ]);
 }
 
 function getHandlePoint(nodeId: string, handleId: PortHandleId, nodeBounds: Map<string, NodeBounds>): EdgeRoutePoint {
