@@ -144,16 +144,21 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                 let minTargetDist = Infinity;
 
                 rfNodes.forEach((rn) => {
-                    const nodeX = rn.position.x / X_SPACING;
-                    const nodeY = rn.position.y / Y_SPACING;
+                    const topoLeft = rn.position.x / X_SPACING;
+                    const topoTop = rn.position.y / Y_SPACING;
 
-                    const d1 = Math.abs(nodeX - x1) + Math.abs(nodeY - y1);
+                    // 'relatives-tree' coordinates are topological, where a node spans 2x2 grid units.
+                    // The center of a node at (left, top) is (left + 1, top + 1)
+                    const rnCenterX = topoLeft + 1;
+                    const rnCenterY = topoTop + 1;
+
+                    const d1 = Math.abs(rnCenterX - x1) + Math.abs(rnCenterY - y1);
                     if (d1 < minSourceDist) {
                         minSourceDist = d1;
                         sourceNodeId = rn.id;
                     }
 
-                    const d2 = Math.abs(nodeX - x2) + Math.abs(nodeY - y2);
+                    const d2 = Math.abs(rnCenterX - x2) + Math.abs(rnCenterY - y2);
                     if (d2 < minTargetDist) {
                         minTargetDist = d2;
                         targetNodeId = rn.id;
@@ -161,16 +166,18 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                 });
 
                 // Custom edge type to render raw SVG lines given absolute coordinates
+                // We subtract 1 from the topological coordinate to naturally map back to our
+                // Node (left, top) bounds which represent the visual space for ReactFlow positions.
                 return {
                     id: `conn_${index}`,
                     type: 'relativesTreeEdge',
                     source: sourceNodeId,
                     target: targetNodeId,
                     data: {
-                        startX: x1 * X_SPACING + PERSON_NODE_WIDTH / 2, // Center of node
-                        startY: y1 * Y_SPACING + PERSON_NODE_HEIGHT / 2,
-                        endX: x2 * X_SPACING + PERSON_NODE_WIDTH / 2,
-                        endY: y2 * Y_SPACING + PERSON_NODE_HEIGHT / 2,
+                        startX: (x1 - 1) * X_SPACING + PERSON_NODE_WIDTH / 2,
+                        startY: (y1 - 1) * Y_SPACING + PERSON_NODE_HEIGHT / 2,
+                        endX: (x2 - 1) * X_SPACING + PERSON_NODE_WIDTH / 2,
+                        endY: (y2 - 1) * Y_SPACING + PERSON_NODE_HEIGHT / 2,
                     },
                 };
             });
