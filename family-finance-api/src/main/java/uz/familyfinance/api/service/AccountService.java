@@ -48,11 +48,10 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
-                                         Pageable pageable, CustomUserDetails currentUser) {
+            Pageable pageable, CustomUserDetails currentUser) {
         return accountRepository.findAccessibleAccounts(
                 currentUser.getId(), currentUser.isAdmin(),
-                search, accountType, status, pageable
-        ).map(a -> toResponseWithAccessRole(a, currentUser.getId()));
+                search, accountType, status, pageable).map(a -> toResponseWithAccessRole(a, currentUser.getId()));
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +115,7 @@ public class AccountService {
                 .bankMfo(request.getBankMfo())
                 .bankInn(request.getBankInn())
                 .scope(scope)
+                .familyGroup(currentUser.getUser().getFamilyGroup())
                 .build();
 
         // Owner ni bog'lash
@@ -198,7 +198,7 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public AccountBalanceSummaryResponse getBalanceSummary(Long id, LocalDate dateFrom, LocalDate dateTo,
-                                                            CustomUserDetails currentUser) {
+            CustomUserDetails currentUser) {
         Account account = findById(id);
         checkAccess(account, currentUser);
 
@@ -252,15 +252,18 @@ public class AccountService {
     // -----------------------------------------------------------------------
 
     private void checkAccess(Account account, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin()) return;
-        if (account.getScope() == AccountScope.FAMILY) return;
+        if (currentUser.isAdmin())
+            return;
+        if (account.getScope() == AccountScope.FAMILY)
+            return;
         if (!accountRepository.canUserAccessAccount(account.getId(), currentUser.getId(), false)) {
             throw new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q");
         }
     }
 
     private void checkWriteAccess(Account account, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin()) return;
+        if (currentUser.isAdmin())
+            return;
         AccountAccessRole role = accountAccessRepository
                 .findRoleByAccountIdAndUserId(account.getId(), currentUser.getId())
                 .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
@@ -270,7 +273,8 @@ public class AccountService {
     }
 
     private void checkOwnerAccess(Account account, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin()) return;
+        if (currentUser.isAdmin())
+            return;
         AccountAccessRole role = accountAccessRepository
                 .findRoleByAccountIdAndUserId(account.getId(), currentUser.getId())
                 .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
@@ -319,7 +323,8 @@ public class AccountService {
         long count = accountRepository.countByOwnerAndBalanceCodeAndCurrency(
                 ownerId, balanceAccountCode, currencyCode);
         int serialNumber = (int) count;
-        if (serialNumber < 1) serialNumber = 1;
+        if (serialNumber < 1)
+            serialNumber = 1;
 
         return AccCodeGenerator.generate(balanceAccountCode, currencyCode, familyId, memberId, serialNumber);
     }

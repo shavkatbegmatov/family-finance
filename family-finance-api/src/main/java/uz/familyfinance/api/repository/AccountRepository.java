@@ -17,71 +17,78 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AccountRepository extends JpaRepository<Account, Long> {
-    List<Account> findByIsActiveTrue();
-    Page<Account> findByIsActiveTrue(Pageable pageable);
-    List<Account> findByTypeAndIsActiveTrue(AccountType type);
+       List<Account> findByIsActiveTrue();
 
-    Optional<Account> findByAccCode(String accCode);
+       Page<Account> findByIsActiveTrue(Pageable pageable);
 
-    Page<Account> findByIsActiveTrueAndTypeNot(AccountType type, Pageable pageable);
-    List<Account> findByIsActiveTrueAndTypeNot(AccountType type);
+       List<Account> findByTypeAndIsActiveTrue(AccountType type);
 
-    List<Account> findByTypeAndCurrencyAndIsActiveTrue(AccountType type, String currency);
+       Optional<Account> findByAccCode(String accCode);
 
-    @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.isActive = true")
-    BigDecimal getTotalBalance();
+       Page<Account> findByIsActiveTrueAndTypeNot(AccountType type, Pageable pageable);
 
-    @Query("SELECT a FROM Account a WHERE a.isActive = true AND " +
-           "LOWER(a.name) LIKE LOWER(CONCAT('%', :search, '%'))")
-    Page<Account> search(String search, Pageable pageable);
+       List<Account> findByIsActiveTrueAndTypeNot(AccountType type);
 
-    @Modifying
-    @Query("UPDATE Account a SET a.balance = a.balance + :amount WHERE a.id = :id")
-    void addToBalance(@Param("id") Long id, @Param("amount") BigDecimal amount);
+       List<Account> findByTypeAndCurrencyAndIsActiveTrue(AccountType type, String currency);
 
-    @Query("SELECT COUNT(a) FROM Account a WHERE a.owner.id = :ownerId AND a.balanceAccountCode = :balanceCode AND a.currencyCode = :currencyCode")
-    long countByOwnerAndBalanceCodeAndCurrency(@Param("ownerId") Long ownerId, @Param("balanceCode") String balanceCode, @Param("currencyCode") String currencyCode);
+       @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.isActive = true")
+       BigDecimal getTotalBalance();
 
-    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-           "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
-           "(:accountType IS NULL OR a.type = :accountType) AND " +
-           "(:status IS NULL OR a.status = :status)")
-    Page<Account> findWithFilters(@Param("search") String search,
-                                   @Param("accountType") AccountType accountType,
-                                   @Param("status") AccountStatus status,
-                                   Pageable pageable);
+       @Query("SELECT a FROM Account a WHERE a.isActive = true AND " +
+                     "LOWER(a.name) LIKE LOWER(CONCAT('%', :search, '%'))")
+       Page<Account> search(String search, Pageable pageable);
 
-    @Query("SELECT a FROM Account a JOIN a.accessList al WHERE al.user.id = :userId AND a.isActive = true AND a.type <> 'SYSTEM_TRANSIT'")
-    Page<Account> findMyAccounts(@Param("userId") Long userId, Pageable pageable);
+       @Modifying
+       @Query("UPDATE Account a SET a.balance = a.balance + :amount WHERE a.id = :id")
+       void addToBalance(@Param("id") Long id, @Param("amount") BigDecimal amount);
 
-    List<Account> findByStatusAndIsActiveTrue(AccountStatus status);
+       @Query("SELECT COUNT(a) FROM Account a WHERE a.owner.id = :ownerId AND a.balanceAccountCode = :balanceCode AND a.currencyCode = :currencyCode")
+       long countByOwnerAndBalanceCodeAndCurrency(@Param("ownerId") Long ownerId,
+                     @Param("balanceCode") String balanceCode, @Param("currencyCode") String currencyCode);
 
-    // Access-controlled queries
+       @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
+                     "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
+                     +
+                     "(:accountType IS NULL OR a.type = :accountType) AND " +
+                     "(:status IS NULL OR a.status = :status)")
+       Page<Account> findWithFilters(@Param("search") String search,
+                     @Param("accountType") AccountType accountType,
+                     @Param("status") AccountStatus status,
+                     Pageable pageable);
 
-    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-           "(:isAdmin = true OR a.scope = 'FAMILY' OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND " +
-           "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
-           "(:accountType IS NULL OR a.type = :accountType) AND " +
-           "(:status IS NULL OR a.status = :status)")
-    Page<Account> findAccessibleAccounts(@Param("userId") Long userId,
-                                          @Param("isAdmin") boolean isAdmin,
-                                          @Param("search") String search,
-                                          @Param("accountType") AccountType accountType,
-                                          @Param("status") AccountStatus status,
-                                          Pageable pageable);
+       @Query("SELECT a FROM Account a JOIN a.accessList al WHERE al.user.id = :userId AND a.isActive = true AND a.type <> 'SYSTEM_TRANSIT'")
+       Page<Account> findMyAccounts(@Param("userId") Long userId, Pageable pageable);
 
-    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Account a WHERE a.id = :accountId AND " +
-           "(:isAdmin = true OR a.scope = 'FAMILY' OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
-    boolean canUserAccessAccount(@Param("accountId") Long accountId,
-                                  @Param("userId") Long userId,
-                                  @Param("isAdmin") boolean isAdmin);
+       List<Account> findByStatusAndIsActiveTrue(AccountStatus status);
 
-    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-           "(a.scope = 'FAMILY' OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
-    Page<Account> findMyAccountsWithScope(@Param("userId") Long userId, Pageable pageable);
+       // Access-controlled queries
 
-    @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-           "(:isAdmin = true OR a.scope = 'FAMILY' OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
-    List<Account> findAccessibleActiveAccounts(@Param("userId") Long userId,
-                                                @Param("isAdmin") boolean isAdmin);
+       @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
+                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
+                     +
+                     "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
+                     +
+                     "(:accountType IS NULL OR a.type = :accountType) AND " +
+                     "(:status IS NULL OR a.status = :status)")
+       Page<Account> findAccessibleAccounts(@Param("userId") Long userId,
+                     @Param("isAdmin") boolean isAdmin,
+                     @Param("search") String search,
+                     @Param("accountType") AccountType accountType,
+                     @Param("status") AccountStatus status,
+                     Pageable pageable);
+
+       @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Account a WHERE a.id = :accountId AND " +
+                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
+       boolean canUserAccessAccount(@Param("accountId") Long accountId,
+                     @Param("userId") Long userId,
+                     @Param("isAdmin") boolean isAdmin);
+
+       @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
+                     "((a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
+       Page<Account> findMyAccountsWithScope(@Param("userId") Long userId, Pageable pageable);
+
+       @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
+                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
+       List<Account> findAccessibleActiveAccounts(@Param("userId") Long userId,
+                     @Param("isAdmin") boolean isAdmin);
 }

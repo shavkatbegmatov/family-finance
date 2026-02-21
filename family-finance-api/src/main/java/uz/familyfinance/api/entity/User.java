@@ -19,7 +19,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@EntityListeners({AuditingEntityListener.class, AuditEntityListener.class})
+@EntityListeners({ AuditingEntityListener.class, AuditEntityListener.class })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -65,12 +65,12 @@ public class User extends BaseEntity implements Auditable {
     @JoinColumn(name = "created_by")
     private User createdBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_group_id")
+    private FamilyGroup familyGroup;
+
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     @Builder.Default
     private Set<RoleEntity> roles = new HashSet<>();
 
@@ -119,6 +119,9 @@ public class User extends BaseEntity implements Auditable {
         // Include simple fields only - avoid lazy collections
         if (this.createdBy != null) {
             map.put("createdById", this.createdBy.getId());
+        }
+        if (this.familyGroup != null) {
+            map.put("familyGroupId", this.familyGroup.getId());
         }
 
         // Include role names for audit trail

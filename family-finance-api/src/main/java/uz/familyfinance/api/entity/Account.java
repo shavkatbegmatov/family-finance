@@ -20,7 +20,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "accounts")
-@EntityListeners({AuditingEntityListener.class, AuditEntityListener.class})
+@EntityListeners({ AuditingEntityListener.class, AuditEntityListener.class })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -87,6 +87,10 @@ public class Account extends BaseEntity implements Auditable {
     @JoinColumn(name = "owner_id")
     private FamilyMember owner;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_group_id")
+    private FamilyGroup familyGroup;
+
     @Column(name = "balance_account_code", length = 5)
     private String balanceAccountCode;
 
@@ -131,6 +135,9 @@ public class Account extends BaseEntity implements Auditable {
         map.put("bankName", this.bankName);
         if (this.owner != null) {
             map.put("ownerId", this.owner.getId());
+        }
+        if (this.familyGroup != null) {
+            map.put("familyGroupId", this.familyGroup.getId());
         }
         return map;
     }

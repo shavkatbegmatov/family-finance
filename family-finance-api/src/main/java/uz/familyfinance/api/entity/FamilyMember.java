@@ -20,7 +20,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "family_members")
-@EntityListeners({AuditingEntityListener.class, AuditEntityListener.class})
+@EntityListeners({ AuditingEntityListener.class, AuditEntityListener.class })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -77,6 +77,10 @@ public class FamilyMember extends BaseEntity implements Auditable {
     @JoinColumn(name = "user_id", unique = true)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_group_id")
+    private FamilyGroup familyGroup;
+
     /**
      * To'liq ismni hisoblash: "Familiya Ism Otasining ismi" formatida.
      * getFullName() ham shu methodga yo'naltiradi — orqaga qarab moslik uchun.
@@ -119,6 +123,9 @@ public class FamilyMember extends BaseEntity implements Auditable {
         map.put("isActive", this.isActive);
         if (this.user != null) {
             map.put("userId", this.user.getId());
+        }
+        if (this.familyGroup != null) {
+            map.put("familyGroupId", this.familyGroup.getId());
         }
         return map;
     }
