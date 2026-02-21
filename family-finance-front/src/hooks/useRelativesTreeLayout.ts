@@ -20,6 +20,8 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
 
         const { persons, familyUnits, rootPersonId } = treeData;
 
+        const validPersonIds = new Set(persons.map(p => p.id));
+
         // 1. Transform TreeResponse to relatives-tree Node format
         const rtNodes: Node[] = persons.map((person) => {
             const id = String(person.id);
@@ -38,27 +40,29 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                 if (isPartner) {
                     // Identify spouses
                     fu.partners.forEach((p) => {
-                        if (p.personId !== person.id) {
+                        if (p.personId !== person.id && validPersonIds.has(p.personId)) {
                             spouses.push({ id: String(p.personId), type: 'married' as RelType });
                         }
                     });
                     // Identify children
                     fu.children.forEach((c) => {
-                        // relatives-tree expects 'blood' or 'adopted' etc
-                        const type: RelType = c.lineageType === 'ADOPTED' ? 'adopted' as RelType : 'blood' as RelType;
-                        children.push({ id: String(c.personId), type });
+                        if (validPersonIds.has(c.personId)) {
+                            const type: RelType = c.lineageType === 'ADOPTED' ? 'adopted' as RelType : 'blood' as RelType;
+                            children.push({ id: String(c.personId), type });
+                        }
                     });
                 }
 
                 if (isChild) {
                     // Identify parents
                     fu.partners.forEach((p) => {
-                        // We assume blood relation for parents here by default unless specified
-                        parents.push({ id: String(p.personId), type: 'blood' as RelType });
+                        if (validPersonIds.has(p.personId)) {
+                            parents.push({ id: String(p.personId), type: 'blood' as RelType });
+                        }
                     });
                     // Identify siblings
                     fu.children.forEach((c) => {
-                        if (c.personId !== person.id) {
+                        if (c.personId !== person.id && validPersonIds.has(c.personId)) {
                             siblings.push({ id: String(c.personId), type: 'blood' as RelType });
                         }
                     });
