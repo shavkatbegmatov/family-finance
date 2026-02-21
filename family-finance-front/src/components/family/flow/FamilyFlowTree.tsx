@@ -6,7 +6,6 @@ import {
   ReactFlowProvider,
   useReactFlow,
   type NodeMouseHandler,
-  type Viewport,
 } from '@xyflow/react';
 import { useRelativesTreeLayout } from '../../../hooks/useRelativesTreeLayout';
 import { useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
