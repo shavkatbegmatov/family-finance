@@ -18,7 +18,7 @@ export function FamilyGroupSettings() {
         queryKey: ['myFamilyGroup'],
         queryFn: async () => {
             const res = await familyGroupApi.getMyGroup();
-            return res.data;
+            return (res.data as any).data;
         },
     });
 

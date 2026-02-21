@@ -9,11 +9,12 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupAddMemberRequest;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupResponse;
+import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.service.FamilyGroupService;
 
 @RestController
-@RequestMapping("/api/family-groups")
+@RequestMapping("/v1/family-groups")
 @RequiredArgsConstructor
 @Tag(name = "Family Groups", description = "Oila guruhlarini boshqarish API lari")
 public class FamilyGroupController {
@@ -22,26 +23,26 @@ public class FamilyGroupController {
 
     @GetMapping("/my")
     @Operation(summary = "Mening oila guruhimni olish", description = "Tizimga kirgan foydalanuvchining oila guruhini (va a'zolarini) qaytaradi")
-    public ResponseEntity<FamilyGroupResponse> getMyFamilyGroup(
+    public ResponseEntity<ApiResponse<FamilyGroupResponse>> getMyFamilyGroup(
             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        return ResponseEntity.ok(familyGroupService.getMyFamilyGroup(currentUser.getId()));
+        return ResponseEntity.ok(ApiResponse.success(familyGroupService.getMyFamilyGroup(currentUser.getId())));
     }
 
     @PostMapping("/members")
     @Operation(summary = "Oilaga a'zo qo'shish", description = "Foydalanuvchi logini (username) orqali uni oilaga qo'shish")
-    public ResponseEntity<Void> addMember(
+    public ResponseEntity<ApiResponse<Void>> addMember(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @RequestBody @Valid FamilyGroupAddMemberRequest request) {
         familyGroupService.addMember(currentUser.getId(), request.getUsername());
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success("A'zo muvaffaqiyatli qo'shildi"));
     }
 
     @DeleteMapping("/members/{memberId}")
     @Operation(summary = "Oiladan a'zoni o'chirish", description = "Foydalanuvchini oila guruhidan o'chirish")
-    public ResponseEntity<Void> removeMember(
+    public ResponseEntity<ApiResponse<Void>> removeMember(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable Long memberId) {
         familyGroupService.removeMember(currentUser.getId(), memberId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.success("A'zo guruhdan chiqarildi"));
     }
 }

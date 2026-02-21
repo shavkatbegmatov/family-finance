@@ -18,9 +18,9 @@ export interface FamilyGroupResponse {
 }
 
 export const familyGroupApi = {
-    getMyGroup: () => api.get<FamilyGroupResponse>('/family-groups/my'),
+    getMyGroup: () => api.get<FamilyGroupResponse>('/v1/family-groups/my'),
 
-    addMember: (username: string) => api.post<void>('/family-groups/members', { username }),
+    addMember: (username: string) => api.post<void>('/v1/family-groups/members', { username }),
 
-    removeMember: (memberId: number) => api.delete<void>(`/family-groups/members/${memberId}`),
+    removeMember: (memberId: number) => api.delete<void>(`/v1/family-groups/members/${memberId}`),
 };

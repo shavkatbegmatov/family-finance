@@ -36,7 +36,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         "http://localhost:3000",
                         "http://127.0.0.1:5175",
                         "http://127.0.0.1:5178",
-                        "http://192.168.1.33:5175"
+                        "http://192.168.1.33:5175",
+                        "http://192.168.1.33:5178"
                 )
                 .withSockJS();
     }
