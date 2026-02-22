@@ -57,34 +57,35 @@ export function FamilyMembersPage() {
   // Effective page size — auto rejimda hisoblangan, aks holda tanlangan
   const pageSize = pageSizeMode === 'auto' ? autoPageSize : pageSizeMode;
 
-  // Jadval boshlanadigan joyni DOM'dan o'lchaymiz
   const tableAnchorRef = useRef<HTMLDivElement>(null);
+  // Oxirgi hisoblangan qiymat — cheksiz re-render jaro qilmaslik uchun
+  const lastCalcRef = useRef(0);
 
-  // Auto: jadval yuqorisidagi sentinel div'dan pastga qancha joy qolishini hisoblaymiz
-  useEffect(() => {
+  // Sentinel DOM pozitsiyasidan qatorlar sonini hisoblash
+  const recalcRows = useCallback(() => {
     if (pageSizeMode !== 'auto') return;
-
-    const ROW_HEIGHT = 52;   // px — bir qator balandligi
-    const BOTTOM_PAD = 24;   // px — pastdan qoldirilgan bo'shliq
-    const THEAD_HEIGHT = 40; // px — jadval sarlavhasi
-
-    const calculate = () => {
-      const anchor = tableAnchorRef.current;
-      if (!anchor) return;
-      const top = anchor.getBoundingClientRect().top;
-      const available = window.innerHeight - top - THEAD_HEIGHT - BOTTOM_PAD;
-      const rows = Math.max(5, Math.floor(available / ROW_HEIGHT));
+    const el = tableAnchorRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    if (top <= 0) return; // hali render bo'lmagan
+    // Sentinel tbody ichida: top = tbody boshlanishi, 32px = pastki padding buffer
+    const rows = Math.max(5, Math.floor((window.innerHeight - top - 32) / 52));
+    if (rows !== lastCalcRef.current) {
+      lastCalcRef.current = rows;
       setAutoPageSize(rows);
-    };
-
-    // Birinchi hisoblash — layout to'liq chizilgandan keyin
-    const rafId = requestAnimationFrame(calculate);
-    window.addEventListener('resize', calculate);
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', calculate);
-    };
+    }
   }, [pageSizeMode]);
+
+  // Har renderdan keyin qayta hisoblash (loading tugaganda ham)
+  useEffect(() => {
+    recalcRows();
+  });
+
+  // Oyna o'lchamini kuzatish
+  useEffect(() => {
+    window.addEventListener('resize', recalcRows);
+    return () => window.removeEventListener('resize', recalcRows);
+  }, [recalcRows]);
 
 
   // Add/Edit modal
@@ -397,8 +398,6 @@ export function FamilyMembersPage() {
             </div>
           </div>
 
-          {/* Sentinel: jadval qayerda boshlanishini o'lchaymiz */}
-          <div ref={tableAnchorRef} className="h-0" />
 
           {/* Table */}
           {loading ? (
@@ -419,6 +418,8 @@ export function FamilyMembersPage() {
             </div>
           ) : (
             <div className="surface-card overflow-hidden">
+              {/* Sentinel: tbody boshlanishini aniq o'lchaymiz — thead ichida */}
+              <div ref={tableAnchorRef} className="h-0" />
               <div className="overflow-x-auto">
                 <table className="table table-sm w-full">
                   <thead>
