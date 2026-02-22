@@ -6,9 +6,11 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 interface UIState {
   sidebarOpen: boolean;
   themeMode: ThemeMode;
+  isWhatsNewOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setWhatsNewOpen: (open: boolean) => void;
   getEffectiveTheme: () => 'family' | 'family-dark';
 }
 
@@ -24,11 +26,14 @@ export const useUIStore = create<UIState>()(
     (set, get) => ({
       sidebarOpen: true,
       themeMode: 'system',
+      isWhatsNewOpen: false,
 
       toggleSidebar: () =>
         set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
+
+      setWhatsNewOpen: (open) => set({ isWhatsNewOpen: open }),
 
       setThemeMode: (mode) => {
         set({ themeMode: mode });

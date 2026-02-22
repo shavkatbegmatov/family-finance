@@ -1,0 +1,42 @@
+export interface ChangelogEntry {
+    version: string;
+    date: string;
+    title: string;
+    features: string[];
+    fixes: string[];
+}
+
+export const changelogData: ChangelogEntry[] = [
+    {
+        version: '1.2.0',
+        date: '2026-02-22',
+        title: 'Oilaviy guruhlar va tizimli o\'zgarishlar',
+        features: [
+            'Yangi "Oilaviy guruhlar" (Family Groups) tizimi qo\'shildi. Endi siz oila a\'zolaringizni guruhga taklif qilishingiz va ularga Administrator yoki Foydalanuvchi huquqlarini berishingiz mumkin.',
+            '"Sozlamalar" sahifasida maxsus Oila guruhini boshqarish bo\'limi yaratildi.',
+            'Shajara (Family Tree) ga yangi odam qo\'shish yoki tahrirlash darchalarida zamonaviy qidiruv tizimiga ega "Shaxsni tanlash" (PersonSelect) komponenti joriy etildi.',
+            'Shajara grafik dizayni to\'liq yangilanib, qarindoshlar qatorlari chigallashib ketmasligini ta\'minlaydigan maxsus algoritmga o\'tildi.'
+        ],
+        fixes: [
+            'Oilaviy moliya tahlilida hisob ko\'rinishidagi ruxsatnomalar (AccountScope) ga tegishli global ma\'lumotlar sizib chiqish xavfsizlik teshigi yopildi.',
+            'Shajarani ko\'rishda bir xil jinsli shaxslar ma\'lumotlari kiritilganda tizim ishlamay qolishining (Crash) oldi olindi.',
+            'Shajarada markazga diqqatni jalb qilishda sakrashlar jilo bilan silliq ishlashiga moslashtirildi.'
+        ]
+    },
+    {
+        version: '1.1.0',
+        date: '2025',
+        title: 'Dastlabki versiya',
+        features: [
+            'Tranzaksiyalarni boshqarish',
+            'Hisoblar tizimi',
+            'Kategoriyalar filtri',
+            'Byudjetni rejalashtirish',
+            'Oilaviy shajara tizimi beta talqinda'
+        ],
+        fixes: []
+    }
+];
+
+// Helper for localstorage semantic versioning comparisons
+export const LATEST_VERSION = changelogData[0].version;

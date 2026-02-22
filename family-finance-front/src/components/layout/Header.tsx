@@ -16,6 +16,7 @@ import {
   ArrowLeftRight,
   PieChart,
   HandMetal,
+  Sparkles,
 } from 'lucide-react';
 import { useMatches, useNavigate, Link } from 'react-router-dom';
 import clsx from 'clsx';
@@ -25,6 +26,8 @@ import { useNotificationsStore, type Notification } from '../../store/notificati
 import { authApi } from '../../api/auth.api';
 import { ROLES } from '../../config/constants';
 import { SearchCommand } from '../common/SearchCommand';
+import { WhatsNewModal } from '../common/WhatsNewModal';
+import { LATEST_VERSION } from '../../data/changelog';
 
 const getNotificationIcon = (type: Notification['type']) => {
   switch (type) {
@@ -89,16 +92,32 @@ type RouteHandle = {
 
 export function Header() {
   const { user, logout } = useAuthStore();
-  const { toggleSidebar, themeMode, setThemeMode } = useUIStore();
+  const { toggleSidebar, themeMode, setThemeMode, isWhatsNewOpen, setWhatsNewOpen } = useUIStore();
   const { notifications, unreadCount, markAsRead, fetchNotifications, connectWebSocket, disconnectWebSocket } = useNotificationsStore();
   const navigate = useNavigate();
   const matches = useMatches();
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [hasSeenLatestVersion, setHasSeenLatestVersion] = useState(true);
+
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notifDropdownRef = useRef<HTMLDivElement>(null);
 
   const isDark = themeMode === 'dark' || (themeMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  useEffect(() => {
+    // Check if user has seen the latest version payload
+    const seenVersion = localStorage.getItem('family-finance-seen-version');
+    if (seenVersion !== LATEST_VERSION) {
+      setHasSeenLatestVersion(false);
+    }
+  }, []);
+
+  const openWhatsNew = () => {
+    setWhatsNewOpen(true);
+    setHasSeenLatestVersion(true);
+    localStorage.setItem('family-finance-seen-version', LATEST_VERSION);
+  };
 
   // WebSocket ulanishini boshlash va dastlabki ma'lumotlarni yuklash
   useEffect(() => {
@@ -250,6 +269,18 @@ export function Header() {
             title="Yordam"
           >
             <HelpCircle className="h-4 w-4" />
+          </button>
+
+          {/* What's New */}
+          <button
+            className="btn btn-ghost btn-sm btn-square relative hidden sm:flex"
+            onClick={openWhatsNew}
+            title="Nima yangiliklar?"
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+            {!hasSeenLatestVersion && (
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-error ring-2 ring-base-100" />
+            )}
           </button>
 
           {/* Notifications */}
@@ -467,6 +498,12 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <WhatsNewModal
+        isOpen={isWhatsNewOpen}
+        onClose={() => setWhatsNewOpen(false)}
+      />
     </header>
   );
 }

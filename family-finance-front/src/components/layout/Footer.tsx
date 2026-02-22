@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Circle, Keyboard, ExternalLink } from 'lucide-react';
+import { LATEST_VERSION } from '../../data/changelog';
+import { useUIStore } from '../../store/uiStore';
+import clsx from 'clsx';
 
 export function Footer() {
   const year = new Date().getFullYear();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const setWhatsNewOpen = useUIStore((state) => state.setWhatsNewOpen);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -68,10 +72,17 @@ export function Footer() {
             <div className="h-3 w-px bg-base-300" />
             <span className="text-[11px] tabular-nums text-base-content/40">{formatTime(currentTime)}</span>
             <div className="h-3 w-px bg-base-300" />
-            <div className="flex items-center gap-1 rounded-full bg-base-200/50 px-2 py-0.5">
+            <button
+              onClick={() => setWhatsNewOpen(true)}
+              title="Nima yangiliklar?"
+              className={clsx(
+                "flex items-center gap-1 rounded-full px-2 py-0.5 transition-colors cursor-pointer",
+                "bg-base-200/50 hover:bg-primary/10 hover:text-primary active:scale-95"
+              )}
+            >
               <span className="text-[9px] font-medium uppercase tracking-wider text-base-content/40">v</span>
-              <span className="text-[11px] font-semibold text-primary">1.0.0</span>
-            </div>
+              <span className="text-[11px] font-semibold text-primary">{LATEST_VERSION}</span>
+            </button>
           </div>
         </div>
       </div>
