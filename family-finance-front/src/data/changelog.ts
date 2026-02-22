@@ -8,6 +8,22 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.5',
+        date: '2026-02-22 15:47',
+        title: "Oila a'zolari ro'yxati yangilandi",
+        features: [
+            "Ro'yxat ko'rinishi karta shaklidan professional jadval shaklida o'zgartirildi — bir ko'rishda ko'proq ma'lumot ko'rinadi.",
+            "Har bir a'zo uchun yoshi va tug'ilgan yili, tug'ilgan joyi, telefon raqami yangi ustunlarda chiroyli tarzda ko'rsatiladi.",
+            "Tizim foydalanuvchisi bilan bog'liq a'zolar alohida yashil 'Tizimda' belgisi bilan ko'rsatilmoqda.",
+            "O'zingizning profilingiz 'Sen' belgisi bilan ajralib turadi.",
+            "Sahifalash (pagination) bilan ishlash endi qulay — rekordlar soni va sahifalar ko'rsatiladi.",
+            "Ro'yxatda rasm yuklash (crop + ImgBB) funksiyasi ham qo'shildi."
+        ],
+        fixes: [
+            "Modal sarlavhasidagi va 'Saqlash' tugmasidagi qo'shimcha qo'shtirnoqlar olib tashlandi."
+        ]
+    },
+    {
         version: '1.2.4',
         date: '2026-02-22 15:22',
         title: "Rasm yuklash va tahrirlash tizimi",

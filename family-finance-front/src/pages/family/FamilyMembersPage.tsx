@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Users,
-  Plus,
   Edit2,
   Trash2,
   X,
@@ -12,13 +11,13 @@ import {
   Copy,
   Check,
   KeyRound,
-  Link,
   List,
   TreePine,
   Eye,
   EyeOff,
   Shield,
   ClipboardCopy,
+  UserCheck,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
@@ -34,6 +33,7 @@ import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { DateInput } from '../../components/ui/DateInput';
 import { Select } from '../../components/ui/Select';
+import { AvatarUploader } from '../../components/ui/AvatarUploader';
 import type {
   CredentialsInfo,
   FamilyMember,
@@ -110,7 +110,7 @@ export function FamilyMembersPage() {
 
   // ==================== MODAL ====================
 
-    const handleOpenEditModal = (member: FamilyMember) => {
+  const handleOpenEditModal = (member: FamilyMember) => {
     setEditingMember(member);
     setForm({
       firstName: member.firstName,
@@ -258,7 +258,7 @@ export function FamilyMembersPage() {
               loading={loading}
             />
           </PermissionGate>
-          
+
         </div>
       </div>
 
@@ -280,126 +280,243 @@ export function FamilyMembersPage() {
                 setSearchQuery(val);
                 setPage(0);
               }}
-              placeholder="Ism bo'yicha qidirish..."
+              placeholder="Ism, familiya yoki telefon bo'yicha qidirish..."
               hideLabel
               ariaLabel="Qidirish"
               className="max-w-sm"
             />
           </div>
 
-          {/* Members Grid */}
+          {/* Table */}
           {loading ? (
             <div className="flex justify-center py-16">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : members.length === 0 ? (
-            <div className="surface-card p-12 text-center">
-              <Users className="h-16 w-16 mx-auto mb-4 text-base-content/20" />
+            <div className="surface-card p-16 text-center">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-base-200">
+                <Users className="h-10 w-10 text-base-content/20" />
+              </div>
               <h3 className="text-lg font-semibold mb-2">Oila a'zolari topilmadi</h3>
-              <p className="text-sm text-base-content/60 mb-4">
+              <p className="text-sm text-base-content/50">
                 {searchQuery
-                  ? `"${searchQuery}" bo'yicha natijalar topilmadi`
-                  : "Birinchi oila a'zosini qo'shing"}
+                  ? `"${searchQuery}" bo'yicha natijalar yo'q`
+                  : "Shajaraga a'zo qo'shishni boshlang"}
               </p>
-              
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className={clsx(
-                    'surface-card p-5 flex flex-col items-center text-center relative group transition-shadow hover:shadow-md',
-                    !member.isActive && 'opacity-60'
-                  )}
-                >
-                  {/* Active indicator */}
-                  <div
-                    className={clsx(
-                      'absolute top-3 right-3 h-2.5 w-2.5 rounded-full',
-                      member.isActive ? 'bg-success' : 'bg-base-content/20'
-                    )}
-                    title={member.isActive ? 'Faol' : 'Nofaol'}
-                  />
+            <div className="surface-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="table table-sm w-full">
+                  <thead>
+                    <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
+                      <th className="pl-5 py-3 w-12">#</th>
+                      <th className="py-3">A'zo</th>
+                      <th className="py-3">Rol</th>
+                      <th className="py-3">Jinsi</th>
+                      <th className="py-3">Telefon</th>
+                      <th className="py-3">Yoshi</th>
+                      <th className="py-3">Holat</th>
+                      <th className="py-3 pr-5 text-right">Amallar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-base-200">
+                    {members.map((member, idx) => {
+                      const birthYear = member.birthDate
+                        ? new Date(member.birthDate).getFullYear()
+                        : null;
+                      const age = member.birthDate
+                        ? Math.floor(
+                          (Date.now() - new Date(member.birthDate).getTime()) /
+                          (365.25 * 24 * 60 * 60 * 1000)
+                        )
+                        : null;
 
-                  {/* Avatar */}
-                  <div
-                    className={clsx(
-                      'h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-3',
-                      getRoleColor(member.role)
-                    )}
-                  >
-                    {member.avatar ? (
-                      <img
-                        src={member.avatar}
-                        alt={member.fullName}
-                        className="h-16 w-16 rounded-full object-cover"
-                      />
-                    ) : (
-                      getInitial(member.fullName)
-                    )}
-                  </div>
-
-                  {/* Name */}
-                  <h3 className="font-semibold text-base mb-1">{member.fullName}</h3>
-
-                  {/* Role & Gender */}
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <span className="badge badge-sm badge-outline">
-                      {FAMILY_ROLES[member.role]?.label || member.role}
-                    </span>
-                    {member.gender && (
-                      <span className={clsx(
-                        'badge badge-sm',
-                        member.gender === 'MALE' ? 'badge-info' : 'badge-secondary'
-                      )}>
-                        {GENDERS[member.gender]?.label}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="w-full space-y-1.5 text-sm text-base-content/70">
-                    {member.phone && (
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-base-content/40" />
-                        <span>{member.phone}</span>
-                      </div>
-                    )}
-                    {member.birthDate && (
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-base-content/40" />
-                        <span>{formatDate(member.birthDate)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
-                      <button
-                        className="btn btn-ghost btn-xs"
-                        onClick={() => handleOpenEditModal(member)}
-                        title="Tahrirlash"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                        Tahrirlash
-                      </button>
-                    </PermissionGate>
-                    {member.userId !== user?.id && (
-                      <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
-                        <button
-                          className="btn btn-ghost btn-xs text-error"
-                          onClick={() => setDeletingMemberId(member.id)}
-                          title="O'chirish"
+                      return (
+                        <tr
+                          key={member.id}
+                          className={clsx(
+                            'hover:bg-base-200/40 transition-colors',
+                            !member.isActive && 'opacity-50'
+                          )}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                    )}
+                          {/* Index */}
+                          <td className="pl-5 py-3 text-sm text-base-content/30 font-mono">
+                            {page * pageSize + idx + 1}
+                          </td>
+
+                          {/* Avatar + Name */}
+                          <td className="py-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={clsx(
+                                  'h-9 w-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0',
+                                  getRoleColor(member.role)
+                                )}
+                              >
+                                {member.avatar ? (
+                                  <img
+                                    src={member.avatar}
+                                    alt={member.fullName}
+                                    className="h-9 w-9 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  getInitial(member.fullName)
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-semibold text-sm truncate max-w-[180px]">
+                                    {member.fullName}
+                                  </span>
+                                  {member.userId && (
+                                    <span
+                                      className="badge badge-xs badge-success gap-1"
+                                      title="Tizim foydalanuvchisi bilan bog'langan"
+                                    >
+                                      <UserCheck className="h-2.5 w-2.5" />
+                                      Tizimda
+                                    </span>
+                                  )}
+                                  {member.userId === user?.id && (
+                                    <span className="badge badge-xs badge-primary">Sen</span>
+                                  )}
+                                </div>
+                                {member.birthPlace && (
+                                  <p className="text-xs text-base-content/40 truncate max-w-[160px]">
+                                    {member.birthPlace}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Role */}
+                          <td className="py-3">
+                            <span className="badge badge-sm badge-outline">
+                              {FAMILY_ROLES[member.role]?.label || member.role}
+                            </span>
+                          </td>
+
+                          {/* Gender */}
+                          <td className="py-3">
+                            {member.gender ? (
+                              <span
+                                className={clsx(
+                                  'badge badge-sm',
+                                  member.gender === 'MALE' ? 'badge-info' : 'badge-secondary'
+                                )}
+                              >
+                                {GENDERS[member.gender]?.label}
+                              </span>
+                            ) : (
+                              <span className="text-base-content/20 text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* Phone */}
+                          <td className="py-3">
+                            {member.phone ? (
+                              <a
+                                href={`tel:${member.phone}`}
+                                className="flex items-center gap-1.5 text-sm text-base-content/70 hover:text-primary transition-colors"
+                              >
+                                <Phone className="h-3 w-3 shrink-0" />
+                                {member.phone}
+                              </a>
+                            ) : (
+                              <span className="text-base-content/20 text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* Age */}
+                          <td className="py-3">
+                            {age !== null ? (
+                              <div className="text-sm">
+                                <span className="font-medium">{age} yosh</span>
+                                <span className="text-xs text-base-content/40 ml-1">
+                                  ({birthYear})
+                                </span>
+                              </div>
+                            ) : member.birthDate ? (
+                              <div className="flex items-center gap-1 text-xs text-base-content/50">
+                                <Calendar className="h-3 w-3" />
+                                {formatDate(member.birthDate)}
+                              </div>
+                            ) : (
+                              <span className="text-base-content/20 text-xs">—</span>
+                            )}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3">
+                            <span
+                              className={clsx(
+                                'badge badge-sm',
+                                member.isActive ? 'badge-success' : 'badge-ghost'
+                              )}
+                            >
+                              {member.isActive ? 'Faol' : 'Nofaol'}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-3 pr-5">
+                            <div className="flex items-center gap-1 justify-end">
+                              <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
+                                <button
+                                  className="btn btn-ghost btn-xs"
+                                  onClick={() => handleOpenEditModal(member)}
+                                  title="Tahrirlash"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                  Tahrirlash
+                                </button>
+                              </PermissionGate>
+                              {member.userId !== user?.id && (
+                                <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
+                                  <button
+                                    className="btn btn-ghost btn-xs text-error"
+                                    onClick={() => setDeletingMemberId(member.id)}
+                                    title="O'chirish"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </PermissionGate>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalElements > pageSize && (
+                <div className="flex items-center justify-between px-5 py-3 border-t border-base-200">
+                  <span className="text-sm text-base-content/50">
+                    {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalElements)} / {totalElements} ta
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      ‹ Oldingi
+                    </button>
+                    <button
+                      className="btn btn-sm btn-ghost"
+                      disabled={(page + 1) * pageSize >= totalElements}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Keyingi ›
+                    </button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </>
@@ -412,13 +529,13 @@ export function FamilyMembersPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold">
-                  "A'zoni tahrirlash"
+                  A'zoni tahrirlash
                 </h3>
                 <p className="text-sm text-base-content/60">
-                  "A'zo ma'lumotlarini yangilang"
+                  A'zo ma'lumotlarini yangilang
                 </p>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={handleCloseModal}>
+              <button className="btn btn-ghost btn-sm btn-square" onClick={handleCloseModal}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -479,14 +596,11 @@ export function FamilyMembersPage() {
                 max={new Date().toISOString().slice(0, 10)}
               />
 
-              {/* Avatar URL */}
-              <TextInput
-                label="Avatar URL"
+              {/* Avatar Upload */}
+              <AvatarUploader
+                label="Rasm"
                 value={form.avatar || ''}
                 onChange={(val) => setForm((prev) => ({ ...prev, avatar: val }))}
-                placeholder="https://..."
-                type="url"
-                leadingIcon={<Link className="h-5 w-5" />}
               />
 
               {/* Create Account Section — faqat yangi a'zo uchun */}
@@ -601,7 +715,7 @@ export function FamilyMembersPage() {
                 disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
               >
                 {submitting && <span className="loading loading-spinner loading-sm" />}
-                'Saqlash'
+                Saqlash
               </button>
             </div>
           </div>
