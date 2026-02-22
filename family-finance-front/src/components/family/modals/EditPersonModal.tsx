@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { X, User, Link } from 'lucide-react';
+import { X, User } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { TextInput } from '../../ui/TextInput';
 import { PhoneInput } from '../../ui/PhoneInput';
 import { Select } from '../../ui/Select';
 import { DateInput } from '../../ui/DateInput';
+import { AvatarUploader } from '../../ui/AvatarUploader';
 import { useUpdatePerson, useUpdateSelf, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
 import { GENDERS } from '../../../config/constants';
 import { useAuthStore } from '../../../store/authStore';
@@ -195,13 +196,10 @@ export function EditPersonModal({
               placeholder="Shahar, viloyat"
             />
 
-            <TextInput
-              label="Avatar URL"
+            <AvatarUploader
+              label="Rasm"
               value={avatar}
               onChange={setAvatar}
-              placeholder="https://..."
-              type="url"
-              leadingIcon={<Link className="h-5 w-5" />}
             />
           </div>
 

@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.4',
+        date: '2026-02-22 15:22',
+        title: "Rasm yuklash va tahrirlash tizimi",
+        features: [
+            "Profilga rasm qo'shish uchun yangi professional vosita qo'shildi. Endi rasmni qurilmangizdan to'g'ridan-to'g'ri ilovaga yuklash mumkin.",
+            "Yuklashdan oldin rasmni kerakli qismini kesish (crop), masshtablash (zoom) va aylantirish (rotate) imkoniyati qo'shildi.",
+            "ImgBB bulut xizmatiga avtomatik yuklash amalga oshirildi, shuning uchun endi tashqi havolalarni qo'lda izlash shart emas.",
+            "Havola (URL) orqali rasm qo'shish imkoniyati ham saqlab qolindi."
+        ],
+        fixes: []
+    },
+    {
         version: '1.2.3',
         date: '2026-02-22 14:48',
         title: "Shajara (Family Tree) interfeysidagi takomillashuvlar",
