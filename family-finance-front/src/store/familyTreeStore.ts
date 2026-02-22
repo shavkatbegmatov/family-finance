@@ -50,6 +50,9 @@ interface FamilyTreeState {
   showDeceased: boolean;
   genderFilter: 'ALL' | 'MALE' | 'FEMALE';
 
+  // Fetching state for UI
+  isFetchingTree: boolean;
+
   // Actions
   setRootPersonId: (id: number | null) => void;
   setFocusedPersonId: (id: number | null) => void;
@@ -67,6 +70,7 @@ interface FamilyTreeState {
   setShowDeceased: (show: boolean) => void;
   setGenderFilter: (filter: 'ALL' | 'MALE' | 'FEMALE') => void;
   resetFilters: () => void;
+  setIsFetchingTree: (fetching: boolean) => void;
 }
 
 export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
@@ -83,6 +87,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   focusRequestSeq: 0,
   showDeceased: true,
   genderFilter: 'ALL',
+  isFetchingTree: false,
 
   setRootPersonId: (id) => set({ rootPersonId: id }),
   setFocusedPersonId: (id) => set({ focusedPersonId: id }),
@@ -103,6 +108,8 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
         rootPersonId: personId,
         focusedPersonId: personId,
         viewerPersonId: personId,
+        // When clicking to focus and load a new tree, optimistically set fetching true
+        isFetchingTree: true,
         pendingFocus: {
           nodeId: `person_${personId}`,
           zoom: source === 'find-me' ? 1.1 : undefined,
@@ -117,4 +124,5 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   setShowDeceased: (show) => set({ showDeceased: show }),
   setGenderFilter: (filter) => set({ genderFilter: filter }),
   resetFilters: () => set({ showDeceased: true, genderFilter: 'ALL' }),
+  setIsFetchingTree: (fetching) => set({ isFetchingTree: fetching }),
 }));

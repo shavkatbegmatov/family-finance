@@ -37,6 +37,7 @@ export function FamilyTreeView() {
     ? labeledQuery.data
     : treeQuery.data;
   const isLoading = isLabeled ? labeledQuery.isLoading : treeQuery.isLoading;
+  const isFetching = isLabeled ? labeledQuery.isFetching : treeQuery.isFetching;
   const isError = isLabeled ? labeledQuery.isError : treeQuery.isError;
   const error = isLabeled ? labeledQuery.error : treeQuery.error;
   const refetch = isLabeled ? labeledQuery.refetch : treeQuery.refetch;
@@ -44,6 +45,11 @@ export function FamilyTreeView() {
   const user = useAuthStore((s) => s.user);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Sync isFetching to global store so nodes can show loading spinners
+  useEffect(() => {
+    useFamilyTreeStore.getState().setIsFetchingTree(isFetching);
+  }, [isFetching]);
 
   useEffect(() => {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement);

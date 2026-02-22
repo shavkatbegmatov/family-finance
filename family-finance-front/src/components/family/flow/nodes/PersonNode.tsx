@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
-import { Calendar, MapPin, Network } from 'lucide-react';
+import { Calendar, MapPin, Network, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import type { PersonNodeData } from '../../../../types';
 import type { Gender } from '../../../../types';
@@ -59,6 +59,8 @@ function PersonNodeComponent({ id, data }: NodeProps) {
   const nodeData = data as unknown as PersonNodeData;
   const { person, isRoot, label, hasSubTree } = nodeData;
   const focusPerson = useFamilyTreeStore(s => s.focusPerson);
+  const focusPersonId = useFamilyTreeStore(s => s.focusedPersonId);
+  const isFetchingTree = useFamilyTreeStore(s => s.isFetchingTree);
   const openModal = useFamilyTreeStore(s => s.openModal);
   const openContextMenu = useFamilyTreeStore(s => s.openContextMenu);
   const currentUser = useAuthStore(s => s.user);
@@ -200,17 +202,28 @@ function PersonNodeComponent({ id, data }: NodeProps) {
       {/* Expand relative tree */}
       {hasSubTree && !isRoot && (
         <button
-          className="absolute -bottom-3 right-3 w-7 h-7 bg-base-100 border-2 border-primary text-primary rounded-full flex items-center justify-center cursor-pointer shadow-sm hover:bg-primary hover:text-base-100 transition-colors z-30 tooltip flex-shrink-0"
+          className={clsx(
+            "absolute -bottom-3 right-3 w-7 h-7 border-2 border-primary rounded-full flex items-center justify-center cursor-pointer shadow-sm transition-colors z-30 tooltip flex-shrink-0",
+            (isFetchingTree && focusPersonId === person.id)
+              ? "bg-primary text-base-100 cursor-wait opacity-80"
+              : "bg-base-100 text-primary hover:bg-primary hover:text-base-100"
+          )}
           data-tip="Shu shaxsdan daraxtni ko'rish"
+          disabled={isFetchingTree && focusPersonId === person.id}
           onClick={(e) => {
             e.stopPropagation();
+            if (isFetchingTree && focusPersonId === person.id) return;
             const node = reactFlow.getNode(id);
             const vp = reactFlow.getViewport();
             focusPerson(person.id, 'select', node?.position, vp);
           }}
           title="Shu shaxsdan boshlab daraxtni ko'rish"
         >
-          <Network className="w-3.5 h-3.5" />
+          {isFetchingTree && focusPersonId === person.id ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <Network className="w-3.5 h-3.5" />
+          )}
         </button>
       )}
 
