@@ -134,7 +134,12 @@ export function FamilyMembersPage() {
   useEffect(() => {
     void loadMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, searchQuery]);
+  }, [page, searchQuery, pageSize]);
+
+  // pageSizeMode yoki autoPageSize o'zgarganda sahifani 0 ga qaytarish
+  useEffect(() => {
+    setPage(0);
+  }, [pageSizeMode, autoPageSize]);
 
   useEffect(() => {
     if (activeTab === 'list') {
