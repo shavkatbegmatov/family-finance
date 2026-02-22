@@ -71,6 +71,14 @@ function getGenderBorder(gender?: string) {
   return 'ring-amber-400/30';
 }
 
+function getAgeFromDate(dateString?: string) {
+  if (!dateString) return null;
+  return Math.floor(
+    (Date.now() - new Date(dateString).getTime()) /
+    (365.25 * 24 * 60 * 60 * 1000)
+  );
+}
+
 export function PersonDetailPanel({
   isOpen,
   personId,
@@ -89,13 +97,41 @@ export function PersonDetailPanel({
 
   if (!isOpen) return null;
 
-  const age =
-    person?.birthDate
-      ? Math.floor(
-          (Date.now() - new Date(person.birthDate).getTime()) /
-            (365.25 * 24 * 60 * 60 * 1000)
-        )
-      : null;
+  const age = getAgeFromDate(person?.birthDate);
+
+  const getPersonDetails = (id: number) => activePersons.find((p) => p.id === id);
+
+  const renderNameBox = (personId: number, fallbackName: string) => {
+    const details = getPersonDetails(personId);
+    const fullName = details
+      ? [details.lastName, details.firstName, details.middleName].filter(Boolean).join(' ')
+      : fallbackName;
+
+    return (
+      <div className="truncate leading-tight" title={fullName}>
+        <span className="font-bold text-[15px] group-hover:text-primary transition-colors">
+          {details?.firstName || fallbackName.split(' ')[0]}
+        </span>
+        {details?.lastName && (
+          <span className="text-[13px] ml-1 text-base-content/70 group-hover:text-primary/80 transition-colors">
+            {details.lastName}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const renderAgeInfo = (personId: number) => {
+    const details = getPersonDetails(personId);
+    if (!details?.birthDate) return null;
+    const pAge = getAgeFromDate(details.birthDate);
+    const year = new Date(details.birthDate).getFullYear();
+    return (
+      <span className="text-[11px] text-base-content/60 whitespace-nowrap">
+        {year} yil {pAge !== null ? `(${pAge} yosh)` : ''}
+      </span>
+    );
+  };
 
   // Ota-onalar — person CHILD bo'lgan family unitlar
   const parentUnits = familyUnits.filter((fu) =>
@@ -282,7 +318,7 @@ export function PersonDetailPanel({
                   {parents.map((parent) => (
                     <button
                       key={parent.id}
-                      className="flex items-center gap-3 w-full p-3 rounded-xl bg-base-200/50 hover:bg-base-200 transition-colors text-left"
+                      className="group flex items-center gap-3 w-full p-3 rounded-xl bg-base-200/50 hover:bg-base-200 transition-colors text-left"
                       onClick={() => handlePersonClick(parent.personId)}
                     >
                       <div
@@ -298,13 +334,15 @@ export function PersonDetailPanel({
                           parent.fullName.charAt(0).toUpperCase()
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {parent.fullName}
-                        </p>
-                        <p className="text-xs text-base-content/40">
-                          {parent.gender === 'MALE' ? 'Ota' : 'Ona'}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        {renderNameBox(parent.personId, parent.fullName)}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[11px] font-medium text-base-content/50 uppercase tracking-wider">
+                            {parent.gender === 'MALE' ? 'Ota' : 'Ona'}
+                          </span>
+                          <span className="scale-75 text-base-content/30">•</span>
+                          {renderAgeInfo(parent.personId)}
+                        </div>
                       </div>
                     </button>
                   ))}
@@ -333,7 +371,7 @@ export function PersonDetailPanel({
                         <div className="p-3 flex items-center justify-between">
                           {otherPartner ? (
                             <button
-                              className="flex items-center gap-3 hover:opacity-80 transition-opacity text-left"
+                              className="group flex items-center gap-3 transition-opacity text-left flex-1 min-w-0"
                               onClick={() =>
                                 handlePersonClick(otherPartner.personId)
                               }
@@ -351,16 +389,17 @@ export function PersonDetailPanel({
                                   otherPartner.fullName.charAt(0).toUpperCase()
                                 )}
                               </div>
-                              <span className="font-medium text-sm">
-                                {otherPartner.fullName}
-                              </span>
+                              <div className="min-w-0 flex flex-col justify-center">
+                                {renderNameBox(otherPartner.personId, otherPartner.fullName)}
+                                {renderAgeInfo(otherPartner.personId)}
+                              </div>
                             </button>
                           ) : (
-                            <span className="text-sm text-base-content/40">
+                            <span className="text-sm text-base-content/40 flex-1">
                               —
                             </span>
                           )}
-                          <span className="badge badge-xs badge-outline">
+                          <span className="badge badge-xs badge-outline ml-2 shrink-0">
                             {MARRIAGE_TYPES[fu.marriageType]?.label}
                           </span>
                         </div>
@@ -373,25 +412,34 @@ export function PersonDetailPanel({
                               <span>Farzandlar</span>
                             </div>
                             <div className="space-y-1.5">
-                              {fu.children.map((child) => (
-                                <button
-                                  key={child.id}
-                                  className="flex items-center justify-between w-full text-left hover:bg-base-300/30 rounded-lg px-2 py-1 transition-colors"
-                                  onClick={() =>
-                                    handlePersonClick(child.personId)
-                                  }
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <UserCircle className="h-4 w-4 text-base-content/30" />
-                                    <span className="text-sm">
-                                      {child.fullName}
-                                    </span>
-                                  </div>
-                                  <span className="badge badge-xs badge-ghost">
-                                    {LINEAGE_TYPES[child.lineageType]?.label}
-                                  </span>
-                                </button>
-                              ))}
+                              {fu.children.map((child) => {
+                                const lineageLabel = child.lineageType === 'BIOLOGICAL' ? null : LINEAGE_TYPES[child.lineageType]?.label;
+
+                                return (
+                                  <button
+                                    key={child.id}
+                                    className="group flex flex-col justify-center w-full text-left hover:bg-base-300/30 rounded-lg px-2 py-1.5 transition-colors"
+                                    onClick={() =>
+                                      handlePersonClick(child.personId)
+                                    }
+                                  >
+                                    <div className="flex items-center justify-between w-full gap-2">
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <UserCircle className="h-4 w-4 text-base-content/30 shrink-0" />
+                                        {renderNameBox(child.personId, child.fullName)}
+                                      </div>
+                                      {lineageLabel && (
+                                        <span className="badge badge-xs badge-ghost shrink-0">
+                                          {lineageLabel}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="pl-6 flex items-center">
+                                      {renderAgeInfo(child.personId)}
+                                    </div>
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         )}

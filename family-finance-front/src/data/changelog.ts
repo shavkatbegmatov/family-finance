@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.3',
+        date: '2026-02-22 14:48',
+        title: "Shajara (Family Tree) interfeysidagi takomillashuvlar",
+        features: [
+            "Oila a'zosi ustiga bosganda chiqadigan yon oynada (Sidebar) ism-familiyalar ko'rinishi yangilandi. Endi ularni bosish mumkinligi aniqroq (hover) va to'liq ism-sharif kursorni ustiga olib borganda ko'rinadi (tooltip).",
+            "Farzandlar ro'yxatida 'Biologik' yozuvi o'rniga ularning yoshi va tug'ilgan yili professional shaklda aks ettirildi."
+        ],
+        fixes: []
+    },
+    {
         version: '1.2.2',
         date: '2026-02-22 14:34',
         title: "Xavfsizlik va ma'lumotlar butunligi",
