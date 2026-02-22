@@ -69,13 +69,13 @@ export function FamilyMembersPage() {
     if (!el) return;
 
     // el.clientHeight bu jadval scroll konteynerining qat'iy balandligi.
-    // Thead uchun 52px (py-4 bilan sal kattaroq) ajratamiz deylik.
-    const availableHeight = el.clientHeight - 52;
+    // Thead uchun 45px (py-3 va 1px border) ajratamiz.
+    const availableHeight = el.clientHeight - 45;
     if (availableHeight <= 0) return;
 
-    // Qatorlar endi py-4 pdga ega bo'lgani uchun balandroq (~60px atrofida).
-    // Ehtiyot sharti bilan 60.5 ga bo'lamiz
-    const rows = Math.max(5, Math.floor(availableHeight / 60.5));
+    // Qatorlar py-3 va 36px avatar bilan aniq 61px balandlikda.
+    // Ehtiyot sharti bilan 61.5 ga bo'lamiz
+    const rows = Math.max(5, Math.floor(availableHeight / 61.5));
 
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
@@ -432,14 +432,14 @@ export function FamilyMembersPage() {
                 <table className="table table-sm w-full relative whitespace-nowrap">
                   <thead className="sticky top-0 z-10 bg-base-100 shadow-sm">
                     <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
-                      <th className="pl-5 py-4 w-12 bg-base-100">#</th>
-                      <th className="py-4 bg-base-100">A'zo</th>
-                      <th className="py-4">Rol</th>
-                      <th className="py-4">Jinsi</th>
-                      <th className="py-4">Telefon</th>
-                      <th className="py-4">Yoshi</th>
-                      <th className="py-4">Holat</th>
-                      <th className="py-4 pr-5 text-right">Amallar</th>
+                      <th className="pl-5 py-3 w-12 bg-base-100">#</th>
+                      <th className="py-3 bg-base-100">A'zo</th>
+                      <th className="py-3">Rol</th>
+                      <th className="py-3">Jinsi</th>
+                      <th className="py-3">Telefon</th>
+                      <th className="py-3">Yoshi</th>
+                      <th className="py-3">Holat</th>
+                      <th className="py-3 pr-5 text-right">Amallar</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-base-200">
@@ -463,12 +463,12 @@ export function FamilyMembersPage() {
                           )}
                         >
                           {/* Index */}
-                          <td className="pl-5 py-4 text-sm text-base-content/30 font-mono">
+                          <td className="pl-5 py-3 text-sm text-base-content/30 font-mono">
                             {page * pageSize + idx + 1}
                           </td>
 
                           {/* Avatar + Name */}
-                          <td className="py-4">
+                          <td className="py-3">
                             <div className="flex items-center gap-3">
                               <div
                                 className={clsx(
@@ -514,14 +514,14 @@ export function FamilyMembersPage() {
                           </td>
 
                           {/* Role */}
-                          <td className="py-4">
+                          <td className="py-3">
                             <span className="badge badge-sm badge-outline">
                               {FAMILY_ROLES[member.role]?.label || member.role}
                             </span>
                           </td>
 
                           {/* Gender */}
-                          <td className="py-4">
+                          <td className="py-3">
                             {member.gender ? (
                               <span
                                 className={clsx(
@@ -537,7 +537,7 @@ export function FamilyMembersPage() {
                           </td>
 
                           {/* Phone */}
-                          <td className="py-4">
+                          <td className="py-3">
                             {member.phone ? (
                               <a
                                 href={`tel:${member.phone}`}
@@ -552,7 +552,7 @@ export function FamilyMembersPage() {
                           </td>
 
                           {/* Age */}
-                          <td className="py-4">
+                          <td className="py-3">
                             {age !== null ? (
                               <div className="text-sm">
                                 <span className="font-medium">{age} yosh</span>
@@ -571,7 +571,7 @@ export function FamilyMembersPage() {
                           </td>
 
                           {/* Status */}
-                          <td className="py-4">
+                          <td className="py-3">
                             <span
                               className={clsx(
                                 'badge badge-sm',
@@ -583,7 +583,7 @@ export function FamilyMembersPage() {
                           </td>
 
                           {/* Actions */}
-                          <td className="py-4 pr-5">
+                          <td className="py-3 pr-5">
                             <div className="flex items-center gap-1 justify-end">
                               <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
                                 <button
