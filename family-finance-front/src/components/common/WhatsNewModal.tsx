@@ -18,7 +18,7 @@ export function WhatsNewModal({ isOpen, onClose }: WhatsNewModalProps) {
                     <span>Nima yangiliklar?</span>
                 </div>
             }
-            size="lg"
+            maxWidth="lg"
         >
             <div className="flex flex-col gap-8 py-2">
                 {changelogData.map((entry, index) => (
@@ -35,8 +35,8 @@ export function WhatsNewModal({ isOpen, onClose }: WhatsNewModalProps) {
 
                             <div className="flex-1 space-y-4">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                                    <h3 className="text-lg font-bold">v{entry.version} \u2014 {entry.title}</h3>
-                                    <span className="text-sm font-medium text-base-content/50 px-2 py-0.5 rounded-full bg-base-200 w-fit">
+                                    <h3 className="text-lg font-bold">v{entry.version} &mdash; {entry.title}</h3>
+                                    <span className="shrink-0 whitespace-nowrap text-sm font-medium text-base-content/50 px-2.5 py-0.5 rounded-full bg-base-200">
                                         {entry.date}
                                     </span>
                                 </div>

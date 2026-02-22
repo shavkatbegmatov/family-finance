@@ -8,8 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.1',
+        date: '2026-02-22 12:45',
+        title: "Daraxtda yuklanish holati va UX yaxshilanishlari",
+        features: [
+            'Shajarada ma\'lumotlar tarmoqlangan tugunlarni ochishda endi qotib qolish o\'rniga professional aylanuvchi yuklanish (Loading indicator) belgisi ko\'rinadigan bo\'ldi.'
+        ],
+        fixes: []
+    },
+    {
         version: '1.2.0',
-        date: '2026-02-22',
+        date: '2026-02-22 10:30',
         title: 'Oilaviy guruhlar va tizimli o\'zgarishlar',
         features: [
             'Yangi "Oilaviy guruhlar" (Family Groups) tizimi qo\'shildi. Endi siz oila a\'zolaringizni guruhga taklif qilishingiz va ularga Administrator yoki Foydalanuvchi huquqlarini berishingiz mumkin.',
