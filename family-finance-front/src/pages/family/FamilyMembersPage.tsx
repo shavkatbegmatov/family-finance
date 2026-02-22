@@ -68,14 +68,14 @@ export function FamilyMembersPage() {
     const el = tableContainerRef.current;
     if (!el) return;
 
-    // el.clientHeight bu - jadval joylashgan aniq konteyner balandligi.
-    // CSS flex-1 orqali uning o'lchami ekranning bo'sh qolgan qismiga qarab aniq hisoblangan.
-    // Thead uchun kamida 50px va yana ~30px xavfsizlik chegarasi ayiramiz.
-    const availableHeight = el.clientHeight - 80;
+    // el.clientHeight bu jadval scroll konteynerining qat'iy balandligi.
+    // Thead uchun 44px (1px border bilan) ajratamiz deylik.
+    const availableHeight = el.clientHeight - 44;
     if (availableHeight <= 0) return;
 
-    // Har bir qator taxminan 52px, lekin biz 64px deb hisoblaymiz (chegaralar, matn ko'chmasligi kafolati)
-    const rows = Math.max(5, Math.floor(availableHeight / 64));
+    // Har bir qator endi whitespace-nowrap bo'lgani uchun aniq 52px atrofida.
+    // Ehtiyot sharti bilan 52.5 ga bo'lamiz
+    const rows = Math.max(5, Math.floor(availableHeight / 52.5));
 
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
