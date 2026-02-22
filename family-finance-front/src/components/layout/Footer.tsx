@@ -56,7 +56,9 @@ export function Footer() {
               <ExternalLink className="h-2.5 w-2.5" />
             </a>
             <a
-              href="#"
+              href="mailto:support@familyfinance.uz"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-md px-2 py-1 text-[11px] text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
             >
               Qo'llab-quvvatlash
