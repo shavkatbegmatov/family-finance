@@ -110,24 +110,7 @@ export function FamilyMembersPage() {
 
   // ==================== MODAL ====================
 
-  const handleOpenAddModal = () => {
-    setEditingMember(null);
-    setForm({
-      firstName: '',
-      role: 'OTHER',
-      gender: undefined,
-      phone: '',
-      birthDate: '',
-      avatar: '',
-      createAccount: false,
-      accountPassword: '',
-      accountRole: 'MEMBER',
-    });
-    setShowAccountPassword(false);
-    setShowModal(true);
-  };
-
-  const handleOpenEditModal = (member: FamilyMember) => {
+    const handleOpenEditModal = (member: FamilyMember) => {
     setEditingMember(member);
     setForm({
       firstName: member.firstName,
@@ -139,7 +122,11 @@ export function FamilyMembersPage() {
       birthDate: member.birthDate || '',
       avatar: member.avatar || '',
       userId: member.userId,
+      createAccount: false,
+      accountPassword: '',
+      accountRole: 'MEMBER',
     });
+    setShowAccountPassword(false);
     setShowModal(true);
   };
 
@@ -153,12 +140,10 @@ export function FamilyMembersPage() {
     setSubmitting(true);
     try {
       if (editingMember) {
-        await familyMembersApi.update(editingMember.id, form);
-      } else {
-        const res = await familyMembersApi.create(form);
-        const created = res.data.data as FamilyMember;
-        if (created.credentials) {
-          setCredentialsInfo(created.credentials);
+        const res = await familyMembersApi.update(editingMember.id, form);
+        const updated = res.data.data as FamilyMember;
+        if (updated.credentials) {
+          setCredentialsInfo(updated.credentials);
         }
       }
       handleCloseModal();
@@ -273,12 +258,7 @@ export function FamilyMembersPage() {
               loading={loading}
             />
           </PermissionGate>
-          <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
-            <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal}>
-              <Plus className="h-4 w-4" />
-              Yangi a'zo
-            </button>
-          </PermissionGate>
+          
         </div>
       </div>
 
@@ -321,14 +301,7 @@ export function FamilyMembersPage() {
                   ? `"${searchQuery}" bo'yicha natijalar topilmadi`
                   : "Birinchi oila a'zosini qo'shing"}
               </p>
-              {!searchQuery && (
-                <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
-                  <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal}>
-                    <Plus className="h-4 w-4" />
-                    Yangi a'zo qo'shish
-                  </button>
-                </PermissionGate>
-              )}
+              
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -439,10 +412,10 @@ export function FamilyMembersPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold">
-                  {editingMember ? "A'zoni tahrirlash" : "Yangi a'zo"}
+                  "A'zoni tahrirlash"
                 </h3>
                 <p className="text-sm text-base-content/60">
-                  {editingMember ? "A'zo ma'lumotlarini yangilang" : "Yangi oila a'zosini kiriting"}
+                  "A'zo ma'lumotlarini yangilang"
                 </p>
               </div>
               <button className="btn btn-ghost btn-sm" onClick={handleCloseModal}>
@@ -517,7 +490,7 @@ export function FamilyMembersPage() {
               />
 
               {/* Create Account Section — faqat yangi a'zo uchun */}
-              {!editingMember && (
+              {(!editingMember?.userId || editingMember?.userId === null) && (
                 <div className="space-y-3">
                   <div className="form-control">
                     <label className="label cursor-pointer justify-start gap-3">
@@ -628,7 +601,7 @@ export function FamilyMembersPage() {
                 disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
               >
                 {submitting && <span className="loading loading-spinner loading-sm" />}
-                {editingMember ? 'Saqlash' : "Qo'shish"}
+                'Saqlash'
               </button>
             </div>
           </div>

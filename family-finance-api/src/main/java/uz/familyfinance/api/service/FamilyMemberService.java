@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ConflictException;
 import uz.familyfinance.api.dto.request.FamilyMemberRequest;
@@ -22,6 +23,7 @@ import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
+import uz.familyfinance.api.security.CustomUserDetails;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,27 +37,39 @@ public class FamilyMemberService {
     private final UserService userService;
 
     @Transactional
-    public Page<FamilyMemberResponse> getAll(String search, Pageable pageable) {
+    public Page<FamilyMemberResponse> getAll(String search, Pageable pageable, CustomUserDetails currentUser) {
         ensureSelfMemberActive();
+        Long familyGroupId = currentUser.getUser().getFamilyGroup() != null
+                ? currentUser.getUser().getFamilyGroup().getId()
+                : -1L;
+        boolean isAdmin = currentUser.isAdmin();
+
         if (search != null && !search.isBlank()) {
-            return familyMemberRepository.search(search, pageable).map(this::toResponse);
+            return familyMemberRepository.searchWithAccess(search, familyGroupId, isAdmin, pageable)
+                    .map(this::toResponse);
         }
-        return familyMemberRepository.findByIsActiveTrue(pageable).map(this::toResponse);
+        return familyMemberRepository.findAccessibleMembers(familyGroupId, isAdmin, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<FamilyMemberResponse> getAllActive() {
-        return familyMemberRepository.findByIsActiveTrue().stream()
+    public List<FamilyMemberResponse> getAllActive(CustomUserDetails currentUser) {
+        Long familyGroupId = currentUser.getUser().getFamilyGroup() != null
+                ? currentUser.getUser().getFamilyGroup().getId()
+                : -1L;
+        boolean isAdmin = currentUser.isAdmin();
+        return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public FamilyMemberResponse getById(Long id) {
-        return toResponse(findById(id));
+    public FamilyMemberResponse getById(Long id, CustomUserDetails currentUser) {
+        FamilyMember member = findById(id);
+        checkAccess(member, currentUser);
+        return toResponse(member);
     }
 
     @Transactional
-    public FamilyMemberResponse create(FamilyMemberRequest request) {
+    public FamilyMemberResponse create(FamilyMemberRequest request, CustomUserDetails currentUser) {
         FamilyMember member = FamilyMember.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -80,7 +94,8 @@ public class FamilyMemberService {
         // Avtomatik user account yaratish
         if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
             String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
-                    ? request.getAccountRole() : "MEMBER";
+                    ? request.getAccountRole()
+                    : "MEMBER";
             CredentialsInfo credentials = userService.createUserForFamilyMember(
                     saved, roleCode, request.getAccountPassword());
             // Yaratilgan user'ni member'ga biriktirish
@@ -121,8 +136,10 @@ public class FamilyMemberService {
         if (!candidates.isEmpty()) {
             FamilyMember existing = candidates.get(0);
             existing.setUser(currentUser);
-            if (parsedLastName != null) existing.setLastName(parsedLastName);
-            if (request.getMiddleName() != null) existing.setMiddleName(request.getMiddleName());
+            if (parsedLastName != null)
+                existing.setLastName(parsedLastName);
+            if (request.getMiddleName() != null)
+                existing.setMiddleName(request.getMiddleName());
             FamilyMember saved = familyMemberRepository.save(existing);
             currentUser.setFullName(saved.getDisplayName());
             userRepository.save(currentUser);
@@ -152,8 +169,10 @@ public class FamilyMemberService {
     }
 
     @Transactional
-    public FamilyMemberResponse update(Long id, FamilyMemberRequest request) {
+    public FamilyMemberResponse update(Long id, FamilyMemberRequest request, CustomUserDetails currentUser) {
         FamilyMember member = findById(id);
+        checkAccess(member, currentUser);
+
         member.setFirstName(request.getFirstName());
         member.setLastName(request.getLastName());
         member.setMiddleName(request.getMiddleName());
@@ -183,7 +202,8 @@ public class FamilyMemberService {
         // Akkaunt yaratish (update orqali ham)
         if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
             String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
-                    ? request.getAccountRole() : "MEMBER";
+                    ? request.getAccountRole()
+                    : "MEMBER";
             CredentialsInfo credentials = userService.createUserForFamilyMember(
                     saved, roleCode, request.getAccountPassword());
             User createdUser = userRepository.findByUsername(credentials.getUsername())
@@ -231,14 +251,15 @@ public class FamilyMemberService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, CustomUserDetails currentUser) {
         FamilyMember member = findById(id);
+        checkAccess(member, currentUser);
 
         // O'z-o'zini o'chirishdan himoya
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(username).orElse(null);
-        if (currentUser != null && member.getUser() != null
-                && member.getUser().getId().equals(currentUser.getId())) {
+        User currentUserEntity = userRepository.findByUsername(username).orElse(null);
+        if (currentUserEntity != null && member.getUser() != null
+                && member.getUser().getId().equals(currentUserEntity.getId())) {
             throw new BadRequestException("O'zingizning profilingizni o'chirib bo'lmaydi");
         }
 
@@ -247,8 +268,26 @@ public class FamilyMemberService {
     }
 
     @Transactional(readOnly = true)
-    public List<FamilyMember> getAllEntities() {
-        return familyMemberRepository.findByIsActiveTrue();
+    public List<FamilyMember> getAllEntities(CustomUserDetails currentUser) {
+        Long familyGroupId = currentUser.getUser().getFamilyGroup() != null
+                ? currentUser.getUser().getFamilyGroup().getId()
+                : -1L;
+        boolean isAdmin = currentUser.isAdmin();
+        return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin);
+    }
+
+    private void checkAccess(FamilyMember member, CustomUserDetails currentUser) {
+        if (currentUser.isAdmin())
+            return;
+        if (member.getFamilyGroup() == null)
+            return;
+        if (currentUser.getUser().getFamilyGroup() == null)
+            return;
+
+        if (!member.getFamilyGroup().getId().equals(currentUser.getUser().getFamilyGroup().getId())) {
+            throw new AccessDeniedException(
+                    "Siz ushbu oila a'zosini ko'rish yoki tahrirlash huquqiga ega emassiz.");
+        }
     }
 
     /**
@@ -266,7 +305,8 @@ public class FamilyMemberService {
         try {
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
             User currentUser = userRepository.findByUsername(username).orElse(null);
-            if (currentUser == null) return;
+            if (currentUser == null)
+                return;
 
             familyMemberRepository.findByUserId(currentUser.getId()).ifPresent(member -> {
                 if (Boolean.FALSE.equals(member.getIsActive())) {

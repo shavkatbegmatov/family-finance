@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.2',
+        date: '2026-02-22 14:34',
+        title: "Xavfsizlik va ma'lumotlar butunligi",
+        features: [
+            "Foydalanuvchi hisobini yaratish funksiyasi endi a'zoni tahrirlash (Edit Member) darchasiga ko'chirildi."
+        ],
+        fixes: [
+            "Oila a'zolari ro'yxatidan 'Yangi a'zo' qo'shish tugmasi olib tashlanib, etim (shajaraga ulanmagan) ma'lumotlar tug'ilishi mutlaq to'xtatildi.",
+            "Backend tizimida Oila guruhlari (FamilyGroup) bo'yicha qat'iy ma'lumotlar xavfsizligi o'rnatildi, barcha so'rovlar chegaralandi."
+        ]
+    },
+    {
         version: '1.2.1',
         date: '2026-02-22 12:45',
         title: "Daraxtda yuklanish holati va UX yaxshilanishlari",

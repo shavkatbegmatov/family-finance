@@ -36,4 +36,29 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
                      @Param("gender") Gender gender);
 
        List<FamilyMember> findByFamilyGroupId(Long familyGroupId);
+
+       @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
+                     "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId) AND " +
+                     "(LOWER(fm.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "LOWER(fm.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "LOWER(fm.middleName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "LOWER(fm.phone) LIKE LOWER(CONCAT('%', :search, '%')))")
+       Page<FamilyMember> searchWithAccess(
+                     @Param("search") String search,
+                     @Param("familyGroupId") Long familyGroupId,
+                     @Param("isAdmin") boolean isAdmin,
+                     Pageable pageable);
+
+       @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
+                     "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId)")
+       Page<FamilyMember> findAccessibleMembers(
+                     @Param("familyGroupId") Long familyGroupId,
+                     @Param("isAdmin") boolean isAdmin,
+                     Pageable pageable);
+
+       @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
+                     "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId)")
+       List<FamilyMember> findAccessibleActiveMembers(
+                     @Param("familyGroupId") Long familyGroupId,
+                     @Param("isAdmin") boolean isAdmin);
 }

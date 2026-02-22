@@ -19,6 +19,8 @@ import uz.familyfinance.api.security.RequiresPermission;
 import uz.familyfinance.api.service.FamilyMemberService;
 import uz.familyfinance.api.service.export.GenericExportService;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import uz.familyfinance.api.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
@@ -36,28 +38,32 @@ public class FamilyMemberController {
     public ResponseEntity<ApiResponse<PagedResponse<FamilyMemberResponse>>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         Page<FamilyMemberResponse> result = familyMemberService.getAll(search,
-                PageRequest.of(page, size, Sort.by("createdAt").descending()));
+                PageRequest.of(page, size, Sort.by("createdAt").descending()), currentUser);
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
     }
 
     @GetMapping("/list")
     @RequiresPermission(PermissionCode.FAMILY_VIEW)
-    public ResponseEntity<ApiResponse<List<FamilyMemberResponse>>> getAllActive() {
-        return ResponseEntity.ok(ApiResponse.success(familyMemberService.getAllActive()));
+    public ResponseEntity<ApiResponse<List<FamilyMemberResponse>>> getAllActive(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.getAllActive(currentUser)));
     }
 
     @GetMapping("/{id}")
     @RequiresPermission(PermissionCode.FAMILY_VIEW)
-    public ResponseEntity<ApiResponse<FamilyMemberResponse>> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.success(familyMemberService.getById(id)));
+    public ResponseEntity<ApiResponse<FamilyMemberResponse>> getById(@PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.getById(id, currentUser)));
     }
 
     @PostMapping
     @RequiresPermission(PermissionCode.FAMILY_CREATE)
-    public ResponseEntity<ApiResponse<FamilyMemberResponse>> create(@Valid @RequestBody FamilyMemberRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(familyMemberService.create(request)));
+    public ResponseEntity<ApiResponse<FamilyMemberResponse>> create(@Valid @RequestBody FamilyMemberRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.create(request, currentUser)));
     }
 
     @PostMapping("/register-self")
@@ -75,21 +81,23 @@ public class FamilyMemberController {
     @PutMapping("/{id}")
     @RequiresPermission(PermissionCode.FAMILY_UPDATE)
     public ResponseEntity<ApiResponse<FamilyMemberResponse>> update(@PathVariable Long id,
-            @Valid @RequestBody FamilyMemberRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(familyMemberService.update(id, request)));
+            @Valid @RequestBody FamilyMemberRequest request, @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.update(id, request, currentUser)));
     }
 
     @DeleteMapping("/{id}")
     @RequiresPermission(PermissionCode.FAMILY_DELETE)
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        familyMemberService.delete(id);
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        familyMemberService.delete(id, currentUser);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @GetMapping("/export/excel")
     @RequiresPermission(PermissionCode.FAMILY_EXPORT)
-    public void exportExcel(HttpServletResponse response) throws Exception {
-        List<FamilyMember> data = familyMemberService.getAllEntities();
+    public void exportExcel(HttpServletResponse response, @AuthenticationPrincipal CustomUserDetails currentUser)
+            throws Exception {
+        List<FamilyMember> data = familyMemberService.getAllEntities(currentUser);
         ByteArrayOutputStream out = exportService.export(data, FamilyMember.class,
                 GenericExportService.ExportFormat.EXCEL, "Oila a'zolari");
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -99,8 +107,9 @@ public class FamilyMemberController {
 
     @GetMapping("/export/pdf")
     @RequiresPermission(PermissionCode.FAMILY_EXPORT)
-    public void exportPdf(HttpServletResponse response) throws Exception {
-        List<FamilyMember> data = familyMemberService.getAllEntities();
+    public void exportPdf(HttpServletResponse response, @AuthenticationPrincipal CustomUserDetails currentUser)
+            throws Exception {
+        List<FamilyMember> data = familyMemberService.getAllEntities(currentUser);
         ByteArrayOutputStream out = exportService.export(data, FamilyMember.class,
                 GenericExportService.ExportFormat.PDF, "Oila a'zolari");
         response.setContentType("application/pdf");
