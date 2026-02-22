@@ -49,10 +49,43 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
             currentLevel = nextLevel;
         }
 
+        // Pre-process topological genders to prevent relatives-tree crash on same-gender marriages (or data entry errors)
+        const topologicalGenders = new Map<number, Gender>();
+        persons.forEach(p => topologicalGenders.set(p.id, p.gender === 'FEMALE' ? 'female' as Gender : 'male' as Gender));
+
+        // Force root to be male for deterministic Left-Right visual ordering
+        topologicalGenders.set(rootPersonId, 'male' as Gender);
+
+        // Resolve same-gender couples by flipping one topologically
+        let madeChanges = true;
+        let loops = 0;
+        while (madeChanges && loops < 10) {
+            madeChanges = false;
+            loops++;
+            familyUnits.forEach(fu => {
+                if (fu.partners.length >= 2) {
+                    const primary = fu.partners[0].personId;
+                    for (let i = 1; i < fu.partners.length; i++) {
+                        const sec = fu.partners[i].personId;
+                        if (topologicalGenders.get(primary) === topologicalGenders.get(sec)) {
+                            // Give secondary partner the opposite gender
+                            const opp = topologicalGenders.get(primary) === 'male' ? 'female' as Gender : 'male' as Gender;
+                            if (sec !== rootPersonId) {
+                                topologicalGenders.set(sec, opp);
+                            } else {
+                                topologicalGenders.set(primary, opp);
+                            }
+                            madeChanges = true;
+                        }
+                    }
+                }
+            });
+        }
+
         // 1. Transform TreeResponse to relatives-tree Node format
         const rtNodes: Node[] = persons.map((person) => {
             const id = String(person.id);
-            const gender = person.gender === 'FEMALE' ? 'female' as Gender : 'male' as Gender;
+            const gender = topologicalGenders.get(person.id) || ('male' as Gender);
 
             const parents: { id: string; type: RelType }[] = [];
             const children: { id: string; type: RelType }[] = [];
@@ -117,19 +150,11 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
             };
         });
 
-        // We must ensure the root node exists in our rtNodes
         const rootIdStr = String(rootPersonId);
         const rootIndex = rtNodes.findIndex((n) => n.id === rootIdStr);
         if (rootIndex === -1) {
             return { nodes: [], edges: [], isLayouting: false }; // Fallback
         }
-
-        // HACK: relatives-tree natively sorts couples left-to-right based EXCLUSIVELY on the root node's gender.
-        // If root is MALE, it sorts Male -> Female. If root is FEMALE, it sorts Female -> Male.
-        // To guarantee a deterministic visual order (Male always Left, Female always Right), we spoof
-        // the root node's topological gender as 'male' for the layout calculation. The visual components
-        // use the original person data, so this topology hack does not affect UI text or colors.
-        rtNodes[rootIndex] = { ...rtNodes[rootIndex], gender: 'male' as Gender };
 
         try {
             // 2. Calculate layout
