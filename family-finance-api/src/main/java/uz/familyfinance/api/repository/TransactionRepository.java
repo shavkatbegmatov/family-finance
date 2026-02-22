@@ -74,6 +74,30 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByOriginalTransactionId(Long originalTransactionId);
 
+    // Dashboard batch aggregate queries
+
+    @Query("SELECT t.type, extract(month from t.transactionDate), COALESCE(SUM(t.amount), 0) " +
+           "FROM Transaction t WHERE t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.type, extract(month from t.transactionDate)")
+    List<Object[]> sumByTypeGroupedByMonth(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.type = 'EXPENSE' AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.category.id")
+    List<Object[]> sumExpenseGroupedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.type = 'INCOME' AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.category.id")
+    List<Object[]> sumIncomeGroupedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.type = 'EXPENSE' AND t.category.id IN :categoryIds " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.category.id")
+    List<Object[]> sumExpenseByCategoryIds(@Param("categoryIds") List<Long> categoryIds,
+                                            @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     @Query("SELECT t FROM Transaction t WHERE " +
            "(t.debitAccount.id = :accountId OR t.creditAccount.id = :accountId OR t.account.id = :accountId) " +
            "ORDER BY t.transactionDate DESC")

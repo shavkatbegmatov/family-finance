@@ -124,19 +124,12 @@ public class User extends BaseEntity implements Auditable {
             map.put("familyGroupId", this.familyGroup.getId());
         }
 
-        // Include role names for audit trail
-        try {
-            if (this.roles != null && !this.roles.isEmpty()) {
-                map.put("roles", this.roles.stream()
-                        .map(RoleEntity::getName)
-                        .sorted()
-                        .toList());
-            } else {
-                map.put("roles", Collections.emptyList());
-            }
-        } catch (Exception e) {
-            // Lazy loading failed - roles not available
-            map.put("roles", Collections.emptyList());
+        // Include role names only if already loaded - avoid triggering lazy loading
+        if (this.roles != null && Hibernate.isInitialized(this.roles)) {
+            map.put("roles", this.roles.stream()
+                    .map(RoleEntity::getName)
+                    .sorted()
+                    .toList());
         }
 
         return map;

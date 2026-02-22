@@ -26,4 +26,7 @@ public interface AccountAccessRepository extends JpaRepository<AccountAccess, Lo
 
     @Query("SELECT aa.role FROM AccountAccess aa WHERE aa.account.id = :accountId AND aa.user.id = :userId")
     Optional<AccountAccessRole> findRoleByAccountIdAndUserId(@Param("accountId") Long accountId, @Param("userId") Long userId);
+
+    @Query("SELECT aa FROM AccountAccess aa WHERE aa.account.id IN :accountIds AND aa.user.id = :userId")
+    List<AccountAccess> findByAccountIdsAndUserId(@Param("accountIds") List<Long> accountIds, @Param("userId") Long userId);
 }

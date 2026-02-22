@@ -13,6 +13,7 @@ import uz.familyfinance.api.dto.response.AccountBalanceSummaryResponse;
 import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
 import uz.familyfinance.api.entity.Account;
+import uz.familyfinance.api.entity.AccountAccess;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.enums.AccountAccessRole;
 import uz.familyfinance.api.enums.AccountScope;
@@ -33,6 +34,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,16 +51,19 @@ public class AccountService {
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
             Pageable pageable, CustomUserDetails currentUser) {
-        return accountRepository.findAccessibleAccounts(
+        Page<Account> page = accountRepository.findAccessibleAccounts(
                 currentUser.getId(), currentUser.isAdmin(),
-                search, accountType, status, pageable).map(a -> toResponseWithAccessRole(a, currentUser.getId()));
+                search, accountType, status, pageable);
+        Map<Long, AccountAccessRole> roleMap = buildRoleMap(page.getContent(), currentUser.getId());
+        return page.map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()));
     }
 
     @Transactional(readOnly = true)
     public List<AccountResponse> getAllActive(CustomUserDetails currentUser) {
-        return accountRepository.findAccessibleActiveAccounts(currentUser.getId(), currentUser.isAdmin())
-                .stream()
-                .map(a -> toResponseWithAccessRole(a, currentUser.getId()))
+        List<Account> accounts = accountRepository.findAccessibleActiveAccounts(currentUser.getId(), currentUser.isAdmin());
+        Map<Long, AccountAccessRole> roleMap = buildRoleMap(accounts, currentUser.getId());
+        return accounts.stream()
+                .map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()))
                 .collect(Collectors.toList());
     }
 
@@ -170,8 +175,9 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getMyAccounts(Long userId, Pageable pageable) {
-        return accountRepository.findMyAccountsWithScope(userId, pageable)
-                .map(a -> toResponseWithAccessRole(a, userId));
+        Page<Account> page = accountRepository.findMyAccountsWithScope(userId, pageable);
+        Map<Long, AccountAccessRole> roleMap = buildRoleMap(page.getContent(), userId);
+        return page.map(a -> toResponseWithAccessRole(a, roleMap, userId));
     }
 
     @Transactional
@@ -287,6 +293,13 @@ public class AccountService {
     // Response mapping
     // -----------------------------------------------------------------------
 
+    private Map<Long, AccountAccessRole> buildRoleMap(List<Account> accounts, Long userId) {
+        if (accounts.isEmpty()) return Map.of();
+        List<Long> accountIds = accounts.stream().map(Account::getId).toList();
+        return accountAccessRepository.findByAccountIdsAndUserId(accountIds, userId).stream()
+                .collect(Collectors.toMap(aa -> aa.getAccount().getId(), AccountAccess::getRole));
+    }
+
     private String resolveAccessRole(Account account, Long userId) {
         if (account.getScope() == AccountScope.FAMILY) {
             return accountAccessRepository.findRoleByAccountIdAndUserId(account.getId(), userId)
@@ -296,6 +309,20 @@ public class AccountService {
         return accountAccessRepository.findRoleByAccountIdAndUserId(account.getId(), userId)
                 .map(Enum::name)
                 .orElse(null);
+    }
+
+    private String resolveAccessRoleFromMap(Account account, Map<Long, AccountAccessRole> roleMap) {
+        AccountAccessRole role = roleMap.get(account.getId());
+        if (account.getScope() == AccountScope.FAMILY) {
+            return role != null ? role.name() : "FAMILY_MEMBER";
+        }
+        return role != null ? role.name() : null;
+    }
+
+    private AccountResponse toResponseWithAccessRole(Account a, Map<Long, AccountAccessRole> roleMap, Long userId) {
+        AccountResponse r = toResponse(a);
+        r.setMyAccessRole(resolveAccessRoleFromMap(a, roleMap));
+        return r;
     }
 
     private AccountResponse toResponseWithAccessRole(Account a, Long userId) {

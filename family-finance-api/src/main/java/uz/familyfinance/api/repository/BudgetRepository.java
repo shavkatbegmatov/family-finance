@@ -15,7 +15,7 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     List<Budget> findByIsActiveTrue();
     Page<Budget> findByIsActiveTrue(Pageable pageable);
 
-    @Query("SELECT b FROM Budget b WHERE b.isActive = true AND " +
+    @Query("SELECT b FROM Budget b LEFT JOIN FETCH b.category WHERE b.isActive = true AND " +
            "b.startDate <= :date AND b.endDate >= :date")
     List<Budget> findActiveByDate(@Param("date") LocalDate date);
 

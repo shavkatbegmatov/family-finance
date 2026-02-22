@@ -3,6 +3,7 @@ package uz.familyfinance.api.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.Hibernate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.audit.AuditEntityListener;
@@ -73,8 +74,7 @@ public class RoleEntity extends BaseEntity implements Auditable {
         map.put("isSystem", this.isSystem);
         map.put("isActive", this.isActive);
 
-        // Include permission count but avoid lazy loading full collection
-        if (this.permissions != null) {
+        if (this.permissions != null && Hibernate.isInitialized(this.permissions)) {
             map.put("permissionCount", this.permissions.size());
         }
 

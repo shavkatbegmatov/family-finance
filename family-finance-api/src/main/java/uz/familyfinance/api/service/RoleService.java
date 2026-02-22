@@ -41,6 +41,7 @@ public class RoleService {
     /**
      * Get all active roles
      */
+    @Transactional(readOnly = true)
     public List<RoleResponse> getAllRoles() {
         return roleRepository.findByIsActiveTrueOrderByNameAsc().stream()
                 .map(RoleResponse::simpleFrom)
@@ -50,6 +51,7 @@ public class RoleService {
     /**
      * Get roles with pagination and search
      */
+    @Transactional(readOnly = true)
     public Page<RoleResponse> searchRoles(String search, Pageable pageable) {
         Page<RoleEntity> roles = (search != null && !search.isEmpty())
                 ? roleRepository.searchRoles(search, pageable)
@@ -72,6 +74,7 @@ public class RoleService {
     /**
      * Get role by ID with permissions and users
      */
+    @Transactional(readOnly = true)
     public RoleResponse getRoleById(Long id) {
         RoleEntity role = roleRepository.findByIdWithPermissionsAndUsers(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rol", "id", id));
@@ -82,6 +85,7 @@ public class RoleService {
     /**
      * Get role by code
      */
+    @Transactional(readOnly = true)
     public RoleResponse getRoleByCode(String code) {
         RoleEntity role = roleRepository.findByCodeWithPermissions(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Rol", "kod", code));
@@ -306,6 +310,7 @@ public class RoleService {
     /**
      * Get roles assigned to a user
      */
+    @Transactional(readOnly = true)
     public List<RoleResponse> getUserRoles(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi", "id", userId));

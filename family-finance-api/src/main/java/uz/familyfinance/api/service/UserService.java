@@ -380,6 +380,7 @@ public class UserService {
      * @param userId User ID
      * @return Set of role codes
      */
+    @Transactional(readOnly = true)
     public Set<String> getUserRoles(Long userId) {
         return userRepository.findById(userId)
                 .map(user -> user.getRoles().stream()

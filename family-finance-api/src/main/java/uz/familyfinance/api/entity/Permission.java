@@ -6,6 +6,8 @@ import lombok.*;
 import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.audit.AuditEntityListener;
 
+import org.hibernate.Hibernate;
+
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,8 +76,7 @@ public class Permission implements Auditable {
         map.put("action", this.action);
         map.put("description", this.description);
 
-        // Avoid lazy loading
-        if (this.roles != null) {
+        if (this.roles != null && Hibernate.isInitialized(this.roles)) {
             map.put("roleCount", this.roles.size());
         }
 

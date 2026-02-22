@@ -24,6 +24,7 @@ public class PermissionService {
     /**
      * Get all permissions grouped by module
      */
+    @Transactional(readOnly = true)
     public Map<String, List<PermissionResponse>> getAllPermissionsGrouped() {
         return permissionRepository.findAllOrderByModuleAndAction().stream()
                 .map(PermissionResponse::from)
@@ -33,6 +34,7 @@ public class PermissionService {
     /**
      * Get all permissions as flat list
      */
+    @Transactional(readOnly = true)
     public List<PermissionResponse> getAllPermissions() {
         return permissionRepository.findAllOrderByModuleAndAction().stream()
                 .map(PermissionResponse::from)
@@ -42,6 +44,7 @@ public class PermissionService {
     /**
      * Get all available modules
      */
+    @Transactional(readOnly = true)
     public List<String> getAllModules() {
         return permissionRepository.findAllModules();
     }
