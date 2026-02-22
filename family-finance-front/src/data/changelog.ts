@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.6',
+        date: '2026-02-22 23:21',
+        title: "Ro'yxat tabida Auto pagination optimizatsiyasi",
+        features: [
+            "Oila a'zolari sahifasidagi Ro'yxat tabida `Auto` pagination endi jadval uchun ajratilgan real oynaga mos ravishda qatorlar sonini avtomatik tanlaydi.",
+            "Jadval sarlavhasi va qator balandligi DOM'dan real vaqt rejimida o'lchanadi, shuning uchun turli ekran o'lchamlari va resize holatlarida natija barqaror."
+        ],
+        fixes: [
+            "Auto rejimda jadval ichida keraksiz vertikal scroll chiqib qolishi muammosi bartaraf etildi.",
+            "So'nggi qatordan keyin bo'sh joy qolib ketishi holati tuzatildi."
+        ]
+    },
+    {
         version: '1.2.5',
         date: '2026-02-22 15:47',
         title: "Oila a'zolari ro'yxati yangilandi",

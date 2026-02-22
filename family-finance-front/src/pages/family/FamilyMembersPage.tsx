@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Users,
@@ -43,6 +43,9 @@ import type {
   PagedResponse,
 } from '../../types';
 
+const AUTO_DEFAULT_HEADER_HEIGHT = 45;
+const AUTO_DEFAULT_ROW_HEIGHT = 61;
+
 export function FamilyMembersPage() {
   const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
@@ -51,48 +54,100 @@ export function FamilyMembersPage() {
   const [page, setPage] = useState(0);
   const [pageSizeMode, setPageSizeMode] = useState<'auto' | number>('auto');
   const [autoPageSize, setAutoPageSize] = useState(20);
+  const [autoViewportHeight, setAutoViewportHeight] = useState<number | null>(null);
   const [totalElements, setTotalElements] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Effective page size — auto rejimda hisoblangan, aks holda tanlangan
   const pageSize = pageSizeMode === 'auto' ? autoPageSize : pageSizeMode;
+  const previousPageSizeRef = useRef(pageSize);
 
   // Jadvalning aylanuvchi (scrollable) container'ini o'lchaymiz
+  const tableAreaRef = useRef<HTMLDivElement>(null);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tableHeadRef = useRef<HTMLTableSectionElement>(null);
+  const firstRowRef = useRef<HTMLTableRowElement | null>(null);
   // Oxirgi hisoblangan qiymat — cheksiz re-render jaro qilmaslik uchun
-  const lastCalcRef = useRef(0);
+  const lastCalcRef = useRef({ rows: 0, viewportHeight: 0 });
 
-  // Haqiqiy DOM konteynerining balandligidan qatorlar sonini hisoblash
+  // Haqiqiy DOM balandligidan qatorlar sonini hisoblash
   const recalcRows = useCallback(() => {
-    if (pageSizeMode !== 'auto') return;
-    const el = tableContainerRef.current;
-    if (!el) return;
+    if (pageSizeMode !== 'auto' || activeTab !== 'list') return;
 
-    // el.clientHeight bu jadval scroll konteynerining qat'iy balandligi.
-    // Thead uchun 45px (py-3 va 1px border) ajratamiz.
-    const availableHeight = el.clientHeight - 45;
+    const area = tableAreaRef.current;
+    if (!area) return;
+
+    const availableHeight = area.clientHeight;
     if (availableHeight <= 0) return;
 
-    // Qatorlar py-3 va 36px avatar bilan aniq 61px balandlikda.
-    // Ehtiyot sharti bilan 61.5 ga bo'lamiz
-    const rows = Math.max(5, Math.floor(availableHeight / 61.5));
+    const headerHeight = tableHeadRef.current?.getBoundingClientRect().height ?? AUTO_DEFAULT_HEADER_HEIGHT;
+    const rowHeight = firstRowRef.current?.getBoundingClientRect().height ?? AUTO_DEFAULT_ROW_HEIGHT;
+    if (headerHeight <= 0 || rowHeight <= 0) return;
 
-    if (rows !== lastCalcRef.current) {
-      lastCalcRef.current = rows;
+    const maxRowsByHeight = Math.floor((availableHeight - headerHeight + 0.5) / rowHeight);
+    const rows = Math.max(1, maxRowsByHeight);
+    const viewportHeight = Math.min(
+      availableHeight,
+      Math.round(headerHeight + rows * rowHeight)
+    );
+
+    if (
+      rows !== lastCalcRef.current.rows ||
+      Math.abs(viewportHeight - lastCalcRef.current.viewportHeight) > 0.5
+    ) {
+      lastCalcRef.current = { rows, viewportHeight };
       setAutoPageSize(rows);
+      setAutoViewportHeight(viewportHeight);
+    }
+  }, [activeTab, pageSizeMode]);
+
+  // Layout tayyor bo'lgandan keyin auto hisoblash
+  useLayoutEffect(() => {
+    if (pageSizeMode !== 'auto' || activeTab !== 'list') return;
+    const rafId = window.requestAnimationFrame(recalcRows);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [activeTab, pageSizeMode, loading, members.length, totalElements, recalcRows]);
+
+  // Jadval hududi balandligini kuzatish
+  useEffect(() => {
+    if (pageSizeMode !== 'auto' || activeTab !== 'list') return;
+    const area = tableAreaRef.current;
+    if (!area) return;
+
+    let rafId = 0;
+    const scheduleRecalc = () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(recalcRows);
+    };
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', scheduleRecalc);
+      scheduleRecalc();
+      return () => {
+        if (rafId) window.cancelAnimationFrame(rafId);
+        window.removeEventListener('resize', scheduleRecalc);
+      };
+    }
+
+    const resizeObserver = new ResizeObserver(scheduleRecalc);
+    resizeObserver.observe(area);
+
+    window.addEventListener('resize', scheduleRecalc);
+    scheduleRecalc();
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', scheduleRecalc);
+    };
+  }, [activeTab, pageSizeMode, recalcRows]);
+
+  useEffect(() => {
+    if (pageSizeMode !== 'auto') {
+      setAutoViewportHeight(null);
+      lastCalcRef.current = { rows: 0, viewportHeight: 0 };
     }
   }, [pageSizeMode]);
-
-  // Har renderdan keyin qayta hisoblash (loading tugaganda ham)
-  useEffect(() => {
-    recalcRows();
-  });
-
-  // Oyna o'lchamini kuzatish
-  useEffect(() => {
-    window.addEventListener('resize', recalcRows);
-    return () => window.removeEventListener('resize', recalcRows);
-  }, [recalcRows]);
 
 
   // Add/Edit modal
@@ -144,15 +199,23 @@ export function FamilyMembersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, searchQuery, pageSize]);
 
-  // pageSizeMode yoki autoPageSize o'zgarganda sahifani 0 ga qaytarish
-  useEffect(() => {
-    setPage(0);
-  }, [pageSizeMode, autoPageSize]);
+  // page size o'zgarganda joriy element atrofidagi sahifani saqlab qolish
+  useLayoutEffect(() => {
+    const previousPageSize = previousPageSizeRef.current;
+    if (previousPageSize === pageSize) return;
+
+    setPage((prevPage) => {
+      const firstVisibleItem = prevPage * previousPageSize;
+      return Math.floor(firstVisibleItem / pageSize);
+    });
+    previousPageSizeRef.current = pageSize;
+  }, [pageSize]);
 
   useEffect(() => {
     if (activeTab === 'list') {
       void loadMembers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // ==================== MODAL ====================
@@ -263,6 +326,10 @@ export function FamilyMembersPage() {
       default: return 'bg-gray-500';
     }
   };
+
+  const autoTableViewportStyle = pageSizeMode === 'auto' && autoViewportHeight
+    ? { height: `${autoViewportHeight}px` }
+    : undefined;
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3">
@@ -426,42 +493,54 @@ export function FamilyMembersPage() {
           ) : (
             <div className="flex-1 min-h-0 surface-card overflow-hidden flex flex-col">
               <div
-                ref={tableContainerRef}
-                className="flex-1 min-h-0 overflow-auto"
+                ref={tableAreaRef}
+                className="flex-1 min-h-0"
               >
-                <table className="table table-sm w-full relative whitespace-nowrap">
-                  <thead className="sticky top-0 z-10 bg-base-100 shadow-sm">
-                    <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
-                      <th className="pl-5 py-3 w-12 bg-base-100">#</th>
-                      <th className="py-3 bg-base-100">A'zo</th>
-                      <th className="py-3">Rol</th>
-                      <th className="py-3">Jinsi</th>
-                      <th className="py-3">Telefon</th>
-                      <th className="py-3">Yoshi</th>
-                      <th className="py-3">Holat</th>
-                      <th className="py-3 pr-5 text-right">Amallar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-base-200">
-                    {members.map((member, idx) => {
-                      const birthYear = member.birthDate
-                        ? new Date(member.birthDate).getFullYear()
-                        : null;
-                      const age = member.birthDate
-                        ? Math.floor(
-                          (Date.now() - new Date(member.birthDate).getTime()) /
-                          (365.25 * 24 * 60 * 60 * 1000)
-                        )
-                        : null;
+                <div
+                  ref={tableContainerRef}
+                  className={clsx(
+                    'min-h-0 overflow-auto',
+                    pageSizeMode === 'auto' && autoViewportHeight !== null ? '' : 'h-full'
+                  )}
+                  style={autoTableViewportStyle}
+                >
+                  <table className="table table-sm w-full relative whitespace-nowrap">
+                    <thead
+                      ref={tableHeadRef}
+                      className="sticky top-0 z-10 bg-base-100 shadow-sm"
+                    >
+                      <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
+                        <th className="pl-5 py-3 w-12 bg-base-100">#</th>
+                        <th className="py-3 bg-base-100">A'zo</th>
+                        <th className="py-3">Rol</th>
+                        <th className="py-3">Jinsi</th>
+                        <th className="py-3">Telefon</th>
+                        <th className="py-3">Yoshi</th>
+                        <th className="py-3">Holat</th>
+                        <th className="py-3 pr-5 text-right">Amallar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-base-200">
+                      {members.map((member, idx) => {
+                        const birthYear = member.birthDate
+                          ? new Date(member.birthDate).getFullYear()
+                          : null;
+                        const age = member.birthDate
+                          ? Math.floor(
+                            (Date.now() - new Date(member.birthDate).getTime()) /
+                            (365.25 * 24 * 60 * 60 * 1000)
+                          )
+                          : null;
 
-                      return (
-                        <tr
-                          key={member.id}
-                          className={clsx(
-                            'hover:bg-base-200/40 transition-colors',
-                            !member.isActive && 'opacity-50'
-                          )}
-                        >
+                        return (
+                          <tr
+                            ref={idx === 0 ? (node) => { firstRowRef.current = node; } : undefined}
+                            key={member.id}
+                            className={clsx(
+                              'hover:bg-base-200/40 transition-colors',
+                              !member.isActive && 'opacity-50'
+                            )}
+                          >
                           {/* Index */}
                           <td className="pl-5 py-3 text-sm text-base-content/30 font-mono">
                             {page * pageSize + idx + 1}
@@ -608,11 +687,12 @@ export function FamilyMembersPage() {
                               )}
                             </div>
                           </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Pagination */}
