@@ -70,11 +70,12 @@ export function FamilyMembersPage() {
 
     // el.clientHeight bu - jadval joylashgan aniq konteyner balandligi.
     // CSS flex-1 orqali uning o'lchami ekranning bo'sh qolgan qismiga qarab aniq hisoblangan.
-    // Faqat thead (jadval sarlavhasi ~40px) va ozgina padding ayirib qolganini bo'lish kifoya.
-    const availableHeight = el.clientHeight - 40; // 40px thead uchun
+    // Thead uchun kamida 50px va yana ~10px xavfsizlik chegarasi ayiramiz.
+    const availableHeight = el.clientHeight - 60;
     if (availableHeight <= 0) return;
 
-    const rows = Math.max(5, Math.floor(availableHeight / 52));
+    // Har bir qator taxminan 52px, lekin biz 56px deb hisoblaymiz (chegaralar, padding, margin xavfsizligi)
+    const rows = Math.max(5, Math.floor(availableHeight / 56));
 
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
