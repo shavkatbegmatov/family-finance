@@ -57,21 +57,25 @@ export function FamilyMembersPage() {
   // Effective page size — auto rejimda hisoblangan, aks holda tanlangan
   const pageSize = pageSizeMode === 'auto' ? autoPageSize : pageSizeMode;
 
-  const tableAnchorRef = useRef<HTMLDivElement>(null);
+  // Jadvalning aylanuvchi (scrollable) container'ini o'lchaymiz
+  const tableContainerRef = useRef<HTMLDivElement>(null);
   // Oxirgi hisoblangan qiymat — cheksiz re-render jaro qilmaslik uchun
   const lastCalcRef = useRef(0);
 
-  // Sentinel DOM pozitsiyasidan qatorlar sonini hisoblash
+  // Haqiqiy DOM konteynerining balandligidan qatorlar sonini hisoblash
   const recalcRows = useCallback(() => {
     if (pageSizeMode !== 'auto') return;
-    const el = tableAnchorRef.current;
+    const el = tableContainerRef.current;
     if (!el) return;
-    const top = el.getBoundingClientRect().top;
-    if (top <= 0) return; // hali render bo'lmagan
-    // Sentinel jadval boshida (thead ustida): top = jadval boshlanishi.
-    // Thead, pagination, footer va umumiy layout padding'lari uchun kamida ~300px joy qoldiramiz.
-    // Qator balandligini ehtiyot sharti bilan 54px deb olamiz (sub-pixel muammolarini oldini olish uchun)
-    const rows = Math.max(5, Math.floor((window.innerHeight - top - 300) / 54));
+
+    // el.clientHeight bu - jadval joylashgan aniq konteyner balandligi.
+    // CSS flex-1 orqali uning o'lchami ekranning bo'sh qolgan qismiga qarab aniq hisoblangan.
+    // Faqat thead (jadval sarlavhasi ~40px) va ozgina padding ayirib qolganini bo'lish kifoya.
+    const availableHeight = el.clientHeight - 40; // 40px thead uchun
+    if (availableHeight <= 0) return;
+
+    const rows = Math.max(5, Math.floor(availableHeight / 52));
+
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
       setAutoPageSize(rows);
@@ -260,7 +264,7 @@ export function FamilyMembersPage() {
   };
 
   return (
-    <div className={activeTab === 'tree' ? 'h-full min-h-0 flex flex-col gap-3' : 'space-y-3'}>
+    <div className="h-full min-h-0 flex flex-col gap-3">
       {/* Header + Tabs — bitta qatorda */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -403,12 +407,12 @@ export function FamilyMembersPage() {
 
           {/* Table */}
           {loading ? (
-            <div className="flex justify-center py-16">
+            <div className="flex-1 flex justify-center py-16">
               <span className="loading loading-spinner loading-lg text-primary"></span>
             </div>
           ) : members.length === 0 ? (
-            <div className="surface-card p-16 text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-base-200">
+            <div className="flex-1 surface-card p-16 flex flex-col items-center justify-center text-center">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-base-200">
                 <Users className="h-10 w-10 text-base-content/20" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Oila a'zolari topilmadi</h3>
@@ -419,15 +423,16 @@ export function FamilyMembersPage() {
               </p>
             </div>
           ) : (
-            <div className="surface-card overflow-hidden">
-              {/* Sentinel: tbody boshlanishini aniq o'lchaymiz — thead ichida */}
-              <div ref={tableAnchorRef} className="h-0" />
-              <div className="overflow-x-auto">
-                <table className="table table-sm w-full">
-                  <thead>
+            <div className="flex-1 min-h-0 surface-card overflow-hidden flex flex-col">
+              <div
+                ref={tableContainerRef}
+                className="flex-1 min-h-0 overflow-auto"
+              >
+                <table className="table table-sm w-full relative">
+                  <thead className="sticky top-0 z-10 bg-base-100 shadow-sm">
                     <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
-                      <th className="pl-5 py-3 w-12">#</th>
-                      <th className="py-3">A'zo</th>
+                      <th className="pl-5 py-3 w-12 bg-base-100">#</th>
+                      <th className="py-3 bg-base-100">A'zo</th>
                       <th className="py-3">Rol</th>
                       <th className="py-3">Jinsi</th>
                       <th className="py-3">Telefon</th>
