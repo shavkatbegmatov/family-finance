@@ -26,6 +26,29 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
         const isRootFemale = rootPerson?.gender === 'FEMALE';
         const sortDir = isRootFemale ? -1 : 1;
 
+        // Find all ancestors of root to prioritize their spouse links
+        // relatives-tree crashes if a non-bloodline spouse is evaluated first in the upward chain
+        const ancestors = new Set<number>();
+        let currentLevel = [rootPersonId];
+        while (currentLevel.length > 0) {
+            const nextLevel: number[] = [];
+            currentLevel.forEach(id => {
+                if (id !== undefined && !ancestors.has(id)) {
+                    ancestors.add(id);
+                    familyUnits.forEach(fu => {
+                        if (fu.children.some(c => c.personId === id)) {
+                            fu.partners.forEach(p => {
+                                if (validPersonIds.has(p.personId)) {
+                                    nextLevel.push(p.personId);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            currentLevel = nextLevel;
+        }
+
         // 1. Transform TreeResponse to relatives-tree Node format
         const rtNodes: Node[] = persons.map((person) => {
             const id = String(person.id);
@@ -73,7 +96,13 @@ export function useRelativesTreeLayout(treeData: TreeResponse | null) {
                 }
             });
 
-            spouses.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
+            spouses.sort((a, b) => {
+                const aIsAncestor = ancestors.has(Number(a.id));
+                const bIsAncestor = ancestors.has(Number(b.id));
+                if (aIsAncestor && !bIsAncestor) return -1;
+                if (!aIsAncestor && bIsAncestor) return 1;
+                return (Number(a.id) - Number(b.id)) * sortDir;
+            });
             children.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
             parents.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
             siblings.sort((a, b) => (Number(a.id) - Number(b.id)) * sortDir);
