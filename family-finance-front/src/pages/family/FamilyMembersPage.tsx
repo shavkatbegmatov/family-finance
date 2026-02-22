@@ -69,8 +69,8 @@ export function FamilyMembersPage() {
     const top = el.getBoundingClientRect().top;
     if (top <= 0) return; // hali render bo'lmagan
     // Sentinel jadval boshida (thead ustida): top = jadval boshlanishi.
-    // Thead taxminan 48px, va sahifa pastidagi padding uchun yana ~48px = Jami 96px buffer.
-    const rows = Math.max(5, Math.floor((window.innerHeight - top - 96) / 52));
+    // Thead (~40px) + Footer (~80px) + Page padding (~60px) + xavfsizlik = ~200px buffer.
+    const rows = Math.max(5, Math.floor((window.innerHeight - top - 200) / 52));
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
       setAutoPageSize(rows);
