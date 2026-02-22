@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Users,
@@ -57,24 +57,33 @@ export function FamilyMembersPage() {
   // Effective page size — auto rejimda hisoblangan, aks holda tanlangan
   const pageSize = pageSizeMode === 'auto' ? autoPageSize : pageSizeMode;
 
-  // Auto: sahifa balandligiga qarab qatorlar soni
+  // Jadval boshlanadigan joyni DOM'dan o'lchaymiz
+  const tableAnchorRef = useRef<HTMLDivElement>(null);
+
+  // Auto: jadval yuqorisidagi sentinel div'dan pastga qancha joy qolishini hisoblaymiz
   useEffect(() => {
     if (pageSizeMode !== 'auto') return;
 
-    const ROW_HEIGHT = 52;       // px — bir qator balandligi
-    const TOOLBAR_HEIGHT = 204;  // px — header + tabs + search bar + thead + pagination
+    const ROW_HEIGHT = 52;   // px — bir qator balandligi
+    const BOTTOM_PAD = 24;   // px — pastdan qoldirilgan bo'shliq
+    const THEAD_HEIGHT = 40; // px — jadval sarlavhasi
 
     const calculate = () => {
-      const vh = window.innerHeight;
-      const available = vh - TOOLBAR_HEIGHT;
+      const anchor = tableAnchorRef.current;
+      if (!anchor) return;
+      const top = anchor.getBoundingClientRect().top;
+      const available = window.innerHeight - top - THEAD_HEIGHT - BOTTOM_PAD;
       const rows = Math.max(5, Math.floor(available / ROW_HEIGHT));
       setAutoPageSize(rows);
-      setPage(0);
     };
 
-    calculate();
+    // Birinchi hisoblash — layout to'liq chizilgandan keyin
+    const rafId = requestAnimationFrame(calculate);
     window.addEventListener('resize', calculate);
-    return () => window.removeEventListener('resize', calculate);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', calculate);
+    };
   }, [pageSizeMode]);
 
 
@@ -382,6 +391,9 @@ export function FamilyMembersPage() {
               )}
             </div>
           </div>
+
+          {/* Sentinel: jadval qayerda boshlanishini o'lchaymiz */}
+          <div ref={tableAnchorRef} className="h-0" />
 
           {/* Table */}
           {loading ? (
