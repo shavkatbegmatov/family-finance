@@ -69,8 +69,9 @@ export function FamilyMembersPage() {
     const top = el.getBoundingClientRect().top;
     if (top <= 0) return; // hali render bo'lmagan
     // Sentinel jadval boshida (thead ustida): top = jadval boshlanishi.
-    // Thead, pagination, footer va umumiy layout padding'lari uchun kamida ~260px joy qoldiramiz
-    const rows = Math.max(5, Math.floor((window.innerHeight - top - 260) / 52));
+    // Thead, pagination, footer va umumiy layout padding'lari uchun kamida ~300px joy qoldiramiz.
+    // Qator balandligini ehtiyot sharti bilan 54px deb olamiz (sub-pixel muammolarini oldini olish uchun)
+    const rows = Math.max(5, Math.floor((window.innerHeight - top - 300) / 54));
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
       setAutoPageSize(rows);
