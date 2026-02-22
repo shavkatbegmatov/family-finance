@@ -70,12 +70,12 @@ export function FamilyMembersPage() {
 
     // el.clientHeight bu - jadval joylashgan aniq konteyner balandligi.
     // CSS flex-1 orqali uning o'lchami ekranning bo'sh qolgan qismiga qarab aniq hisoblangan.
-    // Thead uchun kamida 50px va yana ~10px xavfsizlik chegarasi ayiramiz.
-    const availableHeight = el.clientHeight - 60;
+    // Thead uchun kamida 50px va yana ~30px xavfsizlik chegarasi ayiramiz.
+    const availableHeight = el.clientHeight - 80;
     if (availableHeight <= 0) return;
 
-    // Har bir qator taxminan 52px, lekin biz 56px deb hisoblaymiz (chegaralar, padding, margin xavfsizligi)
-    const rows = Math.max(5, Math.floor(availableHeight / 56));
+    // Har bir qator taxminan 52px, lekin biz 64px deb hisoblaymiz (chegaralar, matn ko'chmasligi kafolati)
+    const rows = Math.max(5, Math.floor(availableHeight / 64));
 
     if (rows !== lastCalcRef.current) {
       lastCalcRef.current = rows;
@@ -429,7 +429,7 @@ export function FamilyMembersPage() {
                 ref={tableContainerRef}
                 className="flex-1 min-h-0 overflow-auto"
               >
-                <table className="table table-sm w-full relative">
+                <table className="table table-sm w-full relative whitespace-nowrap">
                   <thead className="sticky top-0 z-10 bg-base-100 shadow-sm">
                     <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
                       <th className="pl-5 py-3 w-12 bg-base-100">#</th>
