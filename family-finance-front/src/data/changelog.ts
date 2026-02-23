@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.7',
+        date: '2026-02-23 14:01',
+        title: "Oilaviy xo'jalik a'zolari kartasi layout barqarorligi",
+        features: [],
+        fixes: [
+            "Oilaviy xo'jalik boshqaruvi sahifasida telefoni yo'q a'zolar kartalarida ham telefon qatori uchun bo'sh joy saqlanadigan qilindi.",
+            "Natijada 'Daromad' va 'Xarajat' badge bloklari kartalar orasida yuqoriga/pastga siljimasdan bir xil tekislikda ko'rinadi."
+        ]
+    },
+    {
         version: '1.2.6',
         date: '2026-02-22 23:21',
         title: "Ro'yxat tabida Auto pagination optimizatsiyasi",

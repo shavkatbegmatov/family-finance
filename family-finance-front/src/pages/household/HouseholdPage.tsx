@@ -277,12 +277,14 @@ function MemberCard({ member, currentUserId }: { member: HouseholdMemberSummary;
         </div>
       </div>
 
-      {member.phone && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-base-content/60">
-          <Phone className="h-3.5 w-3.5" />
-          <span>{member.phone}</span>
-        </div>
-      )}
+      <div className="mt-3 min-h-4 text-xs text-base-content/60">
+        {member.phone && (
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5" />
+            <span>{member.phone}</span>
+          </div>
+        )}
+      </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-success/10 p-2 text-center">
