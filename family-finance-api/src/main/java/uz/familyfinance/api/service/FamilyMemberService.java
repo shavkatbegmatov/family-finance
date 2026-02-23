@@ -89,6 +89,11 @@ public class FamilyMemberService {
             member.setUser(user);
         }
 
+        // FamilyGroup o'rnatish (sidebar bug fix)
+        if (currentUser.getUser().getFamilyGroup() != null) {
+            member.setFamilyGroup(currentUser.getUser().getFamilyGroup());
+        }
+
         FamilyMember saved = familyMemberRepository.save(member);
 
         // Avtomatik user account yaratish
@@ -140,6 +145,9 @@ public class FamilyMemberService {
                 existing.setLastName(parsedLastName);
             if (request.getMiddleName() != null)
                 existing.setMiddleName(request.getMiddleName());
+            if (currentUser.getFamilyGroup() != null && existing.getFamilyGroup() == null) {
+                existing.setFamilyGroup(currentUser.getFamilyGroup());
+            }
             FamilyMember saved = familyMemberRepository.save(existing);
             currentUser.setFullName(saved.getDisplayName());
             userRepository.save(currentUser);
@@ -157,6 +165,7 @@ public class FamilyMemberService {
                 .gender(request.getGender())
                 .role(role)
                 .user(currentUser)
+                .familyGroup(currentUser.getFamilyGroup())
                 .build();
 
         FamilyMember saved = familyMemberRepository.save(member);

@@ -26,6 +26,7 @@ const NotificationsPage = lazy(() => import('../pages/notifications/Notification
 const RolesPage = lazy(() => import('../pages/roles/RolesPage').then(m => ({ default: m.RolesPage })));
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const AuditLogsPage = lazy(() => import('../pages/audit-logs/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
+const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then(m => ({ default: m.HouseholdPage })));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -131,6 +132,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: "Oila a'zolari" },
+      },
+      {
+        path: 'my-family',
+        element: (
+          <ProtectedRoute permission={PermissionCode.FAMILY_VIEW}>
+            <LazyRoute><HouseholdPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Mening oilam' },
       },
       {
         path: 'reports',

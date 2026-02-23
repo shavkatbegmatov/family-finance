@@ -94,4 +94,9 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                      "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
        List<Account> findAccessibleActiveAccounts(@Param("userId") Long userId,
                      @Param("isAdmin") boolean isAdmin);
+
+       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner " +
+                     "WHERE a.familyGroup.id = :familyGroupId AND a.scope = 'FAMILY' " +
+                     "AND a.status = 'ACTIVE' AND a.isActive = true")
+       List<Account> findFamilyAccountsByGroupId(@Param("familyGroupId") Long familyGroupId);
 }

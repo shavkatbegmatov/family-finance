@@ -10,7 +10,10 @@ import jakarta.validation.Valid;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupAddMemberRequest;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupResponse;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.dto.response.HouseholdDashboardResponse;
+import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.CustomUserDetails;
+import uz.familyfinance.api.security.RequiresPermission;
 import uz.familyfinance.api.service.FamilyGroupService;
 
 @RestController
@@ -44,5 +47,13 @@ public class FamilyGroupController {
             @PathVariable Long memberId) {
         familyGroupService.removeMember(currentUser.getId(), memberId);
         return ResponseEntity.ok(ApiResponse.success("A'zo guruhdan chiqarildi"));
+    }
+
+    @GetMapping("/my/dashboard")
+    @Operation(summary = "Xonadon dashboard", description = "Oila guruhining to'liq dashboard ma'lumotlarini qaytaradi")
+    @RequiresPermission(PermissionCode.FAMILY_VIEW)
+    public ResponseEntity<ApiResponse<HouseholdDashboardResponse>> getHouseholdDashboard(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyGroupService.getHouseholdDashboard(currentUser)));
     }
 }

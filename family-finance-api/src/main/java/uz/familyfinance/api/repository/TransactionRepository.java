@@ -118,4 +118,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     BigDecimal sumCreditTurnover(@Param("accountId") Long accountId,
                                   @Param("fromDate") LocalDateTime fromDate,
                                   @Param("toDate") LocalDateTime toDate);
+
+    @Query("SELECT t.familyMember.id, t.type, COALESCE(SUM(t.amount), 0) " +
+           "FROM Transaction t " +
+           "WHERE t.familyMember.id IN :memberIds " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.familyMember.id, t.type")
+    List<Object[]> sumByMemberIdsGroupedByType(@Param("memberIds") List<Long> memberIds,
+                                                @Param("from") LocalDateTime from,
+                                                @Param("to") LocalDateTime to);
 }
