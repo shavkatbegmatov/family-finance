@@ -8,6 +8,22 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.2.9',
+        date: '2026-02-25 18:00',
+        title: "Admin panel: Foydalanuvchilarni boshqarish sahifasi",
+        features: [
+            "Yangi \"Foydalanuvchilar\" admin sahifasi qo'shildi — barcha foydalanuvchilarni ro'yxatda ko'rish, qidirish va filtr qilish imkoniyati.",
+            "Har bir foydalanuvchini tahrirlash (ism, email, telefon), parolini tiklash, faollashtirish/o'chirish mumkin.",
+            "Foydalanuvchiga rol biriktirish va olib tashlash funksiyasi qo'shildi.",
+            "Foydalanuvchilar ro'yxatini Excel va PDF formatida eksport qilish imkoniyati.",
+            "Barcha amallar permission (ruxsat) tizimi orqali himoyalangan."
+        ],
+        fixes: [
+            "FamilyGroupSettings sahifasidagi TypeScript `any` tiplari to'g'ri tiplar bilan almashtirildi.",
+            "ESLint CI tekshiruvida chiqayotgan xatoliklar bartaraf etildi."
+        ]
+    },
+    {
         version: '1.2.8',
         date: '2026-02-24 12:00',
         title: "Xo'jalik sahifasida a'zolarni boshqarish",
