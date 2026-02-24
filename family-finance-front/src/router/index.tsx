@@ -26,6 +26,7 @@ const NotificationsPage = lazy(() => import('../pages/notifications/Notification
 const RolesPage = lazy(() => import('../pages/roles/RolesPage').then(m => ({ default: m.RolesPage })));
 const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const AuditLogsPage = lazy(() => import('../pages/audit-logs/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
+const UsersPage = lazy(() => import('../pages/users/UsersPage').then(m => ({ default: m.UsersPage })));
 const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then(m => ({ default: m.HouseholdPage })));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
@@ -177,6 +178,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: 'Bildirishnomalar' },
+      },
+      {
+        path: 'users',
+        element: (
+          <ProtectedRoute permission={PermissionCode.USERS_VIEW}>
+            <LazyRoute><UsersPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Foydalanuvchilar' },
       },
       {
         path: 'audit-logs',

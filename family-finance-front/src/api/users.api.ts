@@ -1,5 +1,6 @@
 import api from './axios';
-import type { ApiResponse, PagedResponse } from '../types';
+import type { ApiResponse, CredentialsInfo, PagedResponse } from '../types';
+import { createExportApi } from './export.utils';
 
 export interface UserActivity {
   id: number;
@@ -15,7 +16,89 @@ export interface UserActivity {
   timestamp: string;
 }
 
+export interface UserDetail {
+  id: number;
+  username: string;
+  fullName: string;
+  email?: string;
+  phone?: string;
+  active: boolean;
+  mustChangePassword?: boolean;
+  passwordChangedAt?: string;
+  rolesText?: string;
+  roleDetails?: { id: number; name: string; code: string }[];
+  createdByUsername?: string;
+  familyGroupName?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface UserFilters {
+  page?: number;
+  size?: number;
+  search?: string;
+  active?: boolean;
+}
+
+export interface UpdateUserRequest {
+  fullName: string;
+  email?: string;
+  phone?: string;
+}
+
 export const usersApi = {
+  /**
+   * Search users with pagination and filters
+   */
+  search: async (filters: UserFilters = {}): Promise<PagedResponse<UserDetail>> => {
+    const params = new URLSearchParams();
+    if (filters.page !== undefined) params.append('page', filters.page.toString());
+    if (filters.size !== undefined) params.append('size', filters.size.toString());
+    if (filters.search) params.append('search', filters.search);
+    if (filters.active !== undefined) params.append('active', filters.active.toString());
+
+    const response = await api.get<ApiResponse<PagedResponse<UserDetail>>>(`/v1/users/search?${params}`);
+    return response.data.data;
+  },
+
+  /**
+   * Get user details by ID
+   */
+  getById: async (id: number): Promise<UserDetail> => {
+    const response = await api.get<ApiResponse<UserDetail>>(`/v1/users/${id}`);
+    return response.data.data;
+  },
+
+  /**
+   * Update user details
+   */
+  update: async (id: number, data: UpdateUserRequest): Promise<UserDetail> => {
+    const response = await api.put<ApiResponse<UserDetail>>(`/v1/users/${id}`, data);
+    return response.data.data;
+  },
+
+  /**
+   * Reset user password (admin action)
+   */
+  resetPassword: async (id: number): Promise<CredentialsInfo> => {
+    const response = await api.put<ApiResponse<CredentialsInfo>>(`/v1/users/${id}/reset-password`);
+    return response.data.data;
+  },
+
+  /**
+   * Deactivate user account
+   */
+  deactivate: async (id: number): Promise<void> => {
+    await api.put(`/v1/users/${id}/deactivate`);
+  },
+
+  /**
+   * Activate user account
+   */
+  activate: async (id: number): Promise<void> => {
+    await api.put(`/v1/users/${id}/activate`);
+  },
+
   /**
    * Get user activity history with pagination and filters
    */
@@ -83,4 +166,7 @@ export const usersApi = {
     link.click();
     window.URL.revokeObjectURL(url);
   },
+
+  // Export functionality
+  export: createExportApi('/v1/users'),
 };

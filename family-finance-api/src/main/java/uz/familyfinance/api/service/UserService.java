@@ -2,11 +2,15 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uz.familyfinance.api.dto.request.UpdateUserRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
+import uz.familyfinance.api.dto.response.UserDetailResponse;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.RoleEntity;
 import uz.familyfinance.api.entity.User;
@@ -387,6 +391,67 @@ public class UserService {
                         .map(RoleEntity::getCode)
                         .collect(Collectors.toSet()))
                 .orElse(Collections.emptySet());
+    }
+
+    /**
+     * Search users with pagination, optional search text and active filter.
+     */
+    @Transactional(readOnly = true)
+    public Page<UserDetailResponse> searchUsers(String search, Boolean active, Pageable pageable) {
+        Page<User> users;
+
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasActiveFilter = active != null;
+
+        if (hasSearch && hasActiveFilter) {
+            users = userRepository.searchUsersByActive(search.trim(), active, pageable);
+        } else if (hasSearch) {
+            users = userRepository.searchUsers(search.trim(), pageable);
+        } else if (hasActiveFilter) {
+            users = userRepository.findByActive(active, pageable);
+        } else {
+            users = userRepository.findAll(pageable);
+        }
+
+        return users.map(UserDetailResponse::simpleFrom);
+    }
+
+    /**
+     * Get user details by ID (with roles, createdBy, familyGroup eager loaded).
+     */
+    @Transactional(readOnly = true)
+    public UserDetailResponse getUserDetails(Long userId) {
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+        return UserDetailResponse.from(user);
+    }
+
+    /**
+     * Update user profile details (fullName, email, phone).
+     */
+    @Transactional
+    public UserDetailResponse updateUser(Long userId, UpdateUserRequest request) {
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
+        userRepository.save(user);
+
+        User currentUser = getCurrentUser();
+        auditLogService.log(
+                "User",
+                userId,
+                "USER_UPDATED",
+                null,
+                String.format("Foydalanuvchi yangilandi: %s", user.getUsername()),
+                currentUser != null ? currentUser.getId() : null
+        );
+
+        log.info("User updated: {}", user.getUsername());
+
+        return UserDetailResponse.from(user);
     }
 
     private User getCurrentUser() {

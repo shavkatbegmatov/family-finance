@@ -14,6 +14,7 @@ import {
   Bell,
   Settings,
   UserCircle,
+  UserCog,
   X,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
@@ -41,6 +42,7 @@ const moreItems: NavItem[] = [
   { path: '/debts', icon: HandMetal, label: 'Qarzlar', permission: PermissionCode.DEBTS_VIEW },
   { path: '/family', icon: Users, label: "Oila a'zolari", permission: PermissionCode.FAMILY_VIEW },
   { path: '/notifications', icon: Bell, label: 'Bildirishnomalar', permission: PermissionCode.NOTIFICATIONS_VIEW },
+  { path: '/users', icon: UserCog, label: 'Foydalanuvchilar', permission: PermissionCode.USERS_VIEW },
   { path: '/settings', icon: Settings, label: 'Sozlamalar', permission: PermissionCode.SETTINGS_VIEW },
   { path: '/profile', icon: UserCircle, label: 'Profil', permission: '' },
 ];
