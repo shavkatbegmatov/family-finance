@@ -3,9 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Shield, UserPlus, Trash2, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { familyGroupApi } from '../../api/family-group.api';
+import type { FamilyGroupMemberDto, FamilyGroupResponse } from '../../api/family-group.api';
 import { TextInput } from '../../components/ui/TextInput';
 import { useAuthStore } from '../../store/authStore';
 import { ModalPortal } from '../../components/common/Modal';
+import type { ApiResponse } from '../../types';
 
 export function FamilyGroupSettings() {
     const queryClient = useQueryClient();
@@ -18,7 +20,7 @@ export function FamilyGroupSettings() {
         queryKey: ['myFamilyGroup'],
         queryFn: async () => {
             const res = await familyGroupApi.getMyGroup();
-            return (res.data as any).data;
+            return (res.data as unknown as ApiResponse<FamilyGroupResponse>).data;
         },
     });
 
@@ -30,7 +32,7 @@ export function FamilyGroupSettings() {
             setIsInviteModalOpen(false);
             setInviteUsername('');
         },
-        onError: (err: any) => {
+        onError: (err: { response?: { data?: { message?: string } } }) => {
             toast.error(err.response?.data?.message || 'Foydalanuvchini qo\'shishda xatolik');
         },
     });
@@ -41,7 +43,7 @@ export function FamilyGroupSettings() {
             toast.success('A\'zo guruhdan chiqarildi');
             queryClient.invalidateQueries({ queryKey: ['myFamilyGroup'] });
         },
-        onError: (err: any) => {
+        onError: (err: { response?: { data?: { message?: string } } }) => {
             toast.error(err.response?.data?.message || 'Foydalanuvchini o\'chirishda xatolik');
         },
     });
@@ -103,7 +105,7 @@ export function FamilyGroupSettings() {
                         </tr>
                     </thead>
                     <tbody>
-                        {groupData.members?.map((m: any) => {
+                        {groupData.members?.map((m: FamilyGroupMemberDto) => {
                             const isMemberAdmin = m.userId === groupData.adminId;
                             return (
                                 <tr key={m.id} className="hover">
