@@ -16,7 +16,9 @@ export const changelogData: ChangelogEntry[] = [
             "A'zo kartochkasiga hover qilganda qizil o'chirish tugmasi paydo bo'ladi (faqat admin uchun).",
             "O'chirishdan oldin tasdiqlash modali chiqadi — tasodifiy o'chirishning oldi olinadi.",
         ],
-        fixes: []
+        fixes: [
+            "A'zoni guruhdan o'chirishda \"Foydalanuvchi topilmadi\" xatoligi tuzatildi — backend endi FamilyMember ID bilan ishlaydi.",
+        ]
     },
     {
         version: '1.2.7',
