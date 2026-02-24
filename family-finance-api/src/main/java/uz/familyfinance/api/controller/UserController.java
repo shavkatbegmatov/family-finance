@@ -2,6 +2,7 @@ package uz.familyfinance.api.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -15,15 +16,18 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uz.familyfinance.api.dto.request.UpdateUserRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
-import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.UserActivityResponse;
+import uz.familyfinance.api.dto.response.UserDetailResponse;
 import uz.familyfinance.api.enums.PermissionCode;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.security.RequiresPermission;
 import uz.familyfinance.api.service.AuditLogService;
 import uz.familyfinance.api.service.UserService;
 import uz.familyfinance.api.service.export.ExcelExportService;
+import uz.familyfinance.api.service.export.GenericExportService;
 import uz.familyfinance.api.service.export.PdfExportService;
 
 import java.io.ByteArrayOutputStream;
@@ -45,6 +49,76 @@ public class UserController {
     private final AuditLogService auditLogService;
     private final ExcelExportService excelExportService;
     private final PdfExportService pdfExportService;
+    private final GenericExportService genericExportService;
+
+    @GetMapping("/search")
+    @Operation(summary = "Search users with pagination", description = "Foydalanuvchilarni qidirish va sahifalash")
+    @RequiresPermission(PermissionCode.USERS_VIEW)
+    public ResponseEntity<ApiResponse<Page<UserDetailResponse>>> searchUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(userService.searchUsers(search, active, pageable)));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get user details", description = "Foydalanuvchi tafsilotlarini olish")
+    @RequiresPermission(PermissionCode.USERS_VIEW)
+    public ResponseEntity<ApiResponse<UserDetailResponse>> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(userService.getUserDetails(id)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update user", description = "Foydalanuvchi ma'lumotlarini yangilash")
+    @RequiresPermission(PermissionCode.USERS_UPDATE)
+    public ResponseEntity<ApiResponse<UserDetailResponse>> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequest request
+    ) {
+        UserDetailResponse user = userService.updateUser(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Foydalanuvchi yangilandi", user));
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "Export users", description = "Foydalanuvchilarni eksport qilish")
+    @RequiresPermission(PermissionCode.REPORTS_EXPORT)
+    public ResponseEntity<Resource> exportUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(defaultValue = "excel") String format,
+            @RequestParam(defaultValue = "10000") int maxRecords
+    ) {
+        maxRecords = Math.min(maxRecords, 10000);
+        try {
+            Pageable pageable = Pageable.ofSize(maxRecords);
+            Page<UserDetailResponse> page = userService.searchUsers(search, active, pageable);
+
+            ByteArrayOutputStream output = genericExportService.export(
+                    page.getContent(),
+                    UserDetailResponse.class,
+                    GenericExportService.ExportFormat.valueOf(format.toUpperCase()),
+                    "Foydalanuvchilar Hisoboti"
+            );
+
+            String extension = format.equalsIgnoreCase("excel") ? "xlsx" : "pdf";
+            String contentType = format.equalsIgnoreCase("excel")
+                    ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    : "application/pdf";
+            String filename = "users_" + LocalDate.now() + "." + extension;
+
+            ByteArrayResource resource = new ByteArrayResource(output.toByteArray());
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .contentLength(resource.contentLength())
+                    .body(resource);
+
+        } catch (Exception e) {
+            throw new BadRequestException("Eksport xatoligi");
+        }
+    }
 
     @PutMapping("/{id}/reset-password")
     @Operation(summary = "Reset user password", description = "Foydalanuvchi parolini reset qilish (admin)")
