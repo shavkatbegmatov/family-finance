@@ -106,7 +106,7 @@ public class FamilyGroupService {
     }
 
     @Transactional
-    public void removeMember(Long adminUserId, Long memberUserId) {
+    public void removeMember(Long adminUserId, Long familyMemberId) {
         User admin = userRepository.findById(adminUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin topilmadi"));
 
@@ -115,36 +115,39 @@ public class FamilyGroupService {
             throw new IllegalArgumentException("Siz Oila guruhi admini emassiz");
         }
 
-        if (adminUserId.equals(memberUserId)) {
+        FamilyMember member = familyMemberRepository.findById(familyMemberId)
+                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi"));
+
+        if (member.getFamilyGroup() == null
+                || !member.getFamilyGroup().getId().equals(familyGroup.getId())) {
+            throw new IllegalArgumentException("Bu a'zo sizning oila guruhingizda emas");
+        }
+
+        User linkedUser = member.getUser();
+
+        // Admin o'zini o'chira olmaydi
+        if (linkedUser != null && linkedUser.getId().equals(adminUserId)) {
             throw new IllegalArgumentException("Siz o'zingizni guruhdan chiqarib yubora olmaysiz!");
         }
 
-        User userToRemove = userRepository.findById(memberUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+        if (linkedUser != null) {
+            // User'ga bog'langan a'zo -- yangi guruh yaratib ko'chirish
+            FamilyGroup newGroup = FamilyGroup.builder()
+                    .name(linkedUser.getFullName() + " Oilasi")
+                    .admin(linkedUser)
+                    .active(true)
+                    .build();
+            familyGroupRepository.save(newGroup);
 
-        if (userToRemove.getFamilyGroup() == null
-                || !userToRemove.getFamilyGroup().getId().equals(familyGroup.getId())) {
-            throw new IllegalArgumentException("Bu foydalanuvchi sizning oila guruhingizda emas");
-        }
+            linkedUser.setFamilyGroup(newGroup);
+            userRepository.save(linkedUser);
 
-        // We could just set their family group to a new empty group, or null (but null
-        // might break things where a user must have a group).
-        // Let's create a new group for them like the migration did.
-        FamilyGroup newGroup = FamilyGroup.builder()
-                .name(userToRemove.getFullName() + " Oilasi")
-                .admin(userToRemove)
-                .active(true)
-                .build();
-        familyGroupRepository.save(newGroup);
-
-        userToRemove.setFamilyGroup(newGroup);
-        userRepository.save(userToRemove);
-
-        // Update family member record
-        FamilyMember memberRecord = familyMemberRepository.findByUserId(userToRemove.getId()).orElse(null);
-        if (memberRecord != null) {
-            memberRecord.setFamilyGroup(newGroup);
-            familyMemberRepository.save(memberRecord);
+            member.setFamilyGroup(newGroup);
+            familyMemberRepository.save(member);
+        } else {
+            // User'ga bog'lanmagan a'zo -- guruhdan chiqarish
+            member.setFamilyGroup(null);
+            familyMemberRepository.save(member);
         }
     }
 

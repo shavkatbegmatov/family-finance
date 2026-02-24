@@ -12,13 +12,18 @@ import {
   UserPlus,
   Settings,
   User,
+  Trash2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { householdApi } from '../../api/household.api';
 import type { HouseholdDashboardResponse, HouseholdMemberSummary, HouseholdAccountSummary } from '../../api/household.api';
+import { familyGroupApi } from '../../api/family-group.api';
 import { formatCurrency, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { useAuthStore } from '../../store/authStore';
+import { ModalPortal } from '../../components/common/Modal';
+import { ConfirmModal } from '../../components/common/ConfirmModal';
+import { TextInput } from '../../components/ui/TextInput';
 
 const roleLabel = (role: string): string =>
   (FAMILY_ROLES as Record<string, { label: string }>)[role]?.label || role;
@@ -38,6 +43,15 @@ export function HouseholdPage() {
   const [loading, setLoading] = useState(true);
   const currentUser = useAuthStore((s) => s.user);
 
+  // A'zo qo'shish
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  // A'zo o'chirish
+  const [memberToRemove, setMemberToRemove] = useState<HouseholdMemberSummary | null>(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
   const loadData = useCallback(async () => {
     try {
       const res = await householdApi.getDashboard();
@@ -52,6 +66,38 @@ export function HouseholdPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleAddMember = async () => {
+    const trimmed = inviteUsername.trim();
+    if (!trimmed) return;
+    setIsAdding(true);
+    try {
+      await familyGroupApi.addMember(trimmed);
+      toast.success(`"${trimmed}" guruhga qo'shildi`);
+      setIsAddModalOpen(false);
+      setInviteUsername('');
+      loadData();
+    } catch {
+      toast.error("A'zo qo'shishda xatolik yuz berdi");
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!memberToRemove) return;
+    setIsRemoving(true);
+    try {
+      await familyGroupApi.removeMember(memberToRemove.id);
+      toast.success(`"${memberToRemove.fullName}" guruhdan chiqarildi`);
+      setMemberToRemove(null);
+      loadData();
+    } catch {
+      toast.error("A'zoni o'chirishda xatolik yuz berdi");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -147,15 +193,21 @@ export function HouseholdPage() {
             Oila a'zolari
           </h3>
           {data.admin && (
-            <Link to="/settings" className="btn btn-ghost btn-xs gap-1">
+            <button onClick={() => setIsAddModalOpen(true)} className="btn btn-ghost btn-xs gap-1">
               <UserPlus className="h-3.5 w-3.5" />
               A'zo qo'shish
-            </Link>
+            </button>
           )}
         </div>
         <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.members.map((member) => (
-            <MemberCard key={member.id} member={member} currentUserId={currentUser?.id} />
+            <MemberCard
+              key={member.id}
+              member={member}
+              currentUserId={currentUser?.id}
+              isAdmin={data.admin}
+              onRemove={() => setMemberToRemove(member)}
+            />
           ))}
           {data.members.length === 0 && (
             <div className="col-span-full py-8 text-center text-base-content/50">
@@ -194,6 +246,53 @@ export function HouseholdPage() {
           </div>
         </div>
       )}
+
+      {/* A'zo qo'shish modali */}
+      <ModalPortal isOpen={isAddModalOpen} onClose={() => { if (!isAdding) { setIsAddModalOpen(false); setInviteUsername(''); } }}>
+        <div className="w-full max-w-sm rounded-2xl bg-base-100 p-6 shadow-2xl">
+          <h3 className="text-lg font-bold">A'zo qo'shish</h3>
+          <p className="mt-1 text-sm text-base-content/60">Foydalanuvchi username'ini kiriting</p>
+          <div className="mt-4">
+            <TextInput
+              value={inviteUsername}
+              onChange={setInviteUsername}
+              placeholder="username"
+              autoFocus
+              disabled={isAdding}
+              leadingIcon={<User className="h-4 w-4" />}
+            />
+          </div>
+          <div className="mt-5 flex gap-3">
+            <button
+              className="btn btn-ghost flex-1"
+              onClick={() => { setIsAddModalOpen(false); setInviteUsername(''); }}
+              disabled={isAdding}
+            >
+              Bekor qilish
+            </button>
+            <button
+              className="btn btn-primary flex-1"
+              onClick={handleAddMember}
+              disabled={isAdding || !inviteUsername.trim()}
+            >
+              {isAdding && <span className="loading loading-spinner loading-sm" />}
+              Qo'shish
+            </button>
+          </div>
+        </div>
+      </ModalPortal>
+
+      {/* A'zo o'chirish tasdiqlash modali */}
+      <ConfirmModal
+        isOpen={!!memberToRemove}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={handleRemoveMember}
+        title="A'zoni o'chirish"
+        message={`"${memberToRemove?.fullName}" ni guruhdan chiqarishni tasdiqlaysizmi?`}
+        confirmText="O'chirish"
+        confirmColor="error"
+        loading={isRemoving}
+      />
     </div>
   );
 }
@@ -239,14 +338,34 @@ function StatCard({
   );
 }
 
-function MemberCard({ member, currentUserId }: { member: HouseholdMemberSummary; currentUserId?: number }) {
+function MemberCard({
+  member,
+  currentUserId,
+  isAdmin,
+  onRemove,
+}: {
+  member: HouseholdMemberSummary;
+  currentUserId?: number;
+  isAdmin?: boolean;
+  onRemove?: () => void;
+}) {
   const isCurrentUser = member.userId != null && member.userId === currentUserId;
+  const canRemove = isAdmin && !member.admin && !isCurrentUser;
 
   return (
     <div className={clsx(
-      'rounded-xl border p-4 transition hover:shadow-md',
+      'group relative rounded-xl border p-4 transition hover:shadow-md',
       isCurrentUser ? 'border-primary/30 bg-primary/5' : 'border-base-200'
     )}>
+      {canRemove && (
+        <button
+          onClick={onRemove}
+          className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-base-content/30 opacity-0 transition hover:bg-error/10 hover:text-error group-hover:opacity-100"
+          title="Guruhdan chiqarish"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="flex items-start gap-3">
         <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-base-200 text-base-content/50">
           {member.avatar ? (
@@ -277,12 +396,14 @@ function MemberCard({ member, currentUserId }: { member: HouseholdMemberSummary;
         </div>
       </div>
 
-      {member.phone && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-base-content/60">
-          <Phone className="h-3.5 w-3.5" />
-          <span>{member.phone}</span>
-        </div>
-      )}
+      <div className="mt-3 min-h-4 text-xs text-base-content/60">
+        {member.phone && (
+          <div className="flex items-center gap-2">
+            <Phone className="h-3.5 w-3.5" />
+            <span>{member.phone}</span>
+          </div>
+        )}
+      </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-success/10 p-2 text-center">
