@@ -8,6 +8,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uz.familyfinance.api.dto.request.ChangeUsernameRequest;
 import uz.familyfinance.api.dto.request.UpdateUserRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.UserDetailResponse;
@@ -15,6 +16,7 @@ import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.RoleEntity;
 import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.Role;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.UserRepository;
@@ -24,6 +26,7 @@ import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,6 +43,16 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
+    private final SessionService sessionService;
+
+    /**
+     * Reserved usernames that cannot be used
+     */
+    private static final Set<String> RESERVED_USERNAMES = Set.of(
+            "admin", "administrator", "root", "superadmin", "system",
+            "support", "help", "info", "test", "null", "undefined",
+            "api", "www", "mail", "ftp", "localhost"
+    );
 
     private static final String PASSWORD_CHARS_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final String PASSWORD_CHARS_LOWER = "abcdefghjkmnpqrstuvwxyz";
@@ -452,6 +465,83 @@ public class UserService {
         log.info("User updated: {}", user.getUsername());
 
         return UserDetailResponse.from(user);
+    }
+
+    /**
+     * Changes username for a user (admin action).
+     * Validates uniqueness, reserved words, and invalidates all user sessions.
+     *
+     * @param userId  User ID
+     * @param request ChangeUsernameRequest with new username
+     * @return Updated user details
+     */
+    @Transactional
+    public UserDetailResponse changeUsername(Long userId, ChangeUsernameRequest request) {
+        User user = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        String oldUsername = user.getUsername();
+        String newUsername = request.getNewUsername().toLowerCase().trim();
+
+        // 1. Check if username is actually changing
+        if (oldUsername.equals(newUsername)) {
+            throw new BadRequestException("Yangi username joriy username bilan bir xil");
+        }
+
+        // 2. Check reserved usernames
+        if (RESERVED_USERNAMES.contains(newUsername)) {
+            throw new BadRequestException("Bu username tizim tomonidan band qilingan");
+        }
+
+        // 3. Check uniqueness
+        if (userRepository.existsByUsername(newUsername)) {
+            throw new BadRequestException("Bu username allaqachon band: " + newUsername);
+        }
+
+        // 4. Update username
+        user.setUsername(newUsername);
+        userRepository.save(user);
+
+        // 5. Invalidate all user sessions (force re-login)
+        User currentAdmin = getCurrentUser();
+        Long adminId = currentAdmin != null ? currentAdmin.getId() : null;
+
+        int revokedSessions = sessionService.revokeAllUserSessions(
+                userId,
+                adminId,
+                String.format("Username o'zgartirildi: %s -> %s", oldUsername, newUsername)
+        );
+
+        // 6. Audit log with old/new values
+        auditLogService.log(
+                "User",
+                userId,
+                "USERNAME_CHANGED",
+                Map.of("username", oldUsername),
+                Map.of("username", newUsername, "revokedSessions", revokedSessions),
+                adminId
+        );
+
+        log.info("Username changed: {} -> {} (by admin {}, {} sessions revoked)",
+                oldUsername, newUsername,
+                currentAdmin != null ? currentAdmin.getUsername() : "system",
+                revokedSessions);
+
+        return UserDetailResponse.from(user);
+    }
+
+    /**
+     * Check if a username is available (for real-time availability check).
+     *
+     * @param username Username to check
+     * @return true if available, false if taken or reserved
+     */
+    public boolean isUsernameAvailable(String username) {
+        String normalized = username.toLowerCase().trim();
+        if (RESERVED_USERNAMES.contains(normalized)) {
+            return false;
+        }
+        return !userRepository.existsByUsername(normalized);
     }
 
     private User getCurrentUser() {

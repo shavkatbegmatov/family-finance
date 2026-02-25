@@ -146,6 +146,33 @@ public class SessionService {
     }
 
     /**
+     * Revoke ALL sessions for a user (admin action — e.g., username change).
+     * Unlike revokeAllSessionsExcept, this revokes every active session without exclusion.
+     */
+    @Transactional
+    public int revokeAllUserSessions(Long userId, Long revokedBy, String reason) {
+        int count = sessionRepository.revokeAllUserSessions(
+                userId,
+                LocalDateTime.now(),
+                revokedBy,
+                reason
+        );
+
+        log.info("Revoked all {} sessions for user {} by admin {}: {}", count, userId, revokedBy, reason);
+
+        if (count > 0) {
+            SessionUpdateMessage message = SessionUpdateMessage.sessionRevoked(
+                    null,
+                    userId,
+                    reason
+            );
+            notificationDispatcher.notifySessionUpdate(userId, message);
+        }
+
+        return count;
+    }
+
+    /**
      * Check if session is valid (exists and active)
      */
     @Transactional(readOnly = true)

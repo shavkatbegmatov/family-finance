@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   UserCog,
@@ -12,6 +12,7 @@ import {
   Copy,
   AlertTriangle,
   Check,
+  AtSign,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '../../api/users.api';
@@ -21,9 +22,11 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import type { CredentialsInfo, Role } from '../../types';
-import type { UserDetail, UpdateUserRequest } from '../../api/users.api';
+import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../../api/users.api';
 
-type ModalType = 'view' | 'edit' | 'password' | 'roles' | null;
+type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | null;
+
+const USERNAME_REGEX = /^[a-z][a-z0-9._]{2,49}$/;
 
 export function UsersPage() {
   const queryClient = useQueryClient();
@@ -50,6 +53,56 @@ export function UsersPage() {
 
   // Role modal state
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+
+  // Username change state
+  const [newUsername, setNewUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
+  const [showUsernameConfirm, setShowUsernameConfirm] = useState(false);
+
+  // ========================
+  // Debounced username availability check
+  // ========================
+
+  useEffect(() => {
+    if (!newUsername || newUsername === selectedUser?.username) {
+      setIsUsernameAvailable(null);
+      setUsernameError('');
+      return;
+    }
+
+    // Client-side validation first
+    if (newUsername.length < 3) {
+      setUsernameError('Kamida 3 belgi');
+      setIsUsernameAvailable(null);
+      return;
+    }
+    if (!USERNAME_REGEX.test(newUsername)) {
+      setUsernameError('Faqat kichik harflar, raqamlar, nuqta va pastki chiziq');
+      setIsUsernameAvailable(null);
+      return;
+    }
+
+    setUsernameError('');
+    setIsCheckingUsername(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const available = await usersApi.checkUsername(newUsername);
+        setIsUsernameAvailable(available);
+        if (!available) {
+          setUsernameError('Bu username allaqachon band');
+        }
+      } catch {
+        setUsernameError('Tekshirishda xatolik');
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [newUsername, selectedUser?.username]);
 
   // ========================
   // Queries
@@ -164,6 +217,21 @@ export function UsersPage() {
     },
   });
 
+  const changeUsernameMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ChangeUsernameRequest }) =>
+      usersApi.changeUsername(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success("Username o'zgartirildi. Foydalanuvchi qayta kirishi kerak.");
+      closeModal();
+    },
+    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || 'Xato yuz berdi');
+      }
+    },
+  });
+
   // ========================
   // Handlers
   // ========================
@@ -182,14 +250,24 @@ export function UsersPage() {
         phone: user.phone || '',
       });
     }
+
+    if (type === 'username') {
+      setNewUsername(user.username);
+      setUsernameError('');
+      setIsUsernameAvailable(null);
+      setShowUsernameConfirm(false);
+    }
   };
 
   const closeModal = () => {
     setModalType(null);
     setSelectedUser(null);
     setCredentials(null);
-
     setSelectedRoleId(null);
+    setNewUsername('');
+    setUsernameError('');
+    setIsUsernameAvailable(null);
+    setShowUsernameConfirm(false);
   };
 
   const handleUpdate = () => {
@@ -200,6 +278,18 @@ export function UsersPage() {
   const handleResetPassword = () => {
     if (!selectedUser) return;
     resetPasswordMutation.mutate(selectedUser.id);
+  };
+
+  const handleChangeUsername = () => {
+    if (!selectedUser || !isUsernameAvailable || newUsername === selectedUser.username) return;
+    if (!showUsernameConfirm) {
+      setShowUsernameConfirm(true);
+      return;
+    }
+    changeUsernameMutation.mutate({
+      id: selectedUser.id,
+      data: { newUsername },
+    });
   };
 
   const handleToggleActive = (user: UserDetail) => {
@@ -359,6 +449,15 @@ export function UsersPage() {
                           onClick={() => openModal('edit', user)}
                         >
                           <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                      </PermissionGate>
+                      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          title="Username o'zgartirish"
+                          onClick={() => openModal('username', user)}
+                        >
+                          <AtSign className="h-3.5 w-3.5" />
                         </button>
                       </PermissionGate>
                       <PermissionGate permission={PermissionCode.USERS_UPDATE}>
@@ -799,6 +898,139 @@ export function UsersPage() {
                 Yopish
               </button>
             </div>
+          </div>
+        </div>
+      </ModalPortal>
+      {/* ======================== */}
+      {/* Change Username Modal */}
+      {/* ======================== */}
+      <ModalPortal isOpen={modalType === 'username'} onClose={closeModal}>
+        <div className="modal modal-open" onClick={closeModal}>
+          <div className="modal-box max-w-md" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
+              <X className="h-4 w-4" />
+            </button>
+            <h3 className="mb-4 text-lg font-bold">Username o'zgartirish</h3>
+
+            {showUsernameConfirm ? (
+              /* Confirmation step */
+              <div className="space-y-4">
+                <div className="alert alert-warning">
+                  <AlertTriangle className="h-4 w-4" />
+                  <div>
+                    <p className="font-semibold">Diqqat!</p>
+                    <p className="text-sm">
+                      Username o'zgartirilgandan so'ng <strong>{selectedUser?.fullName}</strong>ning
+                      barcha faol sessiyalari tugatiladi va qayta tizimga kirishi kerak bo'ladi.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-base-200 p-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base-content/50">Joriy:</span>
+                    <span className="font-mono font-medium">@{selectedUser?.username}</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-base-content/50">Yangi:</span>
+                    <span className="font-mono font-medium text-primary">@{newUsername}</span>
+                  </div>
+                </div>
+
+                <div className="modal-action">
+                  <button className="btn btn-ghost btn-sm" onClick={() => setShowUsernameConfirm(false)}>
+                    Orqaga
+                  </button>
+                  <button
+                    className="btn btn-warning btn-sm"
+                    onClick={handleChangeUsername}
+                    disabled={changeUsernameMutation.isPending}
+                  >
+                    {changeUsernameMutation.isPending ? (
+                      <span className="loading loading-spinner loading-xs" />
+                    ) : null}
+                    Tasdiqlash
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Input step */
+              <div className="space-y-4">
+                <p className="text-sm">
+                  <strong>{selectedUser?.fullName}</strong> (
+                  <span className="font-mono">@{selectedUser?.username}</span>) uchun
+                  yangi username kiriting.
+                </p>
+
+                <div>
+                  <label className="label">
+                    <span className="label-text">Yangi username *</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40">@</span>
+                    <input
+                      type="text"
+                      className={`input input-bordered input-sm w-full pl-8 ${
+                        usernameError
+                          ? 'input-error'
+                          : isUsernameAvailable === true
+                            ? 'input-success'
+                            : ''
+                      }`}
+                      placeholder="yangi.username"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value.toLowerCase().trim())}
+                      maxLength={50}
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isCheckingUsername && (
+                        <span className="loading loading-spinner loading-xs" />
+                      )}
+                      {!isCheckingUsername && isUsernameAvailable === true && (
+                        <Check className="h-4 w-4 text-success" />
+                      )}
+                      {!isCheckingUsername && isUsernameAvailable === false && (
+                        <X className="h-4 w-4 text-error" />
+                      )}
+                    </div>
+                  </div>
+                  {usernameError && (
+                    <p className="mt-1 text-xs text-error">{usernameError}</p>
+                  )}
+                  {!usernameError && isUsernameAvailable === true && (
+                    <p className="mt-1 text-xs text-success">Username mavjud</p>
+                  )}
+                </div>
+
+                <div className="space-y-1 text-xs text-base-content/50">
+                  <p>Qoidalar:</p>
+                  <ul className="list-disc pl-4">
+                    <li>Kamida 3 ta belgi</li>
+                    <li>Faqat kichik lotin harflari, raqamlar, nuqta va pastki chiziq</li>
+                    <li>Harf bilan boshlanishi shart</li>
+                  </ul>
+                </div>
+
+                <div className="modal-action">
+                  <button className="btn btn-ghost btn-sm" onClick={closeModal}>
+                    Bekor qilish
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleChangeUsername}
+                    disabled={
+                      !newUsername.trim() ||
+                      newUsername === selectedUser?.username ||
+                      !!usernameError ||
+                      isCheckingUsername ||
+                      isUsernameAvailable !== true
+                    }
+                  >
+                    Davom etish
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </ModalPortal>
