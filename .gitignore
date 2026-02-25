@@ -33,6 +33,8 @@ family-finance-api/.mvn/wrapper/maven-wrapper.jar
 family-finance-api/src/main/resources/application-local.yml
 family-finance-api/src/main/resources/application-local.properties
 family-finance-api/.env
+family-finance-api/.env.local
+family-finance-api/.env.*.local
 
 # =============================================
 # Frontend - Node / React / Vite
