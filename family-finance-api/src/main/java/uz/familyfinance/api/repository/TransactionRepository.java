@@ -127,4 +127,39 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Object[]> sumByMemberIdsGroupedByType(@Param("memberIds") List<Long> memberIds,
                                                 @Param("from") LocalDateTime from,
                                                 @Param("to") LocalDateTime to);
+
+    // ===== Member Financial Summary queries =====
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'INCOME' AND " +
+           "t.familyMember.id = :memberId AND t.transactionDate >= :from AND t.transactionDate <= :to")
+    BigDecimal sumIncomeByMemberAndDateRange(@Param("memberId") Long memberId,
+                                              @Param("from") LocalDateTime from,
+                                              @Param("to") LocalDateTime to);
+
+    @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.type = 'EXPENSE' AND t.familyMember.id = :memberId " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.category.id")
+    List<Object[]> sumExpenseByMemberGroupedByCategory(@Param("memberId") Long memberId,
+                                                        @Param("from") LocalDateTime from,
+                                                        @Param("to") LocalDateTime to);
+
+    @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+           "WHERE t.type = 'INCOME' AND t.familyMember.id = :memberId " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.category.id")
+    List<Object[]> sumIncomeByMemberGroupedByCategory(@Param("memberId") Long memberId,
+                                                       @Param("from") LocalDateTime from,
+                                                       @Param("to") LocalDateTime to);
+
+    @Query("SELECT t.type, extract(month from t.transactionDate), extract(year from t.transactionDate), COALESCE(SUM(t.amount), 0) " +
+           "FROM Transaction t WHERE t.familyMember.id = :memberId " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY t.type, extract(year from t.transactionDate), extract(month from t.transactionDate)")
+    List<Object[]> sumByMemberGroupedByTypeAndMonth(@Param("memberId") Long memberId,
+                                                     @Param("from") LocalDateTime from,
+                                                     @Param("to") LocalDateTime to);
+
+    @Query("SELECT t FROM Transaction t WHERE t.familyMember.id = :memberId ORDER BY t.transactionDate DESC")
+    List<Transaction> findRecentByMember(@Param("memberId") Long memberId, Pageable pageable);
 }

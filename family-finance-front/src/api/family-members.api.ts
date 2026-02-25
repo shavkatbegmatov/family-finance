@@ -16,4 +16,5 @@ export const familyMembersApi = {
   delete: (id: number) => axiosInstance.delete(`/v1/family-members/${id}`),
   exportExcel: () => axiosInstance.get('/v1/family-members/export/excel', { responseType: 'blob' }),
   exportPdf: () => axiosInstance.get('/v1/family-members/export/pdf', { responseType: 'blob' }),
+  getFinancialSummary: (id: number) => axiosInstance.get(`/v1/family-members/${id}/financial-summary`),
 };

@@ -99,4 +99,7 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                      "WHERE a.familyGroup.id = :familyGroupId AND a.scope = 'FAMILY' " +
                      "AND a.status = 'ACTIVE' AND a.isActive = true")
        List<Account> findFamilyAccountsByGroupId(@Param("familyGroupId") Long familyGroupId);
+
+       @Query("SELECT a FROM Account a WHERE a.owner.id = :ownerId AND a.isActive = true AND a.type <> 'SYSTEM_TRANSIT'")
+       List<Account> findByOwnerId(@Param("ownerId") Long ownerId);
 }

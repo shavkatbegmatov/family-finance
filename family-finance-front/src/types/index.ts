@@ -202,6 +202,56 @@ export interface UpdateSelfRequest {
   email?: string;
 }
 
+// ===== Member Financial Summary =====
+export interface MemberFinancialSummary {
+  profile: FamilyMember;
+  monthlyIncome: number;
+  monthlyExpense: number;
+  netBalance: number;
+  totalAccountBalance: number;
+  accounts: MemberAccountSummary[];
+  expenseByCategory: MemberCategoryBreakdown[];
+  incomeByCategory: MemberCategoryBreakdown[];
+  monthlyTrend: MemberMonthlyTrend[];
+  recentTransactions: MemberRecentTransaction[];
+}
+
+export interface MemberAccountSummary {
+  id: number;
+  name: string;
+  type: string;
+  balance: number;
+  currency: string;
+  status: string;
+  scope: string;
+  accCode?: string;
+}
+
+export interface MemberCategoryBreakdown {
+  categoryId: number;
+  categoryName: string;
+  categoryColor?: string;
+  amount: number;
+  percentage: number;
+}
+
+export interface MemberMonthlyTrend {
+  month: string;
+  year: number;
+  income: number;
+  expense: number;
+}
+
+export interface MemberRecentTransaction {
+  id: number;
+  type: string;
+  amount: number;
+  categoryName?: string;
+  description?: string;
+  transactionDate?: string;
+  status: string;
+}
+
 // Card Types
 export type CardType = 'UZCARD' | 'HUMO' | 'VISA' | 'MASTERCARD';
 export type AccountAccessRole = 'OWNER' | 'CO_OWNER' | 'VIEWER';

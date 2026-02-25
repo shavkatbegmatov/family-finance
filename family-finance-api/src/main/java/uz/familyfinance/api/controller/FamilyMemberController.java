@@ -12,6 +12,7 @@ import uz.familyfinance.api.dto.request.RegisterSelfRequest;
 import uz.familyfinance.api.dto.request.UpdateSelfRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
+import uz.familyfinance.api.dto.response.MemberFinancialSummaryResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.enums.PermissionCode;
@@ -57,6 +58,14 @@ public class FamilyMemberController {
     public ResponseEntity<ApiResponse<FamilyMemberResponse>> getById(@PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
         return ResponseEntity.ok(ApiResponse.success(familyMemberService.getById(id, currentUser)));
+    }
+
+    @GetMapping("/{id}/financial-summary")
+    @RequiresPermission(PermissionCode.FAMILY_VIEW)
+    public ResponseEntity<ApiResponse<MemberFinancialSummaryResponse>> getFinancialSummary(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.getFinancialSummary(id, currentUser)));
     }
 
     @PostMapping

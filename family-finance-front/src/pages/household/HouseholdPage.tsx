@@ -353,13 +353,16 @@ function MemberCard({
   const canRemove = isAdmin && !member.admin && !isCurrentUser;
 
   return (
-    <div className={clsx(
-      'group relative rounded-xl border p-4 transition hover:shadow-md',
-      isCurrentUser ? 'border-primary/30 bg-primary/5' : 'border-base-200'
-    )}>
+    <Link
+      to={`/my-family/members/${member.id}`}
+      className={clsx(
+        'group relative block rounded-xl border p-4 transition hover:shadow-md cursor-pointer',
+        isCurrentUser ? 'border-primary/30 bg-primary/5' : 'border-base-200'
+      )}
+    >
       {canRemove && (
         <button
-          onClick={onRemove}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove?.(); }}
           className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-base-content/30 opacity-0 transition hover:bg-error/10 hover:text-error group-hover:opacity-100"
           title="Guruhdan chiqarish"
         >
@@ -419,7 +422,7 @@ function MemberCard({
           </p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

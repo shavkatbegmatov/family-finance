@@ -28,6 +28,7 @@ const ProfilePage = lazy(() => import('../pages/profile/ProfilePage').then(m => 
 const AuditLogsPage = lazy(() => import('../pages/audit-logs/AuditLogsPage').then(m => ({ default: m.AuditLogsPage })));
 const UsersPage = lazy(() => import('../pages/users/UsersPage').then(m => ({ default: m.UsersPage })));
 const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then(m => ({ default: m.HouseholdPage })));
+const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage').then(m => ({ default: m.MemberDetailPage })));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -142,6 +143,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: 'Mening oilam' },
+      },
+      {
+        path: 'my-family/members/:id',
+        element: (
+          <ProtectedRoute permission={PermissionCode.FAMILY_VIEW}>
+            <LazyRoute><MemberDetailPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: "A'zo profili" },
       },
       {
         path: 'reports',

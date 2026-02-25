@@ -15,16 +15,33 @@ import uz.familyfinance.api.dto.request.RegisterSelfRequest;
 import uz.familyfinance.api.dto.request.UpdateSelfRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.FamilyMemberResponse;
+import uz.familyfinance.api.dto.response.MemberFinancialSummaryResponse;
+import uz.familyfinance.api.entity.Account;
+import uz.familyfinance.api.entity.Category;
 import uz.familyfinance.api.entity.FamilyMember;
+import uz.familyfinance.api.entity.Transaction;
 import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.Gender;
+import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.AccountRepository;
+import uz.familyfinance.api.repository.CategoryRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.TransactionRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
+import org.springframework.data.domain.PageRequest;
 import uz.familyfinance.api.security.CustomUserDetails;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +52,9 @@ public class FamilyMemberService {
     private final FamilyMemberRepository familyMemberRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final CategoryRepository categoryRepository;
 
     @Transactional
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable, CustomUserDetails currentUser) {
@@ -66,6 +86,133 @@ public class FamilyMemberService {
         FamilyMember member = findById(id);
         checkAccess(member, currentUser);
         return toResponse(member);
+    }
+
+    @Transactional(readOnly = true)
+    public MemberFinancialSummaryResponse getFinancialSummary(Long id, CustomUserDetails currentUser) {
+        FamilyMember member = findById(id);
+        checkAccess(member, currentUser);
+
+        FamilyMemberResponse profile = toResponse(member);
+
+        // Joriy oy date range
+        LocalDate now = LocalDate.now();
+        LocalDateTime monthStart = now.withDayOfMonth(1).atStartOfDay();
+        LocalDateTime monthEnd = now.plusMonths(1).withDayOfMonth(1).atStartOfDay().minusSeconds(1);
+
+        // KPI: oylik daromad va xarajat
+        BigDecimal monthlyIncome = transactionRepository.sumIncomeByMemberAndDateRange(id, monthStart, monthEnd);
+        BigDecimal monthlyExpense = transactionRepository.sumExpenseByMemberAndDateRange(id, monthStart, monthEnd);
+        BigDecimal netBalance = monthlyIncome.subtract(monthlyExpense);
+
+        // Hisoblar
+        List<Account> ownedAccounts = accountRepository.findByOwnerId(id);
+        BigDecimal totalAccountBalance = ownedAccounts.stream()
+                .map(Account::getBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<MemberFinancialSummaryResponse.AccountSummary> accounts = ownedAccounts.stream()
+                .map(a -> MemberFinancialSummaryResponse.AccountSummary.builder()
+                        .id(a.getId())
+                        .name(a.getName())
+                        .type(a.getType() != null ? a.getType().name() : null)
+                        .balance(a.getBalance())
+                        .currency(a.getCurrency())
+                        .status(a.getStatus() != null ? a.getStatus().name() : "ACTIVE")
+                        .scope(a.getScope() != null ? a.getScope().name() : "PERSONAL")
+                        .accCode(a.getAccCode())
+                        .build())
+                .collect(Collectors.toList());
+
+        // Kategoriya bo'yicha xarajat
+        Map<Long, Category> categoryCache = new HashMap<>();
+        List<MemberFinancialSummaryResponse.CategoryBreakdown> expenseByCategory =
+                buildCategoryBreakdown(transactionRepository.sumExpenseByMemberGroupedByCategory(id, monthStart, monthEnd), categoryCache);
+
+        // Kategoriya bo'yicha daromad
+        List<MemberFinancialSummaryResponse.CategoryBreakdown> incomeByCategory =
+                buildCategoryBreakdown(transactionRepository.sumIncomeByMemberGroupedByCategory(id, monthStart, monthEnd), categoryCache);
+
+        // 6 oylik trend
+        LocalDate sixMonthsAgo = now.minusMonths(5).withDayOfMonth(1);
+        LocalDateTime trendFrom = sixMonthsAgo.atStartOfDay();
+
+        Map<String, Map<TransactionType, BigDecimal>> monthlyMap = new HashMap<>();
+        for (Object[] row : transactionRepository.sumByMemberGroupedByTypeAndMonth(id, trendFrom, monthEnd)) {
+            TransactionType type = (TransactionType) row[0];
+            int month = ((Number) row[1]).intValue();
+            int year = ((Number) row[2]).intValue();
+            String key = year + "-" + month;
+            monthlyMap.computeIfAbsent(key, k -> new HashMap<>()).put(type, (BigDecimal) row[3]);
+        }
+
+        List<MemberFinancialSummaryResponse.MonthlyTrend> monthlyTrend = new ArrayList<>();
+        for (int i = 5; i >= 0; i--) {
+            LocalDate month = now.minusMonths(i);
+            String key = month.getYear() + "-" + month.getMonthValue();
+            Map<TransactionType, BigDecimal> sums = monthlyMap.getOrDefault(key, Map.of());
+            monthlyTrend.add(MemberFinancialSummaryResponse.MonthlyTrend.builder()
+                    .month(month.getMonth().name())
+                    .year(month.getYear())
+                    .income(sums.getOrDefault(TransactionType.INCOME, BigDecimal.ZERO))
+                    .expense(sums.getOrDefault(TransactionType.EXPENSE, BigDecimal.ZERO))
+                    .build());
+        }
+
+        // Oxirgi 5 tranzaksiya
+        List<Transaction> recentTx = transactionRepository.findRecentByMember(id, PageRequest.of(0, 5));
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        List<MemberFinancialSummaryResponse.RecentTransaction> recentTransactions = recentTx.stream()
+                .map(t -> MemberFinancialSummaryResponse.RecentTransaction.builder()
+                        .id(t.getId())
+                        .type(t.getType() != null ? t.getType().name() : null)
+                        .amount(t.getAmount())
+                        .categoryName(t.getCategory() != null ? t.getCategory().getName() : null)
+                        .description(t.getDescription())
+                        .transactionDate(t.getTransactionDate() != null ? t.getTransactionDate().format(dtf) : null)
+                        .status(t.getStatus() != null ? t.getStatus().name() : "CONFIRMED")
+                        .build())
+                .collect(Collectors.toList());
+
+        return MemberFinancialSummaryResponse.builder()
+                .profile(profile)
+                .monthlyIncome(monthlyIncome)
+                .monthlyExpense(monthlyExpense)
+                .netBalance(netBalance)
+                .totalAccountBalance(totalAccountBalance)
+                .accounts(accounts)
+                .expenseByCategory(expenseByCategory)
+                .incomeByCategory(incomeByCategory)
+                .monthlyTrend(monthlyTrend)
+                .recentTransactions(recentTransactions)
+                .build();
+    }
+
+    private List<MemberFinancialSummaryResponse.CategoryBreakdown> buildCategoryBreakdown(
+            List<Object[]> rawData, Map<Long, Category> categoryCache) {
+        BigDecimal total = rawData.stream()
+                .map(row -> (BigDecimal) row[1])
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return rawData.stream()
+                .map(row -> {
+                    Long catId = (Long) row[0];
+                    BigDecimal amount = (BigDecimal) row[1];
+                    Category cat = categoryCache.computeIfAbsent(catId,
+                            cId -> categoryRepository.findById(cId).orElse(null));
+                    double pct = total.compareTo(BigDecimal.ZERO) > 0
+                            ? amount.multiply(BigDecimal.valueOf(100)).divide(total, 2, RoundingMode.HALF_UP).doubleValue()
+                            : 0;
+                    return MemberFinancialSummaryResponse.CategoryBreakdown.builder()
+                            .categoryId(catId)
+                            .categoryName(cat != null ? cat.getName() : "Noma'lum")
+                            .categoryColor(cat != null ? cat.getColor() : null)
+                            .amount(amount)
+                            .percentage(pct)
+                            .build();
+                })
+                .filter(b -> b.getAmount().compareTo(BigDecimal.ZERO) > 0)
+                .collect(Collectors.toList());
     }
 
     @Transactional
