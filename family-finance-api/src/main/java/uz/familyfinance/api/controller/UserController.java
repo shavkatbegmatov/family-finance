@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uz.familyfinance.api.dto.request.ChangeUsernameRequest;
 import uz.familyfinance.api.dto.request.UpdateUserRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
@@ -34,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller for user management operations.
@@ -78,6 +80,28 @@ public class UserController {
     ) {
         UserDetailResponse user = userService.updateUser(id, request);
         return ResponseEntity.ok(ApiResponse.success("Foydalanuvchi yangilandi", user));
+    }
+
+    @PutMapping("/{id}/change-username")
+    @Operation(summary = "Change username", description = "Foydalanuvchi username/loginini o'zgartirish (admin)")
+    @RequiresPermission(PermissionCode.USERS_UPDATE)
+    public ResponseEntity<ApiResponse<UserDetailResponse>> changeUsername(
+            @PathVariable Long id,
+            @Valid @RequestBody ChangeUsernameRequest request
+    ) {
+        UserDetailResponse user = userService.changeUsername(id, request);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Username o'zgartirildi. Foydalanuvchi qayta tizimga kirishi kerak.", user));
+    }
+
+    @GetMapping("/check-username")
+    @Operation(summary = "Check username availability", description = "Username bandligini tekshirish")
+    @RequiresPermission(PermissionCode.USERS_VIEW)
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkUsernameAvailability(
+            @RequestParam String username
+    ) {
+        boolean available = userService.isUsernameAvailable(username);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("available", available)));
     }
 
     @GetMapping("/export")

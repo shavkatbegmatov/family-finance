@@ -46,6 +46,10 @@ export interface UpdateUserRequest {
   phone?: string;
 }
 
+export interface ChangeUsernameRequest {
+  newUsername: string;
+}
+
 export const usersApi = {
   /**
    * Search users with pagination and filters
@@ -97,6 +101,27 @@ export const usersApi = {
    */
   activate: async (id: number): Promise<void> => {
     await api.put(`/v1/users/${id}/activate`);
+  },
+
+  /**
+   * Change user's username (admin action)
+   */
+  changeUsername: async (id: number, data: ChangeUsernameRequest): Promise<UserDetail> => {
+    const response = await api.put<ApiResponse<UserDetail>>(
+      `/v1/users/${id}/change-username`,
+      data
+    );
+    return response.data.data;
+  },
+
+  /**
+   * Check if username is available
+   */
+  checkUsername: async (username: string): Promise<boolean> => {
+    const response = await api.get<ApiResponse<{ available: boolean }>>(
+      `/v1/users/check-username?username=${encodeURIComponent(username)}`
+    );
+    return response.data.data.available;
   },
 
   /**

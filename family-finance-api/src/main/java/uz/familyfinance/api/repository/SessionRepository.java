@@ -35,6 +35,13 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
                                   @Param("reason") String reason);
 
     @Modifying
+    @Query("UPDATE Session s SET s.isActive = false, s.revokedAt = :revokedAt, s.revokedBy = :revokedBy, s.revokeReason = :reason WHERE s.user.id = :userId AND s.isActive = true")
+    int revokeAllUserSessions(@Param("userId") Long userId,
+                              @Param("revokedAt") LocalDateTime revokedAt,
+                              @Param("revokedBy") Long revokedBy,
+                              @Param("reason") String reason);
+
+    @Modifying
     @Query("UPDATE Session s SET s.lastActivityAt = :activityTime WHERE s.tokenHash = :tokenHash AND s.isActive = true")
     void updateLastActivity(@Param("tokenHash") String tokenHash, @Param("activityTime") LocalDateTime activityTime);
 
