@@ -16,5 +16,7 @@ public class FamilyGroupResponse {
     private String name;
     private Long adminId;
     private Boolean active;
+    private String uniqueCode;
+    private String currentAddress;
     private List<FamilyGroupMemberDto> members;
 }

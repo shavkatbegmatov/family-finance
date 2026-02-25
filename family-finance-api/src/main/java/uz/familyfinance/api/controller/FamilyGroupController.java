@@ -56,4 +56,22 @@ public class FamilyGroupController {
             @AuthenticationPrincipal CustomUserDetails currentUser) {
         return ResponseEntity.ok(ApiResponse.success(familyGroupService.getHouseholdDashboard(currentUser)));
     }
+
+    @PostMapping("/address")
+    @Operation(summary = "Yangi manzil kiritish/ko'chish", description = "Xo'jalik manzilini qo'shish yoki ko'chgan manzilni o'zgartirish")
+    @RequiresPermission(PermissionCode.FAMILY_UPDATE)
+    public ResponseEntity<ApiResponse<Void>> changeAddress(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @RequestBody @Valid uz.familyfinance.api.dto.familygroup.FamilyAddressRequest request) {
+        familyGroupService.changeAddress(currentUser.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success("Manzil muvaffaqiyatli saqlandi"));
+    }
+
+    @GetMapping("/address-history")
+    @Operation(summary = "Manzillar tarixi", description = "Xo'jalik ro'yxatdan o'tgan barcha manzillarni ko'rish")
+    @RequiresPermission(PermissionCode.FAMILY_VIEW)
+    public ResponseEntity<ApiResponse<java.util.List<uz.familyfinance.api.dto.familygroup.FamilyAddressHistoryDto>>> getAddressHistory(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyGroupService.getAddressHistory(currentUser.getId())));
+    }
 }

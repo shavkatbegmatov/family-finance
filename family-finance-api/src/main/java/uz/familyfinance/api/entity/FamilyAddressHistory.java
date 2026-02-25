@@ -8,40 +8,41 @@ import uz.familyfinance.api.audit.AuditEntityListener;
 import uz.familyfinance.api.audit.Auditable;
 import uz.familyfinance.api.entity.base.BaseEntity;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 @Entity
-@Table(name = "family_groups")
+@Table(name = "family_address_history")
 @EntityListeners({ AuditingEntityListener.class, AuditEntityListener.class })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class FamilyGroup extends BaseEntity implements Auditable {
-
-    @Column(nullable = false, length = 100)
-    private String name;
+public class FamilyAddressHistory extends BaseEntity implements Auditable {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "admin_id", nullable = false)
-    private User admin;
+    @JoinColumn(name = "family_group_id", nullable = false)
+    private FamilyGroup familyGroup;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
+    private String address;
+
+    @Column(name = "move_in_date", nullable = false)
+    private LocalDate moveInDate;
+
+    @Column(name = "move_out_date")
+    private LocalDate moveOutDate;
+
+    @Column(name = "is_current", nullable = false)
     @Builder.Default
-    private Boolean active = true;
-
-    @Column(name = "unique_code", unique = true, length = 20)
-    private String uniqueCode;
-
-    @Column(name = "current_address", length = 500)
-    private String currentAddress;
+    private Boolean isCurrent = true;
 
     @Override
     public String getEntityName() {
-        return "FamilyGroup";
+        return "FamilyAddressHistory";
     }
 
     @Override
@@ -49,13 +50,13 @@ public class FamilyGroup extends BaseEntity implements Auditable {
     public Map<String, Object> toAuditMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", getId());
-        map.put("name", this.name);
-        map.put("active", this.active);
-        map.put("uniqueCode", this.uniqueCode);
-        map.put("currentAddress", this.currentAddress);
-        if (this.admin != null) {
-            map.put("adminId", this.admin.getId());
+        if (this.familyGroup != null) {
+            map.put("familyGroupId", this.familyGroup.getId());
         }
+        map.put("address", this.address);
+        map.put("moveInDate", this.moveInDate);
+        map.put("moveOutDate", this.moveOutDate);
+        map.put("isCurrent", this.isCurrent);
         return map;
     }
 

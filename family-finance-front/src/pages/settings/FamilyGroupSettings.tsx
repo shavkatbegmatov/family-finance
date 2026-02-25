@@ -48,9 +48,46 @@ export function FamilyGroupSettings() {
         },
     });
 
+    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [newAddress, setNewAddress] = useState('');
+    const [moveInDate, setMoveInDate] = useState('');
+
+    const { data: addressHistory, isLoading: isLoadingHistory } = useQuery({
+        queryKey: ['addressHistory'],
+        queryFn: async () => {
+            const res = await familyGroupApi.getAddressHistory();
+            return (res.data as unknown as ApiResponse<any[]>).data;
+        },
+        enabled: isHistoryModalOpen,
+    });
+
+    const addressMutation = useMutation({
+        mutationFn: familyGroupApi.changeAddress,
+        onSuccess: () => {
+            toast.success('Manzil muvaffaqiyatli saqlandi');
+            queryClient.invalidateQueries({ queryKey: ['myFamilyGroup'] });
+            queryClient.invalidateQueries({ queryKey: ['addressHistory'] });
+            setIsAddressModalOpen(false);
+            setNewAddress('');
+            setMoveInDate('');
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.message || 'Manzilni saqlashda xatolik');
+        },
+    });
+
     const handleInvite = () => {
         if (!inviteUsername.trim()) return;
         inviteMutation.mutate(inviteUsername.trim());
+    };
+
+    const handleSaveAddress = () => {
+        if (!newAddress.trim()) return;
+        addressMutation.mutate({
+            address: newAddress,
+            moveInDate: moveInDate || undefined,
+        });
     };
 
     if (isLoading) {
@@ -73,43 +110,79 @@ export function FamilyGroupSettings() {
 
     return (
         <div className="space-y-6">
-            <div className="surface-card p-6 border-l-4 border-l-primary flex items-start sm:items-center justify-between flex-col sm:flex-row gap-4">
-                <div>
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <Users className="w-6 h-6 text-primary" />
-                        {groupData.name}
-                    </h2>
-                    <p className="text-sm text-base-content/60 mt-1">
-                        Bu guruh siz va siz taklif qilgan a'zolarni yagona uy xo'jaligi sifatida birlashtiradi. Oilaviy hisoblar (Accounts) shu yerdagi barcha a'zolarga ko'rinadi.
-                    </p>
+            <div className="surface-card p-6 border-l-4 border-l-primary flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 className="text-xl font-bold flex flex-wrap items-center gap-2">
+                            <Users className="w-6 h-6 text-primary" />
+                            {groupData.name}
+                            {groupData.uniqueCode && (
+                                <span className="badge badge-primary font-mono ml-2 gap-1 py-3 text-sm" title="Xo'jalikning noyob raqami">
+                                    <span className="opacity-70">Kod:</span>
+                                    {groupData.uniqueCode}
+                                </span>
+                            )}
+                        </h2>
+                        <p className="text-sm text-base-content/60 mt-2">
+                            Bu guruh siz va siz taklif qilgan a'zolarni yagona uy xo'jaligi sifatida birlashtiradi. Oilaviy hisoblar shu yerdagi barcha a'zolarga ko'rinadi.
+                        </p>
+                    </div>
+                    {isAdmin && (
+                        <button
+                            className="btn btn-primary btn-sm shrink-0"
+                            onClick={() => setIsInviteModalOpen(true)}
+                        >
+                            <UserPlus className="w-4 h-4" />
+                            A'zo qo'shish
+                        </button>
+                    )}
                 </div>
-                {isAdmin && (
-                    <button
-                        className="btn btn-primary btn-sm shrink-0"
-                        onClick={() => setIsInviteModalOpen(true)}
-                    >
-                        <UserPlus className="w-4 h-4" />
-                        A'zo qo'shish
-                    </button>
-                )}
+
+                {/* Address Section */}
+                <div className="mt-4 pt-4 border-t border-base-200">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <span className="text-sm font-semibold opacity-60 uppercase tracking-wider block mb-1">Joriy Manzil</span>
+                            <div className="text-lg font-medium text-base-content">
+                                {groupData.currentAddress || <span className="text-base-content/40 italic">Manzil kiritilmagan</span>}
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                className="btn btn-outline btn-sm"
+                                onClick={() => setIsHistoryModalOpen(true)}
+                            >
+                                Manzillar tarixi
+                            </button>
+                            {isAdmin && (
+                                <button
+                                    className="btn btn-outline border-base-300 btn-sm"
+                                    onClick={() => setIsAddressModalOpen(true)}
+                                >
+                                    Manzilni yangilash
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="surface-card p-0 overflow-hidden">
                 <table className="table w-full">
                     <thead className="bg-base-200">
                         <tr>
-                            <th>Ism</th>
+                            <th className="pl-6">Ism</th>
                             <th>Login</th>
                             <th>Telefon</th>
-                            <th className="text-right">Amallar</th>
+                            <th className="text-right pr-6">Amallar</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-base-200">
                         {groupData.members?.map((m: FamilyGroupMemberDto) => {
                             const isMemberAdmin = m.userId === groupData.adminId;
                             return (
                                 <tr key={m.id} className="hover">
-                                    <td>
+                                    <td className="pl-6">
                                         <div className="flex items-center gap-3">
                                             <div className="font-medium flex items-center gap-2">
                                                 {m.fullName}
@@ -124,7 +197,7 @@ export function FamilyGroupSettings() {
                                     </td>
                                     <td className="font-mono text-sm">{m.username}</td>
                                     <td>{m.phone || '-'}</td>
-                                    <td className="text-right">
+                                    <td className="text-right pr-6">
                                         {isAdmin && !isMemberAdmin && (
                                             <button
                                                 className="btn btn-ghost btn-sm text-error"
@@ -187,6 +260,112 @@ export function FamilyGroupSettings() {
                         >
                             {inviteMutation.isPending && <span className="loading loading-spinner text-primary"></span>}
                             Qo'shish
+                        </button>
+                    </div>
+                </div>
+            </ModalPortal>
+
+            {/* Update Address Modal */}
+            <ModalPortal isOpen={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)}>
+                <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl p-6">
+                    <h3 className="font-bold text-lg mb-2">Manzilni yangilash</h3>
+                    <p className="text-sm text-base-content/60 mb-6">
+                        Yangi uy manzilini kiritishingiz mumkin. Oldingi manzillar manzillar tarixida saqlanib qoladi.
+                    </p>
+
+                    <div className="space-y-4">
+                        <div className="form-control w-full">
+                            <label className="label">
+                                <span className="label-text font-medium text-base-content/80">Yangi Manzil</span>
+                            </label>
+                            <textarea
+                                className="textarea textarea-bordered w-full resize-none h-24"
+                                placeholder="To'liq manzilni kiriting..."
+                                value={newAddress}
+                                onChange={(e) => setNewAddress(e.target.value)}
+                                disabled={addressMutation.isPending}
+                            />
+                        </div>
+
+                        <div className="form-control w-full">
+                            <label className="label">
+                                <span className="label-text font-medium text-base-content/80">Ko'chib kelish sanasi</span>
+                            </label>
+                            <input
+                                type="date"
+                                className="input input-bordered w-full"
+                                value={moveInDate}
+                                onChange={(e) => setMoveInDate(e.target.value)}
+                                disabled={addressMutation.isPending}
+                            />
+                        </div>
+                        <p className="text-xs text-base-content/50 -mt-2">
+                            Ko'chgan sanani yozing (ixtiyoriy, agar hozir kiritmayotgan bo'lsangiz).
+                        </p>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-2">
+                        <button
+                            className="btn btn-ghost"
+                            onClick={() => setIsAddressModalOpen(false)}
+                            disabled={addressMutation.isPending}
+                        >
+                            Bekor qilish
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleSaveAddress}
+                            disabled={addressMutation.isPending || !newAddress.trim()}
+                        >
+                            {addressMutation.isPending && <span className="loading loading-spinner text-primary"></span>}
+                            Saqlash
+                        </button>
+                    </div>
+                </div>
+            </ModalPortal>
+
+            {/* Address History Modal */}
+            <ModalPortal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)}>
+                <div className="w-full max-w-xl bg-base-100 rounded-2xl shadow-2xl p-6">
+                    <h3 className="font-bold text-lg mb-6 text-center">Xo'jalik manzillari tarixi</h3>
+
+                    {isLoadingHistory ? (
+                        <div className="flex justify-center py-8">
+                            <span className="loading loading-spinner text-primary"></span>
+                        </div>
+                    ) : (
+                        <div className="max-h-[60vh] overflow-y-auto pr-2">
+                            {(!addressHistory || addressHistory.length === 0) ? (
+                                <p className="text-center text-base-content/50 py-4">Tarix topilmadi.</p>
+                            ) : (
+                                <ul className="steps steps-vertical w-full">
+                                    {addressHistory.map((item: any) => (
+                                        <li key={item.id} className={`step ${item.isCurrent ? "step-primary" : "step-neutral"}`}>
+                                            <div className="flex flex-col items-start text-left ml-4 bg-base-200 p-4 rounded-xl mb-4 w-full">
+                                                <div className="font-medium text-[15px]">{item.address}</div>
+                                                <div className="text-sm text-base-content/60 mt-2 flex flex-col sm:flex-row sm:gap-4">
+                                                    <span>Ko'chib kelgan: <strong className="text-base-content/80">{item.moveInDate}</strong></span>
+                                                    {item.moveOutDate && (
+                                                        <span>Ko'chib ketgan: <strong className="text-base-content/80">{item.moveOutDate}</strong></span>
+                                                    )}
+                                                </div>
+                                                {item.isCurrent && (
+                                                    <span className="badge badge-success badge-sm mt-3">Hozirgi manzil</span>
+                                                )}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="mt-6 flex justify-end">
+                        <button
+                            className="btn btn-outline"
+                            onClick={() => setIsHistoryModalOpen(false)}
+                        >
+                            Yopish
                         </button>
                     </div>
                 </div>

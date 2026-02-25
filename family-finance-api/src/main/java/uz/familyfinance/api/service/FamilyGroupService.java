@@ -29,6 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import uz.familyfinance.api.repository.FamilyAddressHistoryRepository;
+import uz.familyfinance.api.entity.FamilyAddressHistory;
+import uz.familyfinance.api.dto.familygroup.FamilyAddressHistoryDto;
+import uz.familyfinance.api.dto.familygroup.FamilyAddressRequest;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -39,6 +45,11 @@ public class FamilyGroupService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final FamilyAddressHistoryRepository familyAddressHistoryRepository;
+
+    private String generateUniqueCode() {
+        return UUID.randomUUID().toString().replaceAll("-", "").substring(0, 6).toUpperCase();
+    }
 
     @Transactional(readOnly = true)
     public FamilyGroupResponse getMyFamilyGroup(Long userId) {
@@ -48,6 +59,12 @@ public class FamilyGroupService {
         FamilyGroup familyGroup = user.getFamilyGroup();
         if (familyGroup == null) {
             throw new ResourceNotFoundException("Siz biron bir Oila guruhiga a'zo emassiz");
+        }
+
+        // Ensure unique code exists for old records
+        if (familyGroup.getUniqueCode() == null) {
+            familyGroup.setUniqueCode(generateUniqueCode());
+            familyGroupRepository.save(familyGroup);
         }
 
         List<FamilyMember> members = familyMemberRepository.findByFamilyGroupId(familyGroup.getId());
@@ -70,6 +87,8 @@ public class FamilyGroupService {
                 .name(familyGroup.getName())
                 .adminId(familyGroup.getAdmin() != null ? familyGroup.getAdmin().getId() : null)
                 .active(familyGroup.getActive())
+                .uniqueCode(familyGroup.getUniqueCode())
+                .currentAddress(familyGroup.getCurrentAddress())
                 .members(memberDtos)
                 .build();
     }
@@ -136,6 +155,7 @@ public class FamilyGroupService {
                     .name(linkedUser.getFullName() + " Oilasi")
                     .admin(linkedUser)
                     .active(true)
+                    .uniqueCode(generateUniqueCode())
                     .build();
             familyGroupRepository.save(newGroup);
 
@@ -149,6 +169,56 @@ public class FamilyGroupService {
             member.setFamilyGroup(null);
             familyMemberRepository.save(member);
         }
+    }
+
+    @Transactional
+    public void changeAddress(Long userId, FamilyAddressRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        FamilyGroup familyGroup = user.getFamilyGroup();
+        if (familyGroup == null) {
+            throw new ResourceNotFoundException("Oila guruhi topilmadi");
+        }
+
+        // Mark current addresses as past
+        familyAddressHistoryRepository.markCurrentAsPast(familyGroup.getId());
+
+        // Add new address
+        LocalDate moveIn = request.getMoveInDate() != null ? request.getMoveInDate() : LocalDate.now();
+        FamilyAddressHistory newEntry = FamilyAddressHistory.builder()
+                .familyGroup(familyGroup)
+                .address(request.getAddress())
+                .moveInDate(moveIn)
+                .isCurrent(true)
+                .build();
+        familyAddressHistoryRepository.save(newEntry);
+
+        // Update main group reference
+        familyGroup.setCurrentAddress(request.getAddress());
+        familyGroupRepository.save(familyGroup);
+    }
+
+    @Transactional(readOnly = true)
+    public List<FamilyAddressHistoryDto> getAddressHistory(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        FamilyGroup familyGroup = user.getFamilyGroup();
+        if (familyGroup == null) {
+            throw new ResourceNotFoundException("Oila guruhi topilmadi");
+        }
+
+        return familyAddressHistoryRepository.findByFamilyGroupIdOrderByMoveInDateDesc(familyGroup.getId())
+                .stream()
+                .map(history -> FamilyAddressHistoryDto.builder()
+                        .id(history.getId())
+                        .address(history.getAddress())
+                        .moveInDate(history.getMoveInDate())
+                        .moveOutDate(history.getMoveOutDate())
+                        .isCurrent(history.getIsCurrent())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
