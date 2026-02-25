@@ -51,7 +51,7 @@ public class FamilyGroupService {
         return UUID.randomUUID().toString().replaceAll("-", "").substring(0, 6).toUpperCase();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public FamilyGroupResponse getMyFamilyGroup(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
