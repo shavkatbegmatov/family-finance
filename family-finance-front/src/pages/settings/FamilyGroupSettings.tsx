@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, UserPlus, Trash2, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Shield, UserPlus, Trash2, Users, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { familyGroupApi } from '../../api/family-group.api';
 import type { FamilyGroupMemberDto, FamilyGroupResponse } from '../../api/family-group.api';
@@ -10,6 +11,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import type { ApiResponse } from '../../types';
 
 export function FamilyGroupSettings() {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((s) => s.user);
 
@@ -113,6 +115,17 @@ export function FamilyGroupSettings() {
 
     return (
         <div className="space-y-6">
+            <div className="flex items-center gap-3">
+                <button
+                    className="btn btn-square btn-sm btn-ghost"
+                    onClick={() => navigate('/my-family')}
+                    title="Orqaga qaytish"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <h1 className="text-xl font-bold">Guruh sozlamalari</h1>
+            </div>
+
             <div className="surface-card p-6 border-l-4 border-l-primary flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>

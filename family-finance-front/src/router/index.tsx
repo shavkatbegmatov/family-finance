@@ -29,6 +29,7 @@ const AuditLogsPage = lazy(() => import('../pages/audit-logs/AuditLogsPage').the
 const UsersPage = lazy(() => import('../pages/users/UsersPage').then(m => ({ default: m.UsersPage })));
 const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then(m => ({ default: m.HouseholdPage })));
 const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage').then(m => ({ default: m.MemberDetailPage })));
+const FamilyGroupSettingsPage = lazy(() => import('../pages/settings/FamilyGroupSettings').then(m => ({ default: m.FamilyGroupSettings })));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -152,6 +153,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: "A'zo profili" },
+      },
+      {
+        path: 'my-family/settings',
+        element: (
+          <ProtectedRoute permission={PermissionCode.FAMILY_VIEW}>
+            <LazyRoute><FamilyGroupSettingsPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: "Guruh sozlamalari" },
       },
       {
         path: 'reports',

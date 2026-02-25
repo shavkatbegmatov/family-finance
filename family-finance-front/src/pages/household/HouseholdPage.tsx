@@ -146,7 +146,7 @@ export function HouseholdPage() {
           <p className="mt-1 text-base-content/60">Oilaviy xo'jalik boshqaruvi</p>
         </div>
         {data.admin && (
-          <Link to="/settings?tab=family-group" className="btn btn-outline btn-sm gap-2">
+          <Link to="/my-family/settings" className="btn btn-outline btn-sm gap-2">
             <Settings className="h-4 w-4" />
             Guruh sozlamalari
           </Link>
