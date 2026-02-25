@@ -15,5 +15,6 @@ public class CardResponse {
     private String cardHolderName;
     private String expiryDate;
     private Boolean isActive;
+    private Boolean isVirtual;
     private LocalDateTime createdAt;
 }

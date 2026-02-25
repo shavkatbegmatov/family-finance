@@ -63,6 +63,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
   const [cardHolderName, setCardHolderName] = useState('');
   const [cardExpiryDate, setCardExpiryDate] = useState('');
   const [cardType, setCardType] = useState('');
+  const [isVirtual, setIsVirtual] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -101,9 +102,59 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
         setCardHolderName('');
         setCardExpiryDate('');
         setCardType('');
+        setIsVirtual(false);
       }
     }
   }, [isOpen, editingAccount]);
+
+  // Card Helpers
+  const detectCardType = (number: string): string => {
+    const clean = number.replace(/\s+/g, '');
+    if (clean.startsWith('9860')) return 'HUMO';
+    if (clean.startsWith('8600')) return 'UZCARD';
+    if (clean.startsWith('5614') || clean.startsWith('6262')) return 'UZCARD_COBADGE';
+    if (clean.startsWith('4')) return 'VISA';
+    if (/^5[1-5]/.test(clean)) return 'MASTERCARD';
+    if (clean.startsWith('62')) return 'UNIONPAY';
+    return '';
+  };
+
+  const formatCardNumber = (val: string) => {
+    const clean = val.replace(/\D/g, '').substring(0, 16);
+    const matches = clean.match(/.{1,4}/g);
+    return matches ? matches.join(' ') : clean;
+  };
+
+  const isValidLuhn = (val: string) => {
+    const clean = val.replace(/\D/g, '');
+    if (clean.length !== 16) return true; // Only validate full 16 digits
+    let sum = 0;
+    let isSecond = false;
+    for (let i = clean.length - 1; i >= 0; i--) {
+      let d = parseInt(clean[i], 10);
+      if (isSecond) {
+        d *= 2;
+        if (d > 9) d -= 9;
+      }
+      sum += d;
+      isSecond = !isSecond;
+    }
+    return sum % 10 === 0;
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    // Allow deleting spaces properly by restricting what formatting produces
+    if (val.length < cardNumber.length && val.endsWith(' ')) {
+      // if backspace on a space, let it just shorten properly. handled by format usually
+    }
+    const formatted = formatCardNumber(val);
+    setCardNumber(formatted);
+    const type = detectCardType(formatted);
+    if (type && type !== cardType) {
+      setCardType(type);
+    }
+  };
 
   const showBankFields = ['BANK_CARD', 'SAVINGS', 'TERM_DEPOSIT', 'CREDIT'].includes(type);
   const showCardFields = type === 'BANK_CARD';
@@ -132,6 +183,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
         cardHolderName: showCardFields && cardHolderName ? cardHolderName : undefined,
         cardExpiryDate: showCardFields && cardExpiryDate ? cardExpiryDate : undefined,
         cardType: showCardFields && cardType ? cardType : undefined,
+        isVirtual: showCardFields ? isVirtual : undefined,
       };
 
       if (isEdit) {
@@ -215,7 +267,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
           <CurrencyInput
             label={isEdit ? 'Boshlang\'ich saldo (o\'zgarmas)' : 'Boshlang\'ich saldo'}
             value={isEdit ? openingBalance : balance}
-            onChange={isEdit ? () => {} : (v) => { setBalance(v); setOpeningBalance(v); }}
+            onChange={isEdit ? () => { } : (v) => { setBalance(v); setOpeningBalance(v); }}
             disabled={isEdit}
           />
 
@@ -337,6 +389,30 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
                 Karta ma'lumotlari
               </p>
+              <div className="form-control mb-2">
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="isVirtual"
+                      className="radio radio-sm radio-primary"
+                      checked={!isVirtual}
+                      onChange={() => setIsVirtual(false)}
+                    />
+                    <span className="text-sm font-medium">Plastik karta</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="isVirtual"
+                      className="radio radio-sm radio-primary"
+                      checked={isVirtual}
+                      onChange={() => setIsVirtual(true)}
+                    />
+                    <span className="text-sm font-medium">Virtual karta</span>
+                  </label>
+                </div>
+              </div>
               <Select
                 label=""
                 placeholder="Karta turi"
@@ -344,15 +420,36 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
                 onChange={(val) => setCardType(val as string)}
                 options={CARD_TYPES.map((ct) => ({ value: ct, label: ct }))}
               />
-              <input
-                type="text"
-                className="input input-bordered input-sm w-full"
-                placeholder="Karta raqami (16 raqam)"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                maxLength={19}
-              />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  className={clsx(
+                    'input input-bordered input-sm w-full pr-16',
+                    !isValidLuhn(cardNumber) && 'input-error focus:border-error focus:ring-error'
+                  )}
+                  placeholder="Karta raqami (16 raqam)"
+                  value={cardNumber}
+                  onChange={handleCardNumberChange}
+                  maxLength={19}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {cardType === 'HUMO' && <span className="badge badge-sm bg-orange-100 text-orange-600 border-orange-200 font-bold px-1.5 py-0.5 text-[10px]">HUMO</span>}
+                  {cardType === 'UZCARD' && <span className="badge badge-sm bg-blue-100 text-blue-600 border-blue-200 font-bold px-1.5 py-0.5 text-[10px]">UZCARD</span>}
+                  {cardType === 'UZCARD_COBADGE' && <span className="badge badge-sm bg-blue-100 text-blue-800 border-blue-300 font-bold px-1.5 py-0.5 text-[10px]">UZCARD COB</span>}
+                  {cardType === 'VISA' && <span className="badge badge-sm bg-indigo-100 text-indigo-700 border-indigo-200 font-bold px-1.5 py-0.5 text-[10px] italic">VISA</span>}
+                  {cardType === 'MASTERCARD' && (
+                    <div className="flex -space-x-1 border border-base-300 rounded-sm px-1 py-0.5 bg-base-100">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500 opacity-80" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 opacity-80 z-10 mix-blend-multiply" />
+                    </div>
+                  )}
+                  {cardType === 'UNIONPAY' && <span className="badge badge-sm bg-red-100 text-red-600 border-red-200 font-bold px-1.5 py-0.5 text-[10px]">UNIONPAY</span>}
+                </div>
+              </div>
+              {!isValidLuhn(cardNumber) && (
+                <p className="text-xs text-error mt-1">Karta raqami xato kiritildi</p>
+              )}
+              <div className="grid grid-cols-2 gap-3 mt-3">
                 <input
                   type="text"
                   className="input input-bordered input-sm w-full"

@@ -253,7 +253,7 @@ export interface MemberRecentTransaction {
 }
 
 // Card Types
-export type CardType = 'UZCARD' | 'HUMO' | 'VISA' | 'MASTERCARD';
+export type CardType = 'UZCARD' | 'UZCARD_COBADGE' | 'HUMO' | 'VISA' | 'MASTERCARD' | 'UNIONPAY';
 export type AccountAccessRole = 'OWNER' | 'CO_OWNER' | 'VIEWER';
 export type TransactionStatus = 'CONFIRMED' | 'REVERSED' | 'PENDING';
 export type CurrencyCode = 'UZS' | 'USD' | 'EUR';
@@ -351,6 +351,7 @@ export interface AccountRequest {
   cardHolderName?: string;
   cardExpiryDate?: string;
   cardType?: string;
+  isVirtual?: boolean;
 }
 
 export interface AccountBalanceSummary {

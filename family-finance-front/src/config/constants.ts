@@ -52,7 +52,7 @@ export const ACCOUNT_STATUSES = {
   CLOSED: { label: 'Yopilgan', value: 'CLOSED', badge: 'badge-error' },
 } as const;
 
-export const CARD_TYPES = ['UZCARD', 'HUMO', 'VISA', 'MASTERCARD'] as const;
+export const CARD_TYPES = ['UZCARD', 'UZCARD_COBADGE', 'HUMO', 'VISA', 'MASTERCARD', 'UNIONPAY'] as const;
 
 export const ACCOUNT_ICONS: Record<string, string> = {
   CASH: 'Banknote',

@@ -10,18 +10,22 @@ import java.math.BigDecimal;
 
 @Data
 public class AccountRequest {
-    @NotBlank private String name;
-    @NotNull private AccountType type;
+    @NotBlank
+    private String name;
+    @NotNull
+    private AccountType type;
     private AccountScope scope;
     private String currency = "UZS";
-    @PositiveOrZero(message = "Boshlang'ich balans manfiy bo'lishi mumkin emas") private BigDecimal balance;
+    @PositiveOrZero(message = "Boshlang'ich balans manfiy bo'lishi mumkin emas")
+    private BigDecimal balance;
     private String color;
     private String icon;
     private Long ownerId;
     private String currencyCode;
     private String description;
 
-    @PositiveOrZero private BigDecimal openingBalance;
+    @PositiveOrZero
+    private BigDecimal openingBalance;
     private String bankName;
     private String bankMfo;
     private String bankInn;
@@ -30,4 +34,5 @@ public class AccountRequest {
     private String cardHolderName;
     private String cardExpiryDate;
     private String cardType;
+    private Boolean isVirtual;
 }

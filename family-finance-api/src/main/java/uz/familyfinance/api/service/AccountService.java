@@ -14,6 +14,7 @@ import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
 import uz.familyfinance.api.entity.Account;
 import uz.familyfinance.api.entity.AccountAccess;
+import uz.familyfinance.api.entity.Card;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.enums.AccountAccessRole;
 import uz.familyfinance.api.enums.AccountScope;
@@ -24,6 +25,7 @@ import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.AccountAccessRepository;
 import uz.familyfinance.api.repository.AccountRepository;
+import uz.familyfinance.api.repository.CardRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.TransactionRepository;
 import uz.familyfinance.api.security.CustomUserDetails;
@@ -47,6 +49,8 @@ public class AccountService {
     private final AccountAccessService accountAccessService;
     private final FamilyMemberRepository familyMemberRepository;
     private final TransactionRepository transactionRepository;
+    private final CardRepository cardRepository;
+    private final CardEncryptionService cardEncryptionService;
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
@@ -138,6 +142,24 @@ public class AccountService {
         String accCode = generateAccCode(account, balanceAccountCode, currencyCode);
         account.setAccCode(accCode);
         account = accountRepository.save(account);
+
+        // Karta ob'ektini saqlash
+        if (request.getType() == AccountType.BANK_CARD && request.getCardNumber() != null) {
+            String cardNumber = request.getCardNumber().replaceAll("\\s", "");
+            if (cardNumber.length() == 16) {
+                Card card = Card.builder()
+                        .account(account)
+                        .cardType(uz.familyfinance.api.enums.CardType.valueOf(request.getCardType()))
+                        .cardBin(cardNumber.substring(0, 6))
+                        .cardLastFour(cardNumber.substring(12))
+                        .cardNumberEncrypted(cardEncryptionService.encrypt(cardNumber))
+                        .cardHolderName(request.getCardHolderName())
+                        .expiryDate(request.getCardExpiryDate())
+                        .isVirtual(Boolean.TRUE.equals(request.getIsVirtual()))
+                        .build();
+                cardRepository.save(card);
+            }
+        }
 
         // OWNER access yaratish
         accountAccessService.createOwnerAccess(account, currentUser.getUser());

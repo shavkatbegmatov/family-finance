@@ -53,6 +53,8 @@ public class CardService {
                 .cardNumberEncrypted(encryptionService.encrypt(cardNumber))
                 .cardHolderName(request.getCardHolderName())
                 .expiryDate(request.getExpiryDate())
+                .isVirtual(false) // Assuming CardRequest doesn't have isVirtual, or if it does, use it. Let's
+                                  // see... CardRequest doesn't have it right now.
                 .build();
 
         return toResponse(cardRepository.save(card));

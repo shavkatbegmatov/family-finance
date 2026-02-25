@@ -15,7 +15,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "cards")
-@EntityListeners({AuditingEntityListener.class, AuditEntityListener.class})
+@EntityListeners({ AuditingEntityListener.class, AuditEntityListener.class })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -49,6 +49,10 @@ public class Card extends BaseEntity implements Auditable {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "is_virtual")
+    @Builder.Default
+    private Boolean isVirtual = false;
 
     /**
      * Masklangan karta raqamini qaytaradi: "4441 11** **** 1234"
