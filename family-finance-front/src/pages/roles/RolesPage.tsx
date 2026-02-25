@@ -400,7 +400,7 @@ export function RolesPage() {
                     className="input input-bordered"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Masalan: Katta sotuvchi"
+                    placeholder="Masalan: Buxgalter"
                     disabled={selectedRole?.isSystem}
                   />
                 </label>
@@ -411,7 +411,7 @@ export function RolesPage() {
                     className="input input-bordered uppercase"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') })}
-                    placeholder="Masalan: SENIOR_SELLER"
+                    placeholder="Masalan: ACCOUNTANT"
                     disabled={!!selectedRole}
                   />
                 </label>
@@ -424,7 +424,7 @@ export function RolesPage() {
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Rol haqida qisqacha ma'lumot..."
+                  placeholder="Masalan: Oila byudjetini boshqarish va hisobotlarni ko'rish huquqiga ega"
                   disabled={selectedRole?.isSystem}
                 />
               </label>
@@ -473,20 +473,29 @@ export function RolesPage() {
                       </span>
                     </label>
                     <div className="mt-1 ml-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
-                      {permissions.map((permission) => (
-                        <label
-                          key={permission.code}
-                          className="flex items-center gap-2 p-1.5 rounded cursor-pointer hover:bg-base-200/50"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-xs"
-                            checked={selectedPermissions.has(permission.code)}
-                            onChange={() => togglePermission(permission.code)}
-                          />
-                          <span className="text-xs">{permission.action}</span>
-                        </label>
-                      ))}
+                      {permissions.map((permission) => {
+                        const isSelected = selectedPermissions.has(permission.code);
+                        return (
+                          <label
+                            key={permission.code}
+                            className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-all ${
+                              isSelected
+                                ? 'bg-primary/10 border border-primary/25 shadow-sm'
+                                : 'hover:bg-base-200/50 border border-transparent'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className={`checkbox checkbox-xs ${isSelected ? 'checkbox-primary' : ''}`}
+                              checked={isSelected}
+                              onChange={() => togglePermission(permission.code)}
+                            />
+                            <span className={`text-xs ${isSelected ? 'font-medium text-primary' : ''}`}>
+                              {permission.action}
+                            </span>
+                          </label>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
