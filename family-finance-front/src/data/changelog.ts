@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.3.2',
+        date: '2026-02-26 02:00',
+        title: "Xo'jalik manzili va noyob raqam",
+        features: [
+            "Oila guruhining 'Unique Code' (Noyob raqam) xususiyati yaratildi. U guruh nomi yonida doimiy ko'rinib turadigan 6 xonali kod shaklida interfeysga qo'shildi.",
+            "Yashash manzili kiritish amaliyoti takomillashtirildi. Endi joriy manzilni saqlash va ko'chib o'tilganda yangi manzilni kiritish mumkin.",
+            "Barcha kiritilgan manzillarning tarixi (qachon kelinganligi/ketganligi) alohida xronologik tartibda tizimda saqlanadi va ko'rsatiladi."
+        ],
+        fixes: [
+            "Oilaviy bo'lmagan hisob-kitob varaqalarida 'duplicate key value violates unique constraint accounts_acc_code_key' ma'lumotlar bazasi xatoligi avtomat tarzda bartaraf etildi."
+        ]
+    },
+    {
         version: '1.3.1',
         date: '2026-02-25 22:30',
         title: "Rol yaratish modali yaxshilandi",
