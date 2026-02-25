@@ -28,9 +28,11 @@ public class AccountResponse {
     private String scope;
     private String myAccessRole;
     private BigDecimal openingBalance;
+    private Long bankId;
     private String bankName;
     private String bankMfo;
     private String bankInn;
+    private String bankLogoUrl;
     private List<CardResponse> cards;
     private List<AccountAccessResponse> accessList;
 }

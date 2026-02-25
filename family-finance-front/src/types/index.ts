@@ -325,6 +325,7 @@ export interface Account {
   scope?: AccountScope;
   myAccessRole?: string;
   openingBalance?: number;
+  bankId?: number;
   bankName?: string;
   bankMfo?: string;
   bankInn?: string;
@@ -344,6 +345,7 @@ export interface AccountRequest {
   currencyCode?: string;
   description?: string;
   openingBalance?: number;
+  bankId?: number;
   bankName?: string;
   bankMfo?: string;
   bankInn?: string;

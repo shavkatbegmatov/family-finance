@@ -30,6 +30,7 @@ const UsersPage = lazy(() => import('../pages/users/UsersPage').then(m => ({ def
 const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then(m => ({ default: m.HouseholdPage })));
 const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage').then(m => ({ default: m.MemberDetailPage })));
 const FamilyGroupSettingsPage = lazy(() => import('../pages/settings/FamilyGroupSettings').then(m => ({ default: m.FamilyGroupSettings })));
+const BanksPage = lazy(() => import('../pages/settings/BanksPage').then(m => ({ default: m.BanksPage })));
 
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
@@ -180,6 +181,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: 'Sozlamalar' },
+      },
+      {
+        path: 'banks',
+        element: (
+          <ProtectedRoute permission={PermissionCode.SETTINGS_VIEW}>
+            <LazyRoute><BanksPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Banklar ro\'yxati' },
       },
       {
         path: 'roles',

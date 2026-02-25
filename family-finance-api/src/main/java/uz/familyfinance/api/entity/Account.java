@@ -79,6 +79,9 @@ public class Account extends BaseEntity implements Auditable {
     // ==========================================
     // Yangi bank tizimi maydonlari
     // ==========================================
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_id")
+    private Bank bank;
 
     @Column(name = "acc_code", unique = true, length = 20)
     private String accCode;
@@ -138,6 +141,9 @@ public class Account extends BaseEntity implements Auditable {
         }
         if (this.familyGroup != null) {
             map.put("familyGroupId", this.familyGroup.getId());
+        }
+        if (this.bank != null) {
+            map.put("bankId", this.bank.getId());
         }
         return map;
     }

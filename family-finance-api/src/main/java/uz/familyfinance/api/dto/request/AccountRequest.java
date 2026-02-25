@@ -26,6 +26,7 @@ public class AccountRequest {
 
     @PositiveOrZero
     private BigDecimal openingBalance;
+    private Long bankId;
     private String bankName;
     private String bankMfo;
     private String bankInn;

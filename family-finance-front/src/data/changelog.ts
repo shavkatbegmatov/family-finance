@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.3.4',
+        date: '2026-02-26 04:30',
+        title: "Banklar katalogi va karta-bank integratsiyasi",
+        features: [
+            "Sozlamalarda yangi \"Banklar\" sahifasi qo'shildi: bank yaratish, tahrirlash, qidirish va faol/nofaol holatini boshqarish mumkin.",
+            "Banklar uchun BIN prefikslarini saqlash tizimi joriy etildi va karta raqami (BIN) orqali mos bankni avtomatik aniqlash qo'shildi.",
+            "Hisob (Account) yaratish formasida bank tanlash imkoniyati kengaytirildi: bank ro'yxati backenddan olinadi va bank ma'lumotlari avtomatik to'ldiriladi.",
+            "Bank kartasi qo'shish interfeysi alohida `CreditCardInput` komponentiga ajratildi: karta preview, turini aniqlash, Luhn tekshiruvi va virtual/plastik rejimlar yaxshilandi.",
+            "Backendda banklar uchun alohida API va ma'lumotlar bazasi jadvallari (`banks`, `bank_bins`) hamda `accounts.bank_id` bog'lanishi qo'shildi."
+        ],
+        fixes: [
+            "Hisob obyektlarida bank ma'lumoti endi barqarorroq uzatiladi: `bankId` va `bankLogoUrl` javobga qo'shildi."
+        ]
+    },
+    {
         version: '1.3.3',
         date: '2026-02-26 03:00',
         title: "Bank kartalari interfeysi va funksionalligi",
