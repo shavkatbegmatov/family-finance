@@ -8,6 +8,30 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.3.1',
+        date: '2026-02-25 22:30',
+        title: "Rol yaratish modali yaxshilandi",
+        features: [
+            "Rol yaratish va tahrirlash modalidagi placeholder matnlari oilaviy moliya kontekstiga moslashtirildi (masalan: \"Buxgalter\", \"ACCOUNTANT\").",
+            "Belgilangan ruxsatlar (permissions) vizual jihatdan ajralib turadigan qilindi — tanlangan elementlar rang, chegara va shrift bilan boshqalardan farqlanadi."
+        ],
+        fixes: []
+    },
+    {
+        version: '1.3.0',
+        date: '2026-02-25 20:00',
+        title: "Foydalanuvchi username (login) o'zgartirish",
+        features: [
+            "Admin endi foydalanuvchining username (login)ini to'g'ridan-to'g'ri boshqaruv panelidan o'zgartira oladi.",
+            "Real-time tekshirish: username yozilayotganda uning bandligi yoki bo'shligi serverdan avtomatik tekshiriladi (debounced).",
+            "2 bosqichli tasdiqlash oqimi: avval yangi username kiritiladi, keyin ogohlantirish bilan tasdiqlanadi.",
+            "Xavfsizlik: username o'zgartirilganda foydalanuvchining barcha faol sessiyalari avtomatik tugatiladi — qayta login talab qilinadi.",
+            "Taqiqlangan username'lar (admin, root, system, test va h.k.) server tomonida bloklanadi.",
+            "Username formati: faqat kichik lotin harflari, raqamlar, nuqta va pastki chiziq, harf bilan boshlanishi shart."
+        ],
+        fixes: []
+    },
+    {
         version: '1.2.9',
         date: '2026-02-25 18:00',
         title: "Admin panel: Foydalanuvchilarni boshqarish sahifasi",
