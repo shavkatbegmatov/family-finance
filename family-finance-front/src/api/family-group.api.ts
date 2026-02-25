@@ -30,6 +30,7 @@ export interface FamilyAddressHistoryDto {
 export interface FamilyAddressRequest {
     address: string;
     moveInDate?: string;
+    moveOutDate?: string;
 }
 
 export const familyGroupApi = {

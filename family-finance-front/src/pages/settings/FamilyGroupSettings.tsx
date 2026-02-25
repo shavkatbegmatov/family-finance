@@ -52,6 +52,7 @@ export function FamilyGroupSettings() {
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [newAddress, setNewAddress] = useState('');
     const [moveInDate, setMoveInDate] = useState('');
+    const [moveOutDate, setMoveOutDate] = useState('');
 
     const { data: addressHistory, isLoading: isLoadingHistory } = useQuery({
         queryKey: ['addressHistory'],
@@ -71,6 +72,7 @@ export function FamilyGroupSettings() {
             setIsAddressModalOpen(false);
             setNewAddress('');
             setMoveInDate('');
+            setMoveOutDate('');
         },
         onError: (err: any) => {
             toast.error(err.response?.data?.message || 'Manzilni saqlashda xatolik');
@@ -87,6 +89,7 @@ export function FamilyGroupSettings() {
         addressMutation.mutate({
             address: newAddress,
             moveInDate: moveInDate || undefined,
+            moveOutDate: moveOutDate || undefined,
         });
     };
 
@@ -287,20 +290,34 @@ export function FamilyGroupSettings() {
                             />
                         </div>
 
-                        <div className="form-control w-full">
-                            <label className="label">
-                                <span className="label-text font-medium text-base-content/80">Ko'chib kelish sanasi</span>
-                            </label>
-                            <input
-                                type="date"
-                                className="input input-bordered w-full"
-                                value={moveInDate}
-                                onChange={(e) => setMoveInDate(e.target.value)}
-                                disabled={addressMutation.isPending}
-                            />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="form-control w-full">
+                                <label className="label">
+                                    <span className="label-text font-medium text-base-content/80">Ko'chib kelish sanasi</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    className="input input-bordered w-full"
+                                    value={moveInDate}
+                                    onChange={(e) => setMoveInDate(e.target.value)}
+                                    disabled={addressMutation.isPending}
+                                />
+                            </div>
+                            <div className="form-control w-full">
+                                <label className="label">
+                                    <span className="label-text font-medium text-base-content/80">Ko'chib ketish sanasi</span>
+                                </label>
+                                <input
+                                    type="date"
+                                    className="input input-bordered w-full"
+                                    value={moveOutDate}
+                                    onChange={(e) => setMoveOutDate(e.target.value)}
+                                    disabled={addressMutation.isPending}
+                                />
+                            </div>
                         </div>
                         <p className="text-xs text-base-content/50 -mt-2">
-                            Ko'chgan sanani yozing (ixtiyoriy, agar hozir kiritmayotgan bo'lsangiz).
+                            Sanalar ixtiyoriy. Agar ko'chib ketish kiritilmasa, keyingi ko'chgan kuningizgacha yoki joriy davr deb hisoblanadi.
                         </p>
                     </div>
 
@@ -334,19 +351,19 @@ export function FamilyGroupSettings() {
                             <span className="loading loading-spinner text-primary"></span>
                         </div>
                     ) : (
-                        <div className="max-h-[60vh] overflow-y-auto pr-2">
+                        <div className="max-h-[60vh] overflow-x-hidden overflow-y-auto pr-2">
                             {(!addressHistory || addressHistory.length === 0) ? (
                                 <p className="text-center text-base-content/50 py-4">Tarix topilmadi.</p>
                             ) : (
                                 <ul className="steps steps-vertical w-full">
                                     {addressHistory.map((item: any) => (
-                                        <li key={item.id} className={`step ${item.isCurrent ? "step-primary" : "step-neutral"}`}>
-                                            <div className="flex flex-col items-start text-left ml-4 bg-base-200 p-4 rounded-xl mb-4 w-full">
-                                                <div className="font-medium text-[15px]">{item.address}</div>
+                                        <li key={item.id} className={`step ${item.isCurrent ? "step-primary" : "step-neutral"} min-w-0`}>
+                                            <div className="flex flex-col items-start text-left ml-4 bg-base-200 p-4 rounded-xl mb-4 w-[calc(100%-2rem)] max-w-[400px] break-words">
+                                                <div className="font-medium text-[15px] max-w-full break-words">{item.address}</div>
                                                 <div className="text-sm text-base-content/60 mt-2 flex flex-col sm:flex-row sm:gap-4">
-                                                    <span>Ko'chib kelgan: <strong className="text-base-content/80">{item.moveInDate}</strong></span>
+                                                    <span>Kelgan: <strong className="text-base-content/80">{item.moveInDate}</strong></span>
                                                     {item.moveOutDate && (
-                                                        <span>Ko'chib ketgan: <strong className="text-base-content/80">{item.moveOutDate}</strong></span>
+                                                        <span>Ketgan: <strong className="text-base-content/80">{item.moveOutDate}</strong></span>
                                                     )}
                                                 </div>
                                                 {item.isCurrent && (

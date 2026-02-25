@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Palette,
   Sun,
@@ -22,7 +23,17 @@ type Tab = 'appearance' | 'debts' | 'family-group';
 const DEFAULT_DEBT_DUE_DAYS = 30;
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('appearance');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const validTabs: Tab[] = ['appearance', 'debts', 'family-group'];
+  const urlTab = searchParams.get('tab') as Tab;
+  const initialTab = validTabs.includes(urlTab) ? urlTab : 'appearance';
+
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab }, { replace: true });
+  };
   const { themeMode, setThemeMode } = useUIStore();
 
   // Debt settings
@@ -89,21 +100,21 @@ export function SettingsPage() {
       <div className="tabs tabs-bordered">
         <button
           className={clsx('tab gap-2', activeTab === 'appearance' && 'tab-active')}
-          onClick={() => setActiveTab('appearance')}
+          onClick={() => handleTabChange('appearance')}
         >
           <Palette className="h-4 w-4" />
           Ko'rinish
         </button>
         <button
           className={clsx('tab gap-2', activeTab === 'debts' && 'tab-active')}
-          onClick={() => setActiveTab('debts')}
+          onClick={() => handleTabChange('debts')}
         >
           <Clock className="h-4 w-4" />
           Qarzlar
         </button>
         <button
           className={clsx('tab gap-2', activeTab === 'family-group' && 'tab-active')}
-          onClick={() => setActiveTab('family-group')}
+          onClick={() => handleTabChange('family-group')}
         >
           <Users className="h-4 w-4" />
           Mening guruhim

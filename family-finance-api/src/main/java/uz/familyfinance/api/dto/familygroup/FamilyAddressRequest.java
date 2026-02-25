@@ -16,4 +16,7 @@ public class FamilyAddressRequest {
 
     // Optional, backdated moves
     private LocalDate moveInDate;
+
+    // Optional, explicit move out date
+    private LocalDate moveOutDate;
 }

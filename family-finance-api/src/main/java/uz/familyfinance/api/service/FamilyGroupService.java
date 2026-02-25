@@ -181,22 +181,39 @@ public class FamilyGroupService {
             throw new ResourceNotFoundException("Oila guruhi topilmadi");
         }
 
-        // Mark current addresses as past
-        familyAddressHistoryRepository.markCurrentAsPast(familyGroup.getId());
-
-        // Add new address
         LocalDate moveIn = request.getMoveInDate() != null ? request.getMoveInDate() : LocalDate.now();
+
         FamilyAddressHistory newEntry = FamilyAddressHistory.builder()
                 .familyGroup(familyGroup)
                 .address(request.getAddress())
                 .moveInDate(moveIn)
-                .isCurrent(true)
+                .moveOutDate(request.getMoveOutDate())
+                .isCurrent(false)
                 .build();
         familyAddressHistoryRepository.save(newEntry);
 
-        // Update main group reference
-        familyGroup.setCurrentAddress(request.getAddress());
-        familyGroupRepository.save(familyGroup);
+        List<FamilyAddressHistory> histories = familyAddressHistoryRepository
+                .findByFamilyGroupIdOrderByMoveInDateAsc(familyGroup.getId());
+
+        FamilyAddressHistory currentHistory = null;
+        for (int i = 0; i < histories.size(); i++) {
+            FamilyAddressHistory h = histories.get(i);
+
+            if (h.getMoveOutDate() == null && i < histories.size() - 1) {
+                h.setMoveOutDate(histories.get(i + 1).getMoveInDate());
+            }
+
+            h.setIsCurrent(false);
+            currentHistory = h;
+        }
+
+        if (currentHistory != null) {
+            currentHistory.setIsCurrent(true);
+            familyGroup.setCurrentAddress(currentHistory.getAddress());
+            familyGroupRepository.save(familyGroup);
+        }
+
+        familyAddressHistoryRepository.saveAll(histories);
     }
 
     @Transactional(readOnly = true)

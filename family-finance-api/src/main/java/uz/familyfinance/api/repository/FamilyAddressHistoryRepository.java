@@ -12,6 +12,8 @@ public interface FamilyAddressHistoryRepository extends JpaRepository<FamilyAddr
 
     List<FamilyAddressHistory> findByFamilyGroupIdOrderByMoveInDateDesc(Long familyGroupId);
 
+    List<FamilyAddressHistory> findByFamilyGroupIdOrderByMoveInDateAsc(Long familyGroupId);
+
     @Modifying
     @Query("UPDATE FamilyAddressHistory h SET h.isCurrent = false, h.moveOutDate = CURRENT_DATE WHERE h.familyGroup.id = :familyGroupId AND h.isCurrent = true")
     void markCurrentAsPast(@Param("familyGroupId") Long familyGroupId);
