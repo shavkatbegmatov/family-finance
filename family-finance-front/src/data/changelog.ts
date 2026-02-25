@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.3.3',
+        date: '2026-02-26 03:00',
+        title: "Bank kartalari interfeysi va funksionalligi",
+        features: [
+            "Karta kiritish maydonida Karta turini avtomatik aniqlash o'rnatildi (HUMO, UZCARD, UZCARD COBADGE, VISA, MASTERCARD, UNIONPAY).",
+            "Karta raqami yozilayotganda 4 ta raqamdan so'ng joy tashlash (probel bilan formatlash) avtomatlashtirildi.",
+            "Luhn algoritmi yordamida kiritilgan 16 xonali karta raqamining aslligi haqiqiy vaqt rejimida tekshiriladigan bo'ldi.",
+            "Aniqlangan karta turlari uchun kichik ko'rkam nishonlar (badge) qo'shildi.",
+            "Kartani saqlashda \"Plastik karta\" va \"Virtual karta\" qilib belgilash imkoniyati joriy etildi."
+        ],
+        fixes: [
+            "Yangi bank hisobi ochilayotganda biriktirilgan karta ma'lumotlari haqiqatda tizim bazasiga (cards table) yozib olinmayotgan xato tuzatildi."
+        ]
+    },
+    {
         version: '1.3.2',
         date: '2026-02-26 02:00',
         title: "Xo'jalik manzili va noyob raqam",
