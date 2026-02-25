@@ -60,7 +60,8 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public List<AccountResponse> getAllActive(CustomUserDetails currentUser) {
-        List<Account> accounts = accountRepository.findAccessibleActiveAccounts(currentUser.getId(), currentUser.isAdmin());
+        List<Account> accounts = accountRepository.findAccessibleActiveAccounts(currentUser.getId(),
+                currentUser.isAdmin());
         Map<Long, AccountAccessRole> roleMap = buildRoleMap(accounts, currentUser.getId());
         return accounts.stream()
                 .map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()))
@@ -294,7 +295,8 @@ public class AccountService {
     // -----------------------------------------------------------------------
 
     private Map<Long, AccountAccessRole> buildRoleMap(List<Account> accounts, Long userId) {
-        if (accounts.isEmpty()) return Map.of();
+        if (accounts.isEmpty())
+            return Map.of();
         List<Long> accountIds = accounts.stream().map(Account::getId).toList();
         return accountAccessRepository.findByAccountIdsAndUserId(accountIds, userId).stream()
                 .collect(Collectors.toMap(aa -> aa.getAccount().getId(), AccountAccess::getRole));
@@ -344,11 +346,23 @@ public class AccountService {
         if (account.getOwner() != null) {
             familyId = account.getOwner().getId();
             memberId = (int) (account.getOwner().getId() % 100);
+        } else if (account.getFamilyGroup() != null) {
+            familyId = account.getFamilyGroup().getId();
+            memberId = 0; // Oila egasi bo'lsa
         }
 
-        long ownerId = account.getOwner() != null ? account.getOwner().getId() : 0;
-        long count = accountRepository.countByOwnerAndBalanceCodeAndCurrency(
-                ownerId, balanceAccountCode, currencyCode);
+        long count;
+        if (account.getOwner() != null) {
+            count = accountRepository.countByOwnerIdAndBalanceAccountCodeAndCurrencyCode(
+                    account.getOwner().getId(), balanceAccountCode, currencyCode);
+        } else if (account.getFamilyGroup() != null) {
+            count = accountRepository.countByFamilyGroupIdAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(
+                    account.getFamilyGroup().getId(), balanceAccountCode, currencyCode);
+        } else {
+            count = accountRepository.countByFamilyGroupIsNullAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(
+                    balanceAccountCode, currencyCode);
+        }
+
         int serialNumber = (int) count;
         if (serialNumber < 1)
             serialNumber = 1;

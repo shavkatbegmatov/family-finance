@@ -42,9 +42,14 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
        @Query("UPDATE Account a SET a.balance = a.balance + :amount WHERE a.id = :id")
        void addToBalance(@Param("id") Long id, @Param("amount") BigDecimal amount);
 
-       @Query("SELECT COUNT(a) FROM Account a WHERE a.owner.id = :ownerId AND a.balanceAccountCode = :balanceCode AND a.currencyCode = :currencyCode")
-       long countByOwnerAndBalanceCodeAndCurrency(@Param("ownerId") Long ownerId,
-                     @Param("balanceCode") String balanceCode, @Param("currencyCode") String currencyCode);
+       long countByOwnerIdAndBalanceAccountCodeAndCurrencyCode(Long ownerId, String balanceAccountCode,
+                     String currencyCode);
+
+       long countByFamilyGroupIdAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(Long familyGroupId,
+                     String balanceAccountCode, String currencyCode);
+
+       long countByFamilyGroupIsNullAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(String balanceAccountCode,
+                     String currencyCode);
 
        @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
                      "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
@@ -63,16 +68,21 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
        // Access-controlled queries
 
-       @Query(value = "SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND " +
-                     "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
+       @Query(value = "SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND "
+                     +
+                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
+                     +
+                     "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
+                     +
                      "(:accountType IS NULL OR a.type = :accountType) AND " +
-                     "(:status IS NULL OR a.status = :status)",
-              countQuery = "SELECT COUNT(a) FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND " +
-                     "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
-                     "(:accountType IS NULL OR a.type = :accountType) AND " +
-                     "(:status IS NULL OR a.status = :status)")
+                     "(:status IS NULL OR a.status = :status)", countQuery = "SELECT COUNT(a) FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND "
+                                   +
+                                   "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
+                                   +
+                                   "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
+                                   +
+                                   "(:accountType IS NULL OR a.type = :accountType) AND " +
+                                   "(:status IS NULL OR a.status = :status)")
        Page<Account> findAccessibleAccounts(@Param("userId") Long userId,
                      @Param("isAdmin") boolean isAdmin,
                      @Param("search") String search,
@@ -90,7 +100,8 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                      "((a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
        Page<Account> findMyAccountsWithScope(@Param("userId") Long userId, Pageable pageable);
 
-       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
+       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND "
+                     +
                      "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
        List<Account> findAccessibleActiveAccounts(@Param("userId") Long userId,
                      @Param("isAdmin") boolean isAdmin);
