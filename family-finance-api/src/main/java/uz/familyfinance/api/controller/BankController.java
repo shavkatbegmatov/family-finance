@@ -17,7 +17,7 @@ import uz.familyfinance.api.service.BankService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/banks")
+@RequestMapping("/v1/banks")
 @Tag(name = "Banklar", description = "Banklarni boshqarish apilari")
 @RequiredArgsConstructor
 public class BankController {
