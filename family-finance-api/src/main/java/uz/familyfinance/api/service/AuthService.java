@@ -91,14 +91,14 @@ public class AuthService {
                 .build();
         familyMemberRepository.save(familyMember);
 
-        // Audit log
+        // Audit log (userId=null to avoid FK constraint since user is not yet committed)
         auditLogService.log(
                 "User",
                 user.getId(),
                 "USER_REGISTERED",
                 null,
                 String.format("Foydalanuvchi ro'yxatdan o'tdi: %s", user.getUsername()),
-                user.getId()
+                null
         );
 
         log.info("New user registered: {}", user.getUsername());
