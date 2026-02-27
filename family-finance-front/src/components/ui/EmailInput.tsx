@@ -50,7 +50,7 @@ export function EmailInput({
 
       <div
         className={clsx(
-          'relative flex h-12 cursor-text items-center rounded-xl border bg-base-200/50 transition-all duration-200',
+          'relative flex h-12 cursor-text items-center overflow-hidden rounded-xl border bg-base-200/50 transition-all duration-200',
           isFocused
             ? 'border-primary ring-2 ring-primary/20'
             : error
@@ -69,7 +69,7 @@ export function EmailInput({
           type="email"
           autoComplete="email"
           className={clsx(
-            'w-full bg-transparent py-3 pl-10 pr-10 text-sm font-medium outline-none',
+            'email-input-field h-full w-full rounded-[inherit] bg-transparent py-3 pl-10 pr-10 text-sm font-medium outline-none',
             'placeholder:font-normal placeholder:text-base-content/40'
           )}
           value={value}
