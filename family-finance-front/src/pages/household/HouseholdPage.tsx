@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useState, useCallback } from 'react';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import {
   Home,
@@ -56,8 +57,11 @@ export function HouseholdPage() {
     try {
       const res = await householdApi.getDashboard();
       setData(res.data.data);
-    } catch {
-      toast.error("Ma'lumotlarni yuklashda xatolik");
+    } catch (err) {
+      // 404 = user hali oila guruhiga a'zo emas, xatolik ko'rsatmaslik kerak
+      if (!axios.isAxiosError(err) || err.response?.status !== 404) {
+        toast.error("Ma'lumotlarni yuklashda xatolik");
+      }
     } finally {
       setLoading(false);
     }
