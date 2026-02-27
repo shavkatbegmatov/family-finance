@@ -5,6 +5,7 @@ import { Phone } from 'lucide-react';
 interface PhoneInputProps {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   label?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -49,6 +50,7 @@ const toFullPhone = (digits: string): string => {
 export function PhoneInput({
   value,
   onChange,
+  onBlur,
   label,
   placeholder = '90 123 45 67',
   disabled = false,
@@ -84,6 +86,7 @@ export function PhoneInput({
   // Handle blur
   const handleBlur = () => {
     setIsFocused(false);
+    onBlur?.();
   };
 
   // Handle paste - accept various formats

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import {
   UserPlus,
   Eye,
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
+import { EmailInput } from '../../components/ui/EmailInput';
+import { PhoneInput } from '../../components/ui/PhoneInput';
 import type { RegisterRequest } from '../../types';
 
 export function RegisterPage() {
@@ -23,10 +25,16 @@ export function RegisterPage() {
 
   const {
     register,
+    control,
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<RegisterRequest>();
+  } = useForm<RegisterRequest>({
+    defaultValues: {
+      email: '',
+      phone: '',
+    },
+  });
 
   const password = watch('password', '');
 
@@ -60,7 +68,12 @@ export function RegisterPage() {
 
     setLoading(true);
     try {
-      await authApi.register(data);
+      const payload: RegisterRequest = {
+        ...data,
+        email: data.email?.trim() || undefined,
+        phone: data.phone?.trim() || undefined,
+      };
+      await authApi.register(payload);
       toast.success("Muvaffaqiyatli ro'yxatdan o'tildi! Endi tizimga kirishingiz mumkin.");
       navigate('/login');
     } catch (error: unknown) {
@@ -249,36 +262,42 @@ export function RegisterPage() {
               </label>
 
               {/* Email (optional) */}
-              <label className="form-control">
-                <span className="label-text text-sm">Email (ixtiyoriy)</span>
-                <input
-                  type="email"
-                  placeholder="email@example.com"
-                  autoComplete="email"
-                  className={`input input-bordered w-full ${errors.email ? 'input-error' : ''}`}
-                  {...register('email', {
-                    pattern: {
-                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message: 'Email formati noto\'g\'ri',
-                    },
-                  })}
-                />
-                {errors.email && (
-                  <span className="mt-1 text-xs text-error">{errors.email.message}</span>
+              <Controller
+                name="email"
+                control={control}
+                rules={{
+                  validate: (value) =>
+                    !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) || "Email formati noto'g'ri",
+                }}
+                render={({ field, fieldState }) => (
+                  <EmailInput
+                    label="Email (ixtiyoriy)"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    error={fieldState.error?.message}
+                  />
                 )}
-              </label>
+              />
 
               {/* Phone (optional) */}
-              <label className="form-control">
-                <span className="label-text text-sm">Telefon (ixtiyoriy)</span>
-                <input
-                  type="tel"
-                  placeholder="+998 XX XXX XX XX"
-                  autoComplete="tel"
-                  className={`input input-bordered w-full ${errors.phone ? 'input-error' : ''}`}
-                  {...register('phone')}
-                />
-              </label>
+              <Controller
+                name="phone"
+                control={control}
+                rules={{
+                  validate: (value) =>
+                    !value || /^\+998\d{9}$/.test(value) || "Telefon formati noto'g'ri",
+                }}
+                render={({ field, fieldState }) => (
+                  <PhoneInput
+                    label="Telefon (ixtiyoriy)"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
 
               <button
                 type="submit"
