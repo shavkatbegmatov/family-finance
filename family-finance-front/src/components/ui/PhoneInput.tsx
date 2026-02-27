@@ -137,7 +137,7 @@ export function PhoneInput({
 
       <div
         className={clsx(
-          'relative flex items-center rounded-xl border bg-base-200/50 transition-all duration-200 h-12 cursor-text',
+          'relative flex h-12 cursor-text items-center overflow-hidden rounded-xl border bg-base-200/50 transition-all duration-200',
           isFocused
             ? 'border-primary ring-2 ring-primary/20'
             : error
@@ -167,7 +167,7 @@ export function PhoneInput({
           inputMode="numeric"
           autoComplete="tel-national"
           className={clsx(
-            'flex-1 min-w-0 bg-transparent outline-none px-2 font-semibold',
+            'phone-input-field h-full min-w-0 flex-1 rounded-[inherit] bg-transparent px-2 font-semibold outline-none',
             'placeholder:text-base-content/30 placeholder:font-normal'
           )}
           value={displayValue}

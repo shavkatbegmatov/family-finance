@@ -400,10 +400,13 @@ input[type="number"] {
   color-scheme: dark;
 }
 
-/* Keep custom email input rounded and theme-aligned in Chrome autofill */
+/* Keep custom email/phone inputs rounded and theme-aligned in Chrome autofill */
 .email-input-field:-webkit-autofill,
 .email-input-field:-webkit-autofill:hover,
-.email-input-field:-webkit-autofill:focus {
+.email-input-field:-webkit-autofill:focus,
+.phone-input-field:-webkit-autofill,
+.phone-input-field:-webkit-autofill:hover,
+.phone-input-field:-webkit-autofill:focus {
   border-radius: inherit;
   -webkit-text-fill-color: hsl(var(--bc));
   -webkit-box-shadow: 0 0 0 1000px hsl(var(--b1)) inset;
