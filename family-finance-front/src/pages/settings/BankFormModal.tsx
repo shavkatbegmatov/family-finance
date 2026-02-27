@@ -65,7 +65,7 @@ export function BankFormModal({ isOpen, onClose, editingBank }: BankFormModalPro
             toast.success(editingBank ? "Bank muvaffaqiyatli saqlandi" : "Yangi bank qo'shildi");
             onClose();
         },
-        onError: (error: any) => {
+        onError: (error: { response?: { data?: { message?: string } } }) => {
             toast.error(error.response?.data?.message || "Xatolik yuz berdi");
         }
     });
