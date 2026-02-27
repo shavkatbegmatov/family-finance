@@ -10,6 +10,14 @@ import { useAuthStore } from '../../store/authStore';
 import { ModalPortal } from '../../components/common/Modal';
 import type { ApiResponse } from '../../types';
 
+interface AddressHistoryItem {
+    id: number;
+    address: string;
+    moveInDate: string;
+    moveOutDate?: string;
+    isCurrent: boolean;
+}
+
 export function FamilyGroupSettings() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -60,7 +68,7 @@ export function FamilyGroupSettings() {
         queryKey: ['addressHistory'],
         queryFn: async () => {
             const res = await familyGroupApi.getAddressHistory();
-            return (res.data as unknown as ApiResponse<any[]>).data;
+            return (res.data as unknown as ApiResponse<AddressHistoryItem[]>).data;
         },
         enabled: isHistoryModalOpen,
     });
@@ -76,7 +84,7 @@ export function FamilyGroupSettings() {
             setMoveInDate('');
             setMoveOutDate('');
         },
-        onError: (err: any) => {
+        onError: (err: { response?: { data?: { message?: string } } }) => {
             toast.error(err.response?.data?.message || 'Manzilni saqlashda xatolik');
         },
     });
@@ -369,7 +377,7 @@ export function FamilyGroupSettings() {
                                 <p className="text-center text-base-content/50 py-4">Tarix topilmadi.</p>
                             ) : (
                                 <ul className="steps steps-vertical w-full">
-                                    {addressHistory.map((item: any) => (
+                                    {addressHistory.map((item: AddressHistoryItem) => (
                                         <li key={item.id} className={`step ${item.isCurrent ? "step-primary" : "step-neutral"} min-w-0`}>
                                             <div className="flex flex-col items-start text-left ml-4 bg-base-200 p-4 rounded-xl mb-4 w-[calc(100%-2rem)] max-w-[400px] break-words">
                                                 <div className="font-medium text-[15px] max-w-full break-words">{item.address}</div>

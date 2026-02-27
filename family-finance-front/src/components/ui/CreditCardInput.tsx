@@ -95,7 +95,7 @@ export function CreditCardInput({
     };
 
     const handleChangeNumber = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let val = e.target.value;
+        const val = e.target.value;
         const formatted = formatCardNumber(val);
         const type = detectCardType(formatted);
         onCardNumberChange(formatted, type, localBank);

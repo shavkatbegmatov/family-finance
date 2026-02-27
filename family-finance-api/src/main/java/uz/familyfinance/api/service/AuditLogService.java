@@ -44,7 +44,7 @@ public class AuditLogService {
     /**
      * Log an audit event asynchronously
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void log(String entityType, Long entityId, String action, Object oldValue, Object newValue, Long userId) {
         String username = null;
         if (userId != null) {
