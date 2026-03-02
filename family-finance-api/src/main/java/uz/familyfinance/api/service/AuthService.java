@@ -85,7 +85,8 @@ public class AuthService {
 
         // Avtomatik FamilyMember yaratish va user ga bog'lash
         FamilyMember familyMember = FamilyMember.builder()
-                .firstName(request.getFullName())
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
                 .role(FamilyRole.OTHER)
                 .user(user)
                 .build();

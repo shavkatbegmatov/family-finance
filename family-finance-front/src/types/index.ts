@@ -33,7 +33,8 @@ export interface ChangePasswordRequest {
 }
 
 export interface RegisterRequest {
-  fullName: string;
+  firstName: string;
+  lastName?: string;
   username: string;
   password: string;
   confirmPassword: string;

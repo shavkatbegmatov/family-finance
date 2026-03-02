@@ -12,9 +12,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegisterRequest {
 
-    @NotBlank(message = "Ism-familiya kiritilishi shart")
-    @Size(min = 2, max = 100, message = "Ism-familiya 2-100 belgi orasida bo'lishi kerak")
-    private String fullName;
+    @NotBlank(message = "Ism kiritilishi shart")
+    @Size(min = 2, max = 100, message = "Ism 2-100 belgi orasida bo'lishi kerak")
+    private String firstName;
+
+    @Size(max = 100, message = "Familiya 100 belgidan oshmasligi kerak")
+    private String lastName;
 
     @NotBlank(message = "Username kiritilishi shart")
     @Size(min = 3, max = 50, message = "Username 3-50 belgi orasida bo'lishi kerak")
@@ -33,4 +36,19 @@ public class RegisterRequest {
 
     @Size(max = 20)
     private String phone;
+
+    /**
+     * Ism, familiya va otasining ismidan to'liq ism yaratish
+     */
+    public String getFullName() {
+        StringBuilder sb = new StringBuilder();
+        if (lastName != null && !lastName.isBlank()) {
+            sb.append(lastName.trim());
+        }
+        if (firstName != null && !firstName.isBlank()) {
+            if (!sb.isEmpty()) sb.append(" ");
+            sb.append(firstName.trim());
+        }
+        return sb.toString();
+    }
 }

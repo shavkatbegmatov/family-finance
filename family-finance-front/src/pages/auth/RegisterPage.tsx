@@ -70,6 +70,8 @@ export function RegisterPage() {
     try {
       const payload: RegisterRequest = {
         ...data,
+        firstName: data.firstName.trim(),
+        lastName: data.lastName?.trim() || undefined,
         email: data.email?.trim() || undefined,
         phone: data.phone?.trim() || undefined,
       };
@@ -142,23 +144,39 @@ export function RegisterPage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* Full Name */}
-              <label className="form-control">
-                <span className="label-text text-sm">Ism-familiya</span>
-                <input
-                  type="text"
-                  placeholder="Ism va familiyangiz"
-                  autoComplete="name"
-                  className={`input input-bordered w-full ${errors.fullName ? 'input-error' : ''}`}
-                  {...register('fullName', {
-                    required: 'Ism-familiya kiritilishi shart',
-                    minLength: { value: 2, message: 'Kamida 2 belgi' },
-                  })}
-                />
-                {errors.fullName && (
-                  <span className="mt-1 text-xs text-error">{errors.fullName.message}</span>
-                )}
-              </label>
+              {/* Ism va Familiya */}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="form-control">
+                  <span className="label-text text-sm">Ism *</span>
+                  <input
+                    type="text"
+                    placeholder="Ismingiz"
+                    autoComplete="given-name"
+                    className={`input input-bordered w-full ${errors.firstName ? 'input-error' : ''}`}
+                    {...register('firstName', {
+                      required: 'Ism kiritilishi shart',
+                      minLength: { value: 2, message: 'Kamida 2 belgi' },
+                    })}
+                  />
+                  {errors.firstName && (
+                    <span className="mt-1 text-xs text-error">{errors.firstName.message}</span>
+                  )}
+                </label>
+
+                <label className="form-control">
+                  <span className="label-text text-sm">Familiya</span>
+                  <input
+                    type="text"
+                    placeholder="Familiyangiz"
+                    autoComplete="family-name"
+                    className={`input input-bordered w-full ${errors.lastName ? 'input-error' : ''}`}
+                    {...register('lastName')}
+                  />
+                  {errors.lastName && (
+                    <span className="mt-1 text-xs text-error">{errors.lastName.message}</span>
+                  )}
+                </label>
+              </div>
 
               {/* Username */}
               <label className="form-control">
