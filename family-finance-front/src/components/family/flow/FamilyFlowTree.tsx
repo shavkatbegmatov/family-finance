@@ -182,6 +182,10 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
     }
   }, [closeContextMenu, isSidebarPinned, activeModal, closeModal]);
 
+  const handleMoveStart = useCallback(() => {
+    closeContextMenu();
+  }, [closeContextMenu]);
+
   if (isLayouting) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -201,6 +205,7 @@ export function FamilyFlowTree({ treeData }: FamilyFlowTreeProps) {
       onNodeMouseEnter={handleNodeMouseEnter}
       onNodeMouseLeave={handleNodeMouseLeave}
       onPaneClick={handlePaneClick}
+      onMoveStart={handleMoveStart}
       minZoom={0.2}
       maxZoom={2.0}
       proOptions={{ hideAttribution: true }}

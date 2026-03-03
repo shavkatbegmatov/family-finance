@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.5] - 2026-03-03
+
+### Fixed
+- **Oila daraxti — context menyu qolib ketishi**:
+  - Daraxtni drag qilib siljitganda context menyu avtomatik yopilmay qolardi.
+  - `onMoveStart` handleri qo'shildi — endi daraxt harakatlana boshlaganda menyu darhol yopiladi.
+
 ## [1.3.4] - 2026-03-03
 
 ### Fixed
