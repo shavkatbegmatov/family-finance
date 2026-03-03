@@ -11,6 +11,7 @@ import {
   Lock,
   X,
   Eye,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { rolesApi, permissionsApi } from '../../api/roles.api';
@@ -38,6 +39,12 @@ export function RolesPage() {
   const [viewingRole, setViewingRole] = useState<Role | null>(null);
   const [showAllPermissions, setShowAllPermissions] = useState(false);
   const [showUsersPopover, setShowUsersPopover] = useState(false);
+
+  // Create/Edit preview state
+  const [showRolePreview, setShowRolePreview] = useState(false);
+  const [rolePreviewData, setRolePreviewData] = useState<{
+    name: string; code: string; description: string; permissions: string[];
+  } | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -121,6 +128,8 @@ export function RolesPage() {
       });
       setSelectedPermissions(new Set());
     }
+    setShowRolePreview(false);
+    setRolePreviewData(null);
     setShowModal(true);
   };
 
@@ -129,6 +138,18 @@ export function RolesPage() {
     setSelectedRole(null);
     setFormData({ name: '', code: '', description: '', permissions: [] });
     setSelectedPermissions(new Set());
+    setShowRolePreview(false);
+    setRolePreviewData(null);
+  };
+
+  const handleRoleApply = () => {
+    setRolePreviewData({
+      name: formData.name,
+      code: formData.code,
+      description: formData.description || '',
+      permissions: Array.from(selectedPermissions),
+    });
+    setShowRolePreview(true);
   };
 
   // Fetch full role details for view modal
@@ -367,161 +388,362 @@ export function RolesPage() {
 
       {/* Create/Edit Modal */}
       <ModalPortal isOpen={showModal} onClose={closeModal}>
-        <div className="w-full max-w-[95vw] bg-base-100 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-          <div className="p-4 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {selectedRole ? 'Rolni tahrirlash' : 'Yangi rol yaratish'}
-                </h3>
-                <p className="text-sm text-base-content/60">
-                  {selectedRole ? "Rol ma'lumotlari va huquqlarini o'zgartirish" : "Yangi rol va huquqlarni belgilash"}
-                </p>
-              </div>
-              <button className="btn btn-ghost btn-sm" onClick={closeModal}>
-                <X className="h-4 w-4" />
-              </button>
+        <div className="w-full max-w-[95vw] bg-base-100 rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          {/* Header */}
+          <div className="flex-shrink-0 flex items-start justify-between gap-4 p-4 sm:p-6 border-b border-base-200">
+            <div>
+              <h3 className="text-xl font-semibold">
+                {selectedRole ? 'Rolni tahrirlash' : 'Yangi rol yaratish'}
+              </h3>
+              <p className="text-sm text-base-content/60">
+                {selectedRole ? "Rol ma'lumotlari va huquqlarini o'zgartirish" : "Yangi rol va huquqlarni belgilash"}
+              </p>
             </div>
+            <button className="btn btn-ghost btn-sm flex-shrink-0" onClick={closeModal}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-            <div className="mt-6 space-y-4">
-              {/* System role warning */}
-              {selectedRole?.isSystem && (
-                <div className="alert alert-warning">
-                  <Lock className="h-4 w-4" />
-                  <span>Bu tizim roli. Faqat huquqlarni o'zgartirish mumkin.</span>
+          {/* Body — split layout */}
+          <div className="flex min-h-0 flex-1">
+            {/* Left: form */}
+            <div className={`overflow-y-auto p-4 sm:p-6 ${showRolePreview ? 'w-1/2 border-r border-base-200' : 'w-full'}`}>
+              <div className="space-y-4">
+                {/* System role warning */}
+                {selectedRole?.isSystem && (
+                  <div className="alert alert-warning">
+                    <Lock className="h-4 w-4" />
+                    <span>Bu tizim roli. Faqat huquqlarni o'zgartirish mumkin.</span>
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="form-control">
+                    <span className="label-text">Rol nomi *</span>
+                    <input
+                      type="text"
+                      className="input input-bordered"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Masalan: Buxgalter"
+                      disabled={selectedRole?.isSystem}
+                    />
+                  </label>
+                  <label className="form-control">
+                    <span className="label-text">Rol kodi *</span>
+                    <input
+                      type="text"
+                      className="input input-bordered uppercase"
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') })}
+                      placeholder="Masalan: ACCOUNTANT"
+                      disabled={!!selectedRole}
+                    />
+                  </label>
                 </div>
-              )}
 
-              <div className="grid gap-4 sm:grid-cols-2">
                 <label className="form-control">
-                  <span className="label-text">Rol nomi *</span>
-                  <input
-                    type="text"
-                    className="input input-bordered"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Masalan: Buxgalter"
+                  <span className="label-text">Tavsif</span>
+                  <textarea
+                    className="textarea textarea-bordered"
+                    rows={2}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Masalan: Oila byudjetini boshqarish va hisobotlarni ko'rish huquqiga ega"
                     disabled={selectedRole?.isSystem}
                   />
                 </label>
-                <label className="form-control">
-                  <span className="label-text">Rol kodi *</span>
-                  <input
-                    type="text"
-                    className="input input-bordered uppercase"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '') })}
-                    placeholder="Masalan: ACCOUNTANT"
-                    disabled={!!selectedRole}
-                  />
-                </label>
-              </div>
 
-              <label className="form-control">
-                <span className="label-text">Tavsif</span>
-                <textarea
-                  className="textarea textarea-bordered"
-                  rows={2}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Masalan: Oila byudjetini boshqarish va hisobotlarni ko'rish huquqiga ega"
-                  disabled={selectedRole?.isSystem}
-                />
-              </label>
+                {/* Permissions section */}
+                <div className="divider">Huquqlar</div>
 
-              {/* Permissions section */}
-              <div className="divider">Huquqlar</div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-base-content/60">
+                    {selectedPermissions.size} ta huquq tanlangan
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={selectAllPermissions}
+                    >
+                      Hammasini tanlash
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={clearAllPermissions}
+                    >
+                      Tozalash
+                    </button>
+                  </div>
+                </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-base-content/60">
-                  {selectedPermissions.size} ta huquq tanlangan
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    onClick={selectAllPermissions}
-                  >
-                    Hammasini tanlash
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    onClick={clearAllPermissions}
-                  >
-                    Tozalash
-                  </button>
+                <div className="max-h-80 overflow-y-auto rounded-lg border border-base-200 p-2">
+                  {permissionsGrouped && Object.entries(permissionsGrouped).map(([module, permissions]) => (
+                    <div key={module} className="mb-3 last:mb-0">
+                      <label className="flex items-center gap-2 p-2 rounded-lg bg-base-200/50 cursor-pointer hover:bg-base-200">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm checkbox-primary"
+                          checked={isModuleSelected(module)}
+                          ref={(el) => {
+                            if (el) el.indeterminate = isModulePartiallySelected(module);
+                          }}
+                          onChange={() => toggleModule(module)}
+                        />
+                        <span className="font-medium text-sm">{module}</span>
+                        <span className="text-xs text-base-content/50">
+                          ({permissions.length})
+                        </span>
+                      </label>
+                      <div className="mt-1 ml-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
+                        {permissions.map((permission) => {
+                          const isSelected = selectedPermissions.has(permission.code);
+                          return (
+                            <label
+                              key={permission.code}
+                              className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-primary/10 border border-primary/25 shadow-sm'
+                                  : 'hover:bg-base-200/50 border border-transparent'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                className={`checkbox checkbox-xs ${isSelected ? 'checkbox-primary' : ''}`}
+                                checked={isSelected}
+                                onChange={() => togglePermission(permission.code)}
+                              />
+                              <span className={`text-xs ${isSelected ? 'font-medium text-primary' : ''}`}>
+                                {permission.action}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
 
-              <div className="max-h-80 overflow-y-auto rounded-lg border border-base-200 p-2">
-                {permissionsGrouped && Object.entries(permissionsGrouped).map(([module, permissions]) => (
-                  <div key={module} className="mb-3 last:mb-0">
-                    <label className="flex items-center gap-2 p-2 rounded-lg bg-base-200/50 cursor-pointer hover:bg-base-200">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-sm checkbox-primary"
-                        checked={isModuleSelected(module)}
-                        ref={(el) => {
-                          if (el) el.indeterminate = isModulePartiallySelected(module);
-                        }}
-                        onChange={() => toggleModule(module)}
-                      />
-                      <span className="font-medium text-sm">{module}</span>
-                      <span className="text-xs text-base-content/50">
-                        ({permissions.length})
-                      </span>
-                    </label>
-                    <div className="mt-1 ml-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-1">
-                      {permissions.map((permission) => {
-                        const isSelected = selectedPermissions.has(permission.code);
+            {/* Right: permissions preview */}
+            {showRolePreview && rolePreviewData && (
+              <div className="w-1/2 overflow-y-auto p-4 sm:p-6 bg-base-200/20 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+                    {selectedRole ? 'Solishtirish' : 'Ko\'rinish'}
+                  </span>
+                  <button
+                    className="btn btn-ghost btn-xs btn-square"
+                    onClick={() => setShowRolePreview(false)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {selectedRole ? (
+                  /* Edit mode: two-column diff */
+                  <>
+                    {/* Meta fields diff */}
+                    <div className="rounded-xl border border-base-200 bg-base-100 overflow-hidden text-sm">
+                      <div className="grid grid-cols-2 border-b border-base-200">
+                        <div className="px-3 py-1.5 bg-error/10 text-center">
+                          <span className="text-xs font-semibold text-error/80 uppercase tracking-wide">Eski</span>
+                        </div>
+                        <div className="px-3 py-1.5 bg-success/10 text-center border-l border-base-200">
+                          <span className="text-xs font-semibold text-success/80 uppercase tracking-wide">Yangi</span>
+                        </div>
+                      </div>
+
+                      {[
+                        { label: 'Nom', old: selectedRole.name, new: rolePreviewData.name },
+                        { label: 'Tavsif', old: selectedRole.description || '—', new: rolePreviewData.description || '—' },
+                        {
+                          label: 'Huquqlar',
+                          old: `${(selectedRole.permissions || []).length} ta`,
+                          new: `${rolePreviewData.permissions.length} ta`,
+                        },
+                      ].map(({ label, old: oldVal, new: newVal }) => {
+                        const changed = oldVal !== newVal;
                         return (
-                          <label
-                            key={permission.code}
-                            className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-primary/10 border border-primary/25 shadow-sm'
-                                : 'hover:bg-base-200/50 border border-transparent'
-                            }`}
+                          <div
+                            key={label}
+                            className={`grid grid-cols-2 border-b border-base-200 last:border-0 ${changed ? 'bg-warning/5' : ''}`}
                           >
-                            <input
-                              type="checkbox"
-                              className={`checkbox checkbox-xs ${isSelected ? 'checkbox-primary' : ''}`}
-                              checked={isSelected}
-                              onChange={() => togglePermission(permission.code)}
-                            />
-                            <span className={`text-xs ${isSelected ? 'font-medium text-primary' : ''}`}>
-                              {permission.action}
-                            </span>
-                          </label>
+                            <div className={`px-3 py-2 ${changed ? 'bg-error/5' : ''}`}>
+                              <p className="text-xs text-base-content/40 mb-0.5">{label}</p>
+                              <p className={`truncate ${changed ? 'line-through text-base-content/40' : ''}`}>{oldVal}</p>
+                            </div>
+                            <div className={`px-3 py-2 border-l border-base-200 ${changed ? 'bg-success/5' : ''}`}>
+                              <p className="text-xs text-base-content/40 mb-0.5">{label}</p>
+                              <p className={`truncate ${changed ? 'font-medium text-success' : ''}`}>{newVal}</p>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="mt-6 flex justify-end gap-2">
-              <button className="btn btn-ghost" onClick={closeModal}>
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSubmit}
-                disabled={
-                  !formData.name ||
-                  !formData.code ||
-                  createMutation.isPending ||
-                  updateMutation.isPending
-                }
-              >
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <span className="loading loading-spinner loading-sm" />
+                    {/* Permissions diff by module */}
+                    {permissionsGrouped && (
+                      <div className="space-y-3">
+                        {Object.entries(permissionsGrouped).map(([module, allPerms]) => {
+                          const oldSet = new Set(selectedRole.permissions || []);
+                          const newSet = new Set(rolePreviewData.permissions);
+                          // Show module only if anything changed or selected
+                          const hasOld = allPerms.some(p => oldSet.has(p.code));
+                          const hasNew = allPerms.some(p => newSet.has(p.code));
+                          if (!hasOld && !hasNew) return null;
+
+                          return (
+                            <div key={module}>
+                              <p className="text-xs font-semibold text-base-content/60 mb-1.5 flex items-center gap-1.5">
+                                <span className="h-1 w-1 rounded-full bg-primary inline-block" />
+                                {module}
+                              </p>
+                              <div className="grid grid-cols-2 gap-1">
+                                <div className="space-y-1">
+                                  {allPerms.filter(p => oldSet.has(p.code)).map(p => {
+                                    const removed = !newSet.has(p.code);
+                                    return (
+                                      <span
+                                        key={p.code}
+                                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
+                                          removed
+                                            ? 'bg-error/10 border border-error/20 text-error line-through'
+                                            : 'bg-base-200/60 text-base-content/60'
+                                        }`}
+                                      >
+                                        {p.action}
+                                      </span>
+                                    );
+                                  })}
+                                  {!hasOld && <span className="text-xs text-base-content/30 px-2">—</span>}
+                                </div>
+                                <div className="space-y-1">
+                                  {allPerms.filter(p => newSet.has(p.code)).map(p => {
+                                    const added = !oldSet.has(p.code);
+                                    return (
+                                      <span
+                                        key={p.code}
+                                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
+                                          added
+                                            ? 'bg-success/10 border border-success/20 text-success'
+                                            : 'bg-base-200/60 text-base-content/60'
+                                        }`}
+                                      >
+                                        {added && <Check className="h-3 w-3 flex-shrink-0" />}
+                                        {p.action}
+                                      </span>
+                                    );
+                                  })}
+                                  {!hasNew && <span className="text-xs text-base-content/30 px-2">—</span>}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* Create mode: simple preview */
+                  <div className="rounded-2xl border border-base-200 bg-base-100 p-4 shadow-sm space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-10 w-10 place-items-center rounded-lg bg-secondary/15 text-secondary flex-shrink-0">
+                        <Shield className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{rolePreviewData.name || '—'}</p>
+                        <p className="text-xs font-mono text-base-content/50">{rolePreviewData.code || '—'}</p>
+                      </div>
+                    </div>
+                    {rolePreviewData.description && (
+                      <p className="text-sm text-base-content/70 border-t border-base-200 pt-3">
+                        {rolePreviewData.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 border-t border-base-200 pt-3">
+                      <Key className="h-4 w-4 text-base-content/50" />
+                      <span className="text-sm text-base-content/60">
+                        {rolePreviewData.permissions.length} ta huquq tanlangan
+                      </span>
+                    </div>
+                    {rolePreviewData.permissions.length === 0 ? (
+                      <div className="text-center py-4 text-base-content/40 text-sm">
+                        Hech qanday huquq tanlanmagan
+                      </div>
+                    ) : !permissionsGrouped ? (
+                      <div className="flex justify-center py-4">
+                        <span className="loading loading-spinner loading-sm" />
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {Object.entries(permissionsGrouped).map(([module, allPerms]) => {
+                          const selected = allPerms.filter(p => rolePreviewData.permissions.includes(p.code));
+                          if (selected.length === 0) return null;
+                          return (
+                            <div key={module}>
+                              <p className="text-xs font-semibold text-base-content/60 mb-1.5 flex items-center gap-1.5">
+                                <span className="h-1 w-1 rounded-full bg-primary inline-block" />
+                                {module}
+                                <span className="text-base-content/40">({selected.length})</span>
+                              </p>
+                              <div className="flex flex-wrap gap-1">
+                                {selected.map(p => (
+                                  <span
+                                    key={p.code}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-success/10 border border-success/20 text-xs text-success font-medium"
+                                  >
+                                    <Check className="h-3 w-3" />
+                                    {p.action}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )}
-                {selectedRole ? 'Saqlash' : 'Yaratish'}
-              </button>
-            </div>
+
+                <p className="text-xs text-base-content/40 text-center">
+                  Bu faqat ko'rinish — hali saqlanmagan
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex-shrink-0 flex justify-end gap-2 p-4 sm:p-6 border-t border-base-200">
+            <button className="btn btn-ghost" onClick={closeModal}>
+              Bekor qilish
+            </button>
+            <button
+              className="btn btn-outline btn-secondary hidden sm:inline-flex"
+              onClick={handleRoleApply}
+              disabled={!formData.name || !formData.code}
+            >
+              <Eye className="h-4 w-4" />
+              Apply
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={
+                !formData.name ||
+                !formData.code ||
+                createMutation.isPending ||
+                updateMutation.isPending
+              }
+            >
+              {(createMutation.isPending || updateMutation.isPending) && (
+                <span className="loading loading-spinner loading-sm" />
+              )}
+              {selectedRole ? 'Saqlash' : 'Yaratish'}
+            </button>
           </div>
         </div>
       </ModalPortal>

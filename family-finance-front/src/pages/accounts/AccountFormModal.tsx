@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Eye } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { accountsApi } from '../../api/accounts.api';
@@ -83,7 +83,22 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
 
   const [submitting, setSubmitting] = useState(false);
 
+  // Preview state
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    name: string; type: AccountType; currency: string; balance: number;
+    scope: AccountScope; color: string; description: string;
+    bankName: string; cardNumber: string; cardHolderName: string; cardExpiryDate: string;
+  } | null>(null);
+
   // Reset form when modal opens
+  useEffect(() => {
+    if (!isOpen) {
+      setShowPreview(false);
+      setPreviewData(null);
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       if (editingAccount) {
@@ -174,13 +189,25 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
     }
   };
 
+  const handleApply = () => {
+    setPreviewData({ name, type, currency, balance, scope, color, description, bankName, cardNumber, cardHolderName, cardExpiryDate });
+    setShowPreview(true);
+  };
+
   const iconName = ACCOUNT_ICONS[type] || 'Wallet';
+
+  // Format balance for preview
+  const formatBalance = (val: number, cur: string) =>
+    new Intl.NumberFormat('uz-UZ', { style: 'currency', currency: cur, minimumFractionDigits: 0 }).format(val);
 
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose}>
-      <div className="surface-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className={clsx(
+        'surface-card w-full max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300',
+        showPreview ? 'max-w-4xl' : 'max-w-lg'
+      )}>
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-base-200 p-5">
+        <div className="flex-shrink-0 flex items-center justify-between border-b border-base-200 p-5">
           <div>
             <h3 className="text-lg font-semibold">
               {isEdit ? 'Hisobni tahrirlash' : 'Yangi hisob yaratish'}
@@ -194,7 +221,13 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
           </button>
         </div>
 
-        {/* Body */}
+        {/* Body — split layout */}
+        <div className="flex min-h-0 flex-1">
+          {/* Left: form */}
+          <div className={clsx(
+            'overflow-y-auto',
+            showPreview ? 'w-1/2 border-r border-base-200' : 'w-full'
+          )}>
         <div className="space-y-4 p-5">
           {/* Name */}
           <div className="form-control">
@@ -406,11 +439,185 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
             </div>
           )}
         </div>
+          </div>{/* end left form panel */}
+
+          {/* Right: preview panel */}
+          {showPreview && previewData && (
+            <div className="w-1/2 overflow-y-auto bg-base-200/30 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+                  Ko'rinish
+                </span>
+                <button
+                  className="btn btn-ghost btn-xs btn-square"
+                  onClick={() => setShowPreview(false)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {isEdit && editingAccount ? (
+                /* Edit mode: two-column diff */
+                <div className="rounded-2xl border border-base-200 bg-base-100 shadow-sm overflow-hidden">
+                  {/* Column headers */}
+                  <div className="grid grid-cols-2 border-b border-base-200">
+                    <div className="px-4 py-2 bg-error/10 text-center">
+                      <span className="text-xs font-semibold text-error/80 uppercase tracking-wide">Eski</span>
+                    </div>
+                    <div className="px-4 py-2 bg-success/10 text-center border-l border-base-200">
+                      <span className="text-xs font-semibold text-success/80 uppercase tracking-wide">Yangi</span>
+                    </div>
+                  </div>
+
+                  {/* Rows */}
+                  {[
+                    {
+                      label: 'Nom',
+                      old: editingAccount.name,
+                      new: previewData.name,
+                    },
+                    {
+                      label: 'Doira',
+                      old: editingAccount.scope === 'FAMILY' ? 'Oilaviy' : 'Shaxsiy',
+                      new: previewData.scope === 'FAMILY' ? 'Oilaviy' : 'Shaxsiy',
+                    },
+                    {
+                      label: 'Rang',
+                      old: editingAccount.color || DEFAULT_COLORS[0],
+                      new: previewData.color,
+                      isColor: true,
+                    },
+                    {
+                      label: 'Izoh',
+                      old: editingAccount.description || '—',
+                      new: previewData.description || '—',
+                    },
+                    ...(editingAccount.bankName || previewData.bankName ? [{
+                      label: 'Bank',
+                      old: editingAccount.bankName || '—',
+                      new: previewData.bankName || '—',
+                    }] : []),
+                  ].map(({ label, old: oldVal, new: newVal, isColor }) => {
+                    const changed = oldVal !== newVal;
+                    return (
+                      <div
+                        key={label}
+                        className={clsx(
+                          'grid grid-cols-2 border-b border-base-200 last:border-0 text-sm',
+                          changed && 'bg-warning/5'
+                        )}
+                      >
+                        <div className={clsx(
+                          'px-3 py-2.5 flex items-center gap-2',
+                          changed && 'bg-error/5'
+                        )}>
+                          {isColor ? (
+                            <span
+                              className="h-4 w-4 rounded-full flex-shrink-0 border border-base-300"
+                              style={{ backgroundColor: oldVal as string }}
+                            />
+                          ) : null}
+                          <span className={clsx(
+                            'truncate',
+                            changed ? 'line-through text-base-content/40' : 'text-base-content'
+                          )}>
+                            {label}: {isColor ? '' : oldVal}
+                          </span>
+                        </div>
+                        <div className={clsx(
+                          'px-3 py-2.5 flex items-center gap-2 border-l border-base-200',
+                          changed && 'bg-success/5'
+                        )}>
+                          {isColor ? (
+                            <span
+                              className="h-4 w-4 rounded-full flex-shrink-0 border border-base-300"
+                              style={{ backgroundColor: newVal as string }}
+                            />
+                          ) : null}
+                          <span className={clsx(
+                            'truncate',
+                            changed ? 'font-medium text-success' : 'text-base-content'
+                          )}>
+                            {label}: {isColor ? '' : newVal}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Create mode: simple preview card */
+                <div className="rounded-2xl border border-base-200 bg-base-100 p-5 shadow-sm space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="h-12 w-12 rounded-xl flex items-center justify-center text-white text-xl font-bold flex-shrink-0"
+                      style={{ backgroundColor: previewData.color }}
+                    >
+                      {previewData.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-base">{previewData.name}</p>
+                      <p className="text-xs text-base-content/50">
+                        {ACCOUNT_TYPES[previewData.type]?.label || previewData.type}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-base-200/60 px-4 py-3">
+                    <p className="text-xs text-base-content/50 mb-0.5">Balans</p>
+                    <p className="text-xl font-bold">
+                      {formatBalance(previewData.balance, previewData.currency)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={clsx(
+                      'badge badge-sm',
+                      previewData.scope === 'FAMILY' ? 'badge-primary' : 'badge-ghost'
+                    )}>
+                      {previewData.scope === 'FAMILY' ? 'Oilaviy' : 'Shaxsiy'}
+                    </span>
+                    <span className="badge badge-ghost badge-sm">{previewData.currency}</span>
+                  </div>
+                  {previewData.description && (
+                    <p className="text-sm text-base-content/70 border-t border-base-200 pt-3">
+                      {previewData.description}
+                    </p>
+                  )}
+                  {previewData.bankName && (
+                    <div className="text-sm border-t border-base-200 pt-3">
+                      <span className="text-base-content/50">Bank: </span>
+                      <span className="font-medium">{previewData.bankName}</span>
+                    </div>
+                  )}
+                  {previewData.cardNumber && (
+                    <div className="text-sm">
+                      <span className="text-base-content/50">Karta: </span>
+                      <span className="font-mono font-medium">
+                        **** {previewData.cardNumber.replace(/\s/g, '').slice(-4)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <p className="text-xs text-base-content/40 text-center">
+                Bu faqat ko'rinish — hali saqlanmagan
+              </p>
+            </div>
+          )}
+        </div>{/* end flex body */}
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-base-200 p-5">
+        <div className="flex-shrink-0 flex items-center justify-end gap-3 border-t border-base-200 p-5">
           <button className="btn btn-ghost" onClick={onClose}>
             Bekor qilish
+          </button>
+          <button
+            className="btn btn-outline btn-secondary hidden sm:inline-flex"
+            onClick={handleApply}
+            disabled={!name.trim()}
+          >
+            <Eye className="h-4 w-4" />
+            Apply
           </button>
           <button
             className={clsx('btn btn-primary', submitting && 'loading')}
