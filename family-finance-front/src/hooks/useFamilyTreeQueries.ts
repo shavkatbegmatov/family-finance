@@ -80,6 +80,17 @@ export function useActivePersonsQuery() {
   });
 }
 
+export function usePersonQuery(personId: number | null) {
+  return useQuery({
+    queryKey: [...familyTreeKeys.all, 'person', personId] as const,
+    queryFn: async () => {
+      const res = await familyUnitApi.getPerson(personId!);
+      return (res.data as ApiResponse<FamilyMember>).data;
+    },
+    enabled: !!personId,
+  });
+}
+
 export function useFamilyUnitsByPersonQuery(personId: number) {
   return useQuery({
     queryKey: familyTreeKeys.byPerson(personId),

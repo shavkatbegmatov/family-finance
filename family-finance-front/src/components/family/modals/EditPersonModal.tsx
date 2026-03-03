@@ -6,7 +6,7 @@ import { PhoneInput } from '../../ui/PhoneInput';
 import { Select } from '../../ui/Select';
 import { DateInput } from '../../ui/DateInput';
 import { AvatarUploader } from '../../ui/AvatarUploader';
-import { useUpdatePerson, useUpdateSelf, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
+import { useUpdatePerson, useUpdateSelf, usePersonQuery } from '../../../hooks/useFamilyTreeQueries';
 import { GENDERS } from '../../../config/constants';
 import { useAuthStore } from '../../../store/authStore';
 import type { Gender } from '../../../types';
@@ -38,9 +38,8 @@ export function EditPersonModal({
   const currentUser = useAuthStore((s) => s.user);
   const updatePerson = useUpdatePerson();
   const updateSelf = useUpdateSelf();
-  const { data: activePersons = [] } = useActivePersonsQuery();
+  const { data: person, isLoading: isPersonLoading } = usePersonQuery(isOpen ? personId : null);
 
-  const person = activePersons.find((p) => p.id === personId);
   const isSelf =
     (person?.userId != null && person.userId === currentUser?.id) ||
     currentUser?.familyMemberId === personId;
@@ -51,21 +50,18 @@ export function EditPersonModal({
 
   // Load person data
   useEffect(() => {
-    if (isOpen && personId) {
-      const p = activePersons.find((p) => p.id === personId);
-      if (p) {
-        setFirstName(p.firstName || '');
-        setLastName(p.lastName || '');
-        setMiddleName(p.middleName || '');
-        setGender((p.gender as Gender) || '');
-        setPhone(p.phone || '');
-        setBirthDate(p.birthDate || '');
-        setBirthPlace(p.birthPlace || '');
-        setDeathDate(p.deathDate || '');
-        setAvatar(p.avatar || '');
-      }
+    if (isOpen && person) {
+      setFirstName(person.firstName || '');
+      setLastName(person.lastName || '');
+      setMiddleName(person.middleName || '');
+      setGender((person.gender as Gender) || '');
+      setPhone(person.phone || '');
+      setBirthDate(person.birthDate || '');
+      setBirthPlace(person.birthPlace || '');
+      setDeathDate(person.deathDate || '');
+      setAvatar(person.avatar || '');
     }
-  }, [isOpen, personId, activePersons]);
+  }, [isOpen, person]);
 
   const handleClose = () => {
     onClose();
@@ -138,87 +134,95 @@ export function EditPersonModal({
             </button>
           </div>
 
-          <div className="mt-4 space-y-4">
-            <TextInput
-              label="Ism"
-              required
-              value={firstName}
-              onChange={setFirstName}
-              placeholder="Ism"
-              leadingIcon={<User className="h-5 w-5" />}
-            />
-
-            <TextInput
-              label="Familiya"
-              value={lastName}
-              onChange={setLastName}
-              placeholder="Familiya"
-            />
-
-            <TextInput
-              label="Otasining ismi"
-              value={middleName}
-              onChange={setMiddleName}
-              placeholder="Otasining ismi"
-            />
-
-            <Select
-              label="Jinsi"
-              value={gender || undefined}
-              onChange={(val) => setGender(val as Gender)}
-              options={genderOptions}
-              placeholder="Tanlang..."
-            />
-
-            <PhoneInput
-              label="Telefon"
-              value={phone}
-              onChange={setPhone}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <DateInput
-                label="Tug'ilgan sana"
-                value={birthDate}
-                onChange={setBirthDate}
-                max={new Date().toISOString().slice(0, 10)}
-              />
-              <DateInput
-                label="Vafot sanasi"
-                value={deathDate}
-                onChange={setDeathDate}
-                max={new Date().toISOString().slice(0, 10)}
-              />
+          {isPersonLoading ? (
+            <div className="mt-6 flex justify-center py-8">
+              <span className="loading loading-spinner loading-md" />
             </div>
+          ) : (
+            <>
+              <div className="mt-4 space-y-4">
+                <TextInput
+                  label="Ism"
+                  required
+                  value={firstName}
+                  onChange={setFirstName}
+                  placeholder="Ism"
+                  leadingIcon={<User className="h-5 w-5" />}
+                />
 
-            <TextInput
-              label="Tug'ilgan joy"
-              value={birthPlace}
-              onChange={setBirthPlace}
-              placeholder="Shahar, viloyat"
-            />
+                <TextInput
+                  label="Familiya"
+                  value={lastName}
+                  onChange={setLastName}
+                  placeholder="Familiya"
+                />
 
-            <AvatarUploader
-              label="Rasm"
-              value={avatar}
-              onChange={setAvatar}
-            />
-          </div>
+                <TextInput
+                  label="Otasining ismi"
+                  value={middleName}
+                  onChange={setMiddleName}
+                  placeholder="Otasining ismi"
+                />
 
-          {/* Actions */}
-          <div className="mt-6 flex justify-end gap-2">
-            <button className="btn btn-ghost" onClick={handleClose} disabled={isSubmitting}>
-              Bekor qilish
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !firstName.trim()}
-            >
-              {isSubmitting && <span className="loading loading-spinner loading-sm" />}
-              Saqlash
-            </button>
-          </div>
+                <Select
+                  label="Jinsi"
+                  value={gender || undefined}
+                  onChange={(val) => setGender(val as Gender)}
+                  options={genderOptions}
+                  placeholder="Tanlang..."
+                />
+
+                <PhoneInput
+                  label="Telefon"
+                  value={phone}
+                  onChange={setPhone}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <DateInput
+                    label="Tug'ilgan sana"
+                    value={birthDate}
+                    onChange={setBirthDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                  />
+                  <DateInput
+                    label="Vafot sanasi"
+                    value={deathDate}
+                    onChange={setDeathDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                  />
+                </div>
+
+                <TextInput
+                  label="Tug'ilgan joy"
+                  value={birthPlace}
+                  onChange={setBirthPlace}
+                  placeholder="Shahar, viloyat"
+                />
+
+                <AvatarUploader
+                  label="Rasm"
+                  value={avatar}
+                  onChange={setAvatar}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 flex justify-end gap-2">
+                <button className="btn btn-ghost" onClick={handleClose} disabled={isSubmitting}>
+                  Bekor qilish
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !firstName.trim()}
+                >
+                  {isSubmitting && <span className="loading loading-spinner loading-sm" />}
+                  Saqlash
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </ModalPortal>

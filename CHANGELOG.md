@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.4] - 2026-03-03
+
+### Fixed
+- **Oila daraxti — tahrirlash formasi bo'sh ko'rinishi**:
+  - `EditPersonModal` endi barcha a'zolar ro'yxatidan (`/v1/family-members/list`) shaxs qidirish o'rniga bevosita `GET /v1/family-members/:id` orqali ma'lumotlarni yuklaydi.
+  - Yangi `usePersonQuery` hook qo'shildi (`useFamilyTreeQueries.ts`).
+  - Modal ochilayotganda ma'lumot yuklanguncha spinner ko'rsatiladi (bo'sh forma endi ko'rinmaydi).
+
 ## [1.3.3] - 2026-02-26
 
 ### Added
