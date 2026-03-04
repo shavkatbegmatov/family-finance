@@ -218,8 +218,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-base-200/80 bg-base-100/95 backdrop-blur-md">
       <div className="flex h-16 w-full items-center gap-3 px-4 lg:px-6">
-        {/* Left section - Menu & Title */}
-        <div className="flex items-center gap-3">
+        {/* Left section - Menu & Breadcrumb */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             className="btn btn-square btn-ghost btn-sm lg:hidden"
             onClick={toggleSidebar}
@@ -262,13 +262,12 @@ export function Header() {
           </div>
         </div>
 
-        {/* Center section - Search (desktop) */}
-        <div className="hidden md:flex flex-1 justify-center max-w-xl mx-4">
-          <SearchCommand />
-        </div>
-
-        {/* Right section - Actions & User */}
-        <div className="ml-auto flex items-center gap-1">
+        {/* Right section - Search & Actions */}
+        <div className="flex items-center gap-1">
+          {/* Search (desktop) */}
+          <div className="hidden md:flex max-w-xs">
+            <SearchCommand />
+          </div>
           {/* Mobile search */}
           <div className="md:hidden">
             <SearchCommand />
