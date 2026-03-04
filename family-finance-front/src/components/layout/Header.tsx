@@ -6,7 +6,6 @@ import {
   Bell,
   Settings,
   ChevronDown,
-  ChevronRight,
   Sun,
   Moon,
   HelpCircle,
@@ -242,7 +241,7 @@ export function Header() {
                 return (
                   <div key={crumb.path} className="flex items-center gap-1.5 min-w-0">
                     {index > 0 && (
-                      <ChevronRight className="h-3.5 w-3.5 text-base-content/30 flex-shrink-0" />
+                      <span className="text-base-content/30 flex-shrink-0 text-sm">→</span>
                     )}
                     {isLast ? (
                       <span className="text-base font-semibold text-base-content lg:text-lg truncate">
