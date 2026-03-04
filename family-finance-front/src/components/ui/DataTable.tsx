@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, useRef, ReactNode } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { Select } from './Select';
+import { ResizeHandle } from './ResizeHandle';
+import { useColumnResize, stripWidthClasses } from '../../hooks/useColumnResize';
 
 // Types
 export type SortDirection = 'asc' | 'desc' | null;
@@ -19,6 +21,12 @@ export interface Column<T> {
   headerClassName?: string;
   render?: (item: T, index: number) => ReactNode;
   getValue?: (item: T) => string | number | boolean | null | undefined;
+
+  // Column resize
+  width?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  resizable?: boolean;
 }
 
 export interface DataTableProps<T> {
@@ -58,6 +66,10 @@ export interface DataTableProps<T> {
 
   // Mobile card
   renderMobileCard?: (item: T, index: number) => ReactNode;
+
+  // Column resize
+  tableId?: string;
+  resizable?: boolean;
 
   // Styling
   className?: string;
@@ -128,6 +140,8 @@ export function DataTable<T>({
   highlightId,
   onHighlightComplete,
   renderMobileCard,
+  tableId,
+  resizable = false,
   className,
   containerClassName,
 }: DataTableProps<T>) {
@@ -142,16 +156,29 @@ export function DataTable<T>({
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
+  // Column resize
+  const {
+    columnWidths,
+    isResizing,
+    resizingKey,
+    handleResizeStart,
+    resetColumnWidth,
+    resetAllWidths,
+    hasCustomWidths,
+  } = useColumnResize({
+    tableId,
+    columns,
+    enabled: resizable,
+  });
+
   // Handle highlight
   useEffect(() => {
     if (highlightId != null && data.length > 0) {
-      // Find the item
       const itemExists = data.some(item => keyExtractor(item) === highlightId);
 
       if (itemExists) {
         setActiveHighlight(highlightId);
 
-        // Scroll to highlighted row
         setTimeout(() => {
           const row = tableRef.current?.querySelector(`[data-highlight-id="${highlightId}"]`);
           if (row) {
@@ -159,7 +186,6 @@ export function DataTable<T>({
           }
         }, 100);
 
-        // Clear highlight after animation
         highlightTimeoutRef.current = setTimeout(() => {
           setActiveHighlight(null);
           onHighlightComplete?.();
@@ -249,6 +275,21 @@ export function DataTable<T>({
     );
   };
 
+  // Helper: get width style for a column
+  const getColStyle = (column: Column<T>): React.CSSProperties | undefined => {
+    if (!resizable) return undefined;
+    const w = columnWidths[column.key];
+    if (!w) return undefined;
+    return { width: `${w}px`, maxWidth: `${w}px` };
+  };
+
+  // Helper: get className for a column (strip widths when resizable)
+  const getColClassName = (column: Column<T>, source: 'td' | 'th'): string => {
+    const raw = source === 'th' ? column.headerClassName : column.className;
+    if (!resizable) return raw ?? '';
+    return clsx(stripWidthClasses(raw), 'overflow-hidden');
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -278,8 +319,27 @@ export function DataTable<T>({
   return (
     <div ref={tableRef} className={clsx('surface-card', containerClassName)}>
       {/* Desktop Table */}
-      <div className={clsx('hidden lg:block', className)}>
-        <table className="table table-zebra table-fixed w-full">
+      <div className={clsx('hidden lg:block relative', className)}>
+        {/* Reset button */}
+        {resizable && hasCustomWidths && (
+          <div className="absolute top-1.5 right-2 z-30">
+            <button
+              className="btn btn-ghost btn-xs gap-1 opacity-40 hover:opacity-100 transition-opacity"
+              onClick={resetAllWidths}
+              title="Ustun kengliklarini tiklash"
+            >
+              <RotateCcw className="h-3 w-3" />
+              <span className="text-[10px]">Tiklash</span>
+            </button>
+          </div>
+        )}
+
+        <table
+          className={clsx(
+            'table table-zebra table-fixed w-full',
+            isResizing && 'select-none',
+          )}
+        >
           <thead className="sticky -top-6 z-20 bg-base-100">
             <tr className="shadow-[0_1px_3px_-1px_rgba(0,0,0,0.1)]">
               {columns.map((column) => (
@@ -289,8 +349,12 @@ export function DataTable<T>({
                     column.sortable !== false && 'cursor-pointer select-none transition-colors hover:bg-base-200/50',
                     sortConfig.key === column.key && 'bg-base-200/30',
                     '!bg-base-100 border-b border-base-200',
-                    column.headerClassName
+                    resizable && 'relative',
+                    resizable && resizingKey === column.key && 'bg-primary/5',
+                    getColClassName(column, 'th'),
+                    !resizable && column.headerClassName,
                   )}
+                  style={getColStyle(column)}
                   onClick={() => column.sortable !== false && handleSort(column.key)}
                 >
                   <div className={clsx(
@@ -298,9 +362,20 @@ export function DataTable<T>({
                     column.headerClassName?.includes('text-right') && 'justify-end',
                     column.headerClassName?.includes('text-center') && 'justify-center'
                   )}>
-                    <span>{column.header}</span>
+                    <span className={clsx(resizable && 'truncate')}>{column.header}</span>
                     {column.sortable !== false && renderSortIcon(column.key)}
                   </div>
+
+                  {/* Resize handle */}
+                  {resizable && column.resizable !== false && (
+                    <ResizeHandle
+                      columnKey={column.key}
+                      isResizing={isResizing}
+                      isActive={resizingKey === column.key}
+                      onResizeStart={handleResizeStart}
+                      onDoubleClick={() => resetColumnWidth(column.key)}
+                    />
+                  )}
                 </th>
               ))}
             </tr>
@@ -323,10 +398,16 @@ export function DataTable<T>({
                 onClick={() => onRowClick?.(item)}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className={column.className}>
+                  <td
+                    key={column.key}
+                    className={clsx(
+                      resizable ? getColClassName(column, 'td') : column.className,
+                    )}
+                    style={getColStyle(column)}
+                  >
                     {column.render
                       ? column.render(item, index)
-                      : String((item as Record<string, unknown>)[column.key] ?? '—')}
+                      : String((item as Record<string, unknown>)[column.key] ?? '\u2014')}
                   </td>
                 ))}
               </tr>
@@ -373,7 +454,7 @@ export function DataTable<T>({
 
             {onPageSizeChange && (
               <div className="flex items-center gap-2">
-                <span className="text-base-content/50 text-xs hidden sm:inline">Ko'rsatish:</span>
+                <span className="text-base-content/50 text-xs hidden sm:inline">Ko&apos;rsatish:</span>
                 <Select
                   value={pageSize}
                   onChange={(val) => onPageSizeChange(Number(val))}
@@ -408,7 +489,7 @@ export function DataTable<T>({
               <div className="flex items-center gap-0.5 mx-1">
                 {visiblePages.map((page, idx) =>
                   page === 'ellipsis' ? (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-base-content/40">•••</span>
+                    <span key={`ellipsis-${idx}`} className="px-2 text-base-content/40">&bull;&bull;&bull;</span>
                   ) : (
                     <button
                       key={page}

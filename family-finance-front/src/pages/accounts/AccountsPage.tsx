@@ -496,6 +496,7 @@ export function AccountsPage() {
       key: 'actions',
       header: '',
       className: 'w-24',
+      resizable: false,
       render: (item) => (
         <div className="flex items-center gap-1 justify-end">
           <button
@@ -907,6 +908,8 @@ export function AccountsPage() {
               emptyDescription="Filterlarni o'zgartirib ko'ring yoki yangi hisob yarating"
               highlightId={highlightId}
               onHighlightComplete={() => setHighlightId(null)}
+              tableId="accounts"
+              resizable
             />
           )}
         </div>
