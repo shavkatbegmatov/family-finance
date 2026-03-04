@@ -427,9 +427,9 @@ export function AccountsPage() {
     {
       key: 'accCode',
       header: 'Kod',
-      className: 'w-32',
+      className: 'w-52 min-w-[208px]',
       render: (item) => (
-        <span className="font-mono text-xs text-base-content/60">
+        <span className="font-mono text-xs text-base-content/60 whitespace-nowrap">
           {item.accCodeFormatted || item.accCode || '\u2014'}
         </span>
       ),
