@@ -428,6 +428,7 @@ export function AccountsPage() {
       key: 'name',
       header: 'Hisob',
       sortable: true,
+      className: 'max-w-[280px]',
       render: (item) => {
         const Icon = getAccountIcon(item.type);
         const color = item.color || '#6366f1';
@@ -470,9 +471,13 @@ export function AccountsPage() {
       header: 'Kod',
       className: 'w-52 min-w-[208px]',
       render: (item) => (
-        <span className="font-mono text-xs text-base-content/60 whitespace-nowrap">
-          {item.accCodeFormatted || item.accCode || '\u2014'}
-        </span>
+        item.accCodeFormatted || item.accCode ? (
+          <span className="badge badge-ghost font-mono text-sm whitespace-nowrap px-2.5 py-2.5">
+            {item.accCodeFormatted || item.accCode}
+          </span>
+        ) : (
+          <span className="text-base-content/30">&mdash;</span>
+        )
       ),
     },
     {
