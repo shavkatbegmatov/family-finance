@@ -425,16 +425,6 @@ export function AccountsPage() {
 
   const columns: Column<Account>[] = [
     {
-      key: 'accCode',
-      header: 'Kod',
-      className: 'w-52 min-w-[208px]',
-      render: (item) => (
-        <span className="font-mono text-xs text-base-content/60 whitespace-nowrap">
-          {item.accCodeFormatted || item.accCode || '\u2014'}
-        </span>
-      ),
-    },
-    {
       key: 'name',
       header: 'Hisob',
       sortable: true,
@@ -472,6 +462,16 @@ export function AccountsPage() {
           item.balance < 0 && 'text-error'
         )}>
           {formatCurrency(item.balance)}
+        </span>
+      ),
+    },
+    {
+      key: 'accCode',
+      header: 'Kod',
+      className: 'w-52 min-w-[208px]',
+      render: (item) => (
+        <span className="font-mono text-xs text-base-content/60 whitespace-nowrap">
+          {item.accCodeFormatted || item.accCode || '\u2014'}
         </span>
       ),
     },
