@@ -2,7 +2,7 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, ListTodo, Trophy, ShoppingBag,
   Swords, Settings, Clock, ArrowLeftRight, PiggyBank, Award,
-  ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
@@ -44,6 +44,7 @@ export function PointsLayout() {
   const filteredSecondary = SECONDARY_TABS.filter(tab => permissions.has(tab.permission));
 
   const isSecondaryActive = filteredSecondary.some(tab => location.pathname.startsWith(tab.path));
+  const activeSecondaryTab = filteredSecondary.find(tab => location.pathname.startsWith(tab.path));
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -56,83 +57,108 @@ export function PointsLayout() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close dropdown on route change
+  useEffect(() => {
+    setShowMore(false);
+  }, [location.pathname]);
+
+  const renderTab = (tab: TabItem) => (
+    <NavLink
+      key={tab.path}
+      to={tab.path}
+      end={tab.end}
+      role="tab"
+      className={({ isActive }) =>
+        clsx(
+          'group flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200',
+          isActive
+            ? 'bg-primary text-primary-content shadow-sm'
+            : 'text-base-content/60 hover:bg-base-200/80 hover:text-base-content'
+        )
+      }
+    >
+      <tab.icon className="h-4 w-4 flex-shrink-0" />
+      <span>{tab.label}</span>
+    </NavLink>
+  );
+
   return (
     <div className="space-y-0">
       {/* Sub-navigation bar */}
-      <div className="sticky top-16 z-20 -mx-4 lg:-mx-6 bg-base-100/95 backdrop-blur-md border-b border-base-200/80">
+      <div className="sticky top-16 z-20 -mx-4 lg:-mx-6 bg-base-100/95 backdrop-blur-md border-b border-base-200/60">
         <div className="px-4 lg:px-6">
-          <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none py-1" role="tablist">
-            {filteredPrimary.map((tab) => (
-              <NavLink
-                key={tab.path}
-                to={tab.path}
-                end={tab.end}
-                role="tab"
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
-                    'hover:bg-base-200/70 hover:text-base-content',
-                    isActive
-                      ? 'bg-primary/10 text-primary shadow-sm'
-                      : 'text-base-content/60'
-                  )
-                }
-              >
-                <tab.icon className="h-4 w-4 flex-shrink-0" />
-                <span>{tab.label}</span>
-              </NavLink>
-            ))}
+          <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2" role="tablist">
+            {filteredPrimary.map(renderTab)}
 
             {/* More dropdown for secondary tabs */}
             {filteredSecondary.length > 0 && (
-              <div className="relative" ref={moreRef}>
-                <button
-                  onClick={() => setShowMore(!showMore)}
-                  className={clsx(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
-                    'hover:bg-base-200/70',
-                    isSecondaryActive
-                      ? 'bg-primary/10 text-primary shadow-sm'
-                      : 'text-base-content/60'
-                  )}
-                >
-                  <span>Boshqa</span>
-                  <ChevronDown className={clsx(
-                    'h-3.5 w-3.5 transition-transform duration-200',
-                    showMore && 'rotate-180'
-                  )} />
-                </button>
+              <>
+                {/* Divider */}
+                <div className="h-5 w-px bg-base-300/60 mx-1 flex-shrink-0" />
 
-                <div
-                  className={clsx(
-                    'absolute left-0 top-full mt-1 w-52 rounded-xl bg-base-100 border border-base-200 shadow-xl z-50 transition-all duration-200 origin-top-left',
-                    showMore
-                      ? 'opacity-100 scale-100 visible'
-                      : 'opacity-0 scale-95 invisible'
-                  )}
-                >
-                  <div className="p-1.5">
-                    {filteredSecondary.map((tab) => (
-                      <NavLink
-                        key={tab.path}
-                        to={tab.path}
-                        onClick={() => setShowMore(false)}
-                        className={({ isActive }) =>
-                          clsx(
-                            'flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                            isActive
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-base-content/70 hover:bg-base-200/70 hover:text-base-content'
-                          )
-                        }
-                      >
-                        <tab.icon className="h-4 w-4 flex-shrink-0" />
-                        <span>{tab.label}</span>
-                      </NavLink>
-                    ))}
+                <div className="relative" ref={moreRef}>
+                  <button
+                    onClick={() => setShowMore(!showMore)}
+                    className={clsx(
+                      'flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200',
+                      isSecondaryActive
+                        ? 'bg-primary text-primary-content shadow-sm'
+                        : 'text-base-content/60 hover:bg-base-200/80 hover:text-base-content'
+                    )}
+                  >
+                    {isSecondaryActive && activeSecondaryTab ? (
+                      <>
+                        <activeSecondaryTab.icon className="h-4 w-4 flex-shrink-0" />
+                        <span>{activeSecondaryTab.label}</span>
+                      </>
+                    ) : (
+                      <>
+                        <MoreHorizontal className="h-4 w-4 flex-shrink-0" />
+                        <span>Boshqa</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div
+                    className={clsx(
+                      'absolute right-0 top-full mt-2 w-56 rounded-xl bg-base-100 border border-base-200/80 shadow-lg z-50 transition-all duration-200 origin-top-right',
+                      showMore
+                        ? 'opacity-100 scale-100 visible'
+                        : 'opacity-0 scale-95 invisible pointer-events-none'
+                    )}
+                  >
+                    <div className="p-1.5">
+                      <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-base-content/40">
+                        Qo'shimcha
+                      </div>
+                      {filteredSecondary.map((tab) => (
+                        <NavLink
+                          key={tab.path}
+                          to={tab.path}
+                          className={({ isActive }) =>
+                            clsx(
+                              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                              isActive
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-base-content/70 hover:bg-base-200/70 hover:text-base-content'
+                            )
+                          }
+                        >
+                          <div className={clsx(
+                            'grid h-8 w-8 place-items-center rounded-lg transition-colors',
+                            location.pathname.startsWith(tab.path)
+                              ? 'bg-primary/15 text-primary'
+                              : 'bg-base-200/60 text-base-content/50'
+                          )}>
+                            <tab.icon className="h-4 w-4" />
+                          </div>
+                          <span>{tab.label}</span>
+                        </NavLink>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </nav>
         </div>
