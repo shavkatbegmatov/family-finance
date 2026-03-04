@@ -1,11 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Clock3 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointBalanceApi, pointParticipantApi } from '../../api/points.api';
 import type { PointTransaction, PointParticipant } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { formatDate } from '../../config/constants';
+import {
+  PointsActionBar,
+  PointsEmptyState,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 export function PointsHistoryPage() {
   const { canViewPoints } = usePermission();
@@ -28,7 +37,7 @@ export function PointsHistoryPage() {
     } catch {
       toast.error("Ishtirokchilarni yuklashda xatolik");
     }
-  }, []);
+  }, [selectedParticipantId]);
 
   const loadTransactions = useCallback(async () => {
     if (!selectedParticipantId) return;
@@ -78,126 +87,127 @@ export function PointsHistoryPage() {
   };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Participant selector */}
-      <div className="form-control w-full max-w-xs">
-        <label className="label">
-          <span className="label-text">Ishtirokchini tanlang</span>
-        </label>
-        <select
-          className="select select-bordered"
-          value={selectedParticipantId ?? ''}
-          onChange={(e) => {
-            setSelectedParticipantId(Number(e.target.value));
-            setPage(0);
-          }}
-        >
-          <option value="" disabled>Tanlang...</option>
-          {participants.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName}</option>
-          ))}
-        </select>
-      </div>
+    <PointsPageShell
+      title="Ball tarixi"
+      description="Har bir ishtirokchi bo'yicha kirim-chiqim tranzaksiyalarini ko'ring."
+      icon={Clock3}
+    >
+      <PointsActionBar>
+        <div className="form-control w-full max-w-xs">
+          <label className="label">
+            <span className="label-text">Ishtirokchini tanlang</span>
+          </label>
+          <select
+            className="select select-bordered"
+            value={selectedParticipantId ?? ''}
+            onChange={(e) => {
+              setSelectedParticipantId(Number(e.target.value));
+              setPage(0);
+            }}
+          >
+            <option value="" disabled>Tanlang...</option>
+            {participants.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName}</option>
+            ))}
+          </select>
+        </div>
+      </PointsActionBar>
 
-      {/* Transactions table */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState />
       ) : !selectedParticipantId ? (
-        <div className="text-center py-16 text-base-content/50">
-          Ishtirokchini tanlang
-        </div>
+        <PointsEmptyState
+          title="Ishtirokchini tanlang"
+          description="Tarix ko'rinishi uchun ishtirokchini belgilang."
+        />
       ) : transactions.length === 0 ? (
-        <div className="text-center py-16 text-base-content/50">
-          Tranzaksiyalar topilmadi
-        </div>
+        <PointsEmptyState
+          title="Tranzaksiyalar topilmadi"
+          description="Tanlangan foydalanuvchi bo'yicha amallar hali yo'q."
+        />
       ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="table table-sm">
-              <thead>
-                <tr>
-                  <th>Sana</th>
-                  <th>Turi</th>
-                  <th>Miqdor</th>
-                  <th>Balans</th>
-                  <th>Tavsif</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.id}>
-                    <td className="text-sm whitespace-nowrap">
-                      {formatDate(tx.transactionDate)}
-                    </td>
-                    <td>
-                      <span className="badge badge-ghost badge-sm">
-                        {getTypeLabel(tx.type)}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={clsx('font-semibold flex items-center gap-1', getAmountColor(tx.amount))}>
-                        {tx.amount > 0 ? (
-                          <ArrowUpRight className="h-3 w-3" />
-                        ) : (
-                          <ArrowDownRight className="h-3 w-3" />
-                        )}
-                        {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="text-sm">
-                      <span className="text-base-content/60">
-                        {tx.balanceBefore.toLocaleString()}
-                      </span>
-                      {' -> '}
-                      <span className="font-medium">
-                        {tx.balanceAfter.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="text-sm text-base-content/70 max-w-[200px] truncate">
-                      {tx.description || tx.taskTitle || '-'}
-                    </td>
+        <PointsSectionCard title="Tranzaksiyalar" subtitle="Kirim va chiqim operatsiyalari">
+          <>
+            <PointsTableShell>
+              <table className="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Sana</th>
+                    <th>Turi</th>
+                    <th>Miqdor</th>
+                    <th>Balans</th>
+                    <th>Tavsif</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr key={tx.id}>
+                      <td className="text-sm whitespace-nowrap">
+                        {formatDate(tx.transactionDate)}
+                      </td>
+                      <td>
+                        <span className="badge badge-ghost badge-sm">
+                          {getTypeLabel(tx.type)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={clsx('font-semibold flex items-center gap-1', getAmountColor(tx.amount))}>
+                          {tx.amount > 0 ? (
+                            <ArrowUpRight className="h-3 w-3" />
+                          ) : (
+                            <ArrowDownRight className="h-3 w-3" />
+                          )}
+                          {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="text-sm">
+                        <span className="text-base-content/60">
+                          {tx.balanceBefore.toLocaleString()}
+                        </span>
+                        {' -> '}
+                        <span className="font-medium">
+                          {tx.balanceAfter.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="text-sm text-base-content/70 max-w-[200px] truncate">
+                        {tx.description || tx.taskTitle || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </PointsTableShell>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center">
-              <div className="join">
-                <button
-                  className="join-item btn btn-sm"
-                  disabled={page === 0}
-                  onClick={() => setPage(page - 1)}
-                >
-                  &laquo;
-                </button>
-                <button className="join-item btn btn-sm">
-                  {page + 1} / {totalPages}
-                </button>
-                <button
-                  className="join-item btn btn-sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(page + 1)}
-                >
-                  &raquo;
-                </button>
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-4">
+                <div className="join">
+                  <button
+                    className="join-item btn btn-sm"
+                    disabled={page === 0}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    &laquo;
+                  </button>
+                  <button className="join-item btn btn-sm">
+                    {page + 1} / {totalPages}
+                  </button>
+                  <button
+                    className="join-item btn btn-sm"
+                    disabled={page >= totalPages - 1}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    &raquo;
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </>
+            )}
+          </>
+        </PointsSectionCard>
       )}
-    </div>
+    </PointsPageShell>
   );
 }

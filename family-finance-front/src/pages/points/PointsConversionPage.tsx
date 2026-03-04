@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Calculator, TrendingDown } from 'lucide-react';
+import { Calculator, TrendingDown, ArrowLeftRight } from 'lucide-react';
 import {
   pointConversionApi, pointParticipantApi, pointConfigApi, pointBalanceApi,
 } from '../../api/points.api';
@@ -9,6 +9,14 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { formatDate } from '../../config/constants';
+import {
+  PointsEmptyState,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 export function PointsConversionPage() {
   const { canConvertPoints, canViewPoints } = usePermission();
@@ -116,36 +124,27 @@ export function PointsConversionPage() {
   };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
+    <PointsPageShell
+      title="Ball ayirboshlash"
+      description="Ballarni pul ekvivalentiga hisoblang va konversiya tarixini nazorat qiling."
+      icon={ArrowLeftRight}
+    >
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Calculator */}
-          <div className="card bg-base-100 shadow border border-base-200">
-            <div className="card-body">
-              <h2 className="card-title text-base gap-2">
-                <Calculator className="h-5 w-5" />
-                Konversiya kalkulyatori
-              </h2>
-
+          <PointsSectionCard title="Konversiya kalkulyatori" icon={Calculator}>
+            <div className="space-y-4">
               {config && (
                 <div className="text-sm text-base-content/60 mb-2">
                   Konversiya kursi: <strong>1 ball = {config.conversionRate} {config.currency}</strong>
                 </div>
               )}
 
-              {/* Inflation indicator */}
               {config?.inflationEnabled && (
                 <div className="alert alert-warning py-2 text-sm">
                   <TrendingDown className="h-4 w-4" />
@@ -221,19 +220,17 @@ export function PointsConversionPage() {
                 </div>
               )}
             </div>
-          </div>
+          </PointsSectionCard>
 
-          {/* Conversion history */}
-          <div className="card bg-base-100 shadow border border-base-200">
-            <div className="card-body">
-              <h2 className="card-title text-base">Konversiya tarixi</h2>
-
-              {conversions.length === 0 ? (
-                <div className="text-center py-8 text-base-content/50">
-                  Konversiyalar topilmadi
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
+          <PointsSectionCard title="Konversiya tarixi" subtitle="So'nggi ayirboshlash amallari">
+            {conversions.length === 0 ? (
+              <PointsEmptyState
+                title="Konversiyalar topilmadi"
+                description="Tanlangan ishtirokchi bo'yicha ayirboshlash hali amalga oshmagan."
+              />
+            ) : (
+              <>
+                <PointsTableShell>
                   <table className="table table-xs">
                     <thead>
                       <tr>
@@ -256,37 +253,36 @@ export function PointsConversionPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              )}
+                </PointsTableShell>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-center mt-2">
-                  <div className="join">
-                    <button
-                      className="join-item btn btn-xs"
-                      disabled={page === 0}
-                      onClick={() => setPage(page - 1)}
-                    >
-                      &laquo;
-                    </button>
-                    <button className="join-item btn btn-xs">
-                      {page + 1} / {totalPages}
-                    </button>
-                    <button
-                      className="join-item btn btn-xs"
-                      disabled={page >= totalPages - 1}
-                      onClick={() => setPage(page + 1)}
-                    >
-                      &raquo;
-                    </button>
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-3">
+                    <div className="join">
+                      <button
+                        className="join-item btn btn-xs"
+                        disabled={page === 0}
+                        onClick={() => setPage(page - 1)}
+                      >
+                        &laquo;
+                      </button>
+                      <button className="join-item btn btn-xs">
+                        {page + 1} / {totalPages}
+                      </button>
+                      <button
+                        className="join-item btn btn-xs"
+                        disabled={page >= totalPages - 1}
+                        onClick={() => setPage(page + 1)}
+                      >
+                        &raquo;
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
+                )}
+              </>
+            )}
+          </PointsSectionCard>
         </div>
       )}
-    </div>
+    </PointsPageShell>
   );
 }

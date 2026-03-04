@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Save, Zap, Plus, Trash2, X, Calendar,
+  Save, Zap, Plus, Trash2, X, Calendar, Settings2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointConfigApi, pointEventApi } from '../../api/points.api';
@@ -11,6 +11,14 @@ import type {
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { formatDate } from '../../config/constants';
+import {
+  PointsEmptyState,
+  PointsGamifiedBadge,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+} from '../../components/points/ui';
 
 interface ConfigFormState {
   conversionRate: number;
@@ -171,27 +179,21 @@ export function PointsSettingsPage() {
   };
 
   if (!canManagePoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
+    <PointsPageShell
+      title="Ball sozlamalari"
+      description="Konversiya, limitlar, bonus va ko'paytiruvchi hodisalarni boshqaring."
+      icon={Settings2}
+    >
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Config form */}
-          <div className="card bg-base-100 shadow border border-base-200">
-            <div className="card-body">
-              <h2 className="card-title text-base">Asosiy sozlamalar</h2>
-
-              <div className="space-y-4 mt-2">
+          <PointsSectionCard title="Asosiy sozlamalar" subtitle="Konversiya va tizim limitlari">
+            <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="form-control">
                     <label className="label"><span className="label-text">Konversiya kursi</span></label>
@@ -327,81 +329,75 @@ export function PointsSettingsPage() {
                   )}
                   Saqlash
                 </button>
-              </div>
             </div>
-          </div>
+          </PointsSectionCard>
 
-          {/* Multiplier events */}
-          <div className="card bg-base-100 shadow border border-base-200">
-            <div className="card-body">
-              <div className="flex items-center justify-between">
-                <h2 className="card-title text-base gap-2">
-                  <Zap className="h-5 w-5 text-warning" />
-                  Ko'paytiruvchi hodisalar
-                </h2>
-                {canManagePointEvents && (
-                  <button
-                    className="btn btn-primary btn-sm gap-1"
-                    onClick={() => {
-                      setEventForm(emptyEventForm);
-                      setShowEventModal(true);
-                    }}
+          <PointsSectionCard
+            title="Ko'paytiruvchi hodisalar"
+            subtitle="Vaqtinchalik bonus kampaniyalari"
+            icon={Zap}
+            action={canManagePointEvents ? (
+              <button
+                className="btn btn-primary btn-sm gap-1"
+                onClick={() => {
+                  setEventForm(emptyEventForm);
+                  setShowEventModal(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+                Qo'shish
+              </button>
+            ) : undefined}
+          >
+            {events.length === 0 ? (
+              <PointsEmptyState
+                title="Hodisalar topilmadi"
+                description="Yangi hodisa qo'shib ball ko'paytirishni faollashtiring."
+              />
+            ) : (
+              <div className="space-y-3">
+                {events.map((event) => (
+                  <div
+                    key={event.id}
+                    className={clsx(
+                      'rounded-xl border p-3',
+                      event.isActive ? 'border-warning/50 bg-warning/5' : 'border-base-200'
+                    )}
                   >
-                    <Plus className="h-4 w-4" />
-                    Qo'shish
-                  </button>
-                )}
-              </div>
-
-              {events.length === 0 ? (
-                <p className="text-center py-8 text-base-content/50">Hodisalar topilmadi</p>
-              ) : (
-                <div className="space-y-3 mt-2">
-                  {events.map((event) => (
-                    <div
-                      key={event.id}
-                      className={clsx(
-                        'border rounded-lg p-3',
-                        event.isActive ? 'border-warning/50 bg-warning/5' : 'border-base-200'
-                      )}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{event.name}</span>
-                            <span className="badge badge-warning badge-sm">x{event.multiplier}</span>
-                            {event.isActive && (
-                              <span className="badge badge-success badge-xs">Faol</span>
-                            )}
-                          </div>
-                          {event.description && (
-                            <p className="text-xs text-base-content/60 mt-1">{event.description}</p>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold">{event.name}</span>
+                          <PointsGamifiedBadge variant="warning" label={`x${event.multiplier}`} />
+                          {event.isActive && (
+                            <PointsGamifiedBadge variant="success" size="xs" label="Faol" />
                           )}
-                          <div className="flex items-center gap-1 text-xs text-base-content/50 mt-1">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(event.startDate)} - {formatDate(event.endDate)}
-                            {event.taskCategory && (
-                              <span className="badge badge-ghost badge-xs ml-2">
-                                {event.taskCategory}
-                              </span>
-                            )}
-                          </div>
                         </div>
-                        {canManagePointEvents && (
-                          <button
-                            className="btn btn-ghost btn-xs text-error"
-                            onClick={() => handleDeleteEvent(event.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
+                        {event.description && (
+                          <p className="text-xs text-base-content/60 mt-1">{event.description}</p>
                         )}
+                        <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-base-content/50">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(event.startDate)} - {formatDate(event.endDate)}
+                          {event.taskCategory && (
+                            <PointsGamifiedBadge variant="outline" size="xs" label={event.taskCategory} />
+                          )}
+                        </div>
                       </div>
+                      {canManagePointEvents && (
+                        <button
+                          className="btn btn-ghost btn-xs text-error"
+                          onClick={() => handleDeleteEvent(event.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </PointsSectionCard>
         </div>
       )}
 
@@ -491,6 +487,6 @@ export function PointsSettingsPage() {
           </div>
         </div>
       </ModalPortal>
-    </div>
+    </PointsPageShell>
   );
 }

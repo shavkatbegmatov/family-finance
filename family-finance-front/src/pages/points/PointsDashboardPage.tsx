@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Flame, Star, TrendingUp, Clock, Zap,
-  Users, Coins, Target, Award,
+  Users, Coins, Target, Award, Trophy,
 } from 'lucide-react';
 import { pointBalanceApi, pointTaskApi, pointEventApi } from '../../api/points.api';
 import { pointParticipantApi } from '../../api/points.api';
@@ -11,6 +11,16 @@ import type {
   PointBalance, PointTask, PointMultiplierEvent, PointParticipant,
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
+import {
+  PointsEmptyState,
+  PointsGamifiedBadge,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsStatCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 export function PointsDashboardPage() {
   const { canViewPoints, canVerifyPointTasks } = usePermission();
@@ -64,206 +74,198 @@ export function PointsDashboardPage() {
   }, [balances, participants]);
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Active multiplier events banner */}
-      {activeEvents.length > 0 && (
-        <div className="alert alert-warning shadow-lg">
-          <Zap className="h-5 w-5" />
-          <div>
-            <h3 className="font-bold">Faol ko'paytiruvchi hodisalar!</h3>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {activeEvents.map((event) => (
-                <span key={event.id} className="badge badge-warning badge-sm gap-1">
-                  {event.name} (x{event.multiplier})
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+    <PointsPageShell
+      title="Ball tizimi paneli"
+      description="Ishtirokchilar, streak va tasdiqlash navbatini bir joyda kuzating."
+      icon={Trophy}
+      actions={(
+        <>
+          <Link to="/points/tasks?status=SUBMITTED" className="btn btn-primary btn-sm">
+            Tasdiqlash navbati
+          </Link>
+          <Link to="/points/participants" className="btn btn-outline btn-sm">
+            Ishtirokchilar
+          </Link>
+        </>
       )}
-
+    >
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState layout="cards" />
       ) : (
         <>
-          {/* Quick stats row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="surface-card rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50">Ishtirokchilar</p>
-                  <p className="text-xl font-bold">{stats.activeParticipants}</p>
-                </div>
+          {activeEvents.length > 0 && (
+            <PointsSectionCard
+              title="Faol ko'paytiruvchi hodisalar"
+              subtitle="Hozirda kuchaytirilgan ball berilayotgan davrlar"
+              icon={Zap}
+            >
+              <div className="flex flex-wrap gap-2">
+                {activeEvents.map((event) => (
+                  <PointsGamifiedBadge
+                    key={event.id}
+                    variant="warning"
+                    label={`${event.name} x${event.multiplier}`}
+                  />
+                ))}
               </div>
-            </div>
-            <div className="surface-card rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-success/10 text-success">
-                  <Coins className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50">Jami balans</p>
-                  <p className="text-xl font-bold">{stats.totalBalance.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-            <div className="surface-card rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-info/10 text-info">
-                  <Target className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50">Jami topilgan</p>
-                  <p className="text-xl font-bold">{stats.totalEarned.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-            <div className="surface-card rounded-xl p-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-lg bg-warning/10 text-warning">
-                  <Award className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs text-base-content/50">Eng uzun streak</p>
-                  <p className="text-xl font-bold">{stats.bestStreak} kun</p>
-                </div>
-              </div>
-            </div>
+            </PointsSectionCard>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <PointsStatCard
+              label="Ishtirokchilar"
+              value={stats.activeParticipants}
+              icon={Users}
+              tone="primary"
+            />
+            <PointsStatCard
+              label="Jami balans"
+              value={stats.totalBalance.toLocaleString()}
+              icon={Coins}
+              tone="success"
+            />
+            <PointsStatCard
+              label="Jami topilgan"
+              value={stats.totalEarned.toLocaleString()}
+              icon={Target}
+              tone="info"
+            />
+            <PointsStatCard
+              label="Eng uzun streak"
+              value={`${stats.bestStreak} kun`}
+              icon={Award}
+              tone="warning"
+            />
           </div>
 
-          {/* Participant balance cards */}
-          <div>
-            <h2 className="text-lg font-semibold mb-3">Ishtirokchilar balansi</h2>
+          <PointsSectionCard
+            title="Ishtirokchilar balansi"
+            subtitle="Har bir ishtirokchining joriy natijalari"
+          >
             {balances.length === 0 ? (
-              <div className="text-center py-8 text-base-content/50">
-                Ishtirokchilar topilmadi.{' '}
-                <Link to="/points/participants" className="link link-primary">
-                  Ishtirokchi qo'shing
-                </Link>
-              </div>
+              <PointsEmptyState
+                title="Ishtirokchilar topilmadi"
+                description="Balanslarni ko'rish uchun avval ishtirokchi qo'shing."
+                actionLabel="Ishtirokchi qo'shish"
+                actionTo="/points/participants"
+              />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {balances.map((balance) => (
                   <div
                     key={balance.id}
-                    className="surface-card rounded-xl overflow-hidden"
+                    className="surface-soft points-card-hover rounded-xl overflow-hidden p-4"
                   >
-                    <div className="p-4">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="avatar placeholder">
-                          <div className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary rounded-full w-10 h-10">
-                            <span className="text-sm font-bold">
-                              {balance.participantName?.charAt(0) ?? '?'}
-                            </span>
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="avatar placeholder">
+                        <div className="rounded-full bg-gradient-to-br from-primary/20 to-secondary/20 text-primary w-10 h-10">
+                          <span className="text-sm font-bold">
+                            {balance.participantName?.charAt(0) ?? '?'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-semibold">{balance.participantName}</p>
+                        {balance.currentStreak > 0 && (
+                          <div className="flex items-center gap-1 text-xs text-warning">
+                            <Flame className="h-3 w-3" />
+                            {balance.currentStreak} kunlik streak
                           </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">{balance.participantName}</p>
-                          {balance.currentStreak > 0 && (
-                            <div className="flex items-center gap-1 text-xs text-warning">
-                              <Flame className="h-3 w-3" />
-                              {balance.currentStreak} kunlik streak
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="bg-base-200/50 rounded-lg p-2 text-center">
-                          <p className="text-xs text-base-content/60">Balans</p>
-                          <p className="font-bold text-primary">
-                            {balance.currentBalance.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="bg-base-200/50 rounded-lg p-2 text-center">
-                          <p className="text-xs text-base-content/60">Jami topilgan</p>
-                          <p className="font-bold text-success">
-                            {balance.totalEarned.toLocaleString()}
-                          </p>
-                        </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="rounded-lg bg-base-100/80 p-2 text-center">
+                        <p className="text-xs text-base-content/60">Balans</p>
+                        <p className="font-bold text-primary">{balance.currentBalance.toLocaleString()}</p>
                       </div>
+                      <div className="rounded-lg bg-base-100/80 p-2 text-center">
+                        <p className="text-xs text-base-content/60">Jami topilgan</p>
+                        <p className="font-bold text-success">{balance.totalEarned.toLocaleString()}</p>
+                      </div>
+                    </div>
 
-                      <div className="flex items-center justify-between mt-2 text-xs text-base-content/60">
-                        <span className="flex items-center gap-1">
-                          <Star className="h-3 w-3" />
-                          Eng uzun streak: {balance.longestStreak}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3" />
-                          Sarflangan: {balance.totalSpent.toLocaleString()}
-                        </span>
-                      </div>
+                    <div className="mt-2 flex items-center justify-between text-xs text-base-content/60">
+                      <span className="flex items-center gap-1">
+                        <Star className="h-3 w-3" />
+                        Eng uzun: {balance.longestStreak}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="h-3 w-3" />
+                        Sarf: {balance.totalSpent.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </PointsSectionCard>
 
-          {/* Pending verification tasks */}
-          {canVerifyPointTasks && pendingTasks.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-warning" />
-                Tasdiqlash kutilmoqda
-                <span className="badge badge-warning badge-sm">{pendingTasks.length}</span>
-              </h2>
-              <div className="overflow-x-auto surface-card rounded-xl">
-                <table className="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Vazifa</th>
-                      <th>Ishtirokchi</th>
-                      <th>Ball</th>
-                      <th>Kategoriya</th>
-                      <th>Holat</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingTasks.slice(0, 10).map((task) => (
-                      <tr key={task.id}>
-                        <td className="font-medium">{task.title}</td>
-                        <td>{task.assignedToName ?? '-'}</td>
-                        <td>
-                          <span className="font-semibold text-primary">
-                            {task.effectivePoints}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="badge badge-ghost badge-sm">{task.category}</span>
-                        </td>
-                        <td>
-                          <span className="badge badge-accent badge-sm">Topshirilgan</span>
-                        </td>
+          {canVerifyPointTasks && (
+            <PointsSectionCard
+              title="Tasdiqlash kutilmoqda"
+              subtitle="Topshirilgan vazifalar navbati"
+              icon={Clock}
+              action={(
+                <PointsGamifiedBadge
+                  variant={pendingTasks.length > 0 ? 'warning' : 'neutral'}
+                  label={`${pendingTasks.length} ta`}
+                />
+              )}
+            >
+              {pendingTasks.length === 0 ? (
+                <PointsEmptyState
+                  title="Tasdiqlash navbati bo'sh"
+                  description="Hozircha tekshiruv talab qiladigan topshiriqlar yo'q."
+                />
+              ) : (
+                <PointsTableShell>
+                  <table className="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Vazifa</th>
+                        <th>Ishtirokchi</th>
+                        <th>Ball</th>
+                        <th>Kategoriya</th>
+                        <th>Holat</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {pendingTasks.length > 10 && (
-                  <div className="text-center py-2 border-t border-base-200">
-                    <Link to="/points/tasks?status=SUBMITTED" className="btn btn-xs btn-ghost">
-                      Barchasini ko'rish ({pendingTasks.length})
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
+                    </thead>
+                    <tbody>
+                      {pendingTasks.slice(0, 10).map((task) => (
+                        <tr key={task.id}>
+                          <td className="font-medium">{task.title}</td>
+                          <td>{task.assignedToName ?? '-'}</td>
+                          <td>
+                            <span className="font-semibold text-primary">{task.effectivePoints}</span>
+                          </td>
+                          <td>
+                            <PointsGamifiedBadge variant="outline" label={task.category} />
+                          </td>
+                          <td>
+                            <PointsGamifiedBadge variant="accent" label="Topshirilgan" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {pendingTasks.length > 10 && (
+                    <div className="border-t border-base-200 py-2 text-center">
+                      <Link to="/points/tasks?status=SUBMITTED" className="btn btn-xs btn-ghost">
+                        Barchasini ko'rish ({pendingTasks.length})
+                      </Link>
+                    </div>
+                  )}
+                </PointsTableShell>
+              )}
+            </PointsSectionCard>
           )}
         </>
       )}
-    </div>
+    </PointsPageShell>
   );
 }

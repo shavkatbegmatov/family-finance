@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Plus, Edit2, Trash2, CheckCircle, XCircle, Send, X,
+  Plus, Edit2, Trash2, CheckCircle, XCircle, Send, X, ListTodo,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointTaskApi, pointParticipantApi } from '../../api/points.api';
@@ -11,6 +11,16 @@ import type {
 import { PointTaskCategories, PointTaskStatuses } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import {
+  PointsActionBar,
+  PointsEmptyState,
+  PointsGamifiedBadge,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 const STATUS_TABS = [
   { value: '', label: 'Hammasi' },
@@ -39,6 +49,17 @@ const emptyForm: TaskFormState = {
   assignedToId: '',
   recurrence: 'ONCE',
   deadline: '',
+};
+
+const mapStatusColorToVariant = (
+  color: string,
+): 'success' | 'warning' | 'error' | 'info' | 'accent' | 'neutral' => {
+  if (color.includes('success')) return 'success';
+  if (color.includes('warning')) return 'warning';
+  if (color.includes('error')) return 'error';
+  if (color.includes('info')) return 'info';
+  if (color.includes('accent')) return 'accent';
+  return 'neutral';
 };
 
 export function PointsTasksPage() {
@@ -190,179 +211,180 @@ export function PointsTasksPage() {
   };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Action bar */}
-      {(canManagePoints || canAssignPointTasks) && (
-        <div className="flex justify-end">
-          <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
-            <Plus className="h-4 w-4" />
-            Yaratish
-          </button>
+    <PointsPageShell
+      title="Vazifalar"
+      description="Ball to'plash jarayonidagi topshiriqlarni yarating, kuzating va tasdiqlang."
+      icon={ListTodo}
+      actions={(canManagePoints || canAssignPointTasks) ? (
+        <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
+          <Plus className="h-4 w-4" />
+          Yaratish
+        </button>
+      ) : undefined}
+    >
+      <PointsActionBar>
+        <div className="tabs tabs-boxed w-fit">
+          {STATUS_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              className={clsx('tab tab-sm', statusFilter === tab.value && 'tab-active')}
+              onClick={() => { setStatusFilter(tab.value); setPage(0); }}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      )}
+        <PointsGamifiedBadge
+          variant={tasks.length > 0 ? 'primary' : 'neutral'}
+          label={`${tasks.length} ta`}
+        />
+      </PointsActionBar>
 
-      {/* Status filter tabs */}
-      <div className="tabs tabs-boxed w-fit">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            className={clsx('tab tab-sm', statusFilter === tab.value && 'tab-active')}
-            onClick={() => { setStatusFilter(tab.value); setPage(0); }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tasks table */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
-      ) : tasks.length === 0 ? (
-        <div className="text-center py-16 text-base-content/50">
-          Vazifalar topilmadi
-        </div>
+        <PointsLoadingState />
       ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="table table-sm">
-              <thead>
-                <tr>
-                  <th>Sarlavha</th>
-                  <th>Kategoriya</th>
-                  <th>Ball</th>
-                  <th>Holat</th>
-                  <th>Tayinlangan</th>
-                  <th>Amallar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map((task) => {
-                  const status = getStatusInfo(task.status);
-                  return (
-                    <tr key={task.id}>
-                      <td>
-                        <div>
-                          <p className="font-medium">{task.title}</p>
-                          {task.description && (
-                            <p className="text-xs text-base-content/50 truncate max-w-[200px]">
-                              {task.description}
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-ghost badge-sm">
-                          {getCategoryLabel(task.category)}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="font-semibold text-primary">
-                          {task.effectivePoints}
-                        </span>
-                        {task.multiplier > 1 && (
-                          <span className="text-xs text-warning ml-1">x{task.multiplier}</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={clsx('badge badge-sm', status.color)}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td>{task.assignedToName ?? '-'}</td>
-                      <td>
-                        <div className="flex gap-1">
-                          {task.status === 'ASSIGNED' && (
-                            <button
-                              className="btn btn-ghost btn-xs text-info tooltip"
-                              data-tip="Topshirish"
-                              onClick={() => handleAction('submit', task.id)}
-                            >
-                              <Send className="h-3 w-3" />
-                            </button>
-                          )}
-                          {task.status === 'SUBMITTED' && canVerifyPointTasks && (
-                            <>
-                              <button
-                                className="btn btn-ghost btn-xs text-success tooltip"
-                                data-tip="Tasdiqlash"
-                                onClick={() => handleAction('verify', task.id)}
-                              >
-                                <CheckCircle className="h-3 w-3" />
-                              </button>
-                              <button
-                                className="btn btn-ghost btn-xs text-error tooltip"
-                                data-tip="Rad etish"
-                                onClick={() => {
-                                  setRejectTaskId(task.id);
-                                  setShowRejectModal(true);
-                                }}
-                              >
-                                <XCircle className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                          {canManagePoints && (
-                            <>
-                              <button
-                                className="btn btn-ghost btn-xs tooltip"
-                                data-tip="Tahrirlash"
-                                onClick={() => openEditModal(task)}
-                              >
-                                <Edit2 className="h-3 w-3" />
-                              </button>
-                              <button
-                                className="btn btn-ghost btn-xs text-error tooltip"
-                                data-tip="O'chirish"
-                                onClick={() => handleAction('delete', task.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+        <PointsSectionCard title="Vazifalar ro'yxati" subtitle="Barcha topshiriqlar va holatlar">
+          {tasks.length === 0 ? (
+            <PointsEmptyState
+              title="Vazifalar topilmadi"
+              description="Yangi topshiriq yaratib jarayonni boshlang."
+            />
+          ) : (
+            <>
+              <PointsTableShell>
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Sarlavha</th>
+                      <th>Kategoriya</th>
+                      <th>Ball</th>
+                      <th>Holat</th>
+                      <th>Tayinlangan</th>
+                      <th>Amallar</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {tasks.map((task) => {
+                      const status = getStatusInfo(task.status);
+                      return (
+                        <tr key={task.id}>
+                          <td>
+                            <div>
+                              <p className="font-medium">{task.title}</p>
+                              {task.description && (
+                                <p className="text-xs text-base-content/50 truncate max-w-[200px]">
+                                  {task.description}
+                                </p>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <PointsGamifiedBadge variant="outline" label={getCategoryLabel(task.category)} />
+                          </td>
+                          <td>
+                            <span className="font-semibold text-primary">
+                              {task.effectivePoints}
+                            </span>
+                            {task.multiplier > 1 && (
+                              <span className="text-xs text-warning ml-1">x{task.multiplier}</span>
+                            )}
+                          </td>
+                          <td>
+                            <PointsGamifiedBadge
+                              variant={mapStatusColorToVariant(status.color)}
+                              label={status.label}
+                            />
+                          </td>
+                          <td>{task.assignedToName ?? '-'}</td>
+                          <td>
+                            <div className="flex gap-1">
+                              {task.status === 'ASSIGNED' && (
+                                <button
+                                  className="btn btn-ghost btn-xs text-info tooltip"
+                                  data-tip="Topshirish"
+                                  onClick={() => handleAction('submit', task.id)}
+                                >
+                                  <Send className="h-3 w-3" />
+                                </button>
+                              )}
+                              {task.status === 'SUBMITTED' && canVerifyPointTasks && (
+                                <>
+                                  <button
+                                    className="btn btn-ghost btn-xs text-success tooltip"
+                                    data-tip="Tasdiqlash"
+                                    onClick={() => handleAction('verify', task.id)}
+                                  >
+                                    <CheckCircle className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    className="btn btn-ghost btn-xs text-error tooltip"
+                                    data-tip="Rad etish"
+                                    onClick={() => {
+                                      setRejectTaskId(task.id);
+                                      setShowRejectModal(true);
+                                    }}
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                  </button>
+                                </>
+                              )}
+                              {canManagePoints && (
+                                <>
+                                  <button
+                                    className="btn btn-ghost btn-xs tooltip"
+                                    data-tip="Tahrirlash"
+                                    onClick={() => openEditModal(task)}
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </button>
+                                  <button
+                                    className="btn btn-ghost btn-xs text-error tooltip"
+                                    data-tip="O'chirish"
+                                    onClick={() => handleAction('delete', task.id)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </PointsTableShell>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center">
-              <div className="join">
-                <button
-                  className="join-item btn btn-sm"
-                  disabled={page === 0}
-                  onClick={() => setPage(page - 1)}
-                >
-                  &laquo;
-                </button>
-                <button className="join-item btn btn-sm">
-                  {page + 1} / {totalPages}
-                </button>
-                <button
-                  className="join-item btn btn-sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() => setPage(page + 1)}
-                >
-                  &raquo;
-                </button>
-              </div>
-            </div>
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-4">
+                  <div className="join">
+                    <button
+                      className="join-item btn btn-sm"
+                      disabled={page === 0}
+                      onClick={() => setPage(page - 1)}
+                    >
+                      &laquo;
+                    </button>
+                    <button className="join-item btn btn-sm">
+                      {page + 1} / {totalPages}
+                    </button>
+                    <button
+                      className="join-item btn btn-sm"
+                      disabled={page >= totalPages - 1}
+                      onClick={() => setPage(page + 1)}
+                    >
+                      &raquo;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
-        </>
+        </PointsSectionCard>
       )}
 
       {/* Create/Edit Task Modal */}
@@ -511,6 +533,6 @@ export function PointsTasksPage() {
           </div>
         </div>
       </ModalPortal>
-    </div>
+    </PointsPageShell>
   );
 }

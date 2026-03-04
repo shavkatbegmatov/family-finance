@@ -1,10 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Medal, Flame } from 'lucide-react';
+import { Medal, Flame, Trophy } from 'lucide-react';
 import clsx from 'clsx';
 import { pointLeaderboardApi } from '../../api/points.api';
 import type { LeaderboardEntry } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
+import {
+  PointsActionBar,
+  PointsEmptyState,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 type Period = 'overall' | 'weekly' | 'monthly';
 
@@ -54,53 +63,52 @@ export function PointsLeaderboardPage() {
   }, [loadLeaderboard]);
 
   if (!canViewPointLeaderboard) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Period tabs */}
-      <div className="tabs tabs-boxed w-fit">
-        {PERIOD_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            className={clsx('tab tab-sm', period === tab.value && 'tab-active')}
-            onClick={() => setPeriod(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+    <PointsPageShell
+      title="Reyting"
+      description="Haftalik, oylik va umumiy natijalarni taqqoslang."
+      icon={Trophy}
+    >
+      <PointsActionBar>
+        <div className="tabs tabs-boxed w-fit">
+          {PERIOD_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              className={clsx('tab tab-sm', period === tab.value && 'tab-active')}
+              onClick={() => setPeriod(tab.value)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </PointsActionBar>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState />
       ) : entries.length === 0 ? (
-        <div className="text-center py-16 text-base-content/50">
-          Reyting ma'lumotlari topilmadi
-        </div>
+        <PointsEmptyState
+          title="Reyting ma'lumotlari topilmadi"
+          description="Tanlangan davr bo'yicha natijalar hali shakllanmagan."
+        />
       ) : (
-        <div className="space-y-3">
-          {/* Top 3 podium */}
+        <div className="space-y-6">
           {entries.length >= 3 && (
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {[entries[1], entries[0], entries[2]].map((entry, idx) => {
                 const actualRank = idx === 0 ? 2 : idx === 1 ? 1 : 3;
                 return (
                   <div
                     key={entry.participantId}
                     className={clsx(
-                      'card bg-base-100 shadow border border-base-200 text-center',
-                      actualRank === 1 && 'ring-2 ring-yellow-500 -mt-4',
+                      'surface-card points-card-hover rounded-2xl text-center',
+                      actualRank === 1 && 'ring-2 ring-yellow-500 md:-mt-4'
                     )}
                   >
-                    <div className="card-body p-4 items-center">
-                      <div className={clsx('text-3xl', MEDAL_COLORS[actualRank])}>
+                    <div className="p-4 sm:p-5">
+                      <div className={clsx('flex justify-center text-3xl', MEDAL_COLORS[actualRank])}>
                         <Medal className="h-8 w-8" />
                       </div>
                       <div className="avatar placeholder my-2">
@@ -116,7 +124,7 @@ export function PointsLeaderboardPage() {
                       </p>
                       <p className="text-xs text-base-content/60">ball</p>
                       {entry.currentStreak > 0 && (
-                        <div className="badge badge-warning badge-sm gap-1">
+                        <div className="badge badge-warning badge-sm gap-1 mt-1">
                           <Flame className="h-3 w-3" />
                           {entry.currentStreak} kun
                         </div>
@@ -128,68 +136,69 @@ export function PointsLeaderboardPage() {
             </div>
           )}
 
-          {/* Full list */}
-          <div className="overflow-x-auto">
-            <table className="table table-sm">
-              <thead>
-                <tr>
-                  <th className="w-12">#</th>
-                  <th>Ishtirokchi</th>
-                  <th>Umumiy ball</th>
-                  <th>Balans</th>
-                  <th>Vazifalar</th>
-                  <th>Streak</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => (
-                  <tr
-                    key={entry.participantId}
-                    className={clsx(entry.rank <= 3 && 'font-semibold')}
-                  >
-                    <td>
-                      {entry.rank <= 3 ? (
-                        <span className={clsx('text-lg', MEDAL_COLORS[entry.rank])}>
-                          <Medal className="h-5 w-5 inline" />
-                        </span>
-                      ) : (
-                        <span className="text-base-content/60">{entry.rank}</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <div className="avatar placeholder">
-                          <div className="bg-base-200 text-base-content rounded-full w-8 h-8">
-                            <span className="text-xs">
-                              {entry.participantName?.charAt(0) ?? '?'}
-                            </span>
-                          </div>
-                        </div>
-                        {entry.participantName}
-                      </div>
-                    </td>
-                    <td className="text-primary font-bold">
-                      {entry.totalPoints.toLocaleString()}
-                    </td>
-                    <td>{entry.currentBalance.toLocaleString()}</td>
-                    <td>{entry.tasksCompleted}</td>
-                    <td>
-                      {entry.currentStreak > 0 ? (
-                        <span className="flex items-center gap-1 text-warning">
-                          <Flame className="h-3 w-3" />
-                          {entry.currentStreak}
-                        </span>
-                      ) : (
-                        <span className="text-base-content/40">-</span>
-                      )}
-                    </td>
+          <PointsSectionCard title="To'liq ro'yxat" subtitle="Har bir ishtirokchi bo'yicha umumiy natijalar">
+            <PointsTableShell>
+              <table className="table table-sm">
+                <thead>
+                  <tr>
+                    <th className="w-12">#</th>
+                    <th>Ishtirokchi</th>
+                    <th>Umumiy ball</th>
+                    <th>Balans</th>
+                    <th>Vazifalar</th>
+                    <th>Streak</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {entries.map((entry) => (
+                    <tr
+                      key={entry.participantId}
+                      className={clsx(entry.rank <= 3 && 'font-semibold')}
+                    >
+                      <td>
+                        {entry.rank <= 3 ? (
+                          <span className={clsx('text-lg', MEDAL_COLORS[entry.rank])}>
+                            <Medal className="h-5 w-5 inline" />
+                          </span>
+                        ) : (
+                          <span className="text-base-content/60">{entry.rank}</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <div className="avatar placeholder">
+                            <div className="bg-base-200 text-base-content rounded-full w-8 h-8">
+                              <span className="text-xs">
+                                {entry.participantName?.charAt(0) ?? '?'}
+                              </span>
+                            </div>
+                          </div>
+                          {entry.participantName}
+                        </div>
+                      </td>
+                      <td className="text-primary font-bold">
+                        {entry.totalPoints.toLocaleString()}
+                      </td>
+                      <td>{entry.currentBalance.toLocaleString()}</td>
+                      <td>{entry.tasksCompleted}</td>
+                      <td>
+                        {entry.currentStreak > 0 ? (
+                          <span className="flex items-center gap-1 text-warning">
+                            <Flame className="h-3 w-3" />
+                            {entry.currentStreak}
+                          </span>
+                        ) : (
+                          <span className="text-base-content/40">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </PointsTableShell>
+          </PointsSectionCard>
         </div>
       )}
-    </div>
+    </PointsPageShell>
   );
 }
