@@ -6,6 +6,7 @@ import {
   Bell,
   Settings,
   ChevronDown,
+  ChevronRight,
   Sun,
   Moon,
   HelpCircle,
@@ -155,11 +156,15 @@ export function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const activeMatch = [...matches]
-    .reverse()
-    .find((match) => (match.handle as RouteHandle | undefined)?.title);
-  const title =
-    (activeMatch?.handle as RouteHandle | undefined)?.title || 'Dashboard';
+  // Build multi-level breadcrumbs from matched routes
+  const crumbs = matches
+    .filter((match) => (match.handle as RouteHandle | undefined)?.title)
+    .map((match) => ({
+      title: (match.handle as RouteHandle).title!,
+      path: match.pathname,
+    }));
+
+  const title = crumbs.length > 0 ? crumbs[crumbs.length - 1].title : 'Dashboard';
 
   const userInitial =
     user?.fullName?.charAt(0)?.toUpperCase() ||
@@ -224,17 +229,37 @@ export function Header() {
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Page title with breadcrumb style */}
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 text-sm text-base-content/50">
-              <Link to="/" className="hover:text-primary transition-colors">
-                Bosh sahifa
-              </Link>
-              <span>/</span>
-            </div>
-            <h1 className="text-base font-semibold text-base-content lg:text-lg">
+          {/* Multi-level breadcrumb navigation */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* On mobile: show only last crumb as title */}
+            <h1 className="text-base font-semibold text-base-content lg:text-lg sm:hidden truncate">
               {title}
             </h1>
+            {/* On desktop: full breadcrumb chain */}
+            <nav className="hidden sm:flex items-center gap-1.5 min-w-0" aria-label="Breadcrumb">
+              {crumbs.map((crumb, index) => {
+                const isLast = index === crumbs.length - 1;
+                return (
+                  <div key={crumb.path} className="flex items-center gap-1.5 min-w-0">
+                    {index > 0 && (
+                      <ChevronRight className="h-3.5 w-3.5 text-base-content/30 flex-shrink-0" />
+                    )}
+                    {isLast ? (
+                      <span className="text-base font-semibold text-base-content lg:text-lg truncate">
+                        {crumb.title}
+                      </span>
+                    ) : (
+                      <Link
+                        to={crumb.path}
+                        className="text-sm text-base-content/50 hover:text-primary transition-colors whitespace-nowrap"
+                      >
+                        {crumb.title}
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
           </div>
         </div>
 

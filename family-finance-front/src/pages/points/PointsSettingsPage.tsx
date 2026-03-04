@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Settings, Save, Zap, Plus, Trash2, X, Calendar,
+  Save, Zap, Plus, Trash2, X, Calendar,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointConfigApi, pointEventApi } from '../../api/points.api';
@@ -180,15 +180,6 @@ export function PointsSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Settings className="h-6 w-6" />
-          Ball tizimi sozlamalari
-        </h1>
-        <p className="text-base-content/60 mt-1">Asosiy sozlamalar va ko'paytiruvchi hodisalar</p>
-      </div>
-
       {loading ? (
         <div className="flex justify-center py-12">
           <span className="loading loading-spinner loading-lg" />

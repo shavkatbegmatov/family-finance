@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowRightLeft, Calculator, TrendingDown } from 'lucide-react';
+import { Calculator, TrendingDown } from 'lucide-react';
 import {
   pointConversionApi, pointParticipantApi, pointConfigApi, pointBalanceApi,
 } from '../../api/points.api';
@@ -125,15 +125,6 @@ export function PointsConversionPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ArrowRightLeft className="h-6 w-6" />
-          Ball konversiyasi
-        </h1>
-        <p className="text-base-content/60 mt-1">Ballni pulga aylantirish</p>
-      </div>
-
       {loading ? (
         <div className="flex justify-center py-12">
           <span className="loading loading-spinner loading-lg" />

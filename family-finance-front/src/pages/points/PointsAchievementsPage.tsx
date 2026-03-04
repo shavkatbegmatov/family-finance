@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Award, CheckCircle, Lock, Star } from 'lucide-react';
+import { CheckCircle, Lock, Star } from 'lucide-react';
 import clsx from 'clsx';
 import { pointAchievementApi, pointParticipantApi } from '../../api/points.api';
 import type { PointAchievement, PointParticipant } from '../../types/points.types';
@@ -81,15 +81,6 @@ export function PointsAchievementsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Award className="h-6 w-6 text-warning" />
-          Yutuqlar
-        </h1>
-        <p className="text-base-content/60 mt-1">Erishilgan va mavjud yutuqlar</p>
-      </div>
-
       {/* Participant selector */}
       <div className="form-control w-full max-w-xs">
         <label className="label">

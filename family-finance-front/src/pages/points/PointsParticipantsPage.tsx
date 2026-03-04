@@ -153,19 +153,15 @@ export function PointsParticipantsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Ishtirokchilar</h1>
-          <p className="text-base-content/60 mt-1">Ball tizimi ishtirokchilari</p>
-        </div>
-        {canManagePoints && (
+      {/* Action bar */}
+      {canManagePoints && (
+        <div className="flex justify-end">
           <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
             <Plus className="h-4 w-4" />
             Qo'shish
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">

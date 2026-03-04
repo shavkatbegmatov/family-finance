@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { History, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import clsx from 'clsx';
 import { pointBalanceApi, pointParticipantApi } from '../../api/points.api';
 import type { PointTransaction, PointParticipant } from '../../types/points.types';
@@ -87,15 +87,6 @@ export function PointsHistoryPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <History className="h-6 w-6" />
-          Tranzaksiyalar tarixi
-        </h1>
-        <p className="text-base-content/60 mt-1">Ball tranzaksiyalari tarixi</p>
-      </div>
-
       {/* Participant selector */}
       <div className="form-control w-full max-w-xs">
         <label className="label">
