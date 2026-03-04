@@ -265,7 +265,7 @@ export function Header() {
         {/* Right section - Search & Actions */}
         <div className="flex items-center gap-1">
           {/* Search (desktop) */}
-          <div className="hidden md:flex max-w-xs">
+          <div className="hidden md:flex max-w-xl">
             <SearchCommand />
           </div>
           {/* Mobile search */}
