@@ -293,7 +293,11 @@ export function DataTable<T>({
                   )}
                   onClick={() => column.sortable !== false && handleSort(column.key)}
                 >
-                  <div className="flex items-center gap-1">
+                  <div className={clsx(
+                    'flex items-center gap-1',
+                    column.headerClassName?.includes('text-right') && 'justify-end',
+                    column.headerClassName?.includes('text-center') && 'justify-center'
+                  )}>
                     <span>{column.header}</span>
                     {column.sortable !== false && renderSortIcon(column.key)}
                   </div>
