@@ -290,19 +290,19 @@ CREATE TABLE point_challenge_participants (
 -- =============================================
 -- 17. POINTS permissions
 -- =============================================
-INSERT INTO permissions (name, module, action, description, created_at, version)
+INSERT INTO permissions (code, module, action, description, created_at)
 VALUES
-    ('POINTS_VIEW', 'POINTS', 'VIEW', 'Ball tizimini ko''rish', NOW(), 0),
-    ('POINTS_MANAGE', 'POINTS', 'MANAGE', 'Ball tizimini boshqarish', NOW(), 0),
-    ('POINTS_ASSIGN_TASK', 'POINTS', 'ASSIGN', 'Vazifa tayinlash', NOW(), 0),
-    ('POINTS_VERIFY_TASK', 'POINTS', 'VERIFY', 'Vazifani tasdiqlash', NOW(), 0),
-    ('POINTS_AWARD', 'POINTS', 'AWARD', 'Ball berish/olish', NOW(), 0),
-    ('POINTS_CONVERT', 'POINTS', 'CONVERT', 'Ballni pullga ayirboshlash', NOW(), 0),
-    ('POINTS_VIEW_LEADERBOARD', 'POINTS', 'LEADERBOARD', 'Reytingni ko''rish', NOW(), 0),
-    ('POINTS_MANAGE_ACHIEVEMENTS', 'POINTS', 'ACHIEVEMENTS', 'Yutuqlarni boshqarish', NOW(), 0),
-    ('POINTS_MANAGE_EVENTS', 'POINTS', 'EVENTS', 'Multiplier eventlarni boshqarish', NOW(), 0),
-    ('POINTS_MANAGE_SHOP', 'POINTS', 'SHOP', 'Do''konni boshqarish', NOW(), 0),
-    ('POINTS_MANAGE_CHALLENGES', 'POINTS', 'CHALLENGES', 'Musobaqalarni boshqarish', NOW(), 0);
+    ('POINTS_VIEW', 'POINTS', 'VIEW', 'Ball tizimini ko''rish', NOW()),
+    ('POINTS_MANAGE', 'POINTS', 'MANAGE', 'Ball tizimini boshqarish', NOW()),
+    ('POINTS_ASSIGN_TASK', 'POINTS', 'ASSIGN', 'Vazifa tayinlash', NOW()),
+    ('POINTS_VERIFY_TASK', 'POINTS', 'VERIFY', 'Vazifani tasdiqlash', NOW()),
+    ('POINTS_AWARD', 'POINTS', 'AWARD', 'Ball berish/olish', NOW()),
+    ('POINTS_CONVERT', 'POINTS', 'CONVERT', 'Ballni pullga ayirboshlash', NOW()),
+    ('POINTS_VIEW_LEADERBOARD', 'POINTS', 'LEADERBOARD', 'Reytingni ko''rish', NOW()),
+    ('POINTS_MANAGE_ACHIEVEMENTS', 'POINTS', 'ACHIEVEMENTS', 'Yutuqlarni boshqarish', NOW()),
+    ('POINTS_MANAGE_EVENTS', 'POINTS', 'EVENTS', 'Multiplier eventlarni boshqarish', NOW()),
+    ('POINTS_MANAGE_SHOP', 'POINTS', 'SHOP', 'Do''konni boshqarish', NOW()),
+    ('POINTS_MANAGE_CHALLENGES', 'POINTS', 'CHALLENGES', 'Musobaqalarni boshqarish', NOW());
 
 -- =============================================
 -- 18. System achievements (seed data)
