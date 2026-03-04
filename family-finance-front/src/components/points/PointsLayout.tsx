@@ -83,10 +83,10 @@ export function PointsLayout() {
   );
 
   return (
-    <div className="space-y-0">
-      {/* Sub-navigation bar */}
-      <div className="sticky top-0 z-20 -mx-4 lg:-mx-6 -mt-4 bg-base-100/95 backdrop-blur-md border-b border-base-200/60">
-        <div className="px-4 lg:px-6">
+    <div className="flex flex-col -mt-4 -mx-4 lg:-mx-8" style={{ minHeight: 'calc(100vh - 4rem)' }}>
+      {/* Sub-navigation bar - flex-shrink-0 keeps it fixed at top */}
+      <div className="flex-shrink-0 bg-base-100 border-b border-base-200/60 z-20">
+        <div className="px-4 lg:px-8">
           <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2" role="tablist">
             {filteredPrimary.map(renderTab)}
 
@@ -164,8 +164,8 @@ export function PointsLayout() {
         </div>
       </div>
 
-      {/* Page content */}
-      <div className="pt-6">
+      {/* Page content - scrollable */}
+      <div className="flex-1 overflow-y-auto px-4 lg:px-8 pt-6 pb-6">
         <Outlet />
       </div>
     </div>
