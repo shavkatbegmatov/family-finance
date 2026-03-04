@@ -85,7 +85,7 @@ export function PointsLayout() {
   return (
     <div className="space-y-0">
       {/* Sub-navigation bar */}
-      <div className="sticky top-16 z-20 -mx-4 lg:-mx-6 bg-base-100/95 backdrop-blur-md border-b border-base-200/60">
+      <div className="sticky top-0 z-20 -mx-4 lg:-mx-6 -mt-4 bg-base-100/95 backdrop-blur-md border-b border-base-200/60">
         <div className="px-4 lg:px-6">
           <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2" role="tablist">
             {filteredPrimary.map(renderTab)}
