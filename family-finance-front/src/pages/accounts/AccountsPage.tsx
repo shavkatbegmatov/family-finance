@@ -428,7 +428,7 @@ export function AccountsPage() {
       key: 'name',
       header: 'Hisob',
       sortable: true,
-      className: 'max-w-[280px]',
+      className: 'w-[220px] max-w-[220px]',
       render: (item) => {
         const Icon = getAccountIcon(item.type);
         const color = item.color || '#6366f1';

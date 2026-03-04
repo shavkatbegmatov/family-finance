@@ -279,7 +279,7 @@ export function DataTable<T>({
     <div ref={tableRef} className={clsx('surface-card', containerClassName)}>
       {/* Desktop Table */}
       <div className={clsx('hidden lg:block', className)}>
-        <table className="table table-zebra w-full">
+        <table className="table table-zebra table-fixed w-full">
           <thead className="sticky -top-6 z-20 bg-base-100">
             <tr className="shadow-[0_1px_3px_-1px_rgba(0,0,0,0.1)]">
               {columns.map((column) => (
