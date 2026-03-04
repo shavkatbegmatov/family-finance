@@ -465,6 +465,7 @@ export function AccountsPage() {
       header: 'Joriy saldo',
       sortable: true,
       className: 'text-right',
+      headerClassName: 'text-right',
       render: (item) => (
         <span className={clsx(
           'font-semibold tabular-nums',
