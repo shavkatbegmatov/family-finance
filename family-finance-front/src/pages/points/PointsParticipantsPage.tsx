@@ -55,7 +55,7 @@ export function PointsParticipantsPage() {
           pointBalanceApi.get(p.id).catch(() => null)
         )
       );
-      results.forEach((r: any) => {
+      results.forEach((r) => {
         if (r) {
           const bal: PointBalance = r.data?.data ?? r.data;
           if (bal) balMap[bal.participantId] = bal;
