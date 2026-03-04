@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  PiggyBank, ArrowDownCircle, ArrowUpCircle, TrendingUp, X, DollarSign,
+  PiggyBank, ArrowDownCircle, ArrowUpCircle, TrendingUp, X, DollarSign, Wallet,
 } from 'lucide-react';
 import clsx from 'clsx';
 import {
@@ -15,6 +15,15 @@ import type {
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { formatDate } from '../../config/constants';
+import {
+  PointsActionBar,
+  PointsEmptyState,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 export function PointsSavingsPage() {
   const { canViewPoints } = usePermission();
@@ -50,7 +59,7 @@ export function PointsSavingsPage() {
     } catch {
       toast.error("Ishtirokchilarni yuklashda xatolik");
     }
-  }, []);
+  }, [selectedParticipantId]);
 
   const loadData = useCallback(async () => {
     if (!selectedParticipantId) return;
@@ -137,198 +146,194 @@ export function PointsSavingsPage() {
     PointInvestmentTypes.find((t) => t.value === type) ?? { label: type, description: '', color: '' };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Participant selector */}
-      <div className="form-control w-full max-w-xs">
-        <label className="label">
-          <span className="label-text">Ishtirokchini tanlang</span>
-        </label>
-        <select
-          className="select select-bordered"
-          value={selectedParticipantId ?? ''}
-          onChange={(e) => setSelectedParticipantId(Number(e.target.value))}
-        >
-          <option value="" disabled>Tanlang...</option>
-          {participants.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName}</option>
-          ))}
-        </select>
-      </div>
+    <PointsPageShell
+      title="Jamg'arma va investitsiya"
+      description="Ishtirokchilar jamg'armasi va investitsiyalarini boshqaring."
+      icon={Wallet}
+    >
+      <PointsActionBar>
+        <div className="form-control w-full max-w-xs">
+          <label className="label">
+            <span className="label-text">Ishtirokchini tanlang</span>
+          </label>
+          <select
+            className="select select-bordered"
+            value={selectedParticipantId ?? ''}
+            onChange={(e) => setSelectedParticipantId(Number(e.target.value))}
+          >
+            <option value="" disabled>Tanlang...</option>
+            {participants.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName}</option>
+            ))}
+          </select>
+        </div>
+        {balance && (
+          <span className="pill border-primary/30 bg-primary/10 text-primary">
+            Mavjud balans: {balance.currentBalance.toLocaleString()} ball
+          </span>
+        )}
+      </PointsActionBar>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState />
       ) : !selectedParticipantId ? (
-        <div className="text-center py-16 text-base-content/50">
-          Ishtirokchini tanlang
-        </div>
+        <PointsEmptyState
+          title="Ishtirokchini tanlang"
+          description="Jamg'arma va investitsiya ma'lumotlari tanlovdan keyin ko'rinadi."
+        />
       ) : (
         <div className="space-y-6">
-          {/* Balance info */}
-          {balance && (
-            <div className="text-sm text-base-content/60">
-              Mavjud balans: <strong className="text-primary">{balance.currentBalance.toLocaleString()}</strong> ball
-            </div>
-          )}
-
-          {/* Savings card */}
-          <div className="card bg-base-100 shadow border border-base-200">
-            <div className="card-body">
-              <h2 className="card-title text-base gap-2">
-                <PiggyBank className="h-5 w-5 text-success" />
-                Jamg'arma hisobi
-              </h2>
-
-              {savings ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-base-200/50 rounded-lg p-3 text-center">
-                      <p className="text-xs text-base-content/60">Balans</p>
-                      <p className="text-xl font-bold text-primary">
-                        {savings.balance.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-base-200/50 rounded-lg p-3 text-center">
-                      <p className="text-xs text-base-content/60">Foiz stavkasi</p>
-                      <p className="text-xl font-bold text-success">
-                        {savings.interestRate}%
-                      </p>
-                    </div>
-                    <div className="bg-base-200/50 rounded-lg p-3 text-center">
-                      <p className="text-xs text-base-content/60">Jami foiz</p>
-                      <p className="text-xl font-bold text-warning">
-                        {savings.totalInterestEarned.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-base-200/50 rounded-lg p-3 text-center">
-                      <p className="text-xs text-base-content/60">Oxirgi foiz</p>
-                      <p className="text-sm font-medium">
-                        {savings.lastInterestAppliedAt
-                          ? formatDate(savings.lastInterestAppliedAt)
-                          : '-'}
-                      </p>
-                    </div>
+          <PointsSectionCard
+            title="Jamg'arma hisobi"
+            subtitle="Foiz, balans va oxirgi qo'llanilgan sana"
+            icon={PiggyBank}
+          >
+            {savings ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-base-200/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-base-content/60">Balans</p>
+                    <p className="text-xl font-bold text-primary">
+                      {savings.balance.toLocaleString()}
+                    </p>
                   </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      className="btn btn-success btn-sm gap-1"
-                      onClick={() => {
-                        setDepositMode('deposit');
-                        setAmount(0);
-                        setShowDepositModal(true);
-                      }}
-                    >
-                      <ArrowDownCircle className="h-4 w-4" />
-                      Kiritish
-                    </button>
-                    <button
-                      className="btn btn-warning btn-sm gap-1"
-                      onClick={() => {
-                        setDepositMode('withdraw');
-                        setAmount(0);
-                        setShowDepositModal(true);
-                      }}
-                    >
-                      <ArrowUpCircle className="h-4 w-4" />
-                      Yechish
-                    </button>
+                  <div className="bg-base-200/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-base-content/60">Foiz stavkasi</p>
+                    <p className="text-xl font-bold text-success">
+                      {savings.interestRate}%
+                    </p>
+                  </div>
+                  <div className="bg-base-200/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-base-content/60">Jami foiz</p>
+                    <p className="text-xl font-bold text-warning">
+                      {savings.totalInterestEarned.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="bg-base-200/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-base-content/60">Oxirgi foiz</p>
+                    <p className="text-sm font-medium">
+                      {savings.lastInterestAppliedAt
+                        ? formatDate(savings.lastInterestAppliedAt)
+                        : '-'}
+                    </p>
                   </div>
                 </div>
-              ) : (
-                <p className="text-base-content/50">Jamg'arma hisobi topilmadi</p>
-              )}
-            </div>
-          </div>
 
-          {/* Investments */}
-          <div className="card bg-base-100 shadow border border-base-200">
-            <div className="card-body">
-              <div className="flex items-center justify-between">
-                <h2 className="card-title text-base gap-2">
-                  <TrendingUp className="h-5 w-5 text-info" />
-                  Investitsiyalar
-                </h2>
-                <button
-                  className="btn btn-primary btn-sm gap-1"
-                  onClick={() => {
-                    setInvestForm({ type: 'STABLE', amount: 0 });
-                    setShowInvestModal(true);
-                  }}
-                >
-                  <DollarSign className="h-4 w-4" />
-                  Investitsiya qilish
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="btn btn-success btn-sm gap-1"
+                    onClick={() => {
+                      setDepositMode('deposit');
+                      setAmount(0);
+                      setShowDepositModal(true);
+                    }}
+                  >
+                    <ArrowDownCircle className="h-4 w-4" />
+                    Kiritish
+                  </button>
+                  <button
+                    className="btn btn-warning btn-sm gap-1"
+                    onClick={() => {
+                      setDepositMode('withdraw');
+                      setAmount(0);
+                      setShowDepositModal(true);
+                    }}
+                  >
+                    <ArrowUpCircle className="h-4 w-4" />
+                    Yechish
+                  </button>
+                </div>
               </div>
+            ) : (
+              <PointsEmptyState
+                title="Jamg'arma hisobi topilmadi"
+                description="Tanlangan ishtirokchi uchun jamg'arma ochilmagan."
+              />
+            )}
+          </PointsSectionCard>
 
-              {investments.length === 0 ? (
-                <p className="text-center py-8 text-base-content/50">Investitsiyalar topilmadi</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="table table-sm">
-                    <thead>
-                      <tr>
-                        <th>Turi</th>
-                        <th>Kiritilgan</th>
-                        <th>Joriy qiymat</th>
-                        <th>Foyda %</th>
-                        <th>Sana</th>
-                        <th>Amal</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {investments.map((inv) => {
-                        const typeInfo = getInvestmentTypeInfo(inv.type);
-                        return (
-                          <tr key={inv.id}>
-                            <td>
-                              <span className={clsx('font-medium', typeInfo.color)}>
-                                {typeInfo.label}
-                              </span>
-                              <p className="text-xs text-base-content/50">{typeInfo.description}</p>
-                            </td>
-                            <td>{inv.investedAmount.toLocaleString()}</td>
-                            <td className="font-semibold">{inv.currentValue.toLocaleString()}</td>
-                            <td>
-                              <span className={clsx(
-                                'font-medium',
-                                inv.profitPercentage >= 0 ? 'text-success' : 'text-error'
-                              )}>
-                                {inv.profitPercentage >= 0 ? '+' : ''}{inv.profitPercentage.toFixed(1)}%
-                              </span>
-                            </td>
-                            <td className="text-sm">{formatDate(inv.investedAt)}</td>
-                            <td>
-                              {inv.isActive && (
-                                <button
-                                  className="btn btn-warning btn-xs"
-                                  onClick={() => handleSellInvestment(inv.id)}
-                                >
-                                  Sotish
-                                </button>
-                              )}
-                              {!inv.isActive && (
-                                <span className="badge badge-ghost badge-xs">Sotilgan</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
+          <PointsSectionCard
+            title="Investitsiyalar"
+            subtitle="Risk, foyda va joriy qiymat dinamikasi"
+            icon={TrendingUp}
+            action={(
+              <button
+                className="btn btn-primary btn-sm gap-1"
+                onClick={() => {
+                  setInvestForm({ type: 'STABLE', amount: 0 });
+                  setShowInvestModal(true);
+                }}
+              >
+                <DollarSign className="h-4 w-4" />
+                Investitsiya qilish
+              </button>
+            )}
+          >
+            {investments.length === 0 ? (
+              <PointsEmptyState
+                title="Investitsiyalar topilmadi"
+                description="Yangi investitsiya qo'shish orqali daromadni oshiring."
+              />
+            ) : (
+              <PointsTableShell>
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Turi</th>
+                      <th>Kiritilgan</th>
+                      <th>Joriy qiymat</th>
+                      <th>Foyda %</th>
+                      <th>Sana</th>
+                      <th>Amal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investments.map((inv) => {
+                      const typeInfo = getInvestmentTypeInfo(inv.type);
+                      return (
+                        <tr key={inv.id}>
+                          <td>
+                            <span className={clsx('font-medium', typeInfo.color)}>
+                              {typeInfo.label}
+                            </span>
+                            <p className="text-xs text-base-content/50">{typeInfo.description}</p>
+                          </td>
+                          <td>{inv.investedAmount.toLocaleString()}</td>
+                          <td className="font-semibold">{inv.currentValue.toLocaleString()}</td>
+                          <td>
+                            <span className={clsx(
+                              'font-medium',
+                              inv.profitPercentage >= 0 ? 'text-success' : 'text-error'
+                            )}>
+                              {inv.profitPercentage >= 0 ? '+' : ''}{inv.profitPercentage.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="text-sm">{formatDate(inv.investedAt)}</td>
+                          <td>
+                            {inv.isActive && (
+                              <button
+                                className="btn btn-warning btn-xs"
+                                onClick={() => handleSellInvestment(inv.id)}
+                              >
+                                Sotish
+                              </button>
+                            )}
+                            {!inv.isActive && (
+                              <span className="badge badge-ghost badge-xs">Sotilgan</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </PointsTableShell>
+            )}
+          </PointsSectionCard>
         </div>
       )}
 
@@ -430,6 +435,6 @@ export function PointsSavingsPage() {
           </div>
         </div>
       </ModalPortal>
-    </div>
+    </PointsPageShell>
   );
 }

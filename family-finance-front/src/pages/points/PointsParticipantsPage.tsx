@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, UserX, Link as LinkIcon, X } from 'lucide-react';
+import { Plus, Edit2, UserX, Link as LinkIcon, Users, X } from 'lucide-react';
 import clsx from 'clsx';
 import { pointParticipantApi, pointBalanceApi } from '../../api/points.api';
 import type {
@@ -8,6 +8,13 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import {
+  PointsEmptyState,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+} from '../../components/points/ui';
 
 interface ParticipantFormState {
   firstName: string;
@@ -144,124 +151,124 @@ export function PointsParticipantsPage() {
   };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Action bar */}
-      {canManagePoints && (
-        <div className="flex justify-end">
-          <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
-            <Plus className="h-4 w-4" />
-            Qo'shish
-          </button>
-        </div>
-      )}
-
+    <PointsPageShell
+      title="Ishtirokchilar"
+      description="Ball tizimiga ulangan a'zolarni boshqaring va ularning natijalarini kuzating."
+      icon={Users}
+      actions={canManagePoints ? (
+        <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
+          <Plus className="h-4 w-4" />
+          Qo'shish
+        </button>
+      ) : undefined}
+    >
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
-      ) : participants.length === 0 ? (
-        <div className="text-center py-16 text-base-content/50">
-          Ishtirokchilar topilmadi
-        </div>
+        <PointsLoadingState layout="cards" />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {participants.map((p) => {
-            const bal = balances[p.id];
-            return (
-              <div
-                key={p.id}
-                className={clsx(
-                  'card bg-base-100 shadow border border-base-200',
-                  !p.isActive && 'opacity-50'
-                )}
-              >
-                <div className="card-body p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="avatar placeholder">
-                      <div className="bg-primary text-primary-content rounded-full w-12 h-12">
-                        <span className="text-lg font-bold">
-                          {p.firstName.charAt(0)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{p.displayName}</p>
-                      {p.nickname && (
-                        <p className="text-xs text-base-content/50">@{p.nickname}</p>
-                      )}
-                      {p.familyMemberName && (
-                        <p className="text-xs text-info">{p.familyMemberName}</p>
-                      )}
-                    </div>
-                    {!p.isActive && (
-                      <span className="badge badge-error badge-xs">Nofaol</span>
+        <PointsSectionCard
+          title="Ishtirokchilar ro'yxati"
+          subtitle={`${participants.length} ta ishtirokchi`}
+        >
+          {participants.length === 0 ? (
+            <PointsEmptyState
+              title="Ishtirokchilar topilmadi"
+              description="Yangi ishtirokchi qo'shib ball tizimini ishga tushiring."
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {participants.map((p) => {
+                const bal = balances[p.id];
+                return (
+                  <div
+                    key={p.id}
+                    className={clsx(
+                      'points-card-hover surface-soft rounded-xl p-4',
+                      !p.isActive && 'opacity-55'
                     )}
-                  </div>
-
-                  {bal && (
-                    <div className="grid grid-cols-3 gap-2 mt-3 text-center text-sm">
-                      <div className="bg-base-200/50 rounded-lg p-2">
-                        <p className="text-xs text-base-content/60">Balans</p>
-                        <p className="font-bold text-primary">
-                          {bal.currentBalance.toLocaleString()}
-                        </p>
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="avatar placeholder">
+                        <div className="bg-primary text-primary-content rounded-full w-12 h-12">
+                          <span className="text-lg font-bold">
+                            {p.firstName.charAt(0)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="bg-base-200/50 rounded-lg p-2">
-                        <p className="text-xs text-base-content/60">Topilgan</p>
-                        <p className="font-bold text-success">
-                          {bal.totalEarned.toLocaleString()}
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{p.displayName}</p>
+                        {p.nickname && (
+                          <p className="text-xs text-base-content/50">@{p.nickname}</p>
+                        )}
+                        {p.familyMemberName && (
+                          <p className="text-xs text-info">{p.familyMemberName}</p>
+                        )}
                       </div>
-                      <div className="bg-base-200/50 rounded-lg p-2">
-                        <p className="text-xs text-base-content/60">Streak</p>
-                        <p className="font-bold text-warning">{bal.currentStreak}</p>
-                      </div>
+                      {!p.isActive && (
+                        <span className="badge badge-error badge-xs">Nofaol</span>
+                      )}
                     </div>
-                  )}
 
-                  {canManagePoints && p.isActive && (
-                    <div className="card-actions justify-end mt-3">
-                      {!p.familyMemberId && (
+                    {bal && (
+                      <div className="grid grid-cols-3 gap-2 mt-3 text-center text-sm">
+                        <div className="bg-base-100/85 rounded-lg p-2">
+                          <p className="text-xs text-base-content/60">Balans</p>
+                          <p className="font-bold text-primary">
+                            {bal.currentBalance.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="bg-base-100/85 rounded-lg p-2">
+                          <p className="text-xs text-base-content/60">Topilgan</p>
+                          <p className="font-bold text-success">
+                            {bal.totalEarned.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="bg-base-100/85 rounded-lg p-2">
+                          <p className="text-xs text-base-content/60">Streak</p>
+                          <p className="font-bold text-warning">{bal.currentStreak}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {canManagePoints && p.isActive && (
+                      <div className="card-actions justify-end mt-3">
+                        {!p.familyMemberId && (
+                          <button
+                            className="btn btn-ghost btn-xs gap-1"
+                            onClick={() => {
+                              setLinkParticipantId(p.id);
+                              setShowLinkModal(true);
+                            }}
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                            Bog'lash
+                          </button>
+                        )}
                         <button
                           className="btn btn-ghost btn-xs gap-1"
-                          onClick={() => {
-                            setLinkParticipantId(p.id);
-                            setShowLinkModal(true);
-                          }}
+                          onClick={() => openEditModal(p)}
                         >
-                          <LinkIcon className="h-3 w-3" />
-                          Bog'lash
+                          <Edit2 className="h-3 w-3" />
+                          Tahrirlash
                         </button>
-                      )}
-                      <button
-                        className="btn btn-ghost btn-xs gap-1"
-                        onClick={() => openEditModal(p)}
-                      >
-                        <Edit2 className="h-3 w-3" />
-                        Tahrirlash
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-xs text-error gap-1"
-                        onClick={() => handleDeactivate(p.id)}
-                      >
-                        <UserX className="h-3 w-3" />
-                        O'chirish
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                        <button
+                          className="btn btn-ghost btn-xs text-error gap-1"
+                          onClick={() => handleDeactivate(p.id)}
+                        >
+                          <UserX className="h-3 w-3" />
+                          O'chirish
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </PointsSectionCard>
       )}
 
       {/* Add/Edit Modal */}
@@ -365,6 +372,6 @@ export function PointsParticipantsPage() {
           </div>
         </div>
       </ModalPortal>
-    </div>
+    </PointsPageShell>
   );
 }

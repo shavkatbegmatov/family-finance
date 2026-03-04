@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Plus, Edit2, Trash2, ShoppingCart, X, Package, History,
+  Plus, Edit2, Trash2, ShoppingCart, X, Package, History, ShoppingBag,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointShopApi, pointParticipantApi, pointBalanceApi } from '../../api/points.api';
@@ -11,6 +11,16 @@ import type {
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { formatDate } from '../../config/constants';
+import {
+  PointsActionBar,
+  PointsEmptyState,
+  PointsGamifiedBadge,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 interface ShopItemFormState {
   name: string;
@@ -78,7 +88,7 @@ export function PointsShopPage() {
         setPurchaseParticipantId(parts[0].id);
       }
     } catch { /* ignore */ }
-  }, []);
+  }, [purchaseParticipantId]);
 
   const loadBalance = useCallback(async () => {
     if (!purchaseParticipantId) return;
@@ -197,39 +207,38 @@ export function PointsShopPage() {
   const purchaseItem = items.find((i) => i.id === purchaseItemId);
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Action bar */}
-      <div className="flex justify-end gap-2">
-        <button
-          className="btn btn-outline btn-sm gap-1"
-          onClick={() => {
-            setShowHistory(!showHistory);
-            if (!historyParticipantId && participants.length > 0) {
-              setHistoryParticipantId(participants[0].id);
-            }
-          }}
-        >
-          <History className="h-4 w-4" />
-          Tarix
-        </button>
-        {canManagePointShop && (
-          <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
-            <Plus className="h-4 w-4" />
-            Mahsulot qo'shish
+    <PointsPageShell
+      title="Do'kon"
+      description="Ballarni mukofotga aylantiring va xarid tarixini kuzating."
+      icon={ShoppingBag}
+      actions={(
+        <>
+          <button
+            className="btn btn-outline btn-sm gap-1"
+            onClick={() => {
+              setShowHistory(!showHistory);
+              if (!historyParticipantId && participants.length > 0) {
+                setHistoryParticipantId(participants[0].id);
+              }
+            }}
+          >
+            <History className="h-4 w-4" />
+            Tarix
           </button>
-        )}
-      </div>
-
-      {/* Participant & Balance */}
-      <div className="flex flex-wrap items-end gap-4">
+          {canManagePointShop && (
+            <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
+              <Plus className="h-4 w-4" />
+              Mahsulot qo'shish
+            </button>
+          )}
+        </>
+      )}
+    >
+      <PointsActionBar>
         <div className="form-control w-full max-w-xs">
           <label className="label"><span className="label-text">Ishtirokchi</span></label>
           <select
@@ -244,37 +253,36 @@ export function PointsShopPage() {
           </select>
         </div>
         {balance && (
-          <div className="text-sm">
-            Balans: <strong className="text-primary">{balance.currentBalance.toLocaleString()}</strong> ball
-          </div>
+          <PointsGamifiedBadge
+            variant="primary"
+            label={`Balans: ${balance.currentBalance.toLocaleString()} ball`}
+          />
         )}
-      </div>
+      </PointsActionBar>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState layout="cards" />
       ) : (
         <>
-          {/* Shop Items Grid */}
-          {items.length === 0 ? (
-            <div className="text-center py-16 text-base-content/50">
-              Mahsulotlar topilmadi
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className={clsx(
-                    'card bg-base-100 shadow border border-base-200',
-                    !item.isActive && 'opacity-50'
-                  )}
-                >
-                  <div className="card-body p-4">
+          <PointsSectionCard title="Mahsulotlar" subtitle={`${items.length} ta mavjud item`}>
+            {items.length === 0 ? (
+              <PointsEmptyState
+                title="Mahsulotlar topilmadi"
+                description="Do'kon uchun birinchi mahsulotni qo'shing."
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className={clsx(
+                      'points-card-hover surface-soft rounded-xl p-4',
+                      !item.isActive && 'opacity-55'
+                    )}
+                  >
                     <div className="flex items-start justify-between">
                       <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-base-100/80"
                         style={{ backgroundColor: item.color ? `${item.color}20` : undefined }}
                       >
                         {item.icon || <Package className="h-6 w-6 text-base-content/40" />}
@@ -307,14 +315,12 @@ export function PointsShopPage() {
                         {item.price.toLocaleString()} ball
                       </span>
                       {item.stock !== null && item.stock !== undefined && (
-                        <span className="badge badge-ghost badge-sm">
-                          Qoldiq: {item.stock}
-                        </span>
+                        <PointsGamifiedBadge variant="outline" label={`Qoldiq: ${item.stock}`} />
                       )}
                     </div>
 
                     <button
-                      className="btn btn-primary btn-sm mt-2 gap-1"
+                      className="btn btn-primary btn-sm mt-3 gap-1"
                       disabled={
                         !purchaseParticipantId ||
                         !item.isActive ||
@@ -329,62 +335,61 @@ export function PointsShopPage() {
                       Sotib olish
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Purchase History Section */}
-          {showHistory && (
-            <div className="card bg-base-100 shadow border border-base-200">
-              <div className="card-body">
-                <h2 className="card-title text-base">Xaridlar tarixi</h2>
-                <div className="form-control w-full max-w-xs">
-                  <select
-                    className="select select-bordered select-sm"
-                    value={historyParticipantId ?? ''}
-                    onChange={(e) => setHistoryParticipantId(Number(e.target.value))}
-                  >
-                    <option value="" disabled>Tanlang...</option>
-                    {participants.map((p) => (
-                      <option key={p.id} value={p.id}>{p.displayName}</option>
-                    ))}
-                  </select>
-                </div>
-                {purchases.length === 0 ? (
-                  <p className="text-center py-4 text-base-content/50">Xaridlar topilmadi</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="table table-xs">
-                      <thead>
-                        <tr>
-                          <th>Mahsulot</th>
-                          <th>Ball</th>
-                          <th>Sana</th>
-                          <th>Holat</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {purchases.map((p) => (
-                          <tr key={p.id}>
-                            <td>{p.shopItemName}</td>
-                            <td className="font-medium">{p.pointsSpent.toLocaleString()}</td>
-                            <td>{formatDate(p.purchaseDate)}</td>
-                            <td>
-                              {p.isDelivered ? (
-                                <span className="badge badge-success badge-xs">Topshirilgan</span>
-                              ) : (
-                                <span className="badge badge-warning badge-xs">Kutilmoqda</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                ))}
               </div>
-            </div>
+            )}
+          </PointsSectionCard>
+
+          {showHistory && (
+            <PointsSectionCard title="Xaridlar tarixi" subtitle="Oxirgi xaridlar holati">
+              <div className="form-control w-full max-w-xs mb-4">
+                <select
+                  className="select select-bordered select-sm"
+                  value={historyParticipantId ?? ''}
+                  onChange={(e) => setHistoryParticipantId(Number(e.target.value))}
+                >
+                  <option value="" disabled>Tanlang...</option>
+                  {participants.map((p) => (
+                    <option key={p.id} value={p.id}>{p.displayName}</option>
+                  ))}
+                </select>
+              </div>
+              {purchases.length === 0 ? (
+                <PointsEmptyState
+                  title="Xaridlar topilmadi"
+                  description="Tanlangan ishtirokchi bo'yicha xaridlar yo'q."
+                />
+              ) : (
+                <PointsTableShell>
+                  <table className="table table-xs">
+                    <thead>
+                      <tr>
+                        <th>Mahsulot</th>
+                        <th>Ball</th>
+                        <th>Sana</th>
+                        <th>Holat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {purchases.map((p) => (
+                        <tr key={p.id}>
+                          <td>{p.shopItemName}</td>
+                          <td className="font-medium">{p.pointsSpent.toLocaleString()}</td>
+                          <td>{formatDate(p.purchaseDate)}</td>
+                          <td>
+                            {p.isDelivered ? (
+                              <PointsGamifiedBadge variant="success" size="xs" label="Topshirilgan" />
+                            ) : (
+                              <PointsGamifiedBadge variant="warning" size="xs" label="Kutilmoqda" />
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </PointsTableShell>
+              )}
+            </PointsSectionCard>
           )}
         </>
       )}
@@ -514,6 +519,6 @@ export function PointsShopPage() {
           </div>
         </div>
       </ModalPortal>
-    </div>
+    </PointsPageShell>
   );
 }

@@ -70,10 +70,10 @@ export function PointsLayout() {
       role="tab"
       className={({ isActive }) =>
         clsx(
-          'group flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200',
+          'points-nav-link',
           isActive
-            ? 'bg-primary text-primary-content shadow-sm'
-            : 'text-base-content/60 hover:bg-base-200/80 hover:text-base-content'
+            ? 'points-nav-link-active'
+            : 'points-nav-link-inactive'
         )
       }
     >
@@ -84,26 +84,23 @@ export function PointsLayout() {
 
   return (
     <div className="flex flex-col -mt-4 -mx-4 lg:-mx-8" style={{ minHeight: 'calc(100vh - 4rem)' }}>
-      {/* Sub-navigation bar - flex-shrink-0 keeps it fixed at top */}
-      <div className="flex-shrink-0 bg-base-100 border-b border-base-200/60 z-20">
+      <div className="points-nav-shell flex-shrink-0 z-20">
         <div className="px-4 lg:px-8">
-          <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2" role="tablist">
+          <nav className="flex items-center gap-1 overflow-x-auto py-2.5 scrollbar-hide" role="tablist">
             {filteredPrimary.map(renderTab)}
 
-            {/* More dropdown for secondary tabs */}
             {filteredSecondary.length > 0 && (
               <>
-                {/* Divider */}
                 <div className="h-5 w-px bg-base-300/60 mx-1 flex-shrink-0" />
 
                 <div className="relative" ref={moreRef}>
                   <button
                     onClick={() => setShowMore(!showMore)}
                     className={clsx(
-                      'flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200',
+                      'points-nav-link',
                       isSecondaryActive
-                        ? 'bg-primary text-primary-content shadow-sm'
-                        : 'text-base-content/60 hover:bg-base-200/80 hover:text-base-content'
+                        ? 'points-nav-link-active'
+                        : 'points-nav-link-inactive'
                     )}
                   >
                     {isSecondaryActive && activeSecondaryTab ? (
@@ -121,14 +118,14 @@ export function PointsLayout() {
 
                   <div
                     className={clsx(
-                      'absolute right-0 top-full mt-2 w-56 rounded-xl bg-base-100 border border-base-200/80 shadow-lg z-50 transition-all duration-200 origin-top-right',
+                      'absolute right-0 top-full mt-2 w-64 rounded-2xl bg-base-100 border border-base-200/80 shadow-lg z-50 transition-all duration-200 origin-top-right',
                       showMore
                         ? 'opacity-100 scale-100 visible'
                         : 'opacity-0 scale-95 invisible pointer-events-none'
                     )}
                   >
-                    <div className="p-1.5">
-                      <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-base-content/40">
+                    <div className="p-2">
+                      <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-base-content/40">
                         Qo'shimcha
                       </div>
                       {filteredSecondary.map((tab) => (
@@ -137,19 +134,19 @@ export function PointsLayout() {
                           to={tab.path}
                           className={({ isActive }) =>
                             clsx(
-                              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                              'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
                               isActive
-                                ? 'bg-primary/10 text-primary'
+                                ? 'bg-primary/12 text-primary'
                                 : 'text-base-content/70 hover:bg-base-200/70 hover:text-base-content'
                             )
                           }
                         >
                           <div className={clsx(
                             'grid h-8 w-8 place-items-center rounded-lg transition-colors',
-                            location.pathname.startsWith(tab.path)
-                              ? 'bg-primary/15 text-primary'
-                              : 'bg-base-200/60 text-base-content/50'
-                          )}>
+                              location.pathname.startsWith(tab.path)
+                                ? 'bg-primary/15 text-primary'
+                                : 'bg-base-200/60 text-base-content/50'
+                            )}>
                             <tab.icon className="h-4 w-4" />
                           </div>
                           <span>{tab.label}</span>
@@ -164,7 +161,6 @@ export function PointsLayout() {
         </div>
       </div>
 
-      {/* Page content - scrollable */}
       <div className="flex-1 overflow-y-auto px-4 lg:px-8 pt-6 pb-6">
         <Outlet />
       </div>

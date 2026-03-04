@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Plus, Trophy, Users, Calendar, X, UserPlus,
+  Plus, Trophy, Users, Calendar, X, UserPlus, Swords,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointChallengeApi, pointParticipantApi } from '../../api/points.api';
@@ -11,6 +11,15 @@ import type {
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { formatDate } from '../../config/constants';
+import {
+  PointsEmptyState,
+  PointsGamifiedBadge,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+  PointsTableShell,
+} from '../../components/points/ui';
 
 interface ChallengeFormState {
   title: string;
@@ -30,6 +39,15 @@ const emptyForm: ChallengeFormState = {
   taskCategory: '',
 };
 
+const toVariant = (
+  status: string,
+): 'neutral' | 'success' | 'info' | 'error' => {
+  if (status === 'ACTIVE') return 'success';
+  if (status === 'COMPLETED') return 'info';
+  if (status === 'CANCELLED') return 'error';
+  return 'neutral';
+};
+
 export function PointsChallengesPage() {
   const { canViewPoints, canManagePointChallenges } = usePermission();
 
@@ -37,17 +55,14 @@ export function PointsChallengesPage() {
   const [participants, setParticipants] = useState<PointParticipant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Create modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState<ChallengeFormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
-  // Join modal
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinChallengeId, setJoinChallengeId] = useState<number | null>(null);
   const [joinParticipantId, setJoinParticipantId] = useState<string>('');
 
-  // Results
   const [results, setResults] = useState<ChallengeParticipantEntry[]>([]);
   const [showResults, setShowResults] = useState(false);
 
@@ -68,7 +83,9 @@ export function PointsChallengesPage() {
       const res = await pointParticipantApi.getAll();
       const parts: PointParticipant[] = res.data?.data ?? res.data ?? [];
       setParticipants(parts.filter((p) => p.isActive));
-    } catch { /* ignore */ }
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -163,43 +180,41 @@ export function PointsChallengesPage() {
   };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Action bar */}
-      {canManagePointChallenges && (
-        <div className="flex justify-end">
-          <button className="btn btn-primary btn-sm gap-2" onClick={() => setShowCreateModal(true)}>
-            <Plus className="h-4 w-4" />
-            Musobaqa yaratish
-          </button>
-        </div>
-      )}
-
+    <PointsPageShell
+      title="Musobaqalar"
+      description="Qisqa muddatli challenge'lar orqali raqobatni kuchaytiring."
+      icon={Swords}
+      actions={canManagePointChallenges ? (
+        <button className="btn btn-primary btn-sm gap-2" onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4" />
+          Musobaqa yaratish
+        </button>
+      ) : undefined}
+    >
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState layout="cards" />
       ) : challenges.length === 0 ? (
-        <div className="text-center py-16 text-base-content/50">
-          Musobaqalar topilmadi
-        </div>
+        <PointsEmptyState
+          title="Musobaqalar topilmadi"
+          description="Yangi challenge yaratib o'yin kayfiyatini boshlang."
+        />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {challenges.map((challenge) => {
-            const status = getStatusBadge(challenge.status);
-            return (
-              <div
-                key={challenge.id}
-                className="card bg-base-100 shadow border border-base-200"
-              >
-                <div className="card-body p-4">
+        <PointsSectionCard
+          title="Musobaqalar ro'yxati"
+          subtitle={`${challenges.length} ta musobaqa`}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {challenges.map((challenge) => {
+              const status = getStatusBadge(challenge.status);
+              return (
+                <div
+                  key={challenge.id}
+                  className="surface-soft points-card-hover rounded-xl p-4"
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-semibold text-lg">{challenge.title}</h3>
@@ -209,9 +224,10 @@ export function PointsChallengesPage() {
                         </p>
                       )}
                     </div>
-                    <span className={clsx('badge badge-sm', status.color)}>
-                      {status.label}
-                    </span>
+                    <PointsGamifiedBadge
+                      variant={toVariant(challenge.status)}
+                      label={status.label}
+                    />
                   </div>
 
                   <div className="flex flex-wrap gap-3 mt-3 text-sm text-base-content/70">
@@ -229,7 +245,6 @@ export function PointsChallengesPage() {
                     </span>
                   </div>
 
-                  {/* Participants list */}
                   {challenge.participants && challenge.participants.length > 0 && (
                     <div className="mt-3">
                       <div className="flex flex-wrap gap-1">
@@ -248,7 +263,6 @@ export function PointsChallengesPage() {
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div className="card-actions justify-end mt-3">
                     <button
                       className="btn btn-ghost btn-xs gap-1"
@@ -288,13 +302,12 @@ export function PointsChallengesPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </PointsSectionCard>
       )}
 
-      {/* Create Modal */}
       <ModalPortal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)}>
         <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-4">
@@ -379,7 +392,6 @@ export function PointsChallengesPage() {
         </div>
       </ModalPortal>
 
-      {/* Join Modal */}
       <ModalPortal isOpen={showJoinModal} onClose={() => setShowJoinModal(false)}>
         <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Musobaqaga qo'shilish</h3>
@@ -407,7 +419,6 @@ export function PointsChallengesPage() {
         </div>
       </ModalPortal>
 
-      {/* Results Modal */}
       <ModalPortal isOpen={showResults} onClose={() => setShowResults(false)}>
         <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-4">
@@ -419,7 +430,7 @@ export function PointsChallengesPage() {
           {results.length === 0 ? (
             <p className="text-center py-8 text-base-content/50">Natijalar topilmadi</p>
           ) : (
-            <div className="overflow-x-auto">
+            <PointsTableShell>
               <table className="table table-sm">
                 <thead>
                   <tr>
@@ -433,19 +444,17 @@ export function PointsChallengesPage() {
                     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
                     .map((r, idx) => (
                       <tr key={r.participantId} className={clsx(idx < 3 && 'font-semibold')}>
-                        <td>
-                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : idx + 1}
-                        </td>
+                        <td>{idx + 1}</td>
                         <td>{r.participantName}</td>
                         <td className="text-primary font-bold">{r.score}</td>
                       </tr>
                     ))}
                 </tbody>
               </table>
-            </div>
+            </PointsTableShell>
           )}
         </div>
       </ModalPortal>
-    </div>
+    </PointsPageShell>
   );
 }

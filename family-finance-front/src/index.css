@@ -95,6 +95,51 @@
     @apply inline-flex items-center gap-2 rounded-full border border-base-300 bg-base-100/80 px-3 py-1 text-xs font-medium text-base-content/70;
   }
 
+  .points-gradient-bg {
+    @apply bg-base-100/90;
+    background-image:
+      radial-gradient(circle at 10% 12%, color-mix(in oklab, hsl(var(--p)) 18%, transparent), transparent 42%),
+      radial-gradient(circle at 90% 15%, color-mix(in oklab, hsl(var(--s)) 18%, transparent), transparent 44%),
+      linear-gradient(140deg, color-mix(in oklab, hsl(var(--b1)) 88%, hsl(var(--p)) 12%), color-mix(in oklab, hsl(var(--b1)) 90%, hsl(var(--s)) 10%));
+  }
+
+  .points-glow {
+    box-shadow: 0 20px 44px -30px color-mix(in oklab, hsl(var(--p)) 45%, transparent);
+  }
+
+  .points-card-hover {
+    @apply transition-all duration-300;
+  }
+
+  .points-card-hover:hover {
+    @apply -translate-y-0.5;
+    box-shadow: 0 24px 48px -32px color-mix(in oklab, hsl(var(--p)) 34%, transparent);
+  }
+
+  .points-badge-glow {
+    box-shadow: inset 0 1px 0 color-mix(in oklab, hsl(var(--b1)) 30%, transparent);
+  }
+
+  .points-nav-shell {
+    @apply border-b border-base-200/70 bg-base-100/85 backdrop-blur;
+    background-image:
+      linear-gradient(180deg, color-mix(in oklab, hsl(var(--p)) 7%, transparent), transparent 40%),
+      linear-gradient(0deg, color-mix(in oklab, hsl(var(--b1)) 95%, hsl(var(--p)) 5%), color-mix(in oklab, hsl(var(--b1)) 98%, transparent));
+  }
+
+  .points-nav-link {
+    @apply relative flex items-center gap-2 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200;
+  }
+
+  .points-nav-link-active {
+    @apply bg-primary text-primary-content shadow-sm;
+    box-shadow: 0 10px 20px -14px color-mix(in oklab, hsl(var(--p)) 70%, transparent);
+  }
+
+  .points-nav-link-inactive {
+    @apply text-base-content/65 hover:bg-base-200/80 hover:text-base-content;
+  }
+
   /* ============================================
    * STANDARDIZED FORM ELEMENTS
    * All form controls should have consistent:
@@ -312,6 +357,11 @@
   .animate-pulse-ring,
   .stagger-children > * {
     animation: none !important;
+  }
+
+  .points-card-hover,
+  .points-nav-link {
+    transition: none !important;
   }
 }
 

@@ -1,11 +1,19 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { CheckCircle, Lock, Star } from 'lucide-react';
+import { CheckCircle, Lock, Star, Award } from 'lucide-react';
 import clsx from 'clsx';
 import { pointAchievementApi, pointParticipantApi } from '../../api/points.api';
 import type { PointAchievement, PointParticipant } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { formatDate } from '../../config/constants';
+import {
+  PointsActionBar,
+  PointsEmptyState,
+  PointsLoadingState,
+  PointsPageShell,
+  PointsPermissionState,
+  PointsSectionCard,
+} from '../../components/points/ui';
 
 export function PointsAchievementsPage() {
   const { canViewPoints } = usePermission();
@@ -72,62 +80,61 @@ export function PointsAchievementsPage() {
   };
 
   if (!canViewPoints) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-base-content/60">Sizda bu sahifani ko'rish huquqi yo'q.</p>
-      </div>
-    );
+    return <PointsPermissionState />;
   }
 
   return (
-    <div className="space-y-6">
-      {/* Participant selector */}
-      <div className="form-control w-full max-w-xs">
-        <label className="label">
-          <span className="label-text">Ishtirokchini tanlang (ixtiyoriy)</span>
-        </label>
-        <select
-          className="select select-bordered"
-          value={selectedParticipantId ?? ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            setSelectedParticipantId(val ? Number(val) : null);
-          }}
-        >
-          <option value="">Barcha ishtirokchilar</option>
-          {participants.map((p) => (
-            <option key={p.id} value={p.id}>{p.displayName}</option>
-          ))}
-        </select>
-      </div>
+    <PointsPageShell
+      title="Yutuqlar"
+      description="Ishtirokchilar erishgan badge va bonuslarni ko'ring."
+      icon={Award}
+    >
+      <PointsActionBar>
+        <div className="form-control w-full max-w-xs">
+          <label className="label">
+            <span className="label-text">Ishtirokchini tanlang (ixtiyoriy)</span>
+          </label>
+          <select
+            className="select select-bordered"
+            value={selectedParticipantId ?? ''}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedParticipantId(val ? Number(val) : null);
+            }}
+          >
+            <option value="">Barcha ishtirokchilar</option>
+            {participants.map((p) => (
+              <option key={p.id} value={p.id}>{p.displayName}</option>
+            ))}
+          </select>
+        </div>
+      </PointsActionBar>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <span className="loading loading-spinner loading-lg" />
-        </div>
+        <PointsLoadingState layout="cards" />
       ) : achievements.length === 0 ? (
-        <div className="text-center py-16 text-base-content/50">
-          Yutuqlar topilmadi
-        </div>
+        <PointsEmptyState
+          title="Yutuqlar topilmadi"
+          description="Hozircha konfiguratsiya qilingan yutuqlar mavjud emas."
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {achievements.map((achievement) => {
-            const isEarned = earnedIds.has(achievement.id);
-            return (
-              <div
-                key={achievement.id}
-                className={clsx(
-                  'card border shadow-sm transition-all',
-                  isEarned
-                    ? 'bg-base-100 border-success/30 ring-1 ring-success/20'
-                    : 'bg-base-200/30 border-base-200 opacity-60',
-                )}
-              >
-                <div className="card-body p-4 items-center text-center">
-                  {/* Icon */}
+        <PointsSectionCard title="Yutuqlar katalogi" subtitle={`${achievements.length} ta yutuq`}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {achievements.map((achievement) => {
+              const isEarned = earnedIds.has(achievement.id);
+              return (
+                <div
+                  key={achievement.id}
+                  className={clsx(
+                    'points-card-hover rounded-xl border p-4 text-center',
+                    isEarned
+                      ? 'bg-base-100 border-success/30 ring-1 ring-success/20'
+                      : 'bg-base-200/30 border-base-200 opacity-60',
+                  )}
+                >
                   <div
                     className={clsx(
-                      'w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2',
+                      'w-14 h-14 rounded-full flex items-center justify-center text-2xl mb-2 mx-auto',
                       isEarned ? 'bg-success/10' : 'bg-base-200'
                     )}
                   >
@@ -140,17 +147,14 @@ export function PointsAchievementsPage() {
                     )}
                   </div>
 
-                  {/* Name */}
                   <h3 className="font-semibold text-sm">{achievement.name}</h3>
 
-                  {/* Description */}
                   {achievement.description && (
                     <p className="text-xs text-base-content/60 line-clamp-2">
                       {achievement.description}
                     </p>
                   )}
 
-                  {/* Type & required value */}
                   <div className="flex flex-wrap gap-1 justify-center mt-1">
                     <span className="badge badge-ghost badge-xs">
                       {getTypeLabel(achievement.type)}
@@ -160,26 +164,24 @@ export function PointsAchievementsPage() {
                     </span>
                   </div>
 
-                  {/* Bonus points */}
                   {achievement.bonusPoints > 0 && (
-                    <div className="flex items-center gap-1 text-xs text-warning mt-1">
+                    <div className="flex items-center justify-center gap-1 text-xs text-warning mt-1">
                       <Star className="h-3 w-3" />
                       +{achievement.bonusPoints} bonus ball
                     </div>
                   )}
 
-                  {/* Earned date */}
                   {isEarned && achievement.earnedAt && (
                     <p className="text-xs text-success mt-1">
                       Erishilgan: {formatDate(achievement.earnedAt)}
                     </p>
                   )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </PointsSectionCard>
       )}
-    </div>
+    </PointsPageShell>
   );
 }
