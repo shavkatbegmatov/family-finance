@@ -18,6 +18,7 @@ import {
   UserCog,
   FileText,
   Building2,
+  Trophy,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
@@ -32,6 +33,7 @@ const menuItems = [
   { path: '/budget', icon: PieChart, label: 'Byudjet', permission: PermissionCode.BUDGETS_VIEW },
   { path: '/savings', icon: Target, label: "Jamg'armalar", permission: PermissionCode.SAVINGS_VIEW },
   { path: '/debts', icon: HandMetal, label: 'Qarzlar', permission: PermissionCode.DEBTS_VIEW },
+  { path: '/points', icon: Trophy, label: 'Ball tizimi', permission: PermissionCode.POINTS_VIEW },
   { path: '/family', icon: Users, label: "Oila a'zolari", permission: PermissionCode.FAMILY_VIEW },
   { path: '/my-family', icon: Home, label: 'Mening oilam', permission: PermissionCode.FAMILY_VIEW },
   { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW },

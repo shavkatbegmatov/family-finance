@@ -1,0 +1,19 @@
+package uz.familyfinance.api.enums;
+
+public enum PointTransactionType {
+    TASK_REWARD,
+    TASK_PENALTY,
+    BONUS,
+    MANUAL_AWARD,
+    MANUAL_DEDUCT,
+    CONVERSION,
+    SAVINGS_DEPOSIT,
+    SAVINGS_WITHDRAW,
+    SAVINGS_INTEREST,
+    INVESTMENT_BUY,
+    INVESTMENT_SELL,
+    INFLATION_ADJUST,
+    ACHIEVEMENT,
+    SHOP_PURCHASE,
+    CHALLENGE_REWARD
+}

@@ -32,6 +32,19 @@ const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage'
 const FamilyGroupSettingsPage = lazy(() => import('../pages/settings/FamilyGroupSettings').then(m => ({ default: m.FamilyGroupSettings })));
 const BanksPage = lazy(() => import('../pages/settings/BanksPage').then(m => ({ default: m.BanksPage })));
 
+// Points pages
+const PointsDashboardPage = lazy(() => import('../pages/points/PointsDashboardPage').then(m => ({ default: m.PointsDashboardPage })));
+const PointsParticipantsPage = lazy(() => import('../pages/points/PointsParticipantsPage').then(m => ({ default: m.PointsParticipantsPage })));
+const PointsTasksPage = lazy(() => import('../pages/points/PointsTasksPage').then(m => ({ default: m.PointsTasksPage })));
+const PointsLeaderboardPage = lazy(() => import('../pages/points/PointsLeaderboardPage').then(m => ({ default: m.PointsLeaderboardPage })));
+const PointsHistoryPage = lazy(() => import('../pages/points/PointsHistoryPage').then(m => ({ default: m.PointsHistoryPage })));
+const PointsConversionPage = lazy(() => import('../pages/points/PointsConversionPage').then(m => ({ default: m.PointsConversionPage })));
+const PointsSavingsPage = lazy(() => import('../pages/points/PointsSavingsPage').then(m => ({ default: m.PointsSavingsPage })));
+const PointsAchievementsPage = lazy(() => import('../pages/points/PointsAchievementsPage').then(m => ({ default: m.PointsAchievementsPage })));
+const PointsShopPage = lazy(() => import('../pages/points/PointsShopPage').then(m => ({ default: m.PointsShopPage })));
+const PointsChallengesPage = lazy(() => import('../pages/points/PointsChallengesPage').then(m => ({ default: m.PointsChallengesPage })));
+const PointsSettingsPage = lazy(() => import('../pages/points/PointsSettingsPage').then(m => ({ default: m.PointsSettingsPage })));
+
 function LazyRoute({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
@@ -127,6 +140,105 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: 'Qarzlar' },
+      },
+      {
+        path: 'points',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsDashboardPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Ball tizimi' },
+      },
+      {
+        path: 'points/participants',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsParticipantsPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Ishtirokchilar' },
+      },
+      {
+        path: 'points/tasks',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsTasksPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Vazifalar' },
+      },
+      {
+        path: 'points/leaderboard',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW_LEADERBOARD}>
+            <LazyRoute><PointsLeaderboardPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Reyting' },
+      },
+      {
+        path: 'points/history/:id?',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsHistoryPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Ball tarixi' },
+      },
+      {
+        path: 'points/convert',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_CONVERT}>
+            <LazyRoute><PointsConversionPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Ayirboshlash' },
+      },
+      {
+        path: 'points/savings',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsSavingsPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: "Jamg'arma va Investitsiya" },
+      },
+      {
+        path: 'points/achievements',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsAchievementsPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Yutuqlar' },
+      },
+      {
+        path: 'points/shop',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsShopPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: "Do'kon" },
+      },
+      {
+        path: 'points/challenges',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_VIEW}>
+            <LazyRoute><PointsChallengesPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Musobaqalar' },
+      },
+      {
+        path: 'points/settings',
+        element: (
+          <ProtectedRoute permission={PermissionCode.POINTS_MANAGE}>
+            <LazyRoute><PointsSettingsPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Ball sozlamalari' },
       },
       {
         path: 'family',

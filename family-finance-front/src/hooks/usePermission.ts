@@ -82,6 +82,19 @@ export const PermissionCode = {
   ROLES_CREATE: 'ROLES_CREATE',
   ROLES_UPDATE: 'ROLES_UPDATE',
   ROLES_DELETE: 'ROLES_DELETE',
+
+  // POINTS
+  POINTS_VIEW: 'POINTS_VIEW',
+  POINTS_MANAGE: 'POINTS_MANAGE',
+  POINTS_ASSIGN_TASK: 'POINTS_ASSIGN_TASK',
+  POINTS_VERIFY_TASK: 'POINTS_VERIFY_TASK',
+  POINTS_AWARD: 'POINTS_AWARD',
+  POINTS_CONVERT: 'POINTS_CONVERT',
+  POINTS_VIEW_LEADERBOARD: 'POINTS_VIEW_LEADERBOARD',
+  POINTS_MANAGE_ACHIEVEMENTS: 'POINTS_MANAGE_ACHIEVEMENTS',
+  POINTS_MANAGE_EVENTS: 'POINTS_MANAGE_EVENTS',
+  POINTS_MANAGE_SHOP: 'POINTS_MANAGE_SHOP',
+  POINTS_MANAGE_CHALLENGES: 'POINTS_MANAGE_CHALLENGES',
 } as const;
 
 export type PermissionCodeType = (typeof PermissionCode)[keyof typeof PermissionCode];
@@ -186,6 +199,19 @@ export function usePermission() {
   const canUpdateRoles = useMemo(() => permissions.has(PermissionCode.ROLES_UPDATE), [permissions]);
   const canDeleteRoles = useMemo(() => permissions.has(PermissionCode.ROLES_DELETE), [permissions]);
 
+  // Points
+  const canViewPoints = useMemo(() => permissions.has(PermissionCode.POINTS_VIEW), [permissions]);
+  const canManagePoints = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE), [permissions]);
+  const canAssignPointTasks = useMemo(() => permissions.has(PermissionCode.POINTS_ASSIGN_TASK), [permissions]);
+  const canVerifyPointTasks = useMemo(() => permissions.has(PermissionCode.POINTS_VERIFY_TASK), [permissions]);
+  const canAwardPoints = useMemo(() => permissions.has(PermissionCode.POINTS_AWARD), [permissions]);
+  const canConvertPoints = useMemo(() => permissions.has(PermissionCode.POINTS_CONVERT), [permissions]);
+  const canViewPointLeaderboard = useMemo(() => permissions.has(PermissionCode.POINTS_VIEW_LEADERBOARD), [permissions]);
+  const canManagePointAchievements = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_ACHIEVEMENTS), [permissions]);
+  const canManagePointEvents = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_EVENTS), [permissions]);
+  const canManagePointShop = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_SHOP), [permissions]);
+  const canManagePointChallenges = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_CHALLENGES), [permissions]);
+
   return {
     hasPermission, hasAnyPermission, hasAllPermissions, hasRole,
     permissions, roles,
@@ -202,5 +228,8 @@ export function usePermission() {
     canViewSettings, canUpdateSettings,
     canViewNotifications, canManageNotifications,
     canViewRoles, canCreateRoles, canUpdateRoles, canDeleteRoles,
+    canViewPoints, canManagePoints, canAssignPointTasks, canVerifyPointTasks,
+    canAwardPoints, canConvertPoints, canViewPointLeaderboard,
+    canManagePointAchievements, canManagePointEvents, canManagePointShop, canManagePointChallenges,
   };
 }
