@@ -146,15 +146,6 @@ export function PointsSavingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <PiggyBank className="h-6 w-6" />
-          Jamg'arma va investitsiyalar
-        </h1>
-        <p className="text-base-content/60 mt-1">Ballni jamg'arish va investitsiya qilish</p>
-      </div>
-
       {/* Participant selector */}
       <div className="form-control w-full max-w-xs">
         <label className="label">

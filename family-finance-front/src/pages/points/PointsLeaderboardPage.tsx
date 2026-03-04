@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Trophy, Medal, Flame } from 'lucide-react';
+import { Medal, Flame } from 'lucide-react';
 import clsx from 'clsx';
 import { pointLeaderboardApi } from '../../api/points.api';
 import type { LeaderboardEntry } from '../../types/points.types';
@@ -63,15 +63,6 @@ export function PointsLeaderboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-warning" />
-          Reyting jadvali
-        </h1>
-        <p className="text-base-content/60 mt-1">Ishtirokchilar reytingi</p>
-      </div>
-
       {/* Period tabs */}
       <div className="tabs tabs-boxed w-fit">
         {PERIOD_TABS.map((tab) => (

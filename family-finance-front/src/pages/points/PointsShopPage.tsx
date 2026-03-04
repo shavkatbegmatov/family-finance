@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  ShoppingBag, Plus, Edit2, Trash2, ShoppingCart, X, Package, History,
+  Plus, Edit2, Trash2, ShoppingCart, X, Package, History,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointShopApi, pointParticipantApi, pointBalanceApi } from '../../api/points.api';
@@ -206,35 +206,26 @@ export function PointsShopPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6" />
-            Do'kon
-          </h1>
-          <p className="text-base-content/60 mt-1">Ball sarflash uchun mahsulotlar</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="btn btn-outline btn-sm gap-1"
-            onClick={() => {
-              setShowHistory(!showHistory);
-              if (!historyParticipantId && participants.length > 0) {
-                setHistoryParticipantId(participants[0].id);
-              }
-            }}
-          >
-            <History className="h-4 w-4" />
-            Tarix
+      {/* Action bar */}
+      <div className="flex justify-end gap-2">
+        <button
+          className="btn btn-outline btn-sm gap-1"
+          onClick={() => {
+            setShowHistory(!showHistory);
+            if (!historyParticipantId && participants.length > 0) {
+              setHistoryParticipantId(participants[0].id);
+            }
+          }}
+        >
+          <History className="h-4 w-4" />
+          Tarix
+        </button>
+        {canManagePointShop && (
+          <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
+            <Plus className="h-4 w-4" />
+            Mahsulot qo'shish
           </button>
-          {canManagePointShop && (
-            <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
-              <Plus className="h-4 w-4" />
-              Mahsulot qo'shish
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Participant & Balance */}

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
-  Swords, Plus, Trophy, Users, Calendar, X, UserPlus,
+  Plus, Trophy, Users, Calendar, X, UserPlus,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { pointChallengeApi, pointParticipantApi } from '../../api/points.api';
@@ -172,22 +172,15 @@ export function PointsChallengesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Swords className="h-6 w-6" />
-            Musobaqalar
-          </h1>
-          <p className="text-base-content/60 mt-1">Ishtirokchilar orasidagi musobaqalar</p>
-        </div>
-        {canManagePointChallenges && (
+      {/* Action bar */}
+      {canManagePointChallenges && (
+        <div className="flex justify-end">
           <button className="btn btn-primary btn-sm gap-2" onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4" />
             Musobaqa yaratish
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">

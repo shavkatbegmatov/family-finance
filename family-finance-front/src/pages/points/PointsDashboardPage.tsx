@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  Users, ListTodo, Trophy, ShoppingBag, Swords, Settings,
   Flame, Star, TrendingUp, Clock, Zap,
+  Users, Coins, Target, Award,
 } from 'lucide-react';
 import { pointBalanceApi, pointTaskApi, pointEventApi } from '../../api/points.api';
 import { pointParticipantApi } from '../../api/points.api';
@@ -12,19 +12,10 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 
-const NAV_TABS = [
-  { label: 'Ishtirokchilar', path: '/points/participants', icon: Users },
-  { label: 'Vazifalar', path: '/points/tasks', icon: ListTodo },
-  { label: 'Reyting', path: '/points/leaderboard', icon: Trophy },
-  { label: "Do'kon", path: '/points/shop', icon: ShoppingBag },
-  { label: 'Musobaqalar', path: '/points/challenges', icon: Swords },
-  { label: 'Sozlamalar', path: '/points/settings', icon: Settings },
-];
-
 export function PointsDashboardPage() {
   const { canViewPoints, canVerifyPointTasks } = usePermission();
 
-  const [, setParticipants] = useState<PointParticipant[]>([]);
+  const [participants, setParticipants] = useState<PointParticipant[]>([]);
   const [balances, setBalances] = useState<PointBalance[]>([]);
   const [pendingTasks, setPendingTasks] = useState<PointTask[]>([]);
   const [activeEvents, setActiveEvents] = useState<PointMultiplierEvent[]>([]);
@@ -63,6 +54,15 @@ export function PointsDashboardPage() {
     loadData();
   }, [loadData]);
 
+  // Quick stats
+  const stats = useMemo(() => {
+    const totalBalance = balances.reduce((sum, b) => sum + b.currentBalance, 0);
+    const totalEarned = balances.reduce((sum, b) => sum + b.totalEarned, 0);
+    const activeParticipants = participants.filter(p => p.isActive).length;
+    const bestStreak = balances.reduce((max, b) => Math.max(max, b.longestStreak), 0);
+    return { totalBalance, totalEarned, activeParticipants, bestStreak };
+  }, [balances, participants]);
+
   if (!canViewPoints) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -73,26 +73,6 @@ export function PointsDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Ball tizimi</h1>
-        <p className="text-base-content/60 mt-1">Oilaviy ball tizimini boshqarish</p>
-      </div>
-
-      {/* Navigation tabs */}
-      <div className="flex flex-wrap gap-2">
-        {NAV_TABS.map((tab) => (
-          <Link
-            key={tab.path}
-            to={tab.path}
-            className="btn btn-sm btn-outline gap-2"
-          >
-            <tab.icon className="h-4 w-4" />
-            {tab.label}
-          </Link>
-        ))}
-      </div>
-
       {/* Active multiplier events banner */}
       {activeEvents.length > 0 && (
         <div className="alert alert-warning shadow-lg">
@@ -116,6 +96,54 @@ export function PointsDashboardPage() {
         </div>
       ) : (
         <>
+          {/* Quick stats row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="surface-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-base-content/50">Ishtirokchilar</p>
+                  <p className="text-xl font-bold">{stats.activeParticipants}</p>
+                </div>
+              </div>
+            </div>
+            <div className="surface-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-success/10 text-success">
+                  <Coins className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-base-content/50">Jami balans</p>
+                  <p className="text-xl font-bold">{stats.totalBalance.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="surface-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-info/10 text-info">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-base-content/50">Jami topilgan</p>
+                  <p className="text-xl font-bold">{stats.totalEarned.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+            <div className="surface-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-lg bg-warning/10 text-warning">
+                  <Award className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs text-base-content/50">Eng uzun streak</p>
+                  <p className="text-xl font-bold">{stats.bestStreak} kun</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Participant balance cards */}
           <div>
             <h2 className="text-lg font-semibold mb-3">Ishtirokchilar balansi</h2>
@@ -131,12 +159,12 @@ export function PointsDashboardPage() {
                 {balances.map((balance) => (
                   <div
                     key={balance.id}
-                    className="card bg-base-100 shadow-md border border-base-200"
+                    className="surface-card rounded-xl overflow-hidden"
                   >
-                    <div className="card-body p-4">
+                    <div className="p-4">
                       <div className="flex items-center gap-3 mb-3">
                         <div className="avatar placeholder">
-                          <div className="bg-primary text-primary-content rounded-full w-10 h-10">
+                          <div className="bg-gradient-to-br from-primary/20 to-secondary/20 text-primary rounded-full w-10 h-10">
                             <span className="text-sm font-bold">
                               {balance.participantName?.charAt(0) ?? '?'}
                             </span>
@@ -193,7 +221,7 @@ export function PointsDashboardPage() {
                 Tasdiqlash kutilmoqda
                 <span className="badge badge-warning badge-sm">{pendingTasks.length}</span>
               </h2>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto surface-card rounded-xl">
                 <table className="table table-sm">
                   <thead>
                     <tr>
@@ -225,7 +253,7 @@ export function PointsDashboardPage() {
                   </tbody>
                 </table>
                 {pendingTasks.length > 10 && (
-                  <div className="text-center mt-2">
+                  <div className="text-center py-2 border-t border-base-200">
                     <Link to="/points/tasks?status=SUBMITTED" className="btn btn-xs btn-ghost">
                       Barchasini ko'rish ({pendingTasks.length})
                     </Link>
