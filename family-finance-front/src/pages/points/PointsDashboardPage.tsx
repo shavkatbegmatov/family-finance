@@ -50,7 +50,7 @@ export function PointsDashboardPage() {
       const balanceResults = await Promise.all(balancePromises);
       const loadedBalances = balanceResults
         .filter(Boolean)
-        .map((r: any) => r!.data?.data ?? r!.data) as PointBalance[];
+        .map((r) => r!.data?.data ?? r!.data) as PointBalance[];
       setBalances(loadedBalances);
     } catch {
       toast.error("Ma'lumotlarni yuklashda xatolik");

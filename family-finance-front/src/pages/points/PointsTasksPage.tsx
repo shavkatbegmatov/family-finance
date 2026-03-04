@@ -37,7 +37,7 @@ const emptyForm: TaskFormState = {
   pointValue: 10,
   penaltyValue: 0,
   assignedToId: '',
-  recurrence: 'NONE',
+  recurrence: 'ONCE',
   deadline: '',
 };
 
@@ -457,7 +457,7 @@ export function PointsTasksPage() {
                   value={form.recurrence}
                   onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
                 >
-                  <option value="NONE">Bir martalik</option>
+                  <option value="ONCE">Bir martalik</option>
                   <option value="DAILY">Kunlik</option>
                   <option value="WEEKLY">Haftalik</option>
                   <option value="MONTHLY">Oylik</option>
