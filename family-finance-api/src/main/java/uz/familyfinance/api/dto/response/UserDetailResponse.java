@@ -53,6 +53,9 @@ public class UserDetailResponse {
     private String createdByUsername;
 
     private String familyGroupName;
+    private Long linkedFamilyMemberId;
+    private String linkedFamilyMemberName;
+    private Boolean linkedFamilyMemberActive;
 
     @ExportColumn(header = "Yaratilgan", order = 10, type = ColumnType.DATETIME)
     private LocalDateTime createdAt;
@@ -74,6 +77,15 @@ public class UserDetailResponse {
      * Full mapping with roles, createdBy, familyGroup (requires eager fetch)
      */
     public static UserDetailResponse from(User user) {
+        return from(user, null, null, null);
+    }
+
+    public static UserDetailResponse from(
+            User user,
+            Long linkedFamilyMemberId,
+            String linkedFamilyMemberName,
+            Boolean linkedFamilyMemberActive
+    ) {
         UserDetailResponseBuilder builder = UserDetailResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -84,7 +96,10 @@ public class UserDetailResponse {
                 .mustChangePassword(user.getMustChangePassword())
                 .passwordChangedAt(user.getPasswordChangedAt())
                 .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt());
+                .updatedAt(user.getUpdatedAt())
+                .linkedFamilyMemberId(linkedFamilyMemberId)
+                .linkedFamilyMemberName(linkedFamilyMemberName)
+                .linkedFamilyMemberActive(linkedFamilyMemberActive);
 
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
             builder.rolesText(user.getRoles().stream()
@@ -115,6 +130,15 @@ public class UserDetailResponse {
      * Simple mapping without lazy associations (safe for list queries)
      */
     public static UserDetailResponse simpleFrom(User user) {
+        return simpleFrom(user, null, null, null);
+    }
+
+    public static UserDetailResponse simpleFrom(
+            User user,
+            Long linkedFamilyMemberId,
+            String linkedFamilyMemberName,
+            Boolean linkedFamilyMemberActive
+    ) {
         return UserDetailResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -126,6 +150,9 @@ public class UserDetailResponse {
                 .passwordChangedAt(user.getPasswordChangedAt())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .linkedFamilyMemberId(linkedFamilyMemberId)
+                .linkedFamilyMemberName(linkedFamilyMemberName)
+                .linkedFamilyMemberActive(linkedFamilyMemberActive)
                 .build();
     }
 }

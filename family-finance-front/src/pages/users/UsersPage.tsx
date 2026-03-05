@@ -13,18 +13,23 @@ import {
   AlertTriangle,
   Check,
   AtSign,
+  Link2,
+  Unlink2,
+  ArrowRightLeft,
+  UserCheck,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '../../api/users.api';
 import { rolesApi } from '../../api/roles.api';
+import { familyMembersApi } from '../../api/family-members.api';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
-import type { CredentialsInfo, Role } from '../../types';
+import type { CredentialsInfo, Role, FamilyMember } from '../../types';
 import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../../api/users.api';
 
-type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | null;
+type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | 'family-link' | null;
 
 const USERNAME_REGEX = /^[a-z][a-z0-9._]{2,49}$/;
 
@@ -64,6 +69,12 @@ export function UsersPage() {
   // Edit preview state
   const [showEditPreview, setShowEditPreview] = useState(false);
   const [editPreviewData, setEditPreviewData] = useState<UpdateUserRequest | null>(null);
+
+  // Family link state
+  const [selectedFamilyMemberId, setSelectedFamilyMemberId] = useState<number | null>(null);
+  const [familySearch, setFamilySearch] = useState('');
+  const [familyLinkReason, setFamilyLinkReason] = useState('');
+  const [familyUnlinkReason, setFamilyUnlinkReason] = useState('');
 
   // ========================
   // Debounced username availability check
@@ -129,6 +140,12 @@ export function UsersPage() {
     queryKey: ['roles-all'],
     queryFn: () => rolesApi.getAll(),
     enabled: modalType === 'roles',
+  });
+
+  const { data: familyMembersData, isLoading: isLoadingFamilyMembers } = useQuery({
+    queryKey: ['family-members-link-candidates'],
+    queryFn: () => familyMembersApi.getList(),
+    enabled: modalType === 'family-link',
   });
 
   // ========================
@@ -236,6 +253,44 @@ export function UsersPage() {
     },
   });
 
+  const linkFamilyMemberMutation = useMutation({
+    mutationFn: ({ id, familyMemberId, reason }: { id: number; familyMemberId: number; reason?: string }) =>
+      usersApi.linkFamilyMember(id, { familyMemberId, reason, forceTransfer: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-detail', selectedUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
+      queryClient.invalidateQueries({ queryKey: ['familyTree'] });
+      queryClient.invalidateQueries({ queryKey: ['family-members-link-candidates'] });
+      toast.success("Bog'lanish muvaffaqiyatli yangilandi");
+      closeModal();
+    },
+    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || 'Bog\'lashda xatolik yuz berdi');
+      }
+    },
+  });
+
+  const unlinkFamilyMemberMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      usersApi.unlinkFamilyMember(id, { reason }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user-detail', selectedUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
+      queryClient.invalidateQueries({ queryKey: ['familyTree'] });
+      queryClient.invalidateQueries({ queryKey: ['family-members-link-candidates'] });
+      toast.success("Bog'lanish uzildi");
+      closeModal();
+    },
+    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || 'Bog\'lanishni uzishda xatolik yuz berdi');
+      }
+    },
+  });
+
   // ========================
   // Handlers
   // ========================
@@ -263,6 +318,13 @@ export function UsersPage() {
       setIsUsernameAvailable(null);
       setShowUsernameConfirm(false);
     }
+
+    if (type === 'family-link') {
+      setSelectedFamilyMemberId(user.linkedFamilyMemberId ?? null);
+      setFamilySearch('');
+      setFamilyLinkReason('');
+      setFamilyUnlinkReason('');
+    }
   };
 
   const closeModal = () => {
@@ -276,6 +338,10 @@ export function UsersPage() {
     setShowUsernameConfirm(false);
     setShowEditPreview(false);
     setEditPreviewData(null);
+    setSelectedFamilyMemberId(null);
+    setFamilySearch('');
+    setFamilyLinkReason('');
+    setFamilyUnlinkReason('');
   };
 
   const handleEditApply = () => {
@@ -318,6 +384,31 @@ export function UsersPage() {
     toast.success('Nusxalandi');
   };
 
+  const handleLinkFamilyMember = () => {
+    if (!selectedUser || !selectedFamilyMemberId) return;
+
+    linkFamilyMemberMutation.mutate({
+      id: selectedUser.id,
+      familyMemberId: selectedFamilyMemberId,
+      reason: familyLinkReason.trim() || undefined,
+    });
+  };
+
+  const handleUnlinkFamilyMember = () => {
+    if (!selectedUser) return;
+
+    const reason = familyUnlinkReason.trim();
+    if (reason.length < 10) {
+      toast.error("Bog'lanishni uzish uchun kamida 10 belgilik sabab kiriting");
+      return;
+    }
+
+    unlinkFamilyMemberMutation.mutate({
+      id: selectedUser.id,
+      reason,
+    });
+  };
+
   const handleExport = (format: 'excel' | 'pdf') => {
     usersApi.export.exportData(format, {
       search: search || undefined,
@@ -331,6 +422,45 @@ export function UsersPage() {
   // Available roles for assignment (exclude already assigned)
   const assignedRoleCodes = new Set(userDetails?.roleDetails?.map(r => r.code) || []);
   const availableRoles = (allRoles || []).filter((r: Role) => !assignedRoleCodes.has(r.code) && r.isActive);
+
+  const familyMembers = ((familyMembersData?.data?.data ?? []) as FamilyMember[])
+    .sort((a, b) => a.fullName.localeCompare(b.fullName, 'uz'));
+
+  const filteredFamilyMembers = familyMembers.filter((member) => {
+    const keyword = familySearch.trim().toLowerCase();
+    if (!keyword) {
+      return true;
+    }
+    return (
+      member.fullName.toLowerCase().includes(keyword) ||
+      member.firstName.toLowerCase().includes(keyword) ||
+      (member.lastName ?? '').toLowerCase().includes(keyword)
+    );
+  });
+
+  const selectedFamilyMember = familyMembers.find((member) => member.id === selectedFamilyMemberId);
+  const selectedIsCurrentMember = Boolean(
+    selectedUser?.linkedFamilyMemberId &&
+    selectedFamilyMemberId &&
+    selectedUser.linkedFamilyMemberId === selectedFamilyMemberId
+  );
+  const targetLinkedToAnotherUser = Boolean(
+    selectedFamilyMember?.userId &&
+    selectedFamilyMember.userId !== selectedUser?.id
+  );
+  const willTransfer =
+    Boolean(selectedUser?.linkedFamilyMemberId && !selectedIsCurrentMember && selectedFamilyMemberId) ||
+    targetLinkedToAnotherUser;
+  const linkReasonRequired = willTransfer;
+  const linkReason = familyLinkReason.trim();
+  const isLinkReasonValid = !linkReasonRequired || linkReason.length >= 10;
+  const canSubmitLink = Boolean(
+    selectedUser &&
+    selectedFamilyMemberId &&
+    !selectedIsCurrentMember &&
+    isLinkReasonValid &&
+    !linkFamilyMemberMutation.isPending
+  );
 
   return (
     <div className="space-y-6">
@@ -401,6 +531,7 @@ export function UsersPage() {
                 <th>Foydalanuvchi</th>
                 <th className="hidden md:table-cell">Email</th>
                 <th className="hidden lg:table-cell">Telefon</th>
+                <th className="hidden lg:table-cell">Bog'langan a'zo</th>
                 <th className="hidden sm:table-cell">Rollar</th>
                 <th>Holati</th>
                 <th className="text-center">Amallar</th>
@@ -419,10 +550,22 @@ export function UsersPage() {
                     </div>
                   </td>
                   <td className="hidden text-sm md:table-cell">
-                    {user.email || <span className="text-base-content/30">—</span>}
+                    {user.email || <span className="text-base-content/30">-</span>}
                   </td>
                   <td className="hidden text-sm lg:table-cell">
-                    {user.phone || <span className="text-base-content/30">—</span>}
+                    {user.phone || <span className="text-base-content/30">-</span>}
+                  </td>
+                  <td className="hidden text-sm lg:table-cell">
+                    {user.linkedFamilyMemberName ? (
+                      <div className="flex items-center gap-2">
+                        <span className="badge badge-success badge-sm">Biriktirilgan</span>
+                        <span className="truncate max-w-[170px]" title={user.linkedFamilyMemberName}>
+                          {user.linkedFamilyMemberName}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="badge badge-ghost badge-sm">Biriktirilmagan</span>
+                    )}
                   </td>
                   <td className="hidden sm:table-cell">
                     {user.rolesText ? (
@@ -434,7 +577,7 @@ export function UsersPage() {
                         ))}
                       </div>
                     ) : (
-                      <span className="text-base-content/30">—</span>
+                      <span className="text-base-content/30">-</span>
                     )}
                   </td>
                   <td>
@@ -462,6 +605,15 @@ export function UsersPage() {
                           onClick={() => openModal('edit', user)}
                         >
                           <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                      </PermissionGate>
+                      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+                        <button
+                          className="btn btn-ghost btn-xs"
+                          title="Oila a'zosini biriktirish"
+                          onClick={() => openModal('family-link', user)}
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
                         </button>
                       </PermissionGate>
                       <PermissionGate permission={PermissionCode.USERS_UPDATE}>
@@ -535,7 +687,7 @@ export function UsersPage() {
               disabled={page === 0}
               onClick={() => setPage(page - 1)}
             >
-              «
+              {'<'}
             </button>
             {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
               let pageNum: number;
@@ -563,7 +715,7 @@ export function UsersPage() {
               disabled={page >= totalPages - 1}
               onClick={() => setPage(page + 1)}
             >
-              »
+              {'>'}
             </button>
           </div>
         </div>
@@ -597,11 +749,11 @@ export function UsersPage() {
                   </div>
                   <div>
                     <span className="text-base-content/50">Email</span>
-                    <p className="font-medium">{userDetails.email || '—'}</p>
+                    <p className="font-medium">{userDetails.email || '-'}</p>
                   </div>
                   <div>
                     <span className="text-base-content/50">Telefon</span>
-                    <p className="font-medium">{userDetails.phone || '—'}</p>
+                    <p className="font-medium">{userDetails.phone || '-'}</p>
                   </div>
                   <div>
                     <span className="text-base-content/50">Holat</span>
@@ -619,11 +771,24 @@ export function UsersPage() {
                   </div>
                   <div>
                     <span className="text-base-content/50">Yaratuvchi</span>
-                    <p className="font-medium">{userDetails.createdByUsername || '—'}</p>
+                    <p className="font-medium">{userDetails.createdByUsername || '-'}</p>
                   </div>
                   <div>
                     <span className="text-base-content/50">Oila guruhi</span>
-                    <p className="font-medium">{userDetails.familyGroupName || '—'}</p>
+                    <p className="font-medium">{userDetails.familyGroupName || '-'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-base-content/50">Bog'langan oila a'zosi</span>
+                    <p className="font-medium">
+                      {userDetails.linkedFamilyMemberName ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span className="badge badge-success badge-sm">Biriktirilgan</span>
+                          {userDetails.linkedFamilyMemberName}
+                        </span>
+                      ) : (
+                        <span className="badge badge-ghost badge-sm">Biriktirilmagan</span>
+                      )}
+                    </p>
                   </div>
                 </div>
 
@@ -645,13 +810,13 @@ export function UsersPage() {
                 <div className="grid grid-cols-2 gap-3 border-t border-base-200 pt-3 text-xs text-base-content/50">
                   <div>
                     <span>Yaratilgan:</span>{' '}
-                    {userDetails.createdAt ? new Date(userDetails.createdAt).toLocaleString('uz') : '—'}
+                    {userDetails.createdAt ? new Date(userDetails.createdAt).toLocaleString('uz') : '-'}
                   </div>
                   <div>
                     <span>Parol o'zgartirilgan:</span>{' '}
                     {userDetails.passwordChangedAt
                       ? new Date(userDetails.passwordChangedAt).toLocaleString('uz')
-                      : '—'}
+                      : '-'}
                   </div>
                 </div>
               </div>
@@ -753,8 +918,8 @@ export function UsersPage() {
 
                     {[
                       { label: 'Ism', old: selectedUser.fullName, new: editPreviewData.fullName || '' },
-                      { label: 'Email', old: selectedUser.email || '—', new: editPreviewData.email || '—' },
-                      { label: 'Telefon', old: selectedUser.phone || '—', new: editPreviewData.phone || '—' },
+                      { label: 'Email', old: selectedUser.email || '-', new: editPreviewData.email || '-' },
+                      { label: 'Telefon', old: selectedUser.phone || '-', new: editPreviewData.phone || '-' },
                     ].map(({ label, old: oldVal, new: newVal }) => {
                       const changed = oldVal !== newVal;
                       return (
@@ -784,7 +949,7 @@ export function UsersPage() {
                   )}
 
                   <p className="text-xs text-base-content/40 text-center">
-                    Bu faqat ko'rinish — hali saqlanmagan
+                    Bu faqat ko'rinish - hali saqlanmagan
                   </p>
                 </div>
               )}
@@ -813,6 +978,175 @@ export function UsersPage() {
                 Saqlash
               </button>
             </div>
+          </div>
+        </div>
+      </ModalPortal>
+
+      {/* ======================== */}
+      {/* Family Link Modal */}
+      {/* ======================== */}
+      <ModalPortal isOpen={modalType === 'family-link'} onClose={closeModal}>
+        <div className="modal modal-open" onClick={closeModal}>
+          <div className="modal-box max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
+              <X className="h-4 w-4" />
+            </button>
+            <h3 className="mb-2 text-lg font-bold">Oila a'zosiga bog'lash</h3>
+            <p className="text-sm text-base-content/60 mb-4">
+              {selectedUser?.fullName} (@{selectedUser?.username}) uchun bog'lanishni boshqaring
+            </p>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-base-200 bg-base-200/40 p-3">
+                <p className="text-xs uppercase tracking-wide text-base-content/50">Joriy holat</p>
+                {selectedUser?.linkedFamilyMemberName ? (
+                  <p className="mt-1 flex items-center gap-2 text-sm font-medium">
+                    <UserCheck className="h-4 w-4 text-success" />
+                    {selectedUser.linkedFamilyMemberName}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-base-content/60">Biriktirilmagan</p>
+                )}
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text">Oila a'zosini qidirish</span>
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/40" />
+                  <input
+                    type="text"
+                    className="input input-bordered w-full pl-9"
+                    placeholder="Ism bo'yicha qidiring..."
+                    value={familySearch}
+                    onChange={(e) => setFamilySearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-base-200">
+                {isLoadingFamilyMembers ? (
+                  <div className="flex justify-center py-8">
+                    <span className="loading loading-spinner" />
+                  </div>
+                ) : filteredFamilyMembers.length === 0 ? (
+                  <p className="p-4 text-sm text-base-content/50">Mos oila a'zosi topilmadi</p>
+                ) : (
+                  <div className="max-h-64 overflow-auto">
+                    {filteredFamilyMembers.map((member) => {
+                      const linkedToAnotherUser = member.userId && member.userId !== selectedUser?.id;
+                      const isCurrentMember = selectedUser?.linkedFamilyMemberId === member.id;
+                      const isSelected = selectedFamilyMemberId === member.id;
+
+                      return (
+                        <button
+                          key={member.id}
+                          type="button"
+                          className={`w-full border-b border-base-200 p-3 text-left last:border-b-0 ${
+                            isSelected ? 'bg-primary/10' : 'hover:bg-base-200/40'
+                          }`}
+                          onClick={() => setSelectedFamilyMemberId(member.id)}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium">{member.fullName}</p>
+                              <p className="text-xs text-base-content/50">{member.role}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isCurrentMember && (
+                                <span className="badge badge-info badge-sm">Joriy</span>
+                              )}
+                              {linkedToAnotherUser && (
+                                <span className="badge badge-warning badge-sm">Band</span>
+                              )}
+                              {!linkedToAnotherUser && !isCurrentMember && (
+                                <span className="badge badge-success badge-sm">Bo'sh</span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {willTransfer && (
+                <div className="alert alert-warning">
+                  <ArrowRightLeft className="h-4 w-4" />
+                  <span>
+                    Transfer bajariladi: avvalgi bog'lanish uzilib, yangi oila a'zosiga biriktiriladi.
+                  </span>
+                </div>
+              )}
+
+              {linkReasonRequired && (
+                <div>
+                  <label className="label">
+                    <span className="label-text">Transfer sababi (kamida 10 belgi) *</span>
+                  </label>
+                  <textarea
+                    className="textarea textarea-bordered w-full"
+                    rows={3}
+                    value={familyLinkReason}
+                    onChange={(e) => setFamilyLinkReason(e.target.value)}
+                    placeholder="Nega qayta bog'lanayotganini yozing..."
+                  />
+                  {familyLinkReason.trim().length > 0 && familyLinkReason.trim().length < 10 && (
+                    <p className="mt-1 text-xs text-error">Kamida 10 belgi kiriting</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="modal-action mt-6">
+              <button className="btn btn-ghost btn-sm" onClick={closeModal}>
+                Bekor qilish
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleLinkFamilyMember}
+                disabled={!canSubmitLink}
+              >
+                {linkFamilyMemberMutation.isPending ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : (
+                  <Link2 className="h-3.5 w-3.5" />
+                )}
+                Bog'lash
+              </button>
+            </div>
+
+            {selectedUser?.linkedFamilyMemberId && (
+              <div className="mt-5 border-t border-base-200 pt-4">
+                <h4 className="text-sm font-semibold text-error">Bog'lanishni uzish</h4>
+                <p className="text-xs text-base-content/60 mt-1">
+                  Bu amal uchun sabab majburiy va audit logga yoziladi.
+                </p>
+                <textarea
+                  className="textarea textarea-bordered textarea-sm w-full mt-3"
+                  rows={2}
+                  value={familyUnlinkReason}
+                  onChange={(e) => setFamilyUnlinkReason(e.target.value)}
+                  placeholder="Bog'lanishni uzish sababini yozing (kamida 10 belgi)"
+                />
+                <div className="mt-3 flex justify-end">
+                  <button
+                    className="btn btn-outline btn-error btn-sm"
+                    onClick={handleUnlinkFamilyMember}
+                    disabled={unlinkFamilyMemberMutation.isPending}
+                  >
+                    {unlinkFamilyMemberMutation.isPending ? (
+                      <span className="loading loading-spinner loading-xs" />
+                    ) : (
+                      <Unlink2 className="h-3.5 w-3.5" />
+                    )}
+                    Bog'lanishni uzish
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </ModalPortal>
@@ -917,7 +1251,7 @@ export function UsersPage() {
               <X className="h-4 w-4" />
             </button>
             <h3 className="mb-4 text-lg font-bold">
-              Rollar boshqarish — {selectedUser?.fullName}
+              Rollar boshqarish - {selectedUser?.fullName}
             </h3>
 
             {isLoadingDetails ? (
@@ -1139,3 +1473,5 @@ export function UsersPage() {
     </div>
   );
 }
+
+

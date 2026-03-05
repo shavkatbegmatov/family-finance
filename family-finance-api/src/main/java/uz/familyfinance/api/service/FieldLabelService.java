@@ -140,6 +140,33 @@ public class FieldLabelService {
         purchaseLabels.put("status", "Holat");
         purchaseLabels.put("notes", "Izohlar");
         entityFieldLabels.put("PurchaseOrder", purchaseLabels);
+
+        // FamilyMember labels
+        Map<String, String> familyMemberLabels = new HashMap<>();
+        familyMemberLabels.put("firstName", "Ism");
+        familyMemberLabels.put("lastName", "Familiya");
+        familyMemberLabels.put("middleName", "Otasining ismi");
+        familyMemberLabels.put("role", "Oiladagi roli");
+        familyMemberLabels.put("gender", "Jinsi");
+        familyMemberLabels.put("birthDate", "Tug'ilgan sana");
+        familyMemberLabels.put("phone", "Telefon");
+        familyMemberLabels.put("isActive", "Faol");
+        familyMemberLabels.put("userId", "Bog'langan foydalanuvchi");
+        familyMemberLabels.put("familyGroupId", "Oila guruhi");
+        entityFieldLabels.put("FamilyMember", familyMemberLabels);
+
+        // FamilyMemberLink business event labels
+        Map<String, String> familyLinkLabels = new HashMap<>();
+        familyLinkLabels.put("userId", "Foydalanuvchi ID");
+        familyLinkLabels.put("username", "Login");
+        familyLinkLabels.put("fromMemberId", "Avvalgi a'zo ID");
+        familyLinkLabels.put("fromMemberName", "Avvalgi a'zo");
+        familyLinkLabels.put("toMemberId", "Yangi a'zo ID");
+        familyLinkLabels.put("toMemberName", "Yangi a'zo");
+        familyLinkLabels.put("targetMemberPreviousUserId", "Avval bog'langan foydalanuvchi");
+        familyLinkLabels.put("reason", "Sabab");
+        familyLinkLabels.put("source", "Manba");
+        entityFieldLabels.put("FamilyMemberLink", familyLinkLabels);
     }
 
     private void initializeFieldTypes() {
@@ -188,5 +215,25 @@ public class FieldLabelService {
         Map<String, AuditLogDetailResponse.FieldType> brandTypes = new HashMap<>();
         brandTypes.put("active", AuditLogDetailResponse.FieldType.BOOLEAN);
         entityFieldTypes.put("Brand", brandTypes);
+
+        // FamilyMember field types
+        Map<String, AuditLogDetailResponse.FieldType> familyMemberTypes = new HashMap<>();
+        familyMemberTypes.put("role", AuditLogDetailResponse.FieldType.ENUM);
+        familyMemberTypes.put("gender", AuditLogDetailResponse.FieldType.ENUM);
+        familyMemberTypes.put("birthDate", AuditLogDetailResponse.FieldType.DATE);
+        familyMemberTypes.put("deathDate", AuditLogDetailResponse.FieldType.DATE);
+        familyMemberTypes.put("isActive", AuditLogDetailResponse.FieldType.BOOLEAN);
+        familyMemberTypes.put("userId", AuditLogDetailResponse.FieldType.NUMBER);
+        familyMemberTypes.put("familyGroupId", AuditLogDetailResponse.FieldType.NUMBER);
+        entityFieldTypes.put("FamilyMember", familyMemberTypes);
+
+        // FamilyMemberLink field types
+        Map<String, AuditLogDetailResponse.FieldType> familyLinkTypes = new HashMap<>();
+        familyLinkTypes.put("userId", AuditLogDetailResponse.FieldType.NUMBER);
+        familyLinkTypes.put("fromMemberId", AuditLogDetailResponse.FieldType.NUMBER);
+        familyLinkTypes.put("toMemberId", AuditLogDetailResponse.FieldType.NUMBER);
+        familyLinkTypes.put("targetMemberPreviousUserId", AuditLogDetailResponse.FieldType.NUMBER);
+        familyLinkTypes.put("reason", AuditLogDetailResponse.FieldType.STRING);
+        entityFieldTypes.put("FamilyMemberLink", familyLinkTypes);
     }
 }

@@ -635,6 +635,7 @@ public class AuditLogService {
             case "Debt" -> "Qarz";
             case "DebtPayment" -> "Qarz to'lovi";
             case "FamilyMember" -> "Oila a'zosi";
+            case "FamilyMemberLink" -> "Oila a'zosi bog'lanishi";
             case "User" -> "Foydalanuvchi";
             case "Role" -> "Rol";
             default -> entityType;
@@ -649,6 +650,9 @@ public class AuditLogService {
             case "CREATE" -> "yaratildi";
             case "UPDATE" -> "o'zgartirildi";
             case "DELETE" -> "o'chirildi";
+            case "LINK" -> "bog'landi";
+            case "UNLINK" -> "bog'lanishi uzildi";
+            case "TRANSFER" -> "qayta bog'landi";
             default -> action;
         };
     }

@@ -17,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.ChangeUsernameRequest;
+import uz.familyfinance.api.dto.request.LinkFamilyMemberRequest;
+import uz.familyfinance.api.dto.request.UnlinkFamilyMemberRequest;
 import uz.familyfinance.api.dto.request.UpdateUserRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
@@ -80,6 +82,28 @@ public class UserController {
     ) {
         UserDetailResponse user = userService.updateUser(id, request);
         return ResponseEntity.ok(ApiResponse.success("Foydalanuvchi yangilandi", user));
+    }
+
+    @PostMapping("/{id}/family-member/link")
+    @Operation(summary = "Link user to family member", description = "Foydalanuvchini oila a'zosi bilan bog'lash yoki transfer qilish")
+    @RequiresPermission(PermissionCode.USERS_UPDATE)
+    public ResponseEntity<ApiResponse<UserDetailResponse>> linkFamilyMember(
+            @PathVariable Long id,
+            @Valid @RequestBody LinkFamilyMemberRequest request
+    ) {
+        UserDetailResponse user = userService.linkUserToFamilyMember(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Bog'lanish muvaffaqiyatli yangilandi", user));
+    }
+
+    @PostMapping("/{id}/family-member/unlink")
+    @Operation(summary = "Unlink user from family member", description = "Foydalanuvchini oila a'zosidan ajratish")
+    @RequiresPermission(PermissionCode.USERS_UPDATE)
+    public ResponseEntity<ApiResponse<UserDetailResponse>> unlinkFamilyMember(
+            @PathVariable Long id,
+            @Valid @RequestBody UnlinkFamilyMemberRequest request
+    ) {
+        UserDetailResponse user = userService.unlinkUserFromFamilyMember(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Bog'lanish uzildi", user));
     }
 
     @PutMapping("/{id}/change-username")

@@ -9,6 +9,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.ChangeUsernameRequest;
+import uz.familyfinance.api.dto.request.LinkFamilyMemberRequest;
+import uz.familyfinance.api.dto.request.UnlinkFamilyMemberRequest;
 import uz.familyfinance.api.dto.request.UpdateUserRequest;
 import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.UserDetailResponse;
@@ -18,6 +20,7 @@ import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.Role;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
@@ -25,8 +28,10 @@ import java.security.SecureRandom;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,6 +46,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final SessionService sessionService;
@@ -426,7 +432,7 @@ public class UserService {
             users = userRepository.findAll(pageable);
         }
 
-        return users.map(UserDetailResponse::simpleFrom);
+        return users.map(this::toSimpleResponseWithFamilyLink);
     }
 
     /**
@@ -436,7 +442,7 @@ public class UserService {
     public UserDetailResponse getUserDetails(Long userId) {
         User user = userRepository.findByIdWithDetails(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
-        return UserDetailResponse.from(user);
+        return toDetailedResponseWithFamilyLink(user);
     }
 
     /**
@@ -464,7 +470,133 @@ public class UserService {
 
         log.info("User updated: {}", user.getUsername());
 
-        return UserDetailResponse.from(user);
+        return toDetailedResponseWithFamilyLink(user);
+    }
+
+    @Transactional
+    public UserDetailResponse linkUserToFamilyMember(Long userId, LinkFamilyMemberRequest request) {
+        User targetUser = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        FamilyMember targetMember = familyMemberRepository.findById(request.getFamilyMemberId())
+                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi"));
+
+        if (!Boolean.TRUE.equals(targetMember.getIsActive())) {
+            throw new BadRequestException("Nofaol oila a'zosiga bog'lab bo'lmaydi");
+        }
+
+        FamilyMember currentLinkedMember = familyMemberRepository.findByUserId(targetUser.getId()).orElse(null);
+        FamilyMember targetMemberCurrentUserLink = targetMember.getUser() != null
+                ? familyMemberRepository.findByUserId(targetMember.getUser().getId()).orElse(null)
+                : null;
+
+        boolean alreadyLinkedToTarget = currentLinkedMember != null
+                && Objects.equals(currentLinkedMember.getId(), targetMember.getId());
+
+        if (alreadyLinkedToTarget) {
+            throw new BadRequestException("Foydalanuvchi allaqachon ushbu oila a'zosiga bog'langan");
+        }
+
+        boolean transferRequired = (currentLinkedMember != null && !Objects.equals(currentLinkedMember.getId(), targetMember.getId()))
+                || (targetMember.getUser() != null && !Objects.equals(targetMember.getUser().getId(), targetUser.getId()));
+
+        boolean forceTransfer = request.getForceTransfer() == null || request.getForceTransfer();
+        String reason = request.getReason() != null ? request.getReason().trim() : null;
+
+        if (transferRequired) {
+            if (!forceTransfer) {
+                throw new BadRequestException("Mavjud bog'lanish bor. Transfer uchun forceTransfer=true yuboring");
+            }
+            validateReason(reason, true);
+        }
+
+        Long actorId = getCurrentUserId();
+        String action = transferRequired ? "TRANSFER" : "LINK";
+
+        Map<String, Object> oldValue = new HashMap<>();
+        oldValue.put("userId", targetUser.getId());
+        oldValue.put("username", targetUser.getUsername());
+        oldValue.put("fromMemberId", currentLinkedMember != null ? currentLinkedMember.getId() : null);
+        oldValue.put("fromMemberName", currentLinkedMember != null ? currentLinkedMember.getDisplayName() : null);
+        oldValue.put("targetMemberPreviousUserId", targetMember.getUser() != null ? targetMember.getUser().getId() : null);
+
+        if (currentLinkedMember != null && !Objects.equals(currentLinkedMember.getId(), targetMember.getId())) {
+            currentLinkedMember.setUser(null);
+            familyMemberRepository.save(currentLinkedMember);
+        }
+
+        if (targetMemberCurrentUserLink != null
+                && targetMemberCurrentUserLink.getUser() != null
+                && !Objects.equals(targetMemberCurrentUserLink.getUser().getId(), targetUser.getId())) {
+            targetMemberCurrentUserLink.setUser(null);
+            familyMemberRepository.save(targetMemberCurrentUserLink);
+        }
+
+        targetMember.setUser(targetUser);
+        familyMemberRepository.save(targetMember);
+
+        targetUser.setFullName(targetMember.getDisplayName());
+        userRepository.save(targetUser);
+
+        Map<String, Object> newValue = new HashMap<>();
+        newValue.put("userId", targetUser.getId());
+        newValue.put("username", targetUser.getUsername());
+        newValue.put("toMemberId", targetMember.getId());
+        newValue.put("toMemberName", targetMember.getDisplayName());
+        if (reason != null && !reason.isBlank()) {
+            newValue.put("reason", reason);
+        }
+        newValue.put("source", "USERS_PAGE");
+
+        auditLogService.log(
+                "FamilyMemberLink",
+                targetMember.getId(),
+                action,
+                oldValue,
+                newValue,
+                actorId
+        );
+
+        return toDetailedResponseWithFamilyLink(targetUser);
+    }
+
+    @Transactional
+    public UserDetailResponse unlinkUserFromFamilyMember(Long userId, UnlinkFamilyMemberRequest request) {
+        User targetUser = userRepository.findByIdWithDetails(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        FamilyMember linkedMember = familyMemberRepository.findByUserId(targetUser.getId())
+                .orElseThrow(() -> new BadRequestException("Foydalanuvchi hech bir oila a'zosiga bog'lanmagan"));
+
+        String reason = request.getReason() != null ? request.getReason().trim() : null;
+        validateReason(reason, true);
+
+        Map<String, Object> oldValue = new HashMap<>();
+        oldValue.put("userId", targetUser.getId());
+        oldValue.put("username", targetUser.getUsername());
+        oldValue.put("fromMemberId", linkedMember.getId());
+        oldValue.put("fromMemberName", linkedMember.getDisplayName());
+
+        linkedMember.setUser(null);
+        familyMemberRepository.save(linkedMember);
+
+        Map<String, Object> newValue = new HashMap<>();
+        newValue.put("userId", targetUser.getId());
+        newValue.put("username", targetUser.getUsername());
+        newValue.put("toMemberId", null);
+        newValue.put("reason", reason);
+        newValue.put("source", "USERS_PAGE");
+
+        auditLogService.log(
+                "FamilyMemberLink",
+                linkedMember.getId(),
+                "UNLINK",
+                oldValue,
+                newValue,
+                getCurrentUserId()
+        );
+
+        return toDetailedResponseWithFamilyLink(targetUser);
     }
 
     /**
@@ -527,7 +659,7 @@ public class UserService {
                 currentAdmin != null ? currentAdmin.getUsername() : "system",
                 revokedSessions);
 
-        return UserDetailResponse.from(user);
+        return toDetailedResponseWithFamilyLink(user);
     }
 
     /**
@@ -551,6 +683,48 @@ public class UserService {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Long getCurrentUserId() {
+        User currentUser = getCurrentUser();
+        return currentUser != null ? currentUser.getId() : null;
+    }
+
+    private void validateReason(String reason, boolean required) {
+        if (reason == null || reason.isBlank()) {
+            if (required) {
+                throw new BadRequestException("Ushbu operatsiya uchun sabab kiritish majburiy");
+            }
+            return;
+        }
+
+        if (reason.length() < 10) {
+            throw new BadRequestException("Sabab kamida 10 belgidan iborat bo'lishi kerak");
+        }
+
+        if (reason.length() > 500) {
+            throw new BadRequestException("Sabab 500 belgidan oshmasligi kerak");
+        }
+    }
+
+    private UserDetailResponse toSimpleResponseWithFamilyLink(User user) {
+        FamilyMember linkedMember = familyMemberRepository.findByUserId(user.getId()).orElse(null);
+        return UserDetailResponse.simpleFrom(
+                user,
+                linkedMember != null ? linkedMember.getId() : null,
+                linkedMember != null ? linkedMember.getDisplayName() : null,
+                linkedMember != null ? linkedMember.getIsActive() : null
+        );
+    }
+
+    private UserDetailResponse toDetailedResponseWithFamilyLink(User user) {
+        FamilyMember linkedMember = familyMemberRepository.findByUserId(user.getId()).orElse(null);
+        return UserDetailResponse.from(
+                user,
+                linkedMember != null ? linkedMember.getId() : null,
+                linkedMember != null ? linkedMember.getDisplayName() : null,
+                linkedMember != null ? linkedMember.getIsActive() : null
+        );
     }
 
     private void validatePassword(String password) {

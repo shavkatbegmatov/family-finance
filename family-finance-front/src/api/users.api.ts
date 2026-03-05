@@ -29,6 +29,9 @@ export interface UserDetail {
   roleDetails?: { id: number; name: string; code: string }[];
   createdByUsername?: string;
   familyGroupName?: string;
+  linkedFamilyMemberId?: number;
+  linkedFamilyMemberName?: string;
+  linkedFamilyMemberActive?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -48,6 +51,16 @@ export interface UpdateUserRequest {
 
 export interface ChangeUsernameRequest {
   newUsername: string;
+}
+
+export interface LinkFamilyMemberRequest {
+  familyMemberId: number;
+  reason?: string;
+  forceTransfer?: boolean;
+}
+
+export interface UnlinkFamilyMemberRequest {
+  reason: string;
 }
 
 export const usersApi = {
@@ -78,6 +91,22 @@ export const usersApi = {
    */
   update: async (id: number, data: UpdateUserRequest): Promise<UserDetail> => {
     const response = await api.put<ApiResponse<UserDetail>>(`/v1/users/${id}`, data);
+    return response.data.data;
+  },
+
+  linkFamilyMember: async (id: number, data: LinkFamilyMemberRequest): Promise<UserDetail> => {
+    const response = await api.post<ApiResponse<UserDetail>>(
+      `/v1/users/${id}/family-member/link`,
+      data
+    );
+    return response.data.data;
+  },
+
+  unlinkFamilyMember: async (id: number, data: UnlinkFamilyMemberRequest): Promise<UserDetail> => {
+    const response = await api.post<ApiResponse<UserDetail>>(
+      `/v1/users/${id}/family-member/unlink`,
+      data
+    );
     return response.data.data;
   },
 

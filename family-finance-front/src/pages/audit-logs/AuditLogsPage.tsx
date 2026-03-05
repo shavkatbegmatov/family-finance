@@ -22,6 +22,28 @@ import { Select } from '../../components/ui/Select';
 
 type ViewMode = 'grouped' | 'simple';
 
+const ENTITY_LABELS: Record<string, string> = {
+  User: 'Foydalanuvchi',
+  FamilyMember: "Oila a'zosi",
+  FamilyMemberLink: "Bog'lash amallari",
+  Account: 'Hisob',
+  Transaction: 'Tranzaksiya',
+  Category: 'Kategoriya',
+  Budget: 'Byudjet',
+  SavingsGoal: "Jamg'arma",
+  Debt: 'Qarz',
+  Role: 'Rol',
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  CREATE: 'Yaratildi',
+  UPDATE: "O'zgartirildi",
+  DELETE: "O'chirildi",
+  LINK: "Bog'landi",
+  UNLINK: "Bog'lanish uzildi",
+  TRANSFER: "Qayta bog'landi",
+};
+
 export function AuditLogsPage() {
   // View mode state - default to grouped
   const [viewMode, setViewMode] = useState<ViewMode>('grouped');
@@ -40,6 +62,8 @@ export function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [entityTypeOptions, setEntityTypeOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [actionOptions, setActionOptions] = useState<Array<{ value: string; label: string }>>([]);
 
   // Expandable row state (for simple view)
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
@@ -85,7 +109,35 @@ export function AuditLogsPage() {
     // Clear expanded rows and cache when filters change
     setExpandedRows(new Set());
     setFieldChangesCache(new Map());
-  }, [currentPage, entityTypeFilter, actionFilter, searchQuery, viewMode]);
+  }, [currentPage, entityTypeFilter, actionFilter, searchQuery, viewMode, loadData]);
+
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const [entities, actions] = await Promise.all([
+          auditLogsApi.getAllEntityTypes(),
+          auditLogsApi.getAllActions(),
+        ]);
+
+        setEntityTypeOptions(
+          entities.map((entity) => ({
+            value: entity,
+            label: ENTITY_LABELS[entity] || entity,
+          }))
+        );
+        setActionOptions(
+          actions.map((action) => ({
+            value: action,
+            label: ACTION_LABELS[action] || action,
+          }))
+        );
+      } catch {
+        // Fallback to empty options
+      }
+    };
+
+    loadFilterOptions();
+  }, []);
 
   const handleSearch = () => {
     setSearchQuery(searchInput);
@@ -263,19 +315,7 @@ export function AuditLogsPage() {
                 setEntityTypeFilter(val as string ?? '');
                 setCurrentPage(0);
               }}
-              options={[
-                { value: 'Product', label: 'Mahsulotlar' },
-                { value: 'Sale', label: 'Sotuvlar' },
-                { value: 'Customer', label: 'Mijozlar' },
-                { value: 'PurchaseOrder', label: 'Xaridlar' },
-                { value: 'Payment', label: "To'lovlar" },
-                { value: 'User', label: 'Foydalanuvchilar' },
-                { value: 'Employee', label: 'Xodimlar' },
-                { value: 'Role', label: 'Rollar' },
-                { value: 'Supplier', label: "Ta'minotchilar" },
-                { value: 'Brand', label: 'Brendlar' },
-                { value: 'Category', label: 'Kategoriyalar' },
-              ]}
+              options={entityTypeOptions}
             />
 
             <Select
@@ -285,11 +325,7 @@ export function AuditLogsPage() {
                 setActionFilter(val as string ?? '');
                 setCurrentPage(0);
               }}
-              options={[
-                { value: 'CREATE', label: 'Yaratildi' },
-                { value: 'UPDATE', label: "O'zgartirildi" },
-                { value: 'DELETE', label: "O'chirildi" },
-              ]}
+              options={actionOptions}
             />
 
             {(entityTypeFilter || actionFilter || searchQuery) && (
