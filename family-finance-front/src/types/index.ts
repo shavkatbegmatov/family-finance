@@ -156,6 +156,7 @@ export type Gender = 'MALE' | 'FEMALE';
 
 export interface FamilyMember {
   id: number;
+  familyGroupId?: number;
   firstName: string;
   middleName?: string;
   fullName: string;
