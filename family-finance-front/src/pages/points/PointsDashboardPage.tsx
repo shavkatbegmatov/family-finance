@@ -34,15 +34,25 @@ export function PointsDashboardPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [partRes, pendingRes, eventsRes] = await Promise.all([
-        pointParticipantApi.getAll(),
-        pointTaskApi.getPendingVerification(),
-        pointEventApi.getActive(),
-      ]);
+      const partRes = await pointParticipantApi.getAll();
       const parts: PointParticipant[] = partRes.data?.data ?? partRes.data ?? [];
       setParticipants(parts);
-      setPendingTasks(pendingRes.data?.data ?? pendingRes.data ?? []);
-      setActiveEvents(eventsRes.data?.data ?? eventsRes.data ?? []);
+
+      const [pendingData, eventsData] = await Promise.all([
+        canVerifyPointTasks
+          ? pointTaskApi
+              .getPendingVerification()
+              .then((res) => res.data?.data ?? res.data ?? [])
+              .catch(() => [])
+          : Promise.resolve([]),
+        pointEventApi
+          .getActive()
+          .then((res) => res.data?.data ?? res.data ?? [])
+          .catch(() => []),
+      ]);
+
+      setPendingTasks(pendingData as PointTask[]);
+      setActiveEvents(eventsData as PointMultiplierEvent[]);
 
       // Load balances for each participant
       const balancePromises = parts
@@ -58,7 +68,7 @@ export function PointsDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canVerifyPointTasks]);
 
   useEffect(() => {
     loadData();
