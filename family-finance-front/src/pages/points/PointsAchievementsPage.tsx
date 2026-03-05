@@ -6,6 +6,7 @@ import { pointAchievementApi, pointParticipantApi } from '../../api/points.api';
 import type { PointAchievement, PointParticipant } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { formatDate } from '../../config/constants';
+import { Select } from '../../components/ui/Select';
 import {
   PointsActionBar,
   PointsEmptyState,
@@ -90,24 +91,22 @@ export function PointsAchievementsPage() {
       icon={Award}
     >
       <PointsActionBar>
-        <div className="form-control w-full max-w-xs">
-          <label className="label">
-            <span className="label-text">Ishtirokchini tanlang (ixtiyoriy)</span>
-          </label>
-          <select
-            className="select select-bordered"
-            value={selectedParticipantId ?? ''}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedParticipantId(val ? Number(val) : null);
-            }}
-          >
-            <option value="">Barcha ishtirokchilar</option>
-            {participants.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          className="w-full max-w-xs"
+          label="Ishtirokchini tanlang (ixtiyoriy)"
+          value={selectedParticipantId ?? 'ALL'}
+          onChange={(value) => {
+            if (value === undefined || value === 'ALL') {
+              setSelectedParticipantId(null);
+              return;
+            }
+            setSelectedParticipantId(Number(value));
+          }}
+          options={[
+            { value: 'ALL', label: 'Barcha ishtirokchilar' },
+            ...participants.map((p) => ({ value: p.id, label: p.displayName })),
+          ]}
+        />
       </PointsActionBar>
 
       {loading ? (

@@ -10,6 +10,7 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../config/constants';
 import {
   PointsActionBar,
@@ -239,19 +240,14 @@ export function PointsShopPage() {
       )}
     >
       <PointsActionBar>
-        <div className="form-control w-full max-w-xs">
-          <label className="label"><span className="label-text">Ishtirokchi</span></label>
-          <select
-            className="select select-bordered select-sm"
-            value={purchaseParticipantId ?? ''}
-            onChange={(e) => setPurchaseParticipantId(Number(e.target.value))}
-          >
-            <option value="" disabled>Tanlang...</option>
-            {participants.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          className="w-full max-w-xs"
+          label="Ishtirokchi"
+          placeholder="Tanlang..."
+          value={purchaseParticipantId ?? undefined}
+          onChange={(value) => setPurchaseParticipantId(value === undefined ? null : Number(value))}
+          options={participants.map((p) => ({ value: p.id, label: p.displayName }))}
+        />
         {balance && (
           <PointsGamifiedBadge
             variant="primary"
@@ -342,18 +338,13 @@ export function PointsShopPage() {
 
           {showHistory && (
             <PointsSectionCard title="Xaridlar tarixi" subtitle="Oxirgi xaridlar holati">
-              <div className="form-control w-full max-w-xs mb-4">
-                <select
-                  className="select select-bordered select-sm"
-                  value={historyParticipantId ?? ''}
-                  onChange={(e) => setHistoryParticipantId(Number(e.target.value))}
-                >
-                  <option value="" disabled>Tanlang...</option>
-                  {participants.map((p) => (
-                    <option key={p.id} value={p.id}>{p.displayName}</option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                className="w-full max-w-xs mb-4"
+                placeholder="Tanlang..."
+                value={historyParticipantId ?? undefined}
+                onChange={(value) => setHistoryParticipantId(value === undefined ? null : Number(value))}
+                options={participants.map((p) => ({ value: p.id, label: p.displayName }))}
+              />
               {purchases.length === 0 ? (
                 <PointsEmptyState
                   title="Xaridlar topilmadi"

@@ -10,6 +10,7 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../config/constants';
 import {
   PointsEmptyState,
@@ -396,17 +397,16 @@ export function PointsChallengesPage() {
         <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Musobaqaga qo'shilish</h3>
           <div className="form-control">
-            <label className="label"><span className="label-text">Ishtirokchini tanlang</span></label>
-            <select
-              className="select select-bordered"
-              value={joinParticipantId}
-              onChange={(e) => setJoinParticipantId(e.target.value)}
-            >
-              <option value="">Tanlang...</option>
-              {participants.map((p) => (
-                <option key={p.id} value={p.id}>{p.displayName}</option>
-              ))}
-            </select>
+            <Select
+              label="Ishtirokchini tanlang"
+              placeholder="Tanlang..."
+              value={joinParticipantId || ''}
+              onChange={(value) => setJoinParticipantId(value ? String(value) : '')}
+              options={[
+                { value: '', label: 'Tanlang...' },
+                ...participants.map((p) => ({ value: String(p.id), label: p.displayName })),
+              ]}
+            />
           </div>
           <div className="flex justify-end gap-2 mt-6">
             <button className="btn btn-ghost btn-sm" onClick={() => setShowJoinModal(false)}>

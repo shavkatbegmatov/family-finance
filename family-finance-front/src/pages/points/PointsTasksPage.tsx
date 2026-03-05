@@ -11,6 +11,7 @@ import type {
 import { PointTaskCategories, PointTaskStatuses } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import { Select } from '../../components/ui/Select';
 import {
   PointsActionBar,
   PointsEmptyState,
@@ -420,16 +421,12 @@ export function PointsTasksPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="form-control">
-                <label className="label"><span className="label-text">Kategoriya</span></label>
-                <select
-                  className="select select-bordered"
+                <Select
+                  label="Kategoriya"
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                >
-                  {PointTaskCategories.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setForm({ ...form, category: String(value ?? 'HOMEWORK') })}
+                  options={PointTaskCategories.map((c) => ({ value: c.value, label: c.label }))}
+                />
               </div>
               <div className="form-control">
                 <label className="label"><span className="label-text">Ball qiymati</span></label>
@@ -454,32 +451,32 @@ export function PointsTasksPage() {
                 />
               </div>
               <div className="form-control">
-                <label className="label"><span className="label-text">Tayinlash</span></label>
-                <select
-                  className="select select-bordered"
+                <Select
+                  label="Tayinlash"
                   value={form.assignedToId}
-                  onChange={(e) => setForm({ ...form, assignedToId: e.target.value })}
-                >
-                  <option value="">Tanlanmagan</option>
-                  {participants.filter((p) => p.isActive).map((p) => (
-                    <option key={p.id} value={p.id}>{p.displayName}</option>
-                  ))}
-                </select>
+                  onChange={(value) => setForm({ ...form, assignedToId: value ? String(value) : '' })}
+                  options={[
+                    { value: '', label: 'Tanlanmagan' },
+                    ...participants
+                      .filter((p) => p.isActive)
+                      .map((p) => ({ value: String(p.id), label: p.displayName })),
+                  ]}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="form-control">
-                <label className="label"><span className="label-text">Takrorlanish</span></label>
-                <select
-                  className="select select-bordered"
+                <Select
+                  label="Takrorlanish"
                   value={form.recurrence}
-                  onChange={(e) => setForm({ ...form, recurrence: e.target.value })}
-                >
-                  <option value="ONCE">Bir martalik</option>
-                  <option value="DAILY">Kunlik</option>
-                  <option value="WEEKLY">Haftalik</option>
-                  <option value="MONTHLY">Oylik</option>
-                </select>
+                  onChange={(value) => setForm({ ...form, recurrence: String(value ?? 'ONCE') })}
+                  options={[
+                    { value: 'ONCE', label: 'Bir martalik' },
+                    { value: 'DAILY', label: 'Kunlik' },
+                    { value: 'WEEKLY', label: 'Haftalik' },
+                    { value: 'MONTHLY', label: 'Oylik' },
+                  ]}
+                />
               </div>
               <div className="form-control">
                 <label className="label"><span className="label-text">Muddat</span></label>

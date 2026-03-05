@@ -14,6 +14,7 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../config/constants';
 import {
   PointsActionBar,
@@ -156,21 +157,14 @@ export function PointsSavingsPage() {
       icon={Wallet}
     >
       <PointsActionBar>
-        <div className="form-control w-full max-w-xs">
-          <label className="label">
-            <span className="label-text">Ishtirokchini tanlang</span>
-          </label>
-          <select
-            className="select select-bordered"
-            value={selectedParticipantId ?? ''}
-            onChange={(e) => setSelectedParticipantId(Number(e.target.value))}
-          >
-            <option value="" disabled>Tanlang...</option>
-            {participants.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          className="w-full max-w-xs"
+          label="Ishtirokchini tanlang"
+          placeholder="Tanlang..."
+          value={selectedParticipantId ?? undefined}
+          onChange={(value) => setSelectedParticipantId(value === undefined ? null : Number(value))}
+          options={participants.map((p) => ({ value: p.id, label: p.displayName }))}
+        />
         {balance && (
           <span className="pill border-primary/30 bg-primary/10 text-primary">
             Mavjud balans: {balance.currentBalance.toLocaleString()} ball
@@ -386,18 +380,15 @@ export function PointsSavingsPage() {
           </div>
           <div className="space-y-4">
             <div className="form-control">
-              <label className="label"><span className="label-text">Investitsiya turi</span></label>
-              <select
-                className="select select-bordered"
+              <Select
+                label="Investitsiya turi"
                 value={investForm.type}
-                onChange={(e) => setInvestForm({ ...investForm, type: e.target.value })}
-              >
-                {PointInvestmentTypes.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label} - {t.description}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setInvestForm({ ...investForm, type: String(value ?? 'STABLE') })}
+                options={PointInvestmentTypes.map((t) => ({
+                  value: t.value,
+                  label: `${t.label} - ${t.description}`,
+                }))}
+              />
             </div>
             <div className="form-control">
               <label className="label"><span className="label-text">Miqdor (ball)</span></label>

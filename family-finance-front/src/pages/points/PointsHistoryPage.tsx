@@ -6,6 +6,7 @@ import { pointBalanceApi, pointParticipantApi } from '../../api/points.api';
 import type { PointTransaction, PointParticipant } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { formatDate } from '../../config/constants';
+import { Select } from '../../components/ui/Select';
 import {
   PointsActionBar,
   PointsEmptyState,
@@ -97,24 +98,17 @@ export function PointsHistoryPage() {
       icon={Clock3}
     >
       <PointsActionBar>
-        <div className="form-control w-full max-w-xs">
-          <label className="label">
-            <span className="label-text">Ishtirokchini tanlang</span>
-          </label>
-          <select
-            className="select select-bordered"
-            value={selectedParticipantId ?? ''}
-            onChange={(e) => {
-              setSelectedParticipantId(Number(e.target.value));
-              setPage(0);
-            }}
-          >
-            <option value="" disabled>Tanlang...</option>
-            {participants.map((p) => (
-              <option key={p.id} value={p.id}>{p.displayName}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          className="w-full max-w-xs"
+          label="Ishtirokchini tanlang"
+          placeholder="Tanlang..."
+          value={selectedParticipantId ?? undefined}
+          onChange={(value) => {
+            setSelectedParticipantId(value === undefined ? null : Number(value));
+            setPage(0);
+          }}
+          options={participants.map((p) => ({ value: p.id, label: p.displayName }))}
+        />
       </PointsActionBar>
 
       {loading ? (

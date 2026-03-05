@@ -9,6 +9,7 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { formatDate } from '../../config/constants';
+import { Select } from '../../components/ui/Select';
 import {
   PointsEmptyState,
   PointsLoadingState,
@@ -153,22 +154,16 @@ export function PointsConversionPage() {
               )}
 
               <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Ishtirokchi</span>
-                </label>
-                <select
-                  className="select select-bordered"
-                  value={selectedParticipantId ?? ''}
-                  onChange={(e) => {
-                    setSelectedParticipantId(Number(e.target.value));
+                <Select
+                  label="Ishtirokchi"
+                  placeholder="Tanlang..."
+                  value={selectedParticipantId ?? undefined}
+                  onChange={(value) => {
+                    setSelectedParticipantId(value === undefined ? null : Number(value));
                     setPage(0);
                   }}
-                >
-                  <option value="" disabled>Tanlang...</option>
-                  {participants.map((p) => (
-                    <option key={p.id} value={p.id}>{p.displayName}</option>
-                  ))}
-                </select>
+                  options={participants.map((p) => ({ value: p.id, label: p.displayName }))}
+                />
               </div>
 
               {balance && (
