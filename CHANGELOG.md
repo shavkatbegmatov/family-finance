@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.1] - 2026-03-05
+
+### Improved
+- **Ball tizimi — Ishtirokchilar bog'lash:** ID qo'lda kiritish o'rniga `ComboBox` dropdown bilan oila a'zosini qidirish va tanlash imkoniyati qo'shildi. Allaqachon bog'langan a'zolar ro'yxatdan avtomatik chiqariladi.
+
 ## [1.4.0] - 2026-03-04
 
 ### Added

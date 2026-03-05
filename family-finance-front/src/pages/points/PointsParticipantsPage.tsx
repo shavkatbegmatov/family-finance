@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, Edit2, UserX, Link as LinkIcon, Users, X } from 'lucide-react';
 import clsx from 'clsx';
@@ -8,6 +8,8 @@ import type {
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
+import { ComboBox } from '../../components/ui/ComboBox';
+import { useFamilyMemberOptions } from '../../hooks/useFamilyMemberOptions';
 import {
   PointsEmptyState,
   PointsLoadingState,
@@ -46,7 +48,13 @@ export function PointsParticipantsPage() {
   // Link member modal
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkParticipantId, setLinkParticipantId] = useState<number | null>(null);
-  const [linkMemberId, setLinkMemberId] = useState('');
+  const [linkMemberId, setLinkMemberId] = useState<number | undefined>(undefined);
+
+  const linkedMemberIds = useMemo(
+    () => participants.filter((p) => p.familyMemberId).map((p) => p.familyMemberId!),
+    [participants],
+  );
+  const { options: memberOptions } = useFamilyMemberOptions(linkedMemberIds);
 
   const loadParticipants = useCallback(async () => {
     try {
@@ -140,10 +148,10 @@ export function PointsParticipantsPage() {
   const handleLinkMember = async () => {
     if (!linkParticipantId || !linkMemberId) return;
     try {
-      await pointParticipantApi.linkMember(linkParticipantId, Number(linkMemberId));
+      await pointParticipantApi.linkMember(linkParticipantId, linkMemberId);
       toast.success("Oila a'zosiga bog'landi");
       setShowLinkModal(false);
-      setLinkMemberId('');
+      setLinkMemberId(undefined);
       loadParticipants();
     } catch {
       toast.error("Bog'lashda xatolik");
@@ -343,7 +351,7 @@ export function PointsParticipantsPage() {
 
       {/* Link Member Modal */}
       <ModalPortal isOpen={showLinkModal} onClose={() => setShowLinkModal(false)}>
-        <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold">Oila a'zosiga bog'lash</h3>
             <button className="btn btn-ghost btn-sm btn-square" onClick={() => setShowLinkModal(false)}>
@@ -352,14 +360,16 @@ export function PointsParticipantsPage() {
           </div>
           <div className="form-control">
             <label className="label">
-              <span className="label-text">Oila a'zosi ID raqami</span>
+              <span className="label-text">Oila a'zosini tanlang</span>
             </label>
-            <input
-              type="number"
-              className="input input-bordered"
+            <ComboBox
               value={linkMemberId}
-              onChange={(e) => setLinkMemberId(e.target.value)}
-              placeholder="ID kiriting"
+              onChange={(val) => setLinkMemberId(val as number | undefined)}
+              options={memberOptions}
+              placeholder="Oila a'zosini tanlang..."
+              searchPlaceholder="Ism yoki familiya bo'yicha qidiring..."
+              allowClear
+              size="md"
             />
           </div>
           <div className="flex justify-end gap-2 mt-6">
