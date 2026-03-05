@@ -636,6 +636,7 @@ public class AuditLogService {
             case "DebtPayment" -> "Qarz to'lovi";
             case "FamilyMember" -> "Oila a'zosi";
             case "FamilyMemberLink" -> "Oila a'zosi bog'lanishi";
+            case "PointParticipantLink" -> "Ball ishtirokchisi bog'lanishi";
             case "User" -> "Foydalanuvchi";
             case "Role" -> "Rol";
             default -> entityType;

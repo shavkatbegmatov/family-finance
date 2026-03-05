@@ -4,6 +4,7 @@ import type {
   ManualAwardRequest, PointConversionRequest, PointAchievementRequest,
   PointInvestmentRequest, PointShopItemRequest, PointChallengeRequest,
   PointMultiplierEventRequest, PointPurchaseRequest, PointTaskVerifyRequest,
+  PointParticipantLinkRequest, PointParticipantUnlinkRequest,
 } from '../types/points.types';
 
 // ===== Config =====
@@ -22,8 +23,10 @@ export const pointParticipantApi = {
   update: (id: number, data: PointParticipantRequest) =>
     axiosInstance.put(`/v1/point-participants/${id}`, data),
   deactivate: (id: number) => axiosInstance.delete(`/v1/point-participants/${id}`),
-  linkMember: (id: number, familyMemberId: number) =>
-    axiosInstance.post(`/v1/point-participants/${id}/link-member`, null, { params: { familyMemberId } }),
+  linkMember: (id: number, data: PointParticipantLinkRequest) =>
+    axiosInstance.post(`/v1/point-participants/${id}/link-member`, data),
+  unlinkMember: (id: number, data: PointParticipantUnlinkRequest) =>
+    axiosInstance.post(`/v1/point-participants/${id}/unlink-member`, data),
 };
 
 // ===== Tasks =====

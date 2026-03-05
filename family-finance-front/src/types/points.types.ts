@@ -52,6 +52,16 @@ export interface PointParticipantRequest {
   familyMemberId?: number;
 }
 
+export interface PointParticipantLinkRequest {
+  familyMemberId: number;
+  reason?: string;
+  forceTransfer?: boolean;
+}
+
+export interface PointParticipantUnlinkRequest {
+  reason: string;
+}
+
 export interface PointTask {
   id: number;
   familyGroupId: number;

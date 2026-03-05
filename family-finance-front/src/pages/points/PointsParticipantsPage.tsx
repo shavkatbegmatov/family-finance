@@ -49,12 +49,44 @@ export function PointsParticipantsPage() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkParticipantId, setLinkParticipantId] = useState<number | null>(null);
   const [linkMemberId, setLinkMemberId] = useState<number | undefined>(undefined);
+  const [linkReason, setLinkReason] = useState('');
+  const [unlinkReason, setUnlinkReason] = useState('');
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+  const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
 
-  const linkedMemberIds = useMemo(
-    () => participants.filter((p) => p.familyMemberId).map((p) => p.familyMemberId!),
-    [participants],
+  const { options: memberOptions } = useFamilyMemberOptions();
+
+  const selectedParticipant = useMemo(
+    () => participants.find((p) => p.id === linkParticipantId) ?? null,
+    [participants, linkParticipantId],
   );
-  const { options: memberOptions } = useFamilyMemberOptions(linkedMemberIds);
+
+  const memberLinkedToAnotherParticipant = useMemo(() => {
+    if (!linkMemberId || !linkParticipantId) return null;
+    return (
+      participants.find((p) => p.familyMemberId === linkMemberId && p.id !== linkParticipantId) ?? null
+    );
+  }, [participants, linkMemberId, linkParticipantId]);
+
+  const participantChangingMember = Boolean(
+    selectedParticipant?.familyMemberId &&
+    linkMemberId &&
+    selectedParticipant.familyMemberId !== linkMemberId,
+  );
+  const selectedIsCurrentMember = Boolean(
+    selectedParticipant?.familyMemberId &&
+    linkMemberId &&
+    selectedParticipant.familyMemberId === linkMemberId,
+  );
+
+  const linkReasonRequired = Boolean(memberLinkedToAnotherParticipant || participantChangingMember);
+  const canSubmitLink = Boolean(
+    linkParticipantId &&
+    linkMemberId &&
+    !selectedIsCurrentMember &&
+    (!linkReasonRequired || linkReason.trim().length >= 10) &&
+    !linkSubmitting,
+  );
 
   const loadParticipants = useCallback(async () => {
     try {
@@ -147,15 +179,62 @@ export function PointsParticipantsPage() {
 
   const handleLinkMember = async () => {
     if (!linkParticipantId || !linkMemberId) return;
+    if (linkReasonRequired && linkReason.trim().length < 10) {
+      toast.error("Qayta bog'lash uchun sabab kamida 10 belgi bo'lishi kerak");
+      return;
+    }
     try {
-      await pointParticipantApi.linkMember(linkParticipantId, linkMemberId);
-      toast.success("Oila a'zosiga bog'landi");
-      setShowLinkModal(false);
-      setLinkMemberId(undefined);
+      setLinkSubmitting(true);
+      await pointParticipantApi.linkMember(linkParticipantId, {
+        familyMemberId: linkMemberId,
+        reason: linkReason.trim() || undefined,
+        forceTransfer: true,
+      });
+      toast.success(linkReasonRequired ? "Bog'lanish qayta yangilandi" : "Oila a'zosiga bog'landi");
+      closeLinkModal();
       loadParticipants();
     } catch {
       toast.error("Bog'lashda xatolik");
+    } finally {
+      setLinkSubmitting(false);
     }
+  };
+
+  const handleUnlinkMember = async () => {
+    if (!linkParticipantId) return;
+    if (unlinkReason.trim().length < 10) {
+      toast.error("Bog'lanishni uzish uchun sabab kamida 10 belgi bo'lishi kerak");
+      return;
+    }
+    try {
+      setUnlinkSubmitting(true);
+      await pointParticipantApi.unlinkMember(linkParticipantId, { reason: unlinkReason.trim() });
+      toast.success("Bog'lanish uzildi");
+      closeLinkModal();
+      loadParticipants();
+    } catch {
+      toast.error("Bog'lanishni uzishda xatolik");
+    } finally {
+      setUnlinkSubmitting(false);
+    }
+  };
+
+  const closeLinkModal = () => {
+    setShowLinkModal(false);
+    setLinkParticipantId(null);
+    setLinkMemberId(undefined);
+    setLinkReason('');
+    setUnlinkReason('');
+    setLinkSubmitting(false);
+    setUnlinkSubmitting(false);
+  };
+
+  const openLinkModal = (participant: PointParticipant) => {
+    setLinkParticipantId(participant.id);
+    setLinkMemberId(participant.familyMemberId);
+    setLinkReason('');
+    setUnlinkReason('');
+    setShowLinkModal(true);
   };
 
   if (!canViewPoints) {
@@ -243,18 +322,13 @@ export function PointsParticipantsPage() {
 
                     {canManagePoints && p.isActive && (
                       <div className="card-actions justify-end mt-3">
-                        {!p.familyMemberId && (
-                          <button
-                            className="btn btn-ghost btn-xs gap-1"
-                            onClick={() => {
-                              setLinkParticipantId(p.id);
-                              setShowLinkModal(true);
-                            }}
-                          >
-                            <LinkIcon className="h-3 w-3" />
-                            Bog'lash
-                          </button>
-                        )}
+                        <button
+                          className="btn btn-ghost btn-xs gap-1"
+                          onClick={() => openLinkModal(p)}
+                        >
+                          <LinkIcon className="h-3 w-3" />
+                          {p.familyMemberId ? "Bog'lanish" : "Bog'lash"}
+                        </button>
                         <button
                           className="btn btn-ghost btn-xs gap-1"
                           onClick={() => openEditModal(p)}
@@ -350,36 +424,122 @@ export function PointsParticipantsPage() {
       </ModalPortal>
 
       {/* Link Member Modal */}
-      <ModalPortal isOpen={showLinkModal} onClose={() => setShowLinkModal(false)}>
+      <ModalPortal isOpen={showLinkModal} onClose={closeLinkModal}>
         <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Oila a'zosiga bog'lash</h3>
-            <button className="btn btn-ghost btn-sm btn-square" onClick={() => setShowLinkModal(false)}>
+            <div>
+              <h3 className="text-lg font-semibold">Oila a'zosiga bog'lash</h3>
+              <p className="text-xs text-base-content/60 mt-1">
+                {selectedParticipant?.displayName ?? "Ishtirokchi tanlanmagan"}
+              </p>
+            </div>
+            <button className="btn btn-ghost btn-sm btn-square" onClick={closeLinkModal}>
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Oila a'zosini tanlang</span>
-            </label>
-            <ComboBox
-              value={linkMemberId}
-              onChange={(val) => setLinkMemberId(val as number | undefined)}
-              options={memberOptions}
-              placeholder="Oila a'zosini tanlang..."
-              searchPlaceholder="Ism yoki familiya bo'yicha qidiring..."
-              allowClear
-              size="md"
-            />
+
+          <div className="space-y-4">
+            <div className="rounded-xl border border-base-200 bg-base-200/30 p-3 text-sm">
+              {selectedParticipant?.familyMemberName ? (
+                <>
+                  <p className="text-base-content/60">Hozir bog'langan:</p>
+                  <p className="font-medium text-info">{selectedParticipant.familyMemberName}</p>
+                </>
+              ) : (
+                <p className="text-base-content/60">Hozircha oila a'zosiga bog'lanmagan</p>
+              )}
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Oila a'zosini tanlang</span>
+              </label>
+              <ComboBox
+                value={linkMemberId}
+                onChange={(val) => setLinkMemberId(val as number | undefined)}
+                options={memberOptions}
+                placeholder="Oila a'zosini tanlang..."
+                searchPlaceholder="Ism yoki familiya bo'yicha qidiring..."
+                allowClear
+                size="md"
+              />
+              {selectedIsCurrentMember && (
+                <p className="mt-1 text-xs text-base-content/60">
+                  Tanlangan oila a'zosi allaqachon shu ishtirokchiga bog'langan.
+                </p>
+              )}
+            </div>
+
+            {memberLinkedToAnotherParticipant && (
+              <div className="alert alert-warning text-sm">
+                <span>
+                  Tanlangan a'zo hozir <strong>{memberLinkedToAnotherParticipant.displayName}</strong> ga bog'langan.
+                  Davom etsangiz bog'lanish transfer qilinadi.
+                </span>
+              </div>
+            )}
+
+            {linkReasonRequired && (
+              <div>
+                <label className="label">
+                  <span className="label-text">Qayta bog'lash sababi (kamida 10 belgi) *</span>
+                </label>
+                <textarea
+                  className="textarea textarea-bordered w-full"
+                  rows={3}
+                  value={linkReason}
+                  onChange={(e) => setLinkReason(e.target.value)}
+                  placeholder="Nega bog'lanish o'zgartirilayotganini yozing..."
+                />
+                {linkReason.trim().length > 0 && linkReason.trim().length < 10 && (
+                  <p className="mt-1 text-xs text-error">Kamida 10 belgi kiriting</p>
+                )}
+              </div>
+            )}
           </div>
+
           <div className="flex justify-end gap-2 mt-6">
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowLinkModal(false)}>
+            <button className="btn btn-ghost btn-sm" onClick={closeLinkModal}>
               Bekor qilish
             </button>
-            <button className="btn btn-primary btn-sm" onClick={handleLinkMember}>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleLinkMember}
+              disabled={!canSubmitLink}
+            >
+              {linkSubmitting && <span className="loading loading-spinner loading-xs" />}
               Bog'lash
             </button>
           </div>
+
+          {selectedParticipant?.familyMemberId && (
+            <div className="mt-5 border-t border-base-200 pt-4">
+              <h4 className="text-sm font-semibold text-error">Bog'lanishni uzish</h4>
+              <p className="text-xs text-base-content/60 mt-1">
+                Ushbu amal audit logga yoziladi.
+              </p>
+              <textarea
+                className="textarea textarea-bordered textarea-sm w-full mt-3"
+                rows={2}
+                value={unlinkReason}
+                onChange={(e) => setUnlinkReason(e.target.value)}
+                placeholder="Bog'lanishni uzish sababini yozing (kamida 10 belgi)"
+              />
+              {unlinkReason.trim().length > 0 && unlinkReason.trim().length < 10 && (
+                <p className="mt-1 text-xs text-error">Kamida 10 belgi kiriting</p>
+              )}
+              <div className="mt-3 flex justify-end">
+                <button
+                  className="btn btn-outline btn-error btn-sm"
+                  onClick={handleUnlinkMember}
+                  disabled={unlinkSubmitting}
+                >
+                  {unlinkSubmitting && <span className="loading loading-spinner loading-xs" />}
+                  Bog'lanishni uzish
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </ModalPortal>
     </PointsPageShell>

@@ -26,6 +26,7 @@ const ENTITY_LABELS: Record<string, string> = {
   User: 'Foydalanuvchi',
   FamilyMember: "Oila a'zosi",
   FamilyMemberLink: "Bog'lash amallari",
+  PointParticipantLink: "Ball ishtirokchisi bog'lanishi",
   Account: 'Hisob',
   Transaction: 'Tranzaksiya',
   Category: 'Kategoriya',

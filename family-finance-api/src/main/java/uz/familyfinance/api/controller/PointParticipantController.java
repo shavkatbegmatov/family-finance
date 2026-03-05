@@ -7,7 +7,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uz.familyfinance.api.dto.request.PointParticipantLinkRequest;
 import uz.familyfinance.api.dto.request.PointParticipantRequest;
+import uz.familyfinance.api.dto.request.PointParticipantUnlinkRequest;
 import uz.familyfinance.api.dto.response.*;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.RequiresPermission;
@@ -68,7 +70,16 @@ public class PointParticipantController {
     @PostMapping("/{id}/link-member")
     @RequiresPermission(PermissionCode.POINTS_MANAGE)
     public ResponseEntity<ApiResponse<PointParticipantResponse>> linkMember(
-            @PathVariable Long id, @RequestParam Long familyMemberId) {
-        return ResponseEntity.ok(ApiResponse.success(participantService.linkMember(id, familyMemberId)));
+            @PathVariable Long id,
+            @Valid @RequestBody PointParticipantLinkRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(participantService.linkMember(id, request)));
+    }
+
+    @PostMapping("/{id}/unlink-member")
+    @RequiresPermission(PermissionCode.POINTS_MANAGE)
+    public ResponseEntity<ApiResponse<PointParticipantResponse>> unlinkMember(
+            @PathVariable Long id,
+            @Valid @RequestBody PointParticipantUnlinkRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(participantService.unlinkMember(id, request)));
     }
 }

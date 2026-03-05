@@ -167,6 +167,20 @@ public class FieldLabelService {
         familyLinkLabels.put("reason", "Sabab");
         familyLinkLabels.put("source", "Manba");
         entityFieldLabels.put("FamilyMemberLink", familyLinkLabels);
+
+        // PointParticipantLink business event labels
+        Map<String, String> pointParticipantLinkLabels = new HashMap<>();
+        pointParticipantLinkLabels.put("participantId", "Ishtirokchi ID");
+        pointParticipantLinkLabels.put("participantName", "Ishtirokchi");
+        pointParticipantLinkLabels.put("fromMemberId", "Avvalgi a'zo ID");
+        pointParticipantLinkLabels.put("fromMemberName", "Avvalgi a'zo");
+        pointParticipantLinkLabels.put("toMemberId", "Yangi a'zo ID");
+        pointParticipantLinkLabels.put("toMemberName", "Yangi a'zo");
+        pointParticipantLinkLabels.put("targetMemberPreviousParticipantId", "Avval bog'langan ishtirokchi ID");
+        pointParticipantLinkLabels.put("targetMemberPreviousParticipantName", "Avval bog'langan ishtirokchi");
+        pointParticipantLinkLabels.put("reason", "Sabab");
+        pointParticipantLinkLabels.put("source", "Manba");
+        entityFieldLabels.put("PointParticipantLink", pointParticipantLinkLabels);
     }
 
     private void initializeFieldTypes() {
@@ -235,5 +249,14 @@ public class FieldLabelService {
         familyLinkTypes.put("targetMemberPreviousUserId", AuditLogDetailResponse.FieldType.NUMBER);
         familyLinkTypes.put("reason", AuditLogDetailResponse.FieldType.STRING);
         entityFieldTypes.put("FamilyMemberLink", familyLinkTypes);
+
+        // PointParticipantLink field types
+        Map<String, AuditLogDetailResponse.FieldType> pointParticipantLinkTypes = new HashMap<>();
+        pointParticipantLinkTypes.put("participantId", AuditLogDetailResponse.FieldType.NUMBER);
+        pointParticipantLinkTypes.put("fromMemberId", AuditLogDetailResponse.FieldType.NUMBER);
+        pointParticipantLinkTypes.put("toMemberId", AuditLogDetailResponse.FieldType.NUMBER);
+        pointParticipantLinkTypes.put("targetMemberPreviousParticipantId", AuditLogDetailResponse.FieldType.NUMBER);
+        pointParticipantLinkTypes.put("reason", AuditLogDetailResponse.FieldType.STRING);
+        entityFieldTypes.put("PointParticipantLink", pointParticipantLinkTypes);
     }
 }
