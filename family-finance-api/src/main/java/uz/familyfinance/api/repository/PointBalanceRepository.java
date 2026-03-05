@@ -15,6 +15,9 @@ public interface PointBalanceRepository extends JpaRepository<PointBalance, Long
 
     Optional<PointBalance> findByParticipantId(Long participantId);
 
+    @Query("SELECT b FROM PointBalance b JOIN FETCH b.participant WHERE b.participant.id = :participantId")
+    Optional<PointBalance> findByParticipantIdWithParticipant(@Param("participantId") Long participantId);
+
     List<PointBalance> findByFamilyGroupIdOrderByCurrentBalanceDesc(Long familyGroupId);
 
     List<PointBalance> findByFamilyGroupIdOrderByTotalEarnedDesc(Long familyGroupId);

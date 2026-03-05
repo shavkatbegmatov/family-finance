@@ -35,7 +35,7 @@ public class PointBalanceController {
     @GetMapping("/{participantId}")
     @RequiresPermission(PermissionCode.POINTS_VIEW)
     public ResponseEntity<ApiResponse<PointBalanceResponse>> getBalance(@PathVariable Long participantId) {
-        PointBalance balance = balanceRepository.findByParticipantId(participantId)
+        PointBalance balance = balanceRepository.findByParticipantIdWithParticipant(participantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Balans topilmadi"));
         return ResponseEntity.ok(ApiResponse.success(toResponse(balance)));
     }
@@ -65,7 +65,7 @@ public class PointBalanceController {
                 null, userDetails.getUser()
         );
         achievementService.checkAndAwardAchievements(participant);
-        PointBalance balance = balanceRepository.findByParticipantId(participantId)
+        PointBalance balance = balanceRepository.findByParticipantIdWithParticipant(participantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Balans topilmadi"));
         return ResponseEntity.ok(ApiResponse.success(toResponse(balance)));
     }
@@ -83,7 +83,7 @@ public class PointBalanceController {
                 request.getDescription() != null ? request.getDescription() : "Qo'lda ball ayirish",
                 null, userDetails.getUser()
         );
-        PointBalance balance = balanceRepository.findByParticipantId(participantId)
+        PointBalance balance = balanceRepository.findByParticipantIdWithParticipant(participantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Balans topilmadi"));
         return ResponseEntity.ok(ApiResponse.success(toResponse(balance)));
     }
