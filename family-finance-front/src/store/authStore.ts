@@ -1,9 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
+import { saveIntendedPath } from '../utils/sessionNavigation';
 
 // Bir nechta logout chaqiruvini oldini olish uchun guard
 let isLoggingOut = false;
+
+interface LogoutRedirectOptions {
+  captureCurrentPath?: boolean;
+}
 
 interface AuthState {
   user: User | null;
@@ -15,7 +20,7 @@ interface AuthState {
   setAuth: (user: User, accessToken: string, refreshToken: string, permissions?: string[], roles?: string[]) => void;
   updateUser: (user: User) => void;
   logout: () => void;
-  logoutWithRedirect: (delay?: number) => void;
+  logoutWithRedirect: (delay?: number, options?: LogoutRedirectOptions) => void;
   hasPermission: (permission: string) => boolean;
   hasAnyPermission: (...permissions: string[]) => boolean;
   hasAllPermissions: (...permissions: string[]) => boolean;
@@ -64,8 +69,13 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      logoutWithRedirect: (delay = 1500) => {
+      logoutWithRedirect: (delay = 1500, options) => {
         if (isLoggingOut) return;
+
+        if (options?.captureCurrentPath !== false) {
+          saveIntendedPath();
+        }
+
         isLoggingOut = true;
         setTimeout(() => {
           get().logout();

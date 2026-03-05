@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from 'axios';
+import axios, { type AxiosError, type AxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '../config/constants';
 import { useAuthStore } from '../store/authStore';
@@ -10,9 +10,20 @@ const api = axios.create({
   },
 });
 
-// ── Refresh Queue pattern ──────────────────────────────────
-// Bir vaqtda 5-6 ta so'rov 401 olsa, faqat BITTA refresh yuboriladi.
-// Qolgan so'rovlar navbatda kutib, yangi token bilan qayta yuboriladi.
+type RetryRequestConfig = AxiosRequestConfig & { _retry?: boolean };
+
+interface RefreshResponsePayload {
+  data: {
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+const AUTH_ENDPOINTS_WITHOUT_REFRESH = [
+  '/v1/auth/login',
+  '/v1/auth/register',
+];
+
 let isRefreshing = false;
 let failedQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
 
@@ -20,50 +31,64 @@ const processQueue = (error: unknown, token: string | null) => {
   failedQueue.forEach(({ resolve, reject }) => {
     if (token) {
       resolve(token);
-    } else {
-      reject(error);
+      return;
     }
+    reject(error);
   });
   failedQueue = [];
+};
+
+const isRefreshRequest = (url?: string) => {
+  return Boolean(url && url.includes('/v1/auth/refresh-token'));
+};
+
+const shouldSkipRefresh = (url?: string) => {
+  if (!url) {
+    return false;
+  }
+  return AUTH_ENDPOINTS_WITHOUT_REFRESH.some((endpoint) => url.includes(endpoint));
 };
 
 const clearAuthAndRedirect = () => {
   if (window.location.pathname !== '/login') {
     toast.error('Sessioningiz tugadi. Qayta kiring.');
-    useAuthStore.getState().logoutWithRedirect(1000);
+    useAuthStore.getState().logoutWithRedirect(1000, { captureCurrentPath: true });
   }
 };
-// ────────────────────────────────────────────────────────────
 
-// Request interceptor - add auth token
 api.interceptors.request.use(
   (config) => {
     try {
       const token = localStorage.getItem('accessToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else if (config.headers?.Authorization) {
+        delete config.headers.Authorization;
       }
     } catch {
-      // localStorage mavjud emas (private browsing)
+      // localStorage may be unavailable
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor - handle errors
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetryRequestConfig | undefined;
 
-    // If 401 and not already retrying
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Refresh endpointining o'zi 401 qaytarsa — loop bo'lmasin
-      if (originalRequest.url?.includes('/auth/refresh-token')) {
+      if (isRefreshRequest(originalRequest.url)) {
         clearAuthAndRedirect();
+        return Promise.reject(error);
+      }
+
+      if (shouldSkipRefresh(originalRequest.url)) {
         return Promise.reject(error);
       }
 
@@ -73,48 +98,58 @@ api.interceptors.response.use(
       try {
         refreshToken = localStorage.getItem('refreshToken');
       } catch {
-        // localStorage mavjud emas
+        // localStorage may be unavailable
       }
+
       if (!refreshToken) {
         clearAuthAndRedirect();
         return Promise.reject(error);
       }
 
-      // Agar boshqa so'rov allaqachon refresh qilayotgan bo'lsa — navbatga qo'shilish
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((newToken) => {
-          originalRequest.headers = { ...originalRequest.headers, Authorization: `Bearer ${newToken}` };
+          originalRequest.headers = {
+            ...originalRequest.headers,
+            Authorization: `Bearer ${newToken}`,
+          };
           return api(originalRequest);
         });
       }
 
-      // Birinchi 401 — refresh boshlanadi
       isRefreshing = true;
 
       try {
-        const response = await axios.post(
+        const refreshResponse = await axios.post<RefreshResponsePayload>(
           `${API_BASE_URL}/v1/auth/refresh-token`,
           null,
           { params: { refreshToken } }
         );
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
+        const accessToken = refreshResponse.data?.data?.accessToken;
+        const newRefreshToken = refreshResponse.data?.data?.refreshToken;
+
+        if (!accessToken || !newRefreshToken) {
+          throw new Error('Invalid refresh token response');
+        }
+
         try {
           localStorage.setItem('accessToken', accessToken);
           localStorage.setItem('refreshToken', newRefreshToken);
         } catch {
-          // localStorage mavjud emas
+          // localStorage may be unavailable
         }
 
-        // Navbatdagi barcha so'rovlarni yangi token bilan qayta yuborish
+        api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
         processQueue(null, accessToken);
 
-        originalRequest.headers = { ...originalRequest.headers, Authorization: `Bearer ${accessToken}` };
+        originalRequest.headers = {
+          ...originalRequest.headers,
+          Authorization: `Bearer ${accessToken}`,
+        };
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh muvaffaqiyatsiz — barcha navbatdagilarni ham reject qilish
         processQueue(refreshError, null);
         clearAuthAndRedirect();
         return Promise.reject(refreshError);
@@ -123,9 +158,10 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden
     if (error.response?.status === 403) {
-      const message = error.response?.data?.message || "Sizda bu amalni bajarish uchun ruxsat yo'q";
+      const responseData = error.response.data as { message?: string } | undefined;
+      const message =
+        responseData?.message || "Sizda bu amalni bajarish uchun ruxsat yo'q";
 
       toast.error(message, {
         duration: 4000,

@@ -2,6 +2,19 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
+const isSignedOutAuthStorage = (value: string | null) => {
+  if (!value) {
+    return true;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as { state?: { isAuthenticated?: boolean } };
+    return parsed.state?.isAuthenticated === false;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Cross-tab session synchronization hook
  *
@@ -33,8 +46,8 @@ export function useCrossTabSync() {
         logoutWithRedirect(500);
       }
 
-      // Case 2: User data removed (session cleared)
-      if (event.key === 'user' && event.oldValue && !event.newValue) {
+      // Case 2: auth store changed to signed out state in another tab
+      if (event.key === 'auth-storage' && event.newValue && isSignedOutAuthStorage(event.newValue)) {
         logoutWithRedirect(500);
       }
 

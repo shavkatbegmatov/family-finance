@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import {
@@ -12,6 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
+import { consumeIntendedPath, sanitizeInternalPath } from '../../utils/sessionNavigation';
 import type { LoginRequest } from '../../types';
 
 export function LoginPage() {
@@ -20,14 +21,13 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setAuth, isAuthenticated } = useAuthStore();
+  const storedRedirectRef = useRef<string | null>(consumeIntendedPath());
 
   const redirectTo = useMemo(() => {
     const from = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
-    const path = from?.pathname ? `${from.pathname}${from.search || ''}${from.hash || ''}` : '/';
-    if (path.startsWith('/login') || path.startsWith('/register')) {
-      return '/';
-    }
-    return path;
+    const statePath = from?.pathname ? `${from.pathname}${from.search || ''}${from.hash || ''}` : null;
+
+    return sanitizeInternalPath(statePath) || sanitizeInternalPath(storedRedirectRef.current) || '/';
   }, [location.state]);
 
   const {

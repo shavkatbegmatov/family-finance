@@ -3,11 +3,13 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useSessionMonitor } from '../../hooks/useSessionMonitor';
 import { useCrossTabSync } from '../../hooks/useCrossTabSync';
+import { useIdleSessionTimeout } from '../../hooks/useIdleSessionTimeout';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { BottomNav } from './BottomNav';
 import { PasswordChangeModal } from '../common/PasswordChangeModal';
+import { SessionTimeoutModal } from '../common/SessionTimeoutModal';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 
 export function MainLayout() {
@@ -16,6 +18,17 @@ export function MainLayout() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const isSidebarPinned = useFamilyTreeStore((s) => s.isSidebarPinned);
   const activeModal = useFamilyTreeStore((s) => s.activeModal);
+  const {
+    showWarning,
+    remainingSeconds,
+    continueSession,
+    logoutNow,
+  } = useIdleSessionTimeout({
+    enabled: isAuthenticated,
+    timeoutMs: 30 * 60 * 1000,
+    warningMs: 60 * 1000,
+    syncAcrossTabs: true,
+  });
 
   const isPinnedFamilyDetailOpen =
     location.pathname.startsWith('/family') &&
@@ -64,6 +77,13 @@ export function MainLayout() {
       <PasswordChangeModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
+      />
+
+      <SessionTimeoutModal
+        isOpen={showWarning}
+        remainingSeconds={remainingSeconds}
+        onContinue={continueSession}
+        onLogout={logoutNow}
       />
     </div>
   );

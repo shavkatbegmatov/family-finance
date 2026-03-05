@@ -25,6 +25,7 @@ import { useUIStore } from '../../store/uiStore';
 import { useNotificationsStore, type Notification } from '../../store/notificationsStore';
 import { authApi } from '../../api/auth.api';
 import { ROLES } from '../../config/constants';
+import { clearIntendedPath } from '../../utils/sessionNavigation';
 import { SearchCommand } from '../common/SearchCommand';
 import { WhatsNewModal } from '../common/WhatsNewModal';
 import { LATEST_VERSION } from '../../data/changelog';
@@ -183,6 +184,7 @@ export function Header() {
       // Continue with logout even if API call fails (network issues, etc.)
     } finally {
       // Clear frontend state and redirect
+      clearIntendedPath();
       logout();
       navigate('/login');
     }
