@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class FamilyGroupInviteCandidateDto {
     private Long userId;
+    private Long familyMemberId;
     private String username;
     private String fullName;
     private String email;

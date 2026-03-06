@@ -27,7 +27,7 @@ interface InviteFamilyMemberModalProps {
   onInvite: (username: string) => Promise<void>;
 }
 
-type InviteFilter = 'all' | 'ready' | 'with-tree' | 'external';
+type InviteFilter = 'all' | 'ready' | 'with-tree' | 'tree-only' | 'external';
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -49,7 +49,11 @@ const formatDateLabel = (date?: string | null) => {
   return new Intl.DateTimeFormat('uz-UZ').format(parsed);
 };
 
-const getCandidateState = (candidate: FamilyGroupInviteCandidate): 'ready' | 'current' | 'external' => {
+const getCandidateKey = (candidate: FamilyGroupInviteCandidate): string =>
+  candidate.userId ? `u:${candidate.userId}` : `m:${candidate.familyMemberId}`;
+
+const getCandidateState = (candidate: FamilyGroupInviteCandidate): 'ready' | 'current' | 'tree-only' | 'external' => {
+  if (!candidate.userId && candidate.familyMemberId) return 'tree-only';
   if (candidate.alreadyInCurrentGroup) return 'current';
   if (candidate.familyGroupId) return 'external';
   return 'ready';
@@ -63,6 +67,10 @@ const STATE_META = {
   current: {
     label: 'Guruhda bor',
     className: 'border-info/25 bg-info/10 text-info',
+  },
+  'tree-only': {
+    label: 'Faqat shajarada',
+    className: 'border-accent/25 bg-accent/10 text-accent',
   },
   external: {
     label: 'Boshqa oilada',
@@ -78,6 +86,7 @@ const FILTERS: Array<{
   { value: 'all', label: 'Barchasi', description: 'Topilgan barcha foydalanuvchilar' },
   { value: 'ready', label: "Qo'shish mumkin", description: "Hozirgi oilaga darhol qo'shiladi" },
   { value: 'with-tree', label: 'Shajara bor', description: "Shajara a'zosi bilan bog'langanlar" },
+  { value: 'tree-only', label: 'Accountsiz', description: "Shajarada bor, tizimda accounti yo'q" },
   { value: 'external', label: 'Boshqa oilada', description: "Hozircha tanlab bo'lmaydigan foydalanuvchilar" },
 ];
 
@@ -90,7 +99,7 @@ export function InviteFamilyMemberModal({
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<InviteFilter>('all');
-  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const helpPopoverRef = useRef<HTMLDivElement | null>(null);
@@ -144,6 +153,7 @@ export function InviteFamilyMemberModal({
       const state = getCandidateState(candidate);
       if (filter === 'ready') return state === 'ready';
       if (filter === 'with-tree') return Boolean(candidate.linkedFamilyMemberId);
+      if (filter === 'tree-only') return state === 'tree-only';
       if (filter === 'external') return state === 'external';
       return true;
     });
@@ -155,15 +165,15 @@ export function InviteFamilyMemberModal({
       return;
     }
 
-    const selectedStillVisible = filteredCandidates.some((candidate) => candidate.userId === selectedCandidateId);
+    const selectedStillVisible = filteredCandidates.some((candidate) => getCandidateKey(candidate) === selectedCandidateId);
     if (!selectedStillVisible) {
       const firstReady = filteredCandidates.find((candidate) => getCandidateState(candidate) === 'ready');
-      setSelectedCandidateId(firstReady?.userId ?? filteredCandidates[0].userId);
+      setSelectedCandidateId(firstReady ? getCandidateKey(firstReady) : getCandidateKey(filteredCandidates[0]));
     }
   }, [filteredCandidates, selectedCandidateId]);
 
-  const selectedCandidate = filteredCandidates.find((candidate) => candidate.userId === selectedCandidateId)
-    ?? candidates.find((candidate) => candidate.userId === selectedCandidateId)
+  const selectedCandidate = filteredCandidates.find((candidate) => getCandidateKey(candidate) === selectedCandidateId)
+    ?? candidates.find((candidate) => getCandidateKey(candidate) === selectedCandidateId)
     ?? null;
   const selectedState = selectedCandidate ? getCandidateState(selectedCandidate) : null;
   const canSubmit = Boolean(selectedCandidate && selectedState === 'ready' && !loading);
@@ -324,13 +334,14 @@ export function InviteFamilyMemberModal({
                 ) : (
                   <div className="space-y-2.5">
                     {filteredCandidates.map((candidate) => {
+                      const candidateKey = getCandidateKey(candidate);
                       const state = getCandidateState(candidate);
-                      const isSelected = selectedCandidateId === candidate.userId;
+                      const isSelected = selectedCandidateId === candidateKey;
                       const hasTreeLink = Boolean(candidate.linkedFamilyMemberId);
 
                       return (
                         <button
-                          key={candidate.userId}
+                          key={candidateKey}
                           type="button"
                           className={clsx(
                             'w-full rounded-2xl border px-3.5 py-3 text-left transition duration-200',
@@ -338,14 +349,16 @@ export function InviteFamilyMemberModal({
                               ? 'border-primary/25 bg-primary/5 shadow-[0_12px_28px_-20px_hsl(var(--p)/0.45)] ring-1 ring-primary/15'
                               : 'border-base-300/60 bg-base-100/95 hover:border-base-content/15 hover:bg-base-200/40 hover:shadow-[var(--shadow-soft)]'
                           )}
-                          onClick={() => setSelectedCandidateId(candidate.userId)}
+                          onClick={() => setSelectedCandidateId(candidateKey)}
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="truncate text-sm font-semibold">{candidate.fullName}</span>
-                              <span className="rounded-full border border-base-300/80 bg-base-100/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-base-content/55">
-                                @{candidate.username}
-                              </span>
+                              {candidate.username && (
+                                <span className="rounded-full border border-base-300/80 bg-base-100/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-base-content/55">
+                                  @{candidate.username}
+                                </span>
+                              )}
                             </div>
 
                             <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -363,6 +376,13 @@ export function InviteFamilyMemberModal({
                                   tone={STATE_META.current.className}
                                 />
                               )}
+                              {state === 'tree-only' && (
+                                <StatusPill
+                                  icon={<GitBranch className="h-2.5 w-2.5" />}
+                                  label={STATE_META['tree-only'].label}
+                                  tone={STATE_META['tree-only'].className}
+                                />
+                              )}
                               {state === 'external' && (
                                 <StatusPill
                                   icon={<ArrowRightLeft className="h-2.5 w-2.5" />}
@@ -370,7 +390,7 @@ export function InviteFamilyMemberModal({
                                   tone={STATE_META.external.className}
                                 />
                               )}
-                              {hasTreeLink && (
+                              {hasTreeLink && state !== 'tree-only' && (
                                 <StatusPill
                                   icon={<GitBranch className="h-2.5 w-2.5" />}
                                   label="Shajara"
@@ -439,7 +459,9 @@ export function InviteFamilyMemberModal({
                     <div className="flex flex-wrap items-start gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-semibold">{selectedCandidate.fullName}</p>
-                        <p className="mt-0.5 text-xs text-base-content/60">@{selectedCandidate.username}</p>
+                        {selectedCandidate.username && (
+                          <p className="mt-0.5 text-xs text-base-content/60">@{selectedCandidate.username}</p>
+                        )}
                       </div>
                       {selectedState === 'ready' && (
                         <div className="shrink-0">
@@ -451,6 +473,11 @@ export function InviteFamilyMemberModal({
                           <StatusPill label="Allaqachon guruhda" tone={STATE_META.current.className} />
                         </div>
                       )}
+                      {selectedState === 'tree-only' && (
+                        <div className="shrink-0">
+                          <StatusPill label="Faqat shajarada" tone={STATE_META['tree-only'].className} />
+                        </div>
+                      )}
                       {selectedState === 'external' && (
                         <div className="shrink-0">
                           <StatusPill label="Boshqa oilada" tone={STATE_META.external.className} />
@@ -459,10 +486,18 @@ export function InviteFamilyMemberModal({
                     </div>
 
                     <div className="mt-3 grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                      <InfoRow icon={<AtSign className="h-4 w-4" />} label="Username" value={`@${selectedCandidate.username}`} />
+                      {selectedCandidate.username && (
+                        <InfoRow icon={<AtSign className="h-4 w-4" />} label="Username" value={`@${selectedCandidate.username}`} />
+                      )}
                       <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefon" value={selectedCandidate.phone || "Ko'rsatilmagan"} />
-                      <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={selectedCandidate.email || "Ko'rsatilmagan"} />
-                      <InfoRow icon={<Users className="h-4 w-4" />} label="Holat" value={selectedCandidate.active ? 'Faol foydalanuvchi' : 'Nofaol foydalanuvchi'} />
+                      {selectedCandidate.username && (
+                        <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={selectedCandidate.email || "Ko'rsatilmagan"} />
+                      )}
+                      <InfoRow icon={<Users className="h-4 w-4" />} label="Holat" value={
+                        selectedState === 'tree-only'
+                          ? "Accounti yo'q (faqat shajarada)"
+                          : selectedCandidate.active ? 'Faol foydalanuvchi' : 'Nofaol foydalanuvchi'
+                      } />
                     </div>
                   </div>
 
@@ -471,6 +506,7 @@ export function InviteFamilyMemberModal({
                       'rounded-2xl border px-3.5 py-3 text-[13px] shadow-[inset_0_1px_0_hsl(var(--b1)/0.14)]',
                       selectedState === 'ready' && 'border-success/25 bg-success/10 text-success',
                       selectedState === 'current' && 'border-info/25 bg-info/10 text-info',
+                      selectedState === 'tree-only' && 'border-accent/25 bg-accent/10 text-accent',
                       selectedState === 'external' && 'border-warning/25 bg-warning/10 text-warning'
                     )}
                   >
@@ -484,6 +520,12 @@ export function InviteFamilyMemberModal({
                       <div className="flex items-start gap-2">
                         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <p>Bu foydalanuvchi oilangiz tarkibida allaqachon mavjud.</p>
+                      </div>
+                    )}
+                    {selectedState === 'tree-only' && (
+                      <div className="flex items-start gap-2">
+                        <GitBranch className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <p>Bu shaxs shajarada mavjud, lekin tizimga kirish accounti yo'q. Account yaratish uchun "Oila a'zolari" sahifasidan foydalaning.</p>
                       </div>
                     )}
                     {selectedState === 'external' && (

@@ -133,6 +133,7 @@ public class FamilyGroupService {
         String normalizedSearch = search != null ? search.trim() : "";
         PageRequest pageable = PageRequest.of(0, safeSize, Sort.by(Sort.Direction.ASC, "fullName"));
 
+        // 1. Tizim foydalanuvchilarini qidirish (users jadvalidan)
         List<User> users = normalizedSearch.isBlank()
                 ? userRepository.findByActive(true, pageable).getContent()
                 : userRepository.searchUsersByActive(normalizedSearch, true, pageable).getContent();
@@ -150,7 +151,8 @@ public class FamilyGroupService {
 
         Long currentGroupId = familyGroup.getId();
 
-        return filteredUsers.stream()
+        // User-based candidates
+        List<FamilyGroupInviteCandidateDto> results = filteredUsers.stream()
                 .map(user -> {
                     FamilyMember linkedMember = linkedMembersByUserId.get(user.getId());
                     FamilyGroup linkedGroup = user.getFamilyGroup();
@@ -181,6 +183,32 @@ public class FamilyGroupService {
                             .build();
                 })
                 .collect(Collectors.toList());
+
+        // 2. Shajaradagi accountsiz a'zolarni qo'shish (user = null, shu guruhga tegishli)
+        PageRequest memberPageable = PageRequest.of(0, safeSize, Sort.by(Sort.Direction.ASC, "firstName"));
+        List<FamilyMember> unlinkedMembers = normalizedSearch.isBlank()
+                ? familyMemberRepository.findUnlinkedByFamilyGroupId(currentGroupId, memberPageable).getContent()
+                : familyMemberRepository.searchUnlinkedByFamilyGroupId(normalizedSearch, currentGroupId, memberPageable).getContent();
+
+        for (FamilyMember fm : unlinkedMembers) {
+            results.add(FamilyGroupInviteCandidateDto.builder()
+                    .familyMemberId(fm.getId())
+                    .fullName(fm.getDisplayName())
+                    .phone(fm.getPhone())
+                    .active(fm.getIsActive())
+                    .alreadyInCurrentGroup(true)
+                    .linkedFamilyMemberId(fm.getId())
+                    .linkedFamilyMemberName(fm.getDisplayName())
+                    .linkedFamilyRole(fm.getRole() != null ? fm.getRole().name() : null)
+                    .linkedFamilyGender(fm.getGender() != null ? fm.getGender().name() : null)
+                    .linkedFamilyBirthDate(fm.getBirthDate())
+                    .linkedFamilyBirthPlace(fm.getBirthPlace())
+                    .linkedFamilyPhone(fm.getPhone())
+                    .linkedFamilyMemberActive(fm.getIsActive())
+                    .build());
+        }
+
+        return results;
     }
 
     @Transactional

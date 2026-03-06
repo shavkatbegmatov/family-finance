@@ -40,6 +40,23 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
 
        List<FamilyMember> findByFamilyGroupId(Long familyGroupId);
 
+       @Query("SELECT fm FROM FamilyMember fm WHERE fm.user IS NULL AND fm.isActive = true " +
+                     "AND fm.familyGroup.id = :familyGroupId")
+       Page<FamilyMember> findUnlinkedByFamilyGroupId(
+                     @Param("familyGroupId") Long familyGroupId,
+                     Pageable pageable);
+
+       @Query("SELECT fm FROM FamilyMember fm WHERE fm.user IS NULL AND fm.isActive = true " +
+                     "AND fm.familyGroup.id = :familyGroupId AND " +
+                     "(LOWER(fm.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "LOWER(fm.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "LOWER(fm.middleName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                     "LOWER(fm.phone) LIKE LOWER(CONCAT('%', :search, '%')))")
+       Page<FamilyMember> searchUnlinkedByFamilyGroupId(
+                     @Param("search") String search,
+                     @Param("familyGroupId") Long familyGroupId,
+                     Pageable pageable);
+
        @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
                      "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId) AND " +
                      "(LOWER(fm.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

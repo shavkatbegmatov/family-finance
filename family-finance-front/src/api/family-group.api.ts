@@ -36,6 +36,7 @@ export interface FamilyAddressRequest {
 
 export interface FamilyGroupInviteCandidate {
     userId: number;
+    familyMemberId?: number | null;
     username: string;
     fullName: string;
     email?: string;
