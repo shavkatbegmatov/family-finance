@@ -159,23 +159,23 @@ export function InviteFamilyMemberModal({
       >
         <div className="shrink-0 border-b border-base-200 px-6 py-5 lg:px-7 lg:py-6">
           <div className="flex items-start gap-3">
-          <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-            <UserPlus className="h-5 w-5" />
+            <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+              <UserPlus className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold">A'zo qo'shish</h3>
+              <p className="mt-1 text-sm text-base-content/60">
+                Foydalanuvchini ism, login, telefon yoki email orqali qidiring. Tanlangan nomzod uchun shajara
+                bog'lanishi ham shu yerning o'zida ko'rinadi.
+              </p>
+            </div>
+            {isFetching && !isLoading && (
+              <span className="loading loading-spinner loading-sm text-primary" aria-hidden="true" />
+            )}
           </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold">A'zo qo'shish</h3>
-            <p className="mt-1 text-sm text-base-content/60">
-              Foydalanuvchini ism, login, telefon yoki email orqali qidiring. Tanlangan nomzod uchun shajara
-              bog'lanishi ham shu yerning o'zida ko'rinadi.
-            </p>
-          </div>
-          {isFetching && !isLoading && (
-            <span className="loading loading-spinner loading-sm text-primary" aria-hidden="true" />
-          )}
-        </div>
         </div>
 
-        <div className="flex flex-1 min-h-0 flex-col overflow-y-auto px-6 py-5 lg:overflow-hidden lg:px-7 lg:py-6">
+        <div className="flex flex-1 min-h-0 flex-col overflow-y-auto px-6 py-5 lg:px-7 lg:py-6">
           <div className="shrink-0 space-y-4">
             <SearchInput
               label="Foydalanuvchi qidirish"
@@ -213,8 +213,8 @@ export function InviteFamilyMemberModal({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="flex min-h-0 flex-col rounded-2xl border border-base-300 bg-base-100">
+          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+            <div className="rounded-2xl border border-base-300 bg-base-100">
               <div className="shrink-0 flex items-center justify-between border-b border-base-200 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold">Topilgan foydalanuvchilar</p>
@@ -229,7 +229,7 @@ export function InviteFamilyMemberModal({
                 )}
               </div>
 
-              <div className="p-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+              <div className="p-3">
                 {isLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 4 }).map((_, index) => (
@@ -251,7 +251,7 @@ export function InviteFamilyMemberModal({
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {filteredCandidates.map((candidate) => {
                       const state = getCandidateState(candidate);
                       const isSelected = selectedCandidateId === candidate.userId;
@@ -262,82 +262,81 @@ export function InviteFamilyMemberModal({
                           key={candidate.userId}
                           type="button"
                           className={clsx(
-                            'w-full rounded-2xl border p-4 text-left transition',
+                            'w-full rounded-xl border px-3.5 py-3 text-left transition',
                             isSelected
-                              ? 'border-primary bg-primary/5 shadow-sm'
+                              ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/15'
                               : 'border-base-200 bg-base-100 hover:border-base-content/20 hover:bg-base-200/30'
                           )}
                           onClick={() => setSelectedCandidateId(candidate.userId)}
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="truncate font-semibold">{candidate.fullName}</span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="truncate text-sm font-semibold">{candidate.fullName}</span>
+                              <span className="rounded-full bg-base-200 px-2 py-0.5 text-[11px] font-medium text-base-content/60">
+                                @{candidate.username}
+                              </span>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
                                 {state === 'ready' && (
-                                  <span className="badge badge-success badge-sm gap-1">
-                                    <CheckCircle2 className="h-3 w-3" />
+                                  <span className="badge badge-success badge-xs gap-1">
+                                    <CheckCircle2 className="h-2.5 w-2.5" />
                                     Tayyor
                                   </span>
                                 )}
                                 {state === 'current' && (
-                                  <span className="badge badge-info badge-sm gap-1">
-                                    <Clock3 className="h-3 w-3" />
+                                  <span className="badge badge-info badge-xs gap-1">
+                                    <Clock3 className="h-2.5 w-2.5" />
                                     Guruhda bor
                                   </span>
                                 )}
                                 {state === 'external' && (
-                                  <span className="badge badge-warning badge-sm gap-1">
-                                    <ArrowRightLeft className="h-3 w-3" />
+                                  <span className="badge badge-warning badge-xs gap-1">
+                                    <ArrowRightLeft className="h-2.5 w-2.5" />
                                     Boshqa oilada
                                   </span>
                                 )}
                                 {hasTreeLink && (
-                                  <span className="badge badge-outline badge-sm gap-1">
-                                    <GitBranch className="h-3 w-3" />
+                                  <span className="badge badge-outline badge-xs gap-1">
+                                    <GitBranch className="h-2.5 w-2.5" />
                                     Shajara
                                   </span>
                                 )}
+                            </div>
+
+                            {(candidate.phone || candidate.email) && (
+                              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-base-content/55">
+                                {candidate.phone && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Phone className="h-3 w-3" />
+                                    {candidate.phone}
+                                  </span>
+                                )}
+                                {candidate.email && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    {candidate.email}
+                                  </span>
+                                )}
                               </div>
-                              <p className="mt-1 truncate text-sm text-base-content/60">
-                                @{candidate.username}
+                            )}
+
+                            {hasTreeLink && (
+                              <p className="mt-2 truncate text-[11px] text-base-content/65">
+                                <span className="font-medium text-base-content/75">{candidate.linkedFamilyMemberName}</span>
+                                <span className="mx-1 text-base-content/30">|</span>
+                                <span>{roleLabel(candidate.linkedFamilyRole)}</span>
+                                <span className="mx-1 text-base-content/30">|</span>
+                                <span>{genderLabel(candidate.linkedFamilyGender)}</span>
                               </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 flex flex-wrap gap-3 text-xs text-base-content/60">
-                            {candidate.phone && (
-                              <span className="inline-flex items-center gap-1.5">
-                                <Phone className="h-3.5 w-3.5" />
-                                {candidate.phone}
-                              </span>
                             )}
-                            {candidate.email && (
-                              <span className="inline-flex items-center gap-1.5">
-                                <Mail className="h-3.5 w-3.5" />
-                                {candidate.email}
-                              </span>
+
+                            {state === 'external' && candidate.familyGroupName && (
+                              <p className="mt-2 text-[11px] font-medium text-warning">
+                                Guruh: {candidate.familyGroupName}
+                              </p>
                             )}
                           </div>
-
-                          {hasTreeLink ? (
-                            <div className="mt-3 rounded-xl bg-base-200/60 px-3 py-2 text-xs text-base-content/70">
-                              <span className="font-medium text-base-content/80">{candidate.linkedFamilyMemberName}</span>
-                              <span className="mx-1.5 text-base-content/30">|</span>
-                              <span>{roleLabel(candidate.linkedFamilyRole)}</span>
-                              <span className="mx-1.5 text-base-content/30">|</span>
-                              <span>{genderLabel(candidate.linkedFamilyGender)}</span>
-                            </div>
-                          ) : (
-                            <div className="mt-3 rounded-xl border border-dashed border-base-300 px-3 py-2 text-xs text-base-content/50">
-                              Shajara bog'lanishi topilmadi
-                            </div>
-                          )}
-
-                          {state === 'external' && candidate.familyGroupName && (
-                            <div className="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
-                              Hozirgi guruhi: <span className="font-semibold">{candidate.familyGroupName}</span>
-                            </div>
-                          )}
                         </button>
                       );
                     })}
@@ -346,7 +345,7 @@ export function InviteFamilyMemberModal({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-base-300 bg-base-200/30 p-4">
+            <div className="rounded-2xl border border-base-300 bg-base-200/30 p-3.5">
               <p className="shrink-0 text-sm font-semibold">Tanlangan foydalanuvchi</p>
               {!selectedCandidate ? (
                 <div className="mt-4 flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
@@ -359,25 +358,25 @@ export function InviteFamilyMemberModal({
                   </div>
                 </div>
               ) : (
-                <div className="mt-4 space-y-4">
-                  <div className="rounded-2xl bg-base-100 p-4 shadow-sm">
+                <div className="mt-3 space-y-3">
+                  <div className="rounded-xl bg-base-100 p-3.5 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-lg font-semibold">{selectedCandidate.fullName}</p>
-                        <p className="mt-1 text-sm text-base-content/60">@{selectedCandidate.username}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold">{selectedCandidate.fullName}</p>
+                        <p className="mt-0.5 text-xs text-base-content/60">@{selectedCandidate.username}</p>
                       </div>
                       {selectedState === 'ready' && (
-                        <span className="badge badge-success badge-md">Qo'shiladi</span>
+                        <span className="badge badge-success badge-sm">Qo'shiladi</span>
                       )}
                       {selectedState === 'current' && (
-                        <span className="badge badge-info badge-md">Allaqachon guruhda</span>
+                        <span className="badge badge-info badge-sm">Allaqachon guruhda</span>
                       )}
                       {selectedState === 'external' && (
-                        <span className="badge badge-warning badge-md">Boshqa oilada</span>
+                        <span className="badge badge-warning badge-sm">Boshqa oilada</span>
                       )}
                     </div>
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       <InfoRow icon={<AtSign className="h-4 w-4" />} label="Username" value={`@${selectedCandidate.username}`} />
                       <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefon" value={selectedCandidate.phone || "Ko'rsatilmagan"} />
                       <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={selectedCandidate.email || "Ko'rsatilmagan"} />
@@ -387,7 +386,7 @@ export function InviteFamilyMemberModal({
 
                   <div
                     className={clsx(
-                      'rounded-2xl border px-4 py-3 text-sm',
+                      'rounded-xl border px-3.5 py-3 text-[13px]',
                       selectedState === 'ready' && 'border-success/30 bg-success/10 text-success',
                       selectedState === 'current' && 'border-info/30 bg-info/10 text-info',
                       selectedState === 'external' && 'border-warning/30 bg-warning/10 text-warning'
@@ -395,38 +394,35 @@ export function InviteFamilyMemberModal({
                   >
                     {selectedState === 'ready' && (
                       <div className="flex items-start gap-2">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                        <p>
-                          Bu foydalanuvchini hozirgi oilaga qo'shish mumkin. Qo'shilgach, uning accounti va mavjud
-                          shajara bog'lanishi ushbu oilaga ishlaydi.
-                        </p>
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <p>Foydalanuvchini darhol hozirgi oilaga qo'shish mumkin.</p>
                       </div>
                     )}
                     {selectedState === 'current' && (
                       <div className="flex items-start gap-2">
-                        <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                        <p>Bu foydalanuvchi sizning oilangiz tarkibida allaqachon mavjud.</p>
+                        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <p>Bu foydalanuvchi oilangiz tarkibida allaqachon mavjud.</p>
                       </div>
                     )}
                     {selectedState === 'external' && (
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <p>
-                          Bu foydalanuvchi <span className="font-semibold">{selectedCandidate.familyGroupName}</span> guruhiga
-                          biriktirilgan. Xavfsizlik uchun avval u o'sha guruhdan chiqarilishi kerak.
+                          <span className="font-semibold">{selectedCandidate.familyGroupName}</span> guruhiga biriktirilgan.
+                          Avval o'sha guruhdan chiqarilishi kerak.
                         </p>
                       </div>
                     )}
                   </div>
 
-                  <div className="rounded-2xl bg-base-100 p-4 shadow-sm">
+                  <div className="rounded-xl bg-base-100 p-3.5 shadow-sm">
                     <div className="flex items-center gap-2">
-                      <GitBranch className="h-4 w-4 text-primary" />
-                      <p className="font-semibold">Shajara ma'lumotlari</p>
+                      <GitBranch className="h-3.5 w-3.5 text-primary" />
+                      <p className="text-sm font-semibold">Shajara ma'lumotlari</p>
                     </div>
 
                     {selectedCandidate.linkedFamilyMemberId ? (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
                         <InfoRow label="Shaxs" value={selectedCandidate.linkedFamilyMemberName || "Ko'rsatilmagan"} />
                         <InfoRow label="Rol" value={roleLabel(selectedCandidate.linkedFamilyRole)} />
                         <InfoRow label="Jinsi" value={genderLabel(selectedCandidate.linkedFamilyGender)} />
@@ -435,9 +431,8 @@ export function InviteFamilyMemberModal({
                         <InfoRow label="Shajara telefoni" value={selectedCandidate.linkedFamilyPhone || "Ko'rsatilmagan"} />
                       </div>
                     ) : (
-                      <div className="mt-4 rounded-2xl border border-dashed border-base-300 px-4 py-5 text-sm text-base-content/55">
-                        Bu foydalanuvchi hali shajara a'zosi bilan bog'lanmagan. Qo'shgandan keyin kerak bo'lsa shajara
-                        profilini biriktirib, rol va nasab ma'lumotlarini to'ldirishingiz mumkin.
+                      <div className="mt-3 rounded-xl border border-dashed border-base-300 px-3.5 py-3 text-[13px] text-base-content/55">
+                        Bu foydalanuvchi hali shajara a'zosi bilan bog'lanmagan.
                       </div>
                     )}
                   </div>
@@ -466,23 +461,23 @@ export function InviteFamilyMemberModal({
         </div>
         <div className="shrink-0 border-t border-base-200 px-6 py-4 lg:px-7">
           <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Bekor qilish
-          </button>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={!canSubmit}
-          >
-            {loading && <span className="loading loading-spinner loading-xs" />}
-            Qo'shish
-          </button>
-        </div>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={onClose}
+              disabled={loading}
+            >
+              Bekor qilish
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={!canSubmit}
+            >
+              {loading && <span className="loading loading-spinner loading-xs" />}
+              Qo'shish
+            </button>
+          </div>
         </div>
       </form>
     </ModalPortal>
@@ -499,12 +494,12 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="rounded-xl bg-base-200/50 px-3 py-2.5">
-      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">
+    <div className="rounded-lg bg-base-200/60 px-3 py-2">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
         {icon}
         <span>{label}</span>
       </p>
-      <p className="mt-1 text-sm font-medium text-base-content">{value}</p>
+      <p className="mt-1 text-[13px] font-medium leading-tight text-base-content">{value}</p>
     </div>
   );
 }
