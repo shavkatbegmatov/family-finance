@@ -76,8 +76,6 @@ export function HouseholdPage() {
       toast.success(`"${username}" guruhga qo'shildi`);
       setIsAddModalOpen(false);
       await loadData();
-    } catch (error) {
-      throw error;
     } finally {
       setIsAdding(false);
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { CreditCard, Nfc } from 'lucide-react';
 import { banksApi, type Bank } from '../../api/banks.api';
@@ -31,33 +31,54 @@ export function CreditCardInput({
 
     // Auto-detect bank via API when card number is entered (debounced or strictly monitored)
     const cleanNumber = cardNumber.replace(/\D/g, '');
+    const binPrefix = cleanNumber.slice(0, 6);
+    const latestCardContextRef = useRef({ cardNumber, cardType });
+    const onCardNumberChangeRef = useRef(onCardNumberChange);
+
+    useEffect(() => {
+        latestCardContextRef.current = { cardNumber, cardType };
+    }, [cardNumber, cardType]);
+
+    useEffect(() => {
+        onCardNumberChangeRef.current = onCardNumberChange;
+    }, [onCardNumberChange]);
 
     useEffect(() => {
         let active = true;
 
         // faqat kamida 6 xona terilganda izlaymiz (BIN uzunligi)
-        if (cleanNumber.length >= 6) {
-            banksApi.resolveByCardNumber(cleanNumber)
+        if (binPrefix.length >= 6) {
+            banksApi.resolveByCardNumber(binPrefix)
                 .then(response => {
-                    if (active && response.data) {
-                        setLocalBank(response.data);
-                        // Inform parent about the detected bank so they can update the Select dropdown
-                        onCardNumberChange(cardNumber, cardType, response.data);
-                    } else if (active && !response.data) {
-                        setLocalBank(null);
-                        onCardNumberChange(cardNumber, cardType, null);
+                    if (!active) {
+                        return;
                     }
+
+                    const detectedBank = response.data ?? null;
+                    const { cardNumber: latestCardNumber, cardType: latestCardType } = latestCardContextRef.current;
+
+                    setLocalBank(detectedBank);
+                    // Inform parent about the detected bank so they can update the Select dropdown
+                    onCardNumberChangeRef.current(latestCardNumber, latestCardType, detectedBank);
                 })
                 .catch(err => {
                     console.error("Bankni aniqlashda xatolik:", err);
-                    if (active) setLocalBank(null);
+                    if (!active) {
+                        return;
+                    }
+
+                    const { cardNumber: latestCardNumber, cardType: latestCardType } = latestCardContextRef.current;
+                    setLocalBank(null);
+                    onCardNumberChangeRef.current(latestCardNumber, latestCardType, null);
                 });
         } else {
             setLocalBank(null);
+            const { cardNumber: latestCardNumber, cardType: latestCardType } = latestCardContextRef.current;
+            onCardNumberChangeRef.current(latestCardNumber, latestCardType, null);
         }
 
         return () => { active = false; };
-    }, [cleanNumber.substring(0, 6)]); // faqat dastlabki 6 tasi o'zgarganda ishlaydi
+    }, [binPrefix]); // faqat dastlabki 6 tasi o'zgarganda ishlaydi
 
     // Helper detectCardType as before
     const detectCardType = (number: string): string => {

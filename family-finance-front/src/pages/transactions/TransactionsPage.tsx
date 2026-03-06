@@ -157,8 +157,7 @@ export function TransactionsPage() {
 
   useEffect(() => {
     void loadTransactions(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, filters]);
+  }, [loadTransactions]);
 
   // Tab change -> reset page
   const handleTabChange = (tab: TabType) => {
@@ -304,8 +303,7 @@ export function TransactionsPage() {
   }, [form.type, categories]);
 
   // Table columns
-  const columns: Column<Transaction>[] = useMemo(
-    () => [
+  const columns: Column<Transaction>[] = [
       {
         key: 'transactionDate',
         header: 'Sana',
@@ -398,10 +396,7 @@ export function TransactionsPage() {
           </div>
         ),
       },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+    ];
 
   return (
     <div className="space-y-6">
