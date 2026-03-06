@@ -2,9 +2,12 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupMemberDto;
+import uz.familyfinance.api.dto.familygroup.FamilyGroupInviteCandidateDto;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupResponse;
 import uz.familyfinance.api.dto.response.HouseholdDashboardResponse;
 import uz.familyfinance.api.entity.Account;
@@ -95,14 +98,7 @@ public class FamilyGroupService {
 
     @Transactional
     public void addMember(Long adminUserId, String usernameToAdd) {
-        User admin = userRepository.findById(adminUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Admin topilmadi"));
-
-        FamilyGroup familyGroup = admin.getFamilyGroup();
-        if (familyGroup == null || !familyGroup.getAdmin().getId().equals(adminUserId)) {
-            throw new IllegalArgumentException(
-                    "Siz faqat o'z oila guruhingizga a'zo qo'sha olasiz va guruh admini bo'lishingiz kerak");
-        }
+        FamilyGroup familyGroup = requireAdminFamilyGroup(adminUserId);
 
         User userToAdd = userRepository.findByUsername(usernameToAdd)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -110,6 +106,11 @@ public class FamilyGroupService {
 
         if (userToAdd.getFamilyGroup() != null && userToAdd.getFamilyGroup().getId().equals(familyGroup.getId())) {
             throw new IllegalArgumentException("Bu foydalanuvchi allaqachon oilangiz a'zosi");
+        }
+
+        if (userToAdd.getFamilyGroup() != null) {
+            throw new IllegalArgumentException(
+                    "Bu foydalanuvchi boshqa oila guruhiga a'zo. Avval o'sha guruhdan chiqarilishi kerak");
         }
 
         userToAdd.setFamilyGroup(familyGroup);
@@ -124,15 +125,67 @@ public class FamilyGroupService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<FamilyGroupInviteCandidateDto> searchInviteCandidates(Long adminUserId, String search, int size) {
+        FamilyGroup familyGroup = requireAdminFamilyGroup(adminUserId);
+
+        int safeSize = Math.max(1, Math.min(size, 25));
+        String normalizedSearch = search != null ? search.trim() : "";
+        PageRequest pageable = PageRequest.of(0, safeSize, Sort.by(Sort.Direction.ASC, "fullName"));
+
+        List<User> users = normalizedSearch.isBlank()
+                ? userRepository.findByActive(true, pageable).getContent()
+                : userRepository.searchUsersByActive(normalizedSearch, true, pageable).getContent();
+
+        List<User> filteredUsers = users.stream()
+                .filter(user -> !user.getId().equals(adminUserId))
+                .collect(Collectors.toList());
+
+        List<Long> userIds = filteredUsers.stream().map(User::getId).collect(Collectors.toList());
+        Map<Long, FamilyMember> linkedMembersByUserId = userIds.isEmpty()
+                ? Map.of()
+                : familyMemberRepository.findByUserIdIn(userIds).stream()
+                        .filter(member -> member.getUser() != null)
+                        .collect(Collectors.toMap(member -> member.getUser().getId(), member -> member));
+
+        Long currentGroupId = familyGroup.getId();
+
+        return filteredUsers.stream()
+                .map(user -> {
+                    FamilyMember linkedMember = linkedMembersByUserId.get(user.getId());
+                    FamilyGroup linkedGroup = user.getFamilyGroup();
+                    boolean alreadyInCurrentGroup = linkedGroup != null && currentGroupId.equals(linkedGroup.getId());
+
+                    return FamilyGroupInviteCandidateDto.builder()
+                            .userId(user.getId())
+                            .username(user.getUsername())
+                            .fullName(user.getFullName())
+                            .email(user.getEmail())
+                            .phone(user.getPhone())
+                            .active(user.getActive())
+                            .familyGroupId(linkedGroup != null ? linkedGroup.getId() : null)
+                            .familyGroupName(linkedGroup != null ? linkedGroup.getName() : null)
+                            .alreadyInCurrentGroup(alreadyInCurrentGroup)
+                            .linkedFamilyMemberId(linkedMember != null ? linkedMember.getId() : null)
+                            .linkedFamilyMemberName(linkedMember != null ? linkedMember.getDisplayName() : null)
+                            .linkedFamilyRole(linkedMember != null && linkedMember.getRole() != null
+                                    ? linkedMember.getRole().name()
+                                    : null)
+                            .linkedFamilyGender(linkedMember != null && linkedMember.getGender() != null
+                                    ? linkedMember.getGender().name()
+                                    : null)
+                            .linkedFamilyBirthDate(linkedMember != null ? linkedMember.getBirthDate() : null)
+                            .linkedFamilyBirthPlace(linkedMember != null ? linkedMember.getBirthPlace() : null)
+                            .linkedFamilyPhone(linkedMember != null ? linkedMember.getPhone() : null)
+                            .linkedFamilyMemberActive(linkedMember != null ? linkedMember.getIsActive() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public void removeMember(Long adminUserId, Long familyMemberId) {
-        User admin = userRepository.findById(adminUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("Admin topilmadi"));
-
-        FamilyGroup familyGroup = admin.getFamilyGroup();
-        if (familyGroup == null || !familyGroup.getAdmin().getId().equals(adminUserId)) {
-            throw new IllegalArgumentException("Siz Oila guruhi admini emassiz");
-        }
+        FamilyGroup familyGroup = requireAdminFamilyGroup(adminUserId);
 
         FamilyMember member = familyMemberRepository.findById(familyMemberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi"));
@@ -332,5 +385,18 @@ public class FamilyGroupService {
                 .totalMonthlyIncome(totalIncome)
                 .totalMonthlyExpense(totalExpense)
                 .build();
+    }
+
+    private FamilyGroup requireAdminFamilyGroup(Long adminUserId) {
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Admin topilmadi"));
+
+        FamilyGroup familyGroup = admin.getFamilyGroup();
+        if (familyGroup == null || familyGroup.getAdmin() == null || !familyGroup.getAdmin().getId().equals(adminUserId)) {
+            throw new IllegalArgumentException(
+                    "Siz faqat o'z oila guruhingizga a'zo qo'sha olasiz va guruh admini bo'lishingiz kerak");
+        }
+
+        return familyGroup;
     }
 }

@@ -8,6 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupAddMemberRequest;
+import uz.familyfinance.api.dto.familygroup.FamilyGroupInviteCandidateDto;
 import uz.familyfinance.api.dto.familygroup.FamilyGroupResponse;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.HouseholdDashboardResponse;
@@ -15,6 +16,8 @@ import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.RequiresPermission;
 import uz.familyfinance.api.service.FamilyGroupService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/v1/family-groups")
@@ -33,11 +36,23 @@ public class FamilyGroupController {
 
     @PostMapping("/members")
     @Operation(summary = "Oilaga a'zo qo'shish", description = "Foydalanuvchi logini (username) orqali uni oilaga qo'shish")
+    @RequiresPermission(PermissionCode.FAMILY_CREATE)
     public ResponseEntity<ApiResponse<Void>> addMember(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @RequestBody @Valid FamilyGroupAddMemberRequest request) {
         familyGroupService.addMember(currentUser.getId(), request.getUsername());
         return ResponseEntity.ok(ApiResponse.success("A'zo muvaffaqiyatli qo'shildi"));
+    }
+
+    @GetMapping("/invite-candidates")
+    @Operation(summary = "Oilaga qo'shish uchun foydalanuvchi qidirish", description = "Foydalanuvchi va shajara ma'lumotlari bilan birga taklif nomzodlarini qaytaradi")
+    @RequiresPermission(PermissionCode.FAMILY_CREATE)
+    public ResponseEntity<ApiResponse<List<FamilyGroupInviteCandidateDto>>> searchInviteCandidates(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "12") int size) {
+        return ResponseEntity.ok(ApiResponse.success(
+                familyGroupService.searchInviteCandidates(currentUser.getId(), search, size)));
     }
 
     @DeleteMapping("/members/{memberId}")

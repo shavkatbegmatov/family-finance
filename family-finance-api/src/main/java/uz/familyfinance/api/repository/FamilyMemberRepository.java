@@ -10,6 +10,7 @@ import uz.familyfinance.api.enums.Gender;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Collection;
 
 public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long> {
        Page<FamilyMember> findByIsActiveTrue(Pageable pageable);
@@ -17,6 +18,8 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
        List<FamilyMember> findByIsActiveTrue();
 
        Optional<FamilyMember> findByUserId(Long userId);
+
+       List<FamilyMember> findByUserIdIn(Collection<Long> userIds);
 
        @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
                      "(LOWER(fm.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
