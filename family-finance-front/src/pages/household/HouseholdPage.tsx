@@ -22,9 +22,8 @@ import type { HouseholdDashboardResponse, HouseholdMemberSummary, HouseholdAccou
 import { familyGroupApi } from '../../api/family-group.api';
 import { formatCurrency, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { useAuthStore } from '../../store/authStore';
-import { ModalPortal } from '../../components/common/Modal';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
-import { TextInput } from '../../components/ui/TextInput';
+import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
 
 const roleLabel = (role: string): string =>
   (FAMILY_ROLES as Record<string, { label: string }>)[role]?.label || role;
@@ -46,7 +45,6 @@ export function HouseholdPage() {
 
   // A'zo qo'shish
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [inviteUsername, setInviteUsername] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
   // A'zo o'chirish
@@ -71,18 +69,15 @@ export function HouseholdPage() {
     loadData();
   }, [loadData]);
 
-  const handleAddMember = async () => {
-    const trimmed = inviteUsername.trim();
-    if (!trimmed) return;
+  const handleAddMember = async (username: string) => {
     setIsAdding(true);
     try {
-      await familyGroupApi.addMember(trimmed);
-      toast.success(`"${trimmed}" guruhga qo'shildi`);
+      await familyGroupApi.addMember(username);
+      toast.success(`"${username}" guruhga qo'shildi`);
       setIsAddModalOpen(false);
-      setInviteUsername('');
-      loadData();
-    } catch {
-      toast.error("A'zo qo'shishda xatolik yuz berdi");
+      await loadData();
+    } catch (error) {
+      throw error;
     } finally {
       setIsAdding(false);
     }
@@ -251,40 +246,16 @@ export function HouseholdPage() {
         </div>
       )}
 
-      {/* A'zo qo'shish modali */}
-      <ModalPortal isOpen={isAddModalOpen} onClose={() => { if (!isAdding) { setIsAddModalOpen(false); setInviteUsername(''); } }}>
-        <div className="w-full max-w-sm rounded-2xl bg-base-100 p-6 shadow-2xl">
-          <h3 className="text-lg font-bold">A'zo qo'shish</h3>
-          <p className="mt-1 text-sm text-base-content/60">Foydalanuvchi username'ini kiriting</p>
-          <div className="mt-4">
-            <TextInput
-              value={inviteUsername}
-              onChange={setInviteUsername}
-              placeholder="username"
-              autoFocus
-              disabled={isAdding}
-              leadingIcon={<User className="h-4 w-4" />}
-            />
-          </div>
-          <div className="mt-5 flex gap-3">
-            <button
-              className="btn btn-ghost flex-1"
-              onClick={() => { setIsAddModalOpen(false); setInviteUsername(''); }}
-              disabled={isAdding}
-            >
-              Bekor qilish
-            </button>
-            <button
-              className="btn btn-primary flex-1"
-              onClick={handleAddMember}
-              disabled={isAdding || !inviteUsername.trim()}
-            >
-              {isAdding && <span className="loading loading-spinner loading-sm" />}
-              Qo'shish
-            </button>
-          </div>
-        </div>
-      </ModalPortal>
+      <InviteFamilyMemberModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          if (!isAdding) {
+            setIsAddModalOpen(false);
+          }
+        }}
+        onInvite={handleAddMember}
+        loading={isAdding}
+      />
 
       {/* A'zo o'chirish tasdiqlash modali */}
       <ConfirmModal

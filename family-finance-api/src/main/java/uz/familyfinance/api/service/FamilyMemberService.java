@@ -487,6 +487,7 @@ public class FamilyMemberService {
     private FamilyMemberResponse toResponse(FamilyMember m, CredentialsInfo credentials) {
         FamilyMemberResponse r = new FamilyMemberResponse();
         r.setId(m.getId());
+        r.setFamilyGroupId(m.getFamilyGroup() != null ? m.getFamilyGroup().getId() : null);
         r.setFirstName(m.getFirstName());
         r.setLastName(m.getLastName());
         r.setMiddleName(m.getMiddleName());

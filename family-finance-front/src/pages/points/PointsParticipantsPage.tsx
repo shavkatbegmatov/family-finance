@@ -32,6 +32,11 @@ const emptyForm: ParticipantFormState = {
   birthDate: '',
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+  const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+  return typeof message === 'string' && message.trim().length > 0 ? message : fallback;
+};
+
 export function PointsParticipantsPage() {
   const { canManagePoints, canViewPoints } = usePermission();
 
@@ -54,12 +59,12 @@ export function PointsParticipantsPage() {
   const [linkSubmitting, setLinkSubmitting] = useState(false);
   const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
 
-  const { options: memberOptions } = useFamilyMemberOptions();
-
   const selectedParticipant = useMemo(
     () => participants.find((p) => p.id === linkParticipantId) ?? null,
     [participants, linkParticipantId],
   );
+  const currentFamilyGroupId = selectedParticipant?.familyGroupId ?? participants[0]?.familyGroupId;
+  const { options: memberOptions } = useFamilyMemberOptions({ familyGroupId: currentFamilyGroupId });
 
   const memberLinkedToAnotherParticipant = useMemo(() => {
     if (!linkMemberId || !linkParticipantId) return null;
@@ -193,8 +198,8 @@ export function PointsParticipantsPage() {
       toast.success(linkReasonRequired ? "Bog'lanish qayta yangilandi" : "Oila a'zosiga bog'landi");
       closeLinkModal();
       loadParticipants();
-    } catch {
-      toast.error("Bog'lashda xatolik");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Bog'lashda xatolik"));
     } finally {
       setLinkSubmitting(false);
     }
@@ -212,8 +217,8 @@ export function PointsParticipantsPage() {
       toast.success("Bog'lanish uzildi");
       closeLinkModal();
       loadParticipants();
-    } catch {
-      toast.error("Bog'lanishni uzishda xatolik");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Bog'lanishni uzishda xatolik"));
     } finally {
       setUnlinkSubmitting(false);
     }

@@ -5,9 +5,9 @@ import { Shield, UserPlus, Trash2, Users, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { familyGroupApi } from '../../api/family-group.api';
 import type { FamilyGroupMemberDto, FamilyGroupResponse } from '../../api/family-group.api';
-import { TextInput } from '../../components/ui/TextInput';
 import { useAuthStore } from '../../store/authStore';
 import { ModalPortal } from '../../components/common/Modal';
+import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
 import type { ApiResponse } from '../../types';
 
 interface AddressHistoryItem {
@@ -23,7 +23,6 @@ export function FamilyGroupSettings() {
     const queryClient = useQueryClient();
     const currentUser = useAuthStore((s) => s.user);
 
-    const [inviteUsername, setInviteUsername] = useState('');
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
     const { data: groupData, isLoading } = useQuery({
@@ -40,10 +39,6 @@ export function FamilyGroupSettings() {
             toast.success('A\'zo muvaffaqiyatli qo\'shildi');
             queryClient.invalidateQueries({ queryKey: ['myFamilyGroup'] });
             setIsInviteModalOpen(false);
-            setInviteUsername('');
-        },
-        onError: (err: { response?: { data?: { message?: string } } }) => {
-            toast.error(err.response?.data?.message || 'Foydalanuvchini qo\'shishda xatolik');
         },
     });
 
@@ -89,9 +84,8 @@ export function FamilyGroupSettings() {
         },
     });
 
-    const handleInvite = () => {
-        if (!inviteUsername.trim()) return;
-        inviteMutation.mutate(inviteUsername.trim());
+    const handleInvite = async (username: string) => {
+        await inviteMutation.mutateAsync(username);
     };
 
     const handleSaveAddress = () => {
@@ -251,43 +245,12 @@ export function FamilyGroupSettings() {
                 </table>
             </div>
 
-            {/* Invite Modal */}
-            <ModalPortal isOpen={isInviteModalOpen} onClose={() => setIsInviteModalOpen(false)}>
-                <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl p-6">
-                    <h3 className="font-bold text-lg mb-2">Yangi a'zo qo'shish</h3>
-                    <p className="text-sm text-base-content/60 mb-6">
-                        Yangi a'zo qo'shish uchun uning tizimdagi logini (username)ni kiriting. U sizning guruhga qo'shiladi va oilaviy byudjyetga ega bo'ladi.
-                    </p>
-
-                    <div className="space-y-4">
-                        <TextInput
-                            label="Foydalanuvchi logini"
-                            placeholder="Masalan: 998901234567"
-                            value={inviteUsername}
-                            onChange={(val) => setInviteUsername(val)}
-                            disabled={inviteMutation.isPending}
-                        />
-                    </div>
-
-                    <div className="mt-6 flex justify-end gap-2">
-                        <button
-                            className="btn btn-ghost"
-                            onClick={() => setIsInviteModalOpen(false)}
-                            disabled={inviteMutation.isPending}
-                        >
-                            Bekor qilish
-                        </button>
-                        <button
-                            className="btn btn-primary"
-                            onClick={handleInvite}
-                            disabled={inviteMutation.isPending || !inviteUsername.trim()}
-                        >
-                            {inviteMutation.isPending && <span className="loading loading-spinner text-primary"></span>}
-                            Qo'shish
-                        </button>
-                    </div>
-                </div>
-            </ModalPortal>
+            <InviteFamilyMemberModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                onInvite={handleInvite}
+                loading={inviteMutation.isPending}
+            />
 
             {/* Update Address Modal */}
             <ModalPortal isOpen={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)}>
