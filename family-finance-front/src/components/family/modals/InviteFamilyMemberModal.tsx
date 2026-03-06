@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import {
@@ -13,6 +13,7 @@ import {
   Phone,
   UserPlus,
   Users,
+  X,
 } from 'lucide-react';
 import { familyGroupApi, type FamilyGroupInviteCandidate } from '../../../api/family-group.api';
 import { FAMILY_ROLES, GENDERS } from '../../../config/constants';
@@ -91,6 +92,8 @@ export function InviteFamilyMemberModal({
   const [filter, setFilter] = useState<InviteFilter>('all');
   const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const helpPopoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -99,8 +102,22 @@ export function InviteFamilyMemberModal({
       setFilter('all');
       setSelectedCandidateId(null);
       setSubmitError(null);
+      setIsHelpOpen(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isHelpOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!helpPopoverRef.current?.contains(event.target as Node)) {
+        setIsHelpOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [isHelpOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -172,22 +189,59 @@ export function InviteFamilyMemberModal({
         className="flex w-[min(80rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] border border-base-300/70 bg-base-100 shadow-[var(--shadow-strong)] lg:max-h-[calc(100vh-3rem)]"
         onSubmit={handleSubmit}
       >
-        <div className="shrink-0 border-b border-base-300/60 bg-base-100/90 px-6 py-5 backdrop-blur lg:px-7 lg:py-6">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-[var(--shadow-soft)]">
-              <UserPlus className="h-5 w-5" />
+        <div className="shrink-0 border-b border-base-300/60 bg-base-100/90 px-5 py-4 backdrop-blur lg:px-6 lg:py-[1.125rem]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="mt-0.5 grid h-10 w-10 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-[var(--shadow-soft)]">
+                <UserPlus className="h-[18px] w-[18px]" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-base-content/45">Family Invite</p>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <h3 className="text-lg font-semibold tracking-tight text-base-content">A'zo qo'shish</h3>
+                  <div className="relative" ref={helpPopoverRef}>
+                    <button
+                      type="button"
+                      className={clsx(
+                        'btn btn-ghost btn-xs btn-circle text-base-content/55 hover:bg-base-200 hover:text-primary',
+                        isHelpOpen && 'bg-base-200 text-primary'
+                      )}
+                      aria-label="Qidiruv bo'yicha yordam"
+                      aria-expanded={isHelpOpen}
+                      onClick={() => setIsHelpOpen((current) => !current)}
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                    {isHelpOpen && (
+                      <div
+                        className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-[min(22rem,calc(100vw-4rem))] rounded-2xl border border-base-300/70 bg-base-100 p-3.5 shadow-[var(--shadow-strong)]"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/45">
+                          Qidiruv bo'yicha yordam
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-base-content/70">
+                          Foydalanuvchini ism, login, telefon yoki email orqali qidiring. Tanlangan nomzod uchun
+                          shajara bog'lanishi shu oynaning o'zida ko'rinadi.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {isFetching && !isLoading && (
+                    <span className="loading loading-spinner loading-xs text-primary" aria-hidden="true" />
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-base-content/45">Family Invite</p>
-              <h3 className="mt-1 text-xl font-semibold tracking-tight text-base-content">A'zo qo'shish</h3>
-              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-base-content/60">
-                Foydalanuvchini ism, login, telefon yoki email orqali qidiring. Tanlangan nomzod uchun shajara
-                bog'lanishi ham shu yerning o'zida ko'rinadi.
-              </p>
-            </div>
-            {isFetching && !isLoading && (
-              <span className="loading loading-spinner loading-sm text-primary" aria-hidden="true" />
-            )}
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-circle shrink-0 text-base-content/55 hover:bg-base-200 hover:text-base-content"
+              aria-label="Yopish"
+              onClick={onClose}
+              disabled={loading}
+            >
+              <X className="h-[18px] w-[18px]" />
+            </button>
           </div>
         </div>
 
@@ -229,8 +283,8 @@ export function InviteFamilyMemberModal({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="surface-card rounded-2xl border-base-300/70 shadow-[var(--shadow-soft)]">
+          <div className="mt-4 grid min-h-[34rem] gap-4 lg:items-start lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <div className="surface-card flex min-h-[26rem] flex-col rounded-2xl border-base-300/70 shadow-[var(--shadow-soft)]">
               <div className="shrink-0 flex items-center justify-between border-b border-base-300/60 px-4 py-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">Candidates</p>
@@ -246,7 +300,7 @@ export function InviteFamilyMemberModal({
                 )}
               </div>
 
-              <div className="p-3">
+              <div className="flex-1 min-h-[26rem] p-3">
                 {isLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 4 }).map((_, index) => (
@@ -366,11 +420,11 @@ export function InviteFamilyMemberModal({
               </div>
             </div>
 
-            <div className="surface-card rounded-2xl border-base-300/70 p-3.5 shadow-[var(--shadow-soft)]">
+            <div className="surface-card flex min-h-[26rem] min-w-0 flex-col rounded-2xl border-base-300/70 p-3.5 shadow-[var(--shadow-soft)]">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">Selection</p>
               <p className="mt-1 text-sm font-semibold tracking-tight text-base-content">Tanlangan foydalanuvchi</p>
               {!selectedCandidate ? (
-                <div className="mt-4 flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
+                <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
                   <UserPlus className="h-9 w-9 text-base-content/20" />
                   <div>
                     <p className="font-medium">Nomzod tanlanmagan</p>
@@ -380,25 +434,31 @@ export function InviteFamilyMemberModal({
                   </div>
                 </div>
               ) : (
-                <div className="mt-3 space-y-3">
-                  <div className="rounded-2xl border border-base-300/60 bg-base-100/95 p-3.5 shadow-[var(--shadow-soft)]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                <div className="mt-3 flex-1 min-w-0 space-y-3">
+                  <div className="min-w-0 rounded-2xl border border-base-300/60 bg-base-100/95 p-3.5 shadow-[var(--shadow-soft)]">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-semibold">{selectedCandidate.fullName}</p>
                         <p className="mt-0.5 text-xs text-base-content/60">@{selectedCandidate.username}</p>
                       </div>
                       {selectedState === 'ready' && (
-                        <StatusPill label="Qo'shiladi" tone={STATE_META.ready.className} />
+                        <div className="shrink-0">
+                          <StatusPill label="Qo'shiladi" tone={STATE_META.ready.className} />
+                        </div>
                       )}
                       {selectedState === 'current' && (
-                        <StatusPill label="Allaqachon guruhda" tone={STATE_META.current.className} />
+                        <div className="shrink-0">
+                          <StatusPill label="Allaqachon guruhda" tone={STATE_META.current.className} />
+                        </div>
                       )}
                       {selectedState === 'external' && (
-                        <StatusPill label="Boshqa oilada" tone={STATE_META.external.className} />
+                        <div className="shrink-0">
+                          <StatusPill label="Boshqa oilada" tone={STATE_META.external.className} />
+                        </div>
                       )}
                     </div>
 
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="mt-3 grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                       <InfoRow icon={<AtSign className="h-4 w-4" />} label="Username" value={`@${selectedCandidate.username}`} />
                       <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefon" value={selectedCandidate.phone || "Ko'rsatilmagan"} />
                       <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={selectedCandidate.email || "Ko'rsatilmagan"} />
@@ -429,7 +489,7 @@ export function InviteFamilyMemberModal({
                     {selectedState === 'external' && (
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <p>
+                        <p className="break-words">
                           <span className="font-semibold">{selectedCandidate.familyGroupName}</span> guruhiga biriktirilgan.
                           Avval o'sha guruhdan chiqarilishi kerak.
                         </p>
@@ -437,14 +497,14 @@ export function InviteFamilyMemberModal({
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-base-300/60 bg-base-100/95 p-3.5 shadow-[var(--shadow-soft)]">
+                  <div className="min-w-0 rounded-2xl border border-base-300/60 bg-base-100/95 p-3.5 shadow-[var(--shadow-soft)]">
                     <div className="flex items-center gap-2">
                       <GitBranch className="h-3.5 w-3.5 text-primary" />
                       <p className="text-sm font-semibold">Shajara ma'lumotlari</p>
                     </div>
 
                     {selectedCandidate.linkedFamilyMemberId ? (
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="mt-3 grid gap-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                         <InfoRow label="Shaxs" value={selectedCandidate.linkedFamilyMemberName || "Ko'rsatilmagan"} />
                         <InfoRow label="Rol" value={roleLabel(selectedCandidate.linkedFamilyRole)} />
                         <InfoRow label="Jinsi" value={genderLabel(selectedCandidate.linkedFamilyGender)} />
@@ -516,12 +576,12 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-base-300/60 bg-base-200/50 px-3 py-2 shadow-[inset_0_1px_0_hsl(var(--b1)/0.08)]">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
+    <div className="min-w-0 rounded-xl border border-base-300/60 bg-base-200/50 px-3 py-2 shadow-[inset_0_1px_0_hsl(var(--b1)/0.08)]">
+      <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
         {icon}
         <span>{label}</span>
       </p>
-      <p className="mt-1 text-[13px] font-medium leading-tight text-base-content">{value}</p>
+      <p className="mt-1 min-w-0 break-words text-[13px] font-medium leading-snug text-base-content">{value}</p>
     </div>
   );
 }
