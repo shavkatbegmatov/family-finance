@@ -1,9 +1,9 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
-import { PageLoader } from '../components/common/PageLoader';
 import { PermissionCode } from '../hooks/usePermission';
+import { LazyRoute } from './LazyRoute';
 
 // Auth pages (small, load immediately)
 import { LoginPage } from '../pages/auth/LoginPage';
@@ -45,10 +45,6 @@ const PointsAchievementsPage = lazy(() => import('../pages/points/PointsAchievem
 const PointsShopPage = lazy(() => import('../pages/points/PointsShopPage').then(m => ({ default: m.PointsShopPage })));
 const PointsChallengesPage = lazy(() => import('../pages/points/PointsChallengesPage').then(m => ({ default: m.PointsChallengesPage })));
 const PointsSettingsPage = lazy(() => import('../pages/points/PointsSettingsPage').then(m => ({ default: m.PointsSettingsPage })));
-
-function LazyRoute({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
-}
 
 export const router = createBrowserRouter([
   {

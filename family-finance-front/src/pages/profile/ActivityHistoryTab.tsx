@@ -48,12 +48,12 @@ export function ActivityHistoryTab() {
 
   useEffect(() => {
     if (user?.id) {
-      loadData(false);
+      void loadData(false);
       // Clear expanded rows and cache when filters change
       setExpandedRows(new Set());
       setFieldChangesCache(new Map());
     }
-  }, [currentPage, entityTypeFilter, actionFilter, user]);
+  }, [actionFilter, currentPage, entityTypeFilter, loadData, user?.id]);
 
   const resetFilters = () => {
     setEntityTypeFilter('');

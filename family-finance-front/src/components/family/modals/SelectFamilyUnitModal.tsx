@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { X, Users } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useFamilyUnitsByPersonQuery } from '../../../hooks/useFamilyTreeQueries';
@@ -21,14 +21,21 @@ export function SelectFamilyUnitModal({
   const { openModal } = useFamilyTreeStore();
 
   // Faqat partner sifatida bo'lgan unitlar (farzand qo'shish uchun)
-  const familyUnits = allFamilyUnits.filter(fu =>
-    fu.partners.some(p => p.personId === personId)
+  const familyUnits = useMemo(
+    () =>
+      allFamilyUnits.filter((fu) =>
+        fu.partners.some((p) => p.personId === personId)
+      ),
+    [allFamilyUnits, personId]
   );
 
-  const handleSelect = (familyUnitId: number) => {
-    onClose();
-    openModal({ type: 'addChild', familyUnitId });
-  };
+  const handleSelect = useCallback(
+    (familyUnitId: number) => {
+      onClose();
+      openModal({ type: 'addChild', familyUnitId });
+    },
+    [onClose, openModal]
+  );
 
   const handleSingleParent = async () => {
     try {
@@ -47,7 +54,7 @@ export function SelectFamilyUnitModal({
     if (isOpen && !isLoading && familyUnits.length === 1) {
       handleSelect(familyUnits[0].id);
     }
-  }, [isOpen, isLoading, familyUnits]);
+  }, [familyUnits, handleSelect, isLoading, isOpen]);
 
   // If person has no family units, show single parent option
   if (isOpen && !isLoading && familyUnits.length === 0) {

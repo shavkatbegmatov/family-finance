@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { X, Copy, ExternalLink, Loader2, Check, FileEdit, Code, Info, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { uz } from 'date-fns/locale';
@@ -20,11 +20,7 @@ export function AuditLogDetailModal({ logId, onClose }: AuditLogDetailModalProps
   const [activeTab, setActiveTab] = useState<TabType>('changes');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDetail();
-  }, [logId]);
-
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     try {
       setLoading(true);
       const data = await auditLogsApi.getDetail(logId);
@@ -34,7 +30,11 @@ export function AuditLogDetailModal({ logId, onClose }: AuditLogDetailModalProps
     } finally {
       setLoading(false);
     }
-  };
+  }, [logId]);
+
+  useEffect(() => {
+    void loadDetail();
+  }, [loadDetail]);
 
   const translateAction = (action: string): string => {
     switch (action) {
