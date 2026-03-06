@@ -155,10 +155,14 @@ export function FamilyMembersPage() {
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null);
   const [form, setForm] = useState<FamilyMemberRequest>({
     firstName: '',
+    lastName: '',
+    middleName: '',
     role: 'OTHER',
     gender: undefined,
     phone: '',
     birthDate: '',
+    birthPlace: '',
+    deathDate: '',
     avatar: '',
   });
   const [submitting, setSubmitting] = useState(false);
@@ -230,6 +234,8 @@ export function FamilyMembersPage() {
       gender: member.gender,
       phone: member.phone || '',
       birthDate: member.birthDate || '',
+      birthPlace: member.birthPlace || '',
+      deathDate: member.deathDate || '',
       avatar: member.avatar || '',
       userId: member.userId,
       createAccount: false,
@@ -726,15 +732,15 @@ export function FamilyMembersPage() {
 
       {/* Add/Edit Modal */}
       <ModalPortal isOpen={showModal} onClose={handleCloseModal}>
-        <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl">
+        <div className="w-full max-w-lg bg-base-100 rounded-2xl shadow-2xl">
           <div className="p-4 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold">
                   A'zoni tahrirlash
                 </h3>
-                <p className="text-sm text-base-content/60">
-                  A'zo ma'lumotlarini yangilang
+                <p className="text-sm text-base-content/60 mt-1">
+                  Ma'lumotlarni yangilang
                 </p>
               </div>
               <button className="btn btn-ghost btn-sm btn-square" onClick={handleCloseModal}>
@@ -742,7 +748,7 @@ export function FamilyMembersPage() {
               </button>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-4 space-y-4">
               {/* First Name */}
               <TextInput
                 label="Ism"
@@ -751,6 +757,22 @@ export function FamilyMembersPage() {
                 onChange={(val) => setForm((prev) => ({ ...prev, firstName: val }))}
                 placeholder="Ism"
                 leadingIcon={<User className="h-5 w-5" />}
+              />
+
+              {/* Last Name */}
+              <TextInput
+                label="Familiya"
+                value={form.lastName || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, lastName: val }))}
+                placeholder="Familiya"
+              />
+
+              {/* Middle Name */}
+              <TextInput
+                label="Otasining ismi"
+                value={form.middleName || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, middleName: val }))}
+                placeholder="Otasining ismi"
               />
 
               {/* Role */}
@@ -790,12 +812,28 @@ export function FamilyMembersPage() {
                 onChange={(val) => setForm((prev) => ({ ...prev, phone: val }))}
               />
 
-              {/* Birth Date */}
-              <DateInput
-                label="Tug'ilgan sana"
-                value={form.birthDate || ''}
-                onChange={(val) => setForm((prev) => ({ ...prev, birthDate: val }))}
-                max={new Date().toISOString().slice(0, 10)}
+              {/* Birth Date & Death Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <DateInput
+                  label="Tug'ilgan sana"
+                  value={form.birthDate || ''}
+                  onChange={(val) => setForm((prev) => ({ ...prev, birthDate: val }))}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+                <DateInput
+                  label="Vafot sanasi"
+                  value={form.deathDate || ''}
+                  onChange={(val) => setForm((prev) => ({ ...prev, deathDate: val }))}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+
+              {/* Birth Place */}
+              <TextInput
+                label="Tug'ilgan joy"
+                value={form.birthPlace || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, birthPlace: val }))}
+                placeholder="Shahar, viloyat"
               />
 
               {/* Avatar Upload */}
