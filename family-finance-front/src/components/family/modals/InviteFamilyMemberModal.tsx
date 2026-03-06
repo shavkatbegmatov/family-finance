@@ -153,8 +153,12 @@ export function InviteFamilyMemberModal({
 
   return (
     <ModalPortal isOpen={isOpen} onClose={loading ? () => {} : onClose}>
-      <form className="w-full max-w-5xl rounded-3xl bg-base-100 p-6 shadow-2xl lg:p-7" onSubmit={handleSubmit}>
-        <div className="mb-5 flex items-start gap-3">
+      <form
+        className="flex w-[min(80rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-3xl bg-base-100 shadow-2xl lg:max-h-[calc(100vh-3rem)]"
+        onSubmit={handleSubmit}
+      >
+        <div className="shrink-0 border-b border-base-200 px-6 py-5 lg:px-7 lg:py-6">
+          <div className="flex items-start gap-3">
           <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
             <UserPlus className="h-5 w-5" />
           </div>
@@ -169,46 +173,49 @@ export function InviteFamilyMemberModal({
             <span className="loading loading-spinner loading-sm text-primary" aria-hidden="true" />
           )}
         </div>
+        </div>
 
-        <div className="space-y-4">
-          <SearchInput
-            label="Foydalanuvchi qidirish"
-            placeholder="Ism, @username, telefon yoki email..."
-            value={search}
-            onValueChange={(value) => {
-              setSearch(value);
-              if (submitError) setSubmitError(null);
-            }}
-            leadingIcon={<AtSign className="h-4 w-4" />}
-            disabled={loading}
-            inputProps={{ autoFocus: true, maxLength: 80 }}
-          />
+        <div className="flex flex-1 min-h-0 flex-col overflow-y-auto px-6 py-5 lg:overflow-hidden lg:px-7 lg:py-6">
+          <div className="shrink-0 space-y-4">
+            <SearchInput
+              label="Foydalanuvchi qidirish"
+              placeholder="Ism, @username, telefon yoki email..."
+              value={search}
+              onValueChange={(value) => {
+                setSearch(value);
+                if (submitError) setSubmitError(null);
+              }}
+              leadingIcon={<AtSign className="h-4 w-4" />}
+              disabled={loading}
+              inputProps={{ autoFocus: true, maxLength: 80 }}
+            />
 
-          <div className="flex flex-wrap gap-2">
-            {FILTERS.map((item) => {
-              const isActive = filter === item.value;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  className={clsx(
-                    'rounded-full border px-3 py-2 text-xs font-semibold transition',
-                    isActive
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-base-300 bg-base-100 text-base-content/60 hover:border-base-content/30 hover:text-base-content'
-                  )}
-                  onClick={() => setFilter(item.value)}
-                  title={item.description}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
+            <div className="flex flex-wrap gap-2">
+              {FILTERS.map((item) => {
+                const isActive = filter === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={clsx(
+                      'rounded-full border px-3 py-2 text-xs font-semibold transition',
+                      isActive
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-base-300 bg-base-100 text-base-content/60 hover:border-base-content/30 hover:text-base-content'
+                    )}
+                    onClick={() => setFilter(item.value)}
+                    title={item.description}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-            <div className="rounded-2xl border border-base-300 bg-base-100">
-              <div className="flex items-center justify-between border-b border-base-200 px-4 py-3">
+          <div className="mt-4 grid gap-4 lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+            <div className="flex min-h-0 flex-col rounded-2xl border border-base-300 bg-base-100">
+              <div className="shrink-0 flex items-center justify-between border-b border-base-200 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold">Topilgan foydalanuvchilar</p>
                   <p className="text-xs text-base-content/50">
@@ -222,7 +229,7 @@ export function InviteFamilyMemberModal({
                 )}
               </div>
 
-              <div className="max-h-[420px] overflow-y-auto p-3">
+              <div className="p-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                 {isLoading ? (
                   <div className="space-y-3">
                     {Array.from({ length: 4 }).map((_, index) => (
@@ -340,9 +347,9 @@ export function InviteFamilyMemberModal({
             </div>
 
             <div className="rounded-2xl border border-base-300 bg-base-200/30 p-4">
-              <p className="text-sm font-semibold">Tanlangan foydalanuvchi</p>
+              <p className="shrink-0 text-sm font-semibold">Tanlangan foydalanuvchi</p>
               {!selectedCandidate ? (
-                <div className="mt-4 flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
+                <div className="mt-4 flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
                   <UserPlus className="h-9 w-9 text-base-content/20" />
                   <div>
                     <p className="font-medium">Nomzod tanlanmagan</p>
@@ -439,24 +446,26 @@ export function InviteFamilyMemberModal({
             </div>
           </div>
 
-          {submitError && (
-            <div className="rounded-xl border border-error/20 bg-error/10 px-4 py-3 text-sm text-error">
-              {submitError}
-            </div>
-          )}
+          <div className="mt-4 shrink-0 space-y-4">
+            {submitError && (
+              <div className="rounded-xl border border-error/20 bg-error/10 px-4 py-3 text-sm text-error">
+                {submitError}
+              </div>
+            )}
 
-          <div className="rounded-xl border border-info/20 bg-info/10 p-3 text-xs text-base-content/70">
-            <p className="flex items-center gap-2 font-medium text-info">
-              <Info className="h-3.5 w-3.5" />
-              Eslatma
-            </p>
-            <p className="mt-1">
-              Faqat faol foydalanuvchilar ko'rsatiladi. Boshqa oilaga tegishli accountlar bu oynadan ko'chirilmaydi.
-            </p>
+            <div className="rounded-xl border border-info/20 bg-info/10 p-3 text-xs text-base-content/70">
+              <p className="flex items-center gap-2 font-medium text-info">
+                <Info className="h-3.5 w-3.5" />
+                Eslatma
+              </p>
+              <p className="mt-1">
+                Faqat faol foydalanuvchilar ko'rsatiladi. Boshqa oilaga tegishli accountlar bu oynadan ko'chirilmaydi.
+              </p>
+            </div>
           </div>
         </div>
-
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="shrink-0 border-t border-base-200 px-6 py-4 lg:px-7">
+          <div className="flex justify-end gap-2">
           <button
             type="button"
             className="btn btn-ghost"
@@ -473,6 +482,7 @@ export function InviteFamilyMemberModal({
             {loading && <span className="loading loading-spinner loading-xs" />}
             Qo'shish
           </button>
+        </div>
         </div>
       </form>
     </ModalPortal>
