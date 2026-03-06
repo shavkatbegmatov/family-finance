@@ -189,7 +189,7 @@ export function InviteFamilyMemberModal({
         className="flex w-[min(80rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] border border-base-300/70 bg-base-100 shadow-[var(--shadow-strong)] lg:max-h-[calc(100vh-3rem)]"
         onSubmit={handleSubmit}
       >
-        <div className="shrink-0 border-b border-base-300/60 bg-base-100/90 px-5 py-4 backdrop-blur lg:px-6 lg:py-[1.125rem]">
+        <div className="relative z-20 shrink-0 border-b border-base-300/60 bg-base-100/90 px-5 py-4 backdrop-blur lg:px-6 lg:py-[1.125rem]">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <div className="mt-0.5 grid h-10 w-10 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-[var(--shadow-soft)]">
@@ -203,8 +203,8 @@ export function InviteFamilyMemberModal({
                     <button
                       type="button"
                       className={clsx(
-                        'btn btn-ghost btn-xs btn-circle text-base-content/55 hover:bg-base-200 hover:text-primary',
-                        isHelpOpen && 'bg-base-200 text-primary'
+                        'btn btn-ghost btn-xs btn-circle text-info hover:bg-info/10 hover:text-info',
+                        isHelpOpen && 'bg-info/10 text-info ring-1 ring-info/20'
                       )}
                       aria-label="Qidiruv bo'yicha yordam"
                       aria-expanded={isHelpOpen}
@@ -214,7 +214,7 @@ export function InviteFamilyMemberModal({
                     </button>
                     {isHelpOpen && (
                       <div
-                        className="absolute left-0 top-[calc(100%+0.5rem)] z-20 w-[min(22rem,calc(100vw-4rem))] rounded-2xl border border-base-300/70 bg-base-100 p-3.5 shadow-[var(--shadow-strong)]"
+                        className="pointer-events-auto absolute left-0 top-[calc(100%+0.5rem)] z-[60] w-[min(22rem,calc(100vw-4rem))] rounded-2xl border border-base-300/70 bg-base-100 p-3.5 shadow-[var(--shadow-strong)]"
                         onClick={(event) => event.stopPropagation()}
                       >
                         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/45">
@@ -523,42 +523,42 @@ export function InviteFamilyMemberModal({
             </div>
           </div>
 
-          <div className="mt-4 shrink-0 space-y-4">
+          <div className="mt-4 shrink-0">
             {submitError && (
               <div className="rounded-xl border border-error/20 bg-error/10 px-4 py-3 text-sm text-error">
                 {submitError}
               </div>
             )}
-
-            <div className="rounded-xl border border-info/20 bg-info/10 p-3 text-xs text-base-content/70">
-              <p className="flex items-center gap-2 font-medium text-info">
-                <Info className="h-3.5 w-3.5" />
-                Eslatma
-              </p>
-              <p className="mt-1">
-                Faqat faol foydalanuvchilar ko'rsatiladi. Boshqa oilaga tegishli accountlar bu oynadan ko'chirilmaydi.
-              </p>
-            </div>
           </div>
         </div>
         <div className="shrink-0 border-t border-base-200 px-6 py-4 lg:px-7">
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={onClose}
-              disabled={loading}
-            >
-              Bekor qilish
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={!canSubmit}
-            >
-              {loading && <span className="loading loading-spinner loading-xs" />}
-              Qo'shish
-            </button>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-2 rounded-xl border border-info/20 bg-info/10 px-3 py-2 text-xs text-base-content/70 lg:max-w-[34rem]">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-info" />
+              <p>
+                <span className="font-medium text-info">Eslatma.</span> Faqat faol foydalanuvchilar ko'rsatiladi.
+                Boshqa oilaga tegishli accountlar bu oynadan ko'chirilmaydi.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={onClose}
+                disabled={loading}
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={!canSubmit}
+              >
+                {loading && <span className="loading loading-spinner loading-xs" />}
+                Qo'shish
+              </button>
+            </div>
           </div>
         </div>
       </form>
