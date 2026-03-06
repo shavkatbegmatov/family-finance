@@ -54,6 +54,21 @@ const getCandidateState = (candidate: FamilyGroupInviteCandidate): 'ready' | 'cu
   return 'ready';
 };
 
+const STATE_META = {
+  ready: {
+    label: 'Tayyor',
+    className: 'border-emerald-200/80 bg-emerald-50 text-emerald-700',
+  },
+  current: {
+    label: 'Guruhda bor',
+    className: 'border-sky-200/80 bg-sky-50 text-sky-700',
+  },
+  external: {
+    label: 'Boshqa oilada',
+    className: 'border-amber-200/80 bg-amber-50 text-amber-700',
+  },
+} as const;
+
 const FILTERS: Array<{
   value: InviteFilter;
   label: string;
@@ -154,17 +169,18 @@ export function InviteFamilyMemberModal({
   return (
     <ModalPortal isOpen={isOpen} onClose={loading ? () => {} : onClose}>
       <form
-        className="flex w-[min(80rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-3xl bg-base-100 shadow-2xl lg:max-h-[calc(100vh-3rem)]"
+        className="flex w-[min(80rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[28px] border border-base-200/80 bg-base-100 shadow-[0_28px_80px_rgba(15,23,42,0.18)] lg:max-h-[calc(100vh-3rem)]"
         onSubmit={handleSubmit}
       >
-        <div className="shrink-0 border-b border-base-200 px-6 py-5 lg:px-7 lg:py-6">
+        <div className="shrink-0 border-b border-base-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.98))] px-6 py-5 lg:px-7 lg:py-6">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+            <div className="mt-0.5 grid h-11 w-11 place-items-center rounded-2xl border border-primary/20 bg-primary/10 text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
               <UserPlus className="h-5 w-5" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold">A'zo qo'shish</h3>
-              <p className="mt-1 text-sm text-base-content/60">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-base-content/45">Family Invite</p>
+              <h3 className="mt-1 text-xl font-semibold tracking-tight text-base-content">A'zo qo'shish</h3>
+              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-base-content/60">
                 Foydalanuvchini ism, login, telefon yoki email orqali qidiring. Tanlangan nomzod uchun shajara
                 bog'lanishi ham shu yerning o'zida ko'rinadi.
               </p>
@@ -198,10 +214,10 @@ export function InviteFamilyMemberModal({
                     key={item.value}
                     type="button"
                     className={clsx(
-                      'rounded-full border px-3 py-2 text-xs font-semibold transition',
+                      'rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition',
                       isActive
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-base-300 bg-base-100 text-base-content/60 hover:border-base-content/30 hover:text-base-content'
+                        ? 'border-primary/25 bg-primary/10 text-primary shadow-[0_10px_24px_rgba(34,197,94,0.10)]'
+                        : 'border-base-300 bg-base-100 text-base-content/60 hover:border-base-content/30 hover:bg-base-200/40 hover:text-base-content'
                     )}
                     onClick={() => setFilter(item.value)}
                     title={item.description}
@@ -214,11 +230,12 @@ export function InviteFamilyMemberModal({
           </div>
 
           <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="rounded-2xl border border-base-300 bg-base-100">
-              <div className="shrink-0 flex items-center justify-between border-b border-base-200 px-4 py-3">
+            <div className="rounded-2xl border border-base-300/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] shadow-[0_14px_35px_rgba(15,23,42,0.05)]">
+              <div className="shrink-0 flex items-center justify-between border-b border-base-200/80 px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold">Topilgan foydalanuvchilar</p>
-                  <p className="text-xs text-base-content/50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">Candidates</p>
+                  <p className="mt-1 text-sm font-semibold tracking-tight text-base-content">Topilgan foydalanuvchilar</p>
+                  <p className="mt-0.5 text-xs text-base-content/50">
                     {debouncedSearch
                       ? `"${debouncedSearch}" bo'yicha ${filteredCandidates.length} ta natija`
                       : `${filteredCandidates.length} ta tavsiya`}
@@ -262,46 +279,50 @@ export function InviteFamilyMemberModal({
                           key={candidate.userId}
                           type="button"
                           className={clsx(
-                            'w-full rounded-xl border px-3.5 py-3 text-left transition',
+                            'w-full rounded-2xl border px-3.5 py-3 text-left transition duration-200',
                             isSelected
-                              ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/15'
-                              : 'border-base-200 bg-base-100 hover:border-base-content/20 hover:bg-base-200/30'
+                              ? 'border-primary/25 bg-[linear-gradient(180deg,rgba(34,197,94,0.10),rgba(255,255,255,0.98))] shadow-[0_14px_28px_rgba(34,197,94,0.08)] ring-1 ring-primary/15'
+                              : 'border-base-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] hover:border-base-content/15 hover:shadow-[0_10px_22px_rgba(15,23,42,0.06)]'
                           )}
                           onClick={() => setSelectedCandidateId(candidate.userId)}
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="truncate text-sm font-semibold">{candidate.fullName}</span>
-                              <span className="rounded-full bg-base-200 px-2 py-0.5 text-[11px] font-medium text-base-content/60">
+                              <span className="rounded-full border border-base-300/80 bg-base-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-base-content/55">
                                 @{candidate.username}
                               </span>
                             </div>
 
                             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                {state === 'ready' && (
-                                  <span className="badge badge-success badge-xs gap-1">
-                                    <CheckCircle2 className="h-2.5 w-2.5" />
-                                    Tayyor
-                                  </span>
-                                )}
-                                {state === 'current' && (
-                                  <span className="badge badge-info badge-xs gap-1">
-                                    <Clock3 className="h-2.5 w-2.5" />
-                                    Guruhda bor
-                                  </span>
-                                )}
-                                {state === 'external' && (
-                                  <span className="badge badge-warning badge-xs gap-1">
-                                    <ArrowRightLeft className="h-2.5 w-2.5" />
-                                    Boshqa oilada
-                                  </span>
-                                )}
-                                {hasTreeLink && (
-                                  <span className="badge badge-outline badge-xs gap-1">
-                                    <GitBranch className="h-2.5 w-2.5" />
-                                    Shajara
-                                  </span>
-                                )}
+                              {state === 'ready' && (
+                                <StatusPill
+                                  icon={<CheckCircle2 className="h-2.5 w-2.5" />}
+                                  label={STATE_META.ready.label}
+                                  tone={STATE_META.ready.className}
+                                />
+                              )}
+                              {state === 'current' && (
+                                <StatusPill
+                                  icon={<Clock3 className="h-2.5 w-2.5" />}
+                                  label={STATE_META.current.label}
+                                  tone={STATE_META.current.className}
+                                />
+                              )}
+                              {state === 'external' && (
+                                <StatusPill
+                                  icon={<ArrowRightLeft className="h-2.5 w-2.5" />}
+                                  label={STATE_META.external.label}
+                                  tone={STATE_META.external.className}
+                                />
+                              )}
+                              {hasTreeLink && (
+                                <StatusPill
+                                  icon={<GitBranch className="h-2.5 w-2.5" />}
+                                  label="Shajara"
+                                  tone="border-slate-200/80 bg-slate-50 text-slate-700"
+                                />
+                              )}
                             </div>
 
                             {(candidate.phone || candidate.email) && (
@@ -345,8 +366,9 @@ export function InviteFamilyMemberModal({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-base-300 bg-base-200/30 p-3.5">
-              <p className="shrink-0 text-sm font-semibold">Tanlangan foydalanuvchi</p>
+            <div className="rounded-2xl border border-base-300/80 bg-[linear-gradient(180deg,rgba(247,249,251,0.96),rgba(255,255,255,0.98))] p-3.5 shadow-[0_14px_35px_rgba(15,23,42,0.05)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">Selection</p>
+              <p className="mt-1 text-sm font-semibold tracking-tight text-base-content">Tanlangan foydalanuvchi</p>
               {!selectedCandidate ? (
                 <div className="mt-4 flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
                   <UserPlus className="h-9 w-9 text-base-content/20" />
@@ -359,20 +381,20 @@ export function InviteFamilyMemberModal({
                 </div>
               ) : (
                 <div className="mt-3 space-y-3">
-                  <div className="rounded-xl bg-base-100 p-3.5 shadow-sm">
+                  <div className="rounded-2xl border border-base-200/70 bg-base-100 p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-base font-semibold">{selectedCandidate.fullName}</p>
                         <p className="mt-0.5 text-xs text-base-content/60">@{selectedCandidate.username}</p>
                       </div>
                       {selectedState === 'ready' && (
-                        <span className="badge badge-success badge-sm">Qo'shiladi</span>
+                        <StatusPill label="Qo'shiladi" tone={STATE_META.ready.className} />
                       )}
                       {selectedState === 'current' && (
-                        <span className="badge badge-info badge-sm">Allaqachon guruhda</span>
+                        <StatusPill label="Allaqachon guruhda" tone={STATE_META.current.className} />
                       )}
                       {selectedState === 'external' && (
-                        <span className="badge badge-warning badge-sm">Boshqa oilada</span>
+                        <StatusPill label="Boshqa oilada" tone={STATE_META.external.className} />
                       )}
                     </div>
 
@@ -386,10 +408,10 @@ export function InviteFamilyMemberModal({
 
                   <div
                     className={clsx(
-                      'rounded-xl border px-3.5 py-3 text-[13px]',
-                      selectedState === 'ready' && 'border-success/30 bg-success/10 text-success',
-                      selectedState === 'current' && 'border-info/30 bg-info/10 text-info',
-                      selectedState === 'external' && 'border-warning/30 bg-warning/10 text-warning'
+                      'rounded-2xl border px-3.5 py-3 text-[13px] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]',
+                      selectedState === 'ready' && 'border-emerald-200/80 bg-emerald-50/80 text-emerald-700',
+                      selectedState === 'current' && 'border-sky-200/80 bg-sky-50/85 text-sky-700',
+                      selectedState === 'external' && 'border-amber-200/80 bg-amber-50/90 text-amber-700'
                     )}
                   >
                     {selectedState === 'ready' && (
@@ -415,7 +437,7 @@ export function InviteFamilyMemberModal({
                     )}
                   </div>
 
-                  <div className="rounded-xl bg-base-100 p-3.5 shadow-sm">
+                  <div className="rounded-2xl border border-base-200/70 bg-base-100 p-3.5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                     <div className="flex items-center gap-2">
                       <GitBranch className="h-3.5 w-3.5 text-primary" />
                       <p className="text-sm font-semibold">Shajara ma'lumotlari</p>
@@ -494,12 +516,34 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="rounded-lg bg-base-200/60 px-3 py-2">
+    <div className="rounded-xl border border-base-200/70 bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,0.98))] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
         {icon}
         <span>{label}</span>
       </p>
       <p className="mt-1 text-[13px] font-medium leading-tight text-base-content">{value}</p>
     </div>
+  );
+}
+
+function StatusPill({
+  icon,
+  label,
+  tone,
+}: {
+  icon?: ReactNode;
+  label: string;
+  tone: string;
+}) {
+  return (
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]',
+        tone
+      )}
+    >
+      {icon}
+      {label}
+    </span>
   );
 }
