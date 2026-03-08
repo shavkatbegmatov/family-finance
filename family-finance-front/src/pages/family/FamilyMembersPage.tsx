@@ -510,20 +510,20 @@ export function FamilyMembersPage() {
                   )}
                   style={autoTableViewportStyle}
                 >
-                  <table className="table table-sm w-full relative whitespace-nowrap">
+                  <table className="table table-sm table-fixed w-full relative whitespace-nowrap">
                     <thead
                       ref={tableHeadRef}
                       className="sticky top-0 z-10 bg-base-100 shadow-sm"
                     >
                       <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
-                        <th className="pl-5 py-3 w-12 bg-base-100">#</th>
-                        <th className="py-3 bg-base-100">A'zo</th>
-                        <th className="py-3">Rol</th>
-                        <th className="py-3">Jinsi</th>
-                        <th className="py-3">Telefon</th>
-                        <th className="py-3">Yoshi</th>
-                        <th className="py-3">Holat</th>
-                        <th className="py-3 pr-5 text-right">Amallar</th>
+                        <th className="pl-5 py-3 w-[5%] bg-base-100">#</th>
+                        <th className="py-3 w-[28%] bg-base-100">A'zo</th>
+                        <th className="py-3 w-[12%] bg-base-100">Rol</th>
+                        <th className="py-3 w-[10%] bg-base-100">Jinsi</th>
+                        <th className="py-3 w-[16%] bg-base-100">Telefon</th>
+                        <th className="py-3 w-[9%] bg-base-100">Yoshi</th>
+                        <th className="py-3 w-[10%] bg-base-100">Holat</th>
+                        <th className="py-3 pr-5 w-[10%] text-right bg-base-100">Amallar</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-base-200">
