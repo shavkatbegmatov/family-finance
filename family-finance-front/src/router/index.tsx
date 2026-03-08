@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { PermissionCode } from '../hooks/usePermission';
+import { useAuthStore } from '../store/authStore';
 import { LazyRoute } from './LazyRoute';
 
 // Auth pages (small, load immediately)
@@ -46,6 +47,38 @@ const PointsShopPage = lazy(() => import('../pages/points/PointsShopPage').then(
 const PointsChallengesPage = lazy(() => import('../pages/points/PointsChallengesPage').then(m => ({ default: m.PointsChallengesPage })));
 const PointsSettingsPage = lazy(() => import('../pages/points/PointsSettingsPage').then(m => ({ default: m.PointsSettingsPage })));
 
+const fallbackRoutesByPermission: Array<{ path: string; permission: string }> = [
+  { path: '/transactions', permission: PermissionCode.TRANSACTIONS_VIEW },
+  { path: '/accounts', permission: PermissionCode.ACCOUNTS_VIEW },
+  { path: '/categories', permission: PermissionCode.CATEGORIES_VIEW },
+  { path: '/budget', permission: PermissionCode.BUDGETS_VIEW },
+  { path: '/savings', permission: PermissionCode.SAVINGS_VIEW },
+  { path: '/debts', permission: PermissionCode.DEBTS_VIEW },
+  { path: '/points', permission: PermissionCode.POINTS_VIEW },
+  { path: '/family', permission: PermissionCode.FAMILY_VIEW },
+  { path: '/reports', permission: PermissionCode.REPORTS_VIEW },
+  { path: '/settings', permission: PermissionCode.SETTINGS_VIEW },
+  { path: '/roles', permission: PermissionCode.ROLES_VIEW },
+  { path: '/notifications', permission: PermissionCode.NOTIFICATIONS_VIEW },
+  { path: '/users', permission: PermissionCode.USERS_VIEW },
+];
+
+function AuthorizedIndexPage() {
+  const permissions = useAuthStore((state) => state.permissions);
+
+  if (permissions.has(PermissionCode.DASHBOARD_VIEW)) {
+    return <LazyRoute><DashboardPage /></LazyRoute>;
+  }
+
+  const fallbackRoute = fallbackRoutesByPermission.find((route) => permissions.has(route.permission));
+
+  if (fallbackRoute) {
+    return <Navigate to={fallbackRoute.path} replace />;
+  }
+
+  return <Navigate to="/profile" replace />;
+}
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -68,11 +101,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <ProtectedRoute permission={PermissionCode.DASHBOARD_VIEW}>
-            <LazyRoute><DashboardPage /></LazyRoute>
-          </ProtectedRoute>
-        ),
+        element: <AuthorizedIndexPage />,
         handle: { title: 'Bosh sahifa' },
       },
       {
