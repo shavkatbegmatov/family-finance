@@ -168,7 +168,7 @@ export interface ChildEdgeData extends FamilyEdgeRenderData {
 // ============ Modal Types ============
 export type FamilyTreeModal =
   | { type: 'addSpouse'; personId: number }
-  | { type: 'addChild'; familyUnitId: number }
+  | { type: 'addChild'; familyUnitId: number; isSibling?: boolean }
   | { type: 'addSibling'; personId: number }
   | { type: 'selectFamilyUnit'; personId: number }
   | { type: 'editPerson'; personId: number }
