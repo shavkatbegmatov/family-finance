@@ -31,7 +31,7 @@ export function AddSiblingModal({
   const handleSelect = useCallback(
     (familyUnitId: number) => {
       onClose();
-      openModal({ type: 'addChild', familyUnitId });
+      openModal({ type: 'addChild', familyUnitId, isSibling: true });
     },
     [onClose, openModal]
   );

@@ -13,6 +13,7 @@ import type { SelectOption } from '../../ui/Select';
 interface AddChildModalProps {
   isOpen: boolean;
   familyUnitId: number;
+  isSibling?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -22,6 +23,7 @@ type ModalMode = 'new' | 'existing';
 export function AddChildModal({
   isOpen,
   familyUnitId,
+  isSibling,
   onClose,
   onSuccess,
 }: AddChildModalProps) {
@@ -147,9 +149,11 @@ export function AddChildModal({
           {/* Header */}
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-xl font-semibold">Farzand qo&apos;shish</h3>
+              <h3 className="text-xl font-semibold">
+                {isSibling ? 'Aka-uka qo\u0027shish' : 'Farzand qo\u0027shish'}
+              </h3>
               <p className="text-sm text-base-content/60 mt-1">
-                Farzand ma&apos;lumotlarini kiriting
+                {isSibling ? 'Aka-uka ma\u0027lumotlarini kiriting' : 'Farzand ma\u0027lumotlarini kiriting'}
               </p>
             </div>
             <button className="btn btn-ghost btn-sm btn-square" onClick={handleClose}>
