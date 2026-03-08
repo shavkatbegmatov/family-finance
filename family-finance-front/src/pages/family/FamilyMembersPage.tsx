@@ -61,6 +61,7 @@ export function FamilyMembersPage() {
   // Effective page size — auto rejimda hisoblangan, aks holda tanlangan
   const pageSize = pageSizeMode === 'auto' ? autoPageSize : pageSizeMode;
   const previousPageSizeRef = useRef(pageSize);
+  const latestMembersRequestRef = useRef(0);
 
   // Jadvalning aylanuvchi (scrollable) container'ini o'lchaymiz
   const tableAreaRef = useRef<HTMLDivElement>(null);
@@ -179,29 +180,30 @@ export function FamilyMembersPage() {
 
   // ==================== DATA LOADING ====================
 
-  const loadMembers = useCallback(async (isInitial = false) => {
-    if (isInitial) setLoading(true);
+  const loadMembers = useCallback(async () => {
+    const requestId = ++latestMembersRequestRef.current;
+
     try {
       const res = await familyMembersApi.getAll(page, pageSize, searchQuery || undefined);
+      if (requestId !== latestMembersRequestRef.current) return;
+
       const data = res.data.data as PagedResponse<FamilyMember>;
       setMembers(data.content);
       setTotalElements(data.totalElements);
     } catch {
+      if (requestId !== latestMembersRequestRef.current) return;
       toast.error("Oila a'zolarini yuklashda xatolik");
     } finally {
-      setLoading(false);
+      if (requestId === latestMembersRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, [page, pageSize, searchQuery]);
 
   useEffect(() => {
-    loadMembers(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
+    if (activeTab !== 'list') return;
     void loadMembers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, searchQuery, pageSize]);
+  }, [activeTab, loadMembers]);
 
   // page size o'zgarganda joriy element atrofidagi sahifani saqlab qolish
   useLayoutEffect(() => {
@@ -214,13 +216,6 @@ export function FamilyMembersPage() {
     });
     previousPageSizeRef.current = pageSize;
   }, [pageSize]);
-
-  useEffect(() => {
-    if (activeTab === 'list') {
-      void loadMembers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
 
   // ==================== MODAL ====================
 
