@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import toast from 'react-hot-toast';
 import {
   Users,
@@ -333,9 +333,13 @@ export function FamilyMembersPage() {
     }
   };
 
-  const autoTableViewportStyle = pageSizeMode === 'auto' && autoViewportHeight
-    ? { height: `${autoViewportHeight}px` }
-    : undefined;
+  const tableViewportStyle: CSSProperties = {
+    height:
+      pageSizeMode === 'auto' && autoViewportHeight
+        ? `${autoViewportHeight}px`
+        : '100%',
+    scrollbarGutter: 'stable',
+  };
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3">
@@ -504,11 +508,8 @@ export function FamilyMembersPage() {
               >
                 <div
                   ref={tableContainerRef}
-                  className={clsx(
-                    'min-h-0 overflow-auto',
-                    pageSizeMode === 'auto' && autoViewportHeight !== null ? '' : 'h-full'
-                  )}
-                  style={autoTableViewportStyle}
+                  className="min-h-0 h-full overflow-auto"
+                  style={tableViewportStyle}
                 >
                   <table className="table table-sm table-fixed w-full relative whitespace-nowrap">
                     <thead
