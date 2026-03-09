@@ -101,11 +101,15 @@ public class PointConfigService {
     }
 
     public Long getCurrentFamilyGroupId() {
-        return getCurrentUserDetails().getUser().getFamilyGroup().getId();
+        return getCurrentFamilyGroup().getId();
     }
 
     public FamilyGroup getCurrentFamilyGroup() {
-        return getCurrentUserDetails().getUser().getFamilyGroup();
+        FamilyGroup group = getCurrentUserDetails().getUser().getFamilyGroup();
+        if (group == null) {
+            throw new ResourceNotFoundException("Siz biron bir Oila guruhiga a'zo emassiz");
+        }
+        return group;
     }
 
     public CustomUserDetails getCurrentUserDetails() {

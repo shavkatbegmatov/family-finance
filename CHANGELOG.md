@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.2] - 2026-03-09
+
+### Fixed
+- **Login redirect va root fallback**:
+  - Autentifikatsiyadan keyin dashboard huquqi bo'lmagan foydalanuvchilar endi `AccessDenied` sahifasiga tushmaydi.
+  - Root route foydalanuvchini birinchi ruxsatli sahifaga, ruxsat bo'lmasa `/profile` ga yo'naltiradi.
+
+- **Dev backend schema konfiguratsiyasi**:
+  - `application-dev.yml` lokal PostgreSQL bilan `public` schema orqali barqaror ishlaydigan qilindi.
+  - JPA va Flyway dev muhitida bir xil schema bilan ishga tushadigan qilib moslandi.
+
+- **Oila a'zolari - Ro'yxat tab jadvali tebranishi**:
+  - Jadval viewport balandligi va scrollbar joyi stabillashtirildi.
+  - Tab ochilganda ustunlarning qisqa muddat siljib ketishi bartaraf etildi.
+
 ## [1.4.1] - 2026-03-05
 
 ### Improved
