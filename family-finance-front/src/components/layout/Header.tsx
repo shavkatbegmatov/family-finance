@@ -203,9 +203,9 @@ export function Header() {
     switch (role) {
       case 'ADMIN':
         return 'bg-error/10 text-error border-error/20';
-      case 'MANAGER':
+      case 'MEMBER':
         return 'bg-warning/10 text-warning border-warning/20';
-      case 'SELLER':
+      case 'VIEWER':
         return 'bg-info/10 text-info border-info/20';
       default:
         return 'bg-base-200 text-base-content/70 border-base-300';
