@@ -75,7 +75,7 @@ public class AuthService {
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .phone(request.getPhone())
-                .role(Role.SELLER) // Legacy field
+                .role(Role.MEMBER) // Legacy field
                 .active(true)
                 .mustChangePassword(false)
                 .build();

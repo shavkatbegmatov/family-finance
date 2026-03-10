@@ -137,13 +137,13 @@ public class UserService {
 
     private Role resolveLegacyRole(String roleCode) {
         if (roleCode == null) {
-            return Role.SELLER;
+            return Role.MEMBER;
         }
         try {
             return Role.valueOf(roleCode);
         } catch (IllegalArgumentException ex) {
-            log.debug("Role code '{}' is not in legacy enum, using SELLER for legacy field", roleCode);
-            return Role.SELLER;
+            log.debug("Role code '{}' is not in legacy enum, using MEMBER for legacy field", roleCode);
+            return Role.MEMBER;
         }
     }
 
