@@ -25,13 +25,15 @@ export function AddSpouseModal({
   onClose,
   onSuccess,
 }: AddSpouseModalProps) {
-  const [mode, setMode] = useState<ModalMode>('existing');
+  const [mode, setMode] = useState<ModalMode>('new');
 
   // Existing person selection
   const [selectedPersonId, setSelectedPersonId] = useState<number | ''>('');
 
   // New person form
   const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [birthDate, setBirthDate] = useState('');
 
@@ -58,9 +60,11 @@ export function AddSpouseModal({
   );
 
   const resetForm = () => {
-    setMode('existing');
+    setMode('new');
     setSelectedPersonId('');
     setFirstName('');
+    setLastName('');
+    setMiddleName('');
     setGender('');
     setBirthDate('');
     setMarriageType('MARRIED');
@@ -106,6 +110,8 @@ export function AddSpouseModal({
       try {
         const res = await familyUnitApi.createPerson({
           firstName: firstName.trim(),
+          lastName: lastName.trim() || undefined,
+          middleName: middleName.trim() || undefined,
           gender: gender || undefined,
           birthDate: birthDate || undefined,
           role: 'OTHER',
@@ -154,34 +160,23 @@ export function AddSpouseModal({
           {/* Mode tabs */}
           <div className="flex gap-1 bg-base-200 rounded-lg p-1 mt-4">
             <button
-              className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setMode('existing')}
-            >
-              <Users className="h-4 w-4" />
-              Mavjud shaxs
-            </button>
-            <button
               className={`btn btn-sm flex-1 gap-1 ${mode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
               onClick={() => setMode('new')}
             >
               <User className="h-4 w-4" />
               Yangi shaxs
             </button>
+            <button
+              className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => setMode('existing')}
+            >
+              <Users className="h-4 w-4" />
+              Mavjud shaxs
+            </button>
           </div>
 
           <div className="mt-4 space-y-4">
-            {mode === 'existing' ? (
-              <PersonSelect
-                label="Shaxsni tanlang"
-                required
-                value={selectedPersonId || undefined}
-                onChange={(val: string | number | undefined) =>
-                  setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
-                }
-                options={personOptions}
-                placeholder="Shaxsni qidiring..."
-              />
-            ) : (
+            {mode === 'new' ? (
               <>
                 <TextInput
                   label="Ism"
@@ -190,6 +185,18 @@ export function AddSpouseModal({
                   onChange={setFirstName}
                   placeholder="Ism"
                   leadingIcon={<User className="h-5 w-5" />}
+                />
+                <TextInput
+                  label="Familiya"
+                  value={lastName}
+                  onChange={setLastName}
+                  placeholder="Familiya"
+                />
+                <TextInput
+                  label="Otasining ismi"
+                  value={middleName}
+                  onChange={setMiddleName}
+                  placeholder="Otasining ismi"
                 />
                 <Select
                   label="Jinsi"
@@ -205,24 +212,34 @@ export function AddSpouseModal({
                   max={new Date().toISOString().slice(0, 10)}
                 />
               </>
+            ) : (
+              <PersonSelect
+                label="Shaxsni tanlang"
+                required
+                value={selectedPersonId || undefined}
+                onChange={(val: string | number | undefined) =>
+                  setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
+                }
+                options={personOptions}
+                placeholder="Shaxsni qidiring..."
+              />
             )}
 
-            {/* Marriage info */}
-            <div className="divider text-xs text-base-content/40">Nikoh ma&apos;lumotlari</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select
+                label="Nikoh turi"
+                required
+                value={marriageType}
+                onChange={(val) => setMarriageType(val as MarriageType)}
+                options={marriageTypeOptions}
+              />
 
-            <Select
-              label="Nikoh turi"
-              required
-              value={marriageType}
-              onChange={(val) => setMarriageType(val as MarriageType)}
-              options={marriageTypeOptions}
-            />
-
-            <DateInput
-              label="Nikoh sanasi"
-              value={marriageDate}
-              onChange={setMarriageDate}
-            />
+              <DateInput
+                label="Nikoh sanasi"
+                value={marriageDate}
+                onChange={setMarriageDate}
+              />
+            </div>
           </div>
 
           {/* Actions */}
