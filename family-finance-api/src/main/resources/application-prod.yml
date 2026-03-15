@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:db}:5432/${DB_NAME:family_finance_db}
-    username: ${DB_USERNAME:family_finance_user}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
@@ -9,6 +9,11 @@ spring:
     show-sql: false
     hibernate:
       ddl-auto: validate
+
+  flyway:
+    create-schemas: true
+    default-schema: ${DB_SCHEMA:public}
+    schemas: ${DB_SCHEMA:public}
 
   # Vault va Cloud tekshiruvlarini production da o'chirish
   cloud:
