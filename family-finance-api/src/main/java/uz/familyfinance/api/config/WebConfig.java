@@ -36,7 +36,9 @@ public class WebConfig implements WebMvcConfigurer {
                 "http://127.0.0.1:5175",
                 "http://127.0.0.1:5178",
                 "http://192.168.1.33:5175",
-                "http://192.168.1.33:5178"
+                "http://192.168.1.33:5178",
+                "http://ng0gg0wckg8s84kow0swgw84.170.168.6.82.sslip.io",
+                "https://ng0gg0wckg8s84kow0swgw84.170.168.6.82.sslip.io"
         ));
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
