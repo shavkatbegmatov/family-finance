@@ -10,6 +10,7 @@ import { Footer } from './Footer';
 import { BottomNav } from './BottomNav';
 import { PasswordChangeModal } from '../common/PasswordChangeModal';
 import { SessionTimeoutModal } from '../common/SessionTimeoutModal';
+import { OfflineIndicator } from '../common/OfflineIndicator';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 
 export function MainLayout() {
@@ -66,6 +67,7 @@ export function MainLayout() {
       <Sidebar />
       <div className={`flex min-w-0 flex-1 flex-col overflow-hidden ${isPinnedFamilyDetailOpen ? 'sm:pr-[360px]' : ''}`}>
         <Header />
+        <OfflineIndicator />
         <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden px-4 pb-20 pt-4 lg:px-8 lg:pb-6">
           <Outlet />
         </main>

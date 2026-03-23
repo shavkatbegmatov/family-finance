@@ -104,7 +104,7 @@ export function BottomNav() {
       )}
 
       {/* Bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-base-200 bg-base-100/95 backdrop-blur lg:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-base-200 bg-base-100/95 backdrop-blur safe-area-bottom lg:hidden">
         <div className="flex items-stretch justify-around">
           {filteredPrimary.map((item) => (
             <NavLink

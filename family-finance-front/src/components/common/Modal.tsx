@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import clsx from 'clsx';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 
 // =============================================================================
 // ModalPortal - Simple portal wrapper for existing modal content
@@ -13,6 +14,8 @@ interface ModalPortalProps {
 }
 
 export function ModalPortal({ isOpen, onClose, children }: ModalPortalProps) {
+  const isMobile = useIsMobile();
+
   // Handle escape key and body overflow
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -36,7 +39,10 @@ export function ModalPortal({ isOpen, onClose, children }: ModalPortalProps) {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className={clsx(
+        'fixed inset-0 z-[9999] flex p-0 lg:p-4',
+        isMobile ? 'items-end' : 'items-center justify-center'
+      )}
       style={{
         position: 'fixed',
         top: 0,
@@ -61,7 +67,18 @@ export function ModalPortal({ isOpen, onClose, children }: ModalPortalProps) {
         }}
       />
       {/* Modal content wrapper */}
-      <div className="relative z-10" onClick={(e) => e.stopPropagation()}>
+      <div
+        className={clsx(
+          'relative z-10',
+          isMobile && 'w-full animate-slide-up'
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {isMobile && (
+          <div className="flex justify-center pb-2 pt-3">
+            <div className="h-1 w-10 rounded-full bg-base-300" />
+          </div>
+        )}
         {children}
       </div>
     </div>
@@ -106,6 +123,7 @@ export function Modal({
   closeOnBackdrop = true,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Handle escape key
   useEffect(() => {
@@ -143,7 +161,10 @@ export function Modal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className={clsx(
+        'fixed inset-0 z-[9999] flex p-0 lg:p-4',
+        isMobile ? 'items-end' : 'items-center justify-center'
+      )}
       style={{
         position: 'fixed',
         top: 0,
@@ -161,12 +182,22 @@ export function Modal({
         ref={modalRef}
         tabIndex={-1}
         className={clsx(
-          'relative w-full bg-base-100 rounded-2xl shadow-2xl animate-fade-up',
-          'max-h-[90vh] overflow-y-auto',
-          maxWidthClasses[maxWidth]
+          'relative w-full bg-base-100 shadow-2xl',
+          'overflow-y-auto',
+          isMobile
+            ? 'max-h-[85vh] rounded-t-2xl animate-slide-up'
+            : 'max-h-[90vh] rounded-2xl animate-fade-up',
+          !isMobile && maxWidthClasses[maxWidth]
         )}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile drag handle */}
+        {isMobile && (
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="h-1 w-10 rounded-full bg-base-300" />
+          </div>
+        )}
+
         {/* Header */}
         {(title || showCloseButton) && (
           <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-base-200 bg-base-100 p-4 sm:p-6">

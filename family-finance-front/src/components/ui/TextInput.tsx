@@ -92,7 +92,7 @@ export function TextInput({
         {showClear && hasValue && !disabled && (
           <button
             type="button"
-            className="absolute right-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-base-content/40 transition-colors hover:bg-base-200 hover:text-base-content"
+            className="absolute right-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-base-content/40 transition-colors hover:bg-base-200 hover:text-base-content lg:h-8 lg:w-8"
             onClick={handleClear}
             aria-label="Tozalash"
           >
