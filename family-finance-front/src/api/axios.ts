@@ -4,7 +4,8 @@ import { API_BASE_URL } from '../config/constants';
 import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  // Bu jonli serverda env fayldagi domenni, lokalda esa '/api' ni ishlatadi
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
