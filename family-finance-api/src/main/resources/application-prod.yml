@@ -22,6 +22,10 @@ spring:
     compatibility-verifier:
       enabled: false
 
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:}
+
 logging:
   level:
     root: INFO
