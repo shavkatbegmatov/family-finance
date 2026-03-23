@@ -497,9 +497,127 @@ export function FamilyMembersPage() {
             </div>
           ) : (
             <div className="flex-1 min-h-0 surface-card overflow-hidden flex flex-col">
+              {/* Mobile card view */}
+              <div className="flex-1 overflow-auto p-3 space-y-3 lg:hidden">
+                {members.map((member) => {
+                  const age = member.birthDate
+                    ? Math.floor(
+                      (Date.now() - new Date(member.birthDate).getTime()) /
+                      (365.25 * 24 * 60 * 60 * 1000)
+                    )
+                    : null;
+
+                  return (
+                    <div
+                      key={member.id}
+                      className={clsx(
+                        'rounded-xl border border-base-200 bg-base-100 p-4',
+                        !member.isActive && 'opacity-50'
+                      )}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div
+                          className={clsx(
+                            'h-11 w-11 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0',
+                            getRoleColor(member.role)
+                          )}
+                        >
+                          {member.avatar ? (
+                            <img
+                              src={member.avatar}
+                              alt={member.fullName}
+                              className="h-11 w-11 rounded-full object-cover"
+                            />
+                          ) : (
+                            getInitial(member.fullName)
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm">{member.fullName}</span>
+                            {member.userId && (
+                              <span className="badge badge-xs badge-success gap-1">
+                                <UserCheck className="h-2.5 w-2.5" />
+                                Tizimda
+                              </span>
+                            )}
+                            {member.userId === user?.id && (
+                              <span className="badge badge-xs badge-primary">Sen</span>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            <span className="badge badge-sm badge-outline">
+                              {FAMILY_ROLES[member.role]?.label || member.role}
+                            </span>
+                            {member.gender && (
+                              <span
+                                className={clsx(
+                                  'badge badge-sm',
+                                  member.gender === 'MALE' ? 'badge-info' : 'badge-secondary'
+                                )}
+                              >
+                                {GENDERS[member.gender]?.label}
+                              </span>
+                            )}
+                            {age !== null && (
+                              <span className="text-xs text-base-content/60">{age} yosh</span>
+                            )}
+                            <span
+                              className={clsx(
+                                'badge badge-sm',
+                                member.isActive ? 'badge-success' : 'badge-ghost'
+                              )}
+                            >
+                              {member.isActive ? 'Faol' : 'Nofaol'}
+                            </span>
+                          </div>
+
+                          {member.phone && (
+                            <a
+                              href={`tel:${member.phone}`}
+                              className="flex items-center gap-1.5 text-sm text-base-content/60 hover:text-primary mt-1.5"
+                            >
+                              <Phone className="h-3 w-3" />
+                              {member.phone}
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
+                            <button
+                              className="btn btn-ghost btn-sm btn-square"
+                              onClick={() => handleOpenEditModal(member)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                          </PermissionGate>
+                          {member.userId !== user?.id && (
+                            <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
+                              <button
+                                className="btn btn-ghost btn-sm btn-square text-error"
+                                onClick={() => setDeletingMemberId(member.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </PermissionGate>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table view */}
               <div
                 ref={tableAreaRef}
-                className="flex-1 min-h-0"
+                className="flex-1 min-h-0 hidden lg:block"
               >
                 <div
                   ref={tableContainerRef}
