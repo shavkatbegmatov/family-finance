@@ -232,6 +232,9 @@ export function TransactionsPage() {
     try {
       const payload: TransactionRequest = {
         ...form,
+        transactionDate: form.transactionDate.includes('T')
+          ? form.transactionDate
+          : form.transactionDate + 'T00:00:00',
         categoryId: form.type === 'TRANSFER' ? undefined : form.categoryId,
         toAccountId: form.type === 'TRANSFER' ? form.toAccountId : undefined,
       };
