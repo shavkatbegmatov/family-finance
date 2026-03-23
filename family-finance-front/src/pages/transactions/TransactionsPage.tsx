@@ -28,6 +28,7 @@ import { TextArea } from '../../components/ui/TextArea';
 import { Select } from '../../components/ui/Select';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { ModalPortal } from '../../components/common/Modal';
+import { FilterSheet } from '../../components/common/FilterSheet';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import type {
@@ -461,91 +462,81 @@ export function TransactionsPage() {
         </div>
 
         {/* Filters panel */}
-        {showFilters && (
-          <div className="border-b border-base-200 p-4 surface-soft">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-4">
-              {/* Date from */}
-              <DateInput
-                label="Boshlanish sanasi"
-                value={filterFrom}
-                onChange={(val) => {
-                  setFilterFrom(val);
-                  setPage(0);
-                }}
-                showTodayButton={false}
-                className="lg:w-48"
-              />
+        <FilterSheet
+          isOpen={showFilters}
+          onClose={() => setShowFilters(false)}
+          onClear={clearFilters}
+          hasActiveFilters={!!hasActiveFilters}
+        >
+          {/* Date from */}
+          <DateInput
+            label="Boshlanish sanasi"
+            value={filterFrom}
+            onChange={(val) => {
+              setFilterFrom(val);
+              setPage(0);
+            }}
+            showTodayButton={false}
+            className="lg:w-48"
+          />
 
-              {/* Date to */}
-              <DateInput
-                label="Tugash sanasi"
-                value={filterTo}
-                onChange={(val) => {
-                  setFilterTo(val);
-                  setPage(0);
-                }}
-                showTodayButton={false}
-                className="lg:w-48"
-              />
+          {/* Date to */}
+          <DateInput
+            label="Tugash sanasi"
+            value={filterTo}
+            onChange={(val) => {
+              setFilterTo(val);
+              setPage(0);
+            }}
+            showTodayButton={false}
+            className="lg:w-48"
+          />
 
-              {/* Account filter */}
-              <Select
-                value={filterAccountId}
-                onChange={(val) => {
-                  setFilterAccountId(val ? Number(val) : undefined);
-                  setPage(0);
-                }}
-                options={[
-                  { value: '', label: 'Barcha hisoblar' },
-                  ...accounts.map((a) => ({ value: a.id, label: a.name })),
-                ]}
-                placeholder="Barcha hisoblar"
-                className="lg:w-44"
-              />
+          {/* Account filter */}
+          <Select
+            value={filterAccountId}
+            onChange={(val) => {
+              setFilterAccountId(val ? Number(val) : undefined);
+              setPage(0);
+            }}
+            options={[
+              { value: '', label: 'Barcha hisoblar' },
+              ...accounts.map((a) => ({ value: a.id, label: a.name })),
+            ]}
+            placeholder="Barcha hisoblar"
+            className="lg:w-44"
+          />
 
-              {/* Category filter */}
-              <Select
-                value={filterCategoryId}
-                onChange={(val) => {
-                  setFilterCategoryId(val ? Number(val) : undefined);
-                  setPage(0);
-                }}
-                options={[
-                  { value: '', label: 'Barcha kategoriyalar' },
-                  ...categories.map((c) => ({ value: c.id, label: c.name })),
-                ]}
-                placeholder="Barcha kategoriyalar"
-                className="lg:w-44"
-              />
+          {/* Category filter */}
+          <Select
+            value={filterCategoryId}
+            onChange={(val) => {
+              setFilterCategoryId(val ? Number(val) : undefined);
+              setPage(0);
+            }}
+            options={[
+              { value: '', label: 'Barcha kategoriyalar' },
+              ...categories.map((c) => ({ value: c.id, label: c.name })),
+            ]}
+            placeholder="Barcha kategoriyalar"
+            className="lg:w-44"
+          />
 
-              {/* Member filter */}
-              <Select
-                value={filterMemberId}
-                onChange={(val) => {
-                  setFilterMemberId(val ? Number(val) : undefined);
-                  setPage(0);
-                }}
-                options={[
-                  { value: '', label: "Barcha a'zolar" },
-                  ...members.map((m) => ({ value: m.id, label: m.fullName })),
-                ]}
-                placeholder="Barcha a'zolar"
-                className="lg:w-44"
-              />
-
-              {/* Clear filters */}
-              {hasActiveFilters && (
-                <button
-                  className="btn btn-ghost btn-sm text-error"
-                  onClick={clearFilters}
-                >
-                  <X className="h-4 w-4" />
-                  Tozalash
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+          {/* Member filter */}
+          <Select
+            value={filterMemberId}
+            onChange={(val) => {
+              setFilterMemberId(val ? Number(val) : undefined);
+              setPage(0);
+            }}
+            options={[
+              { value: '', label: "Barcha a'zolar" },
+              ...members.map((m) => ({ value: m.id, label: m.fullName })),
+            ]}
+            placeholder="Barcha a'zolar"
+            className="lg:w-44"
+          />
+        </FilterSheet>
 
         {/* Data Table */}
         <DataTable
