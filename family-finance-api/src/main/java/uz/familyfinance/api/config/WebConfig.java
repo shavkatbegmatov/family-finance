@@ -1,6 +1,7 @@
 package uz.familyfinance.api.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -10,6 +11,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uz.familyfinance.api.audit.AuditCorrelationInterceptor;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +20,9 @@ import java.util.List;
 public class WebConfig implements WebMvcConfigurer {
 
     private final AuditCorrelationInterceptor auditCorrelationInterceptor;
+
+    @Value("${app.cors.allowed-origins:}")
+    private String extraOrigins;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -29,17 +34,22 @@ public class WebConfig implements WebMvcConfigurer {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
+        List<String> origins = new ArrayList<>(Arrays.asList(
                 "http://localhost:5175",
                 "http://localhost:5178",
                 "http://localhost:3000",
                 "http://127.0.0.1:5175",
                 "http://127.0.0.1:5178",
                 "http://192.168.1.33:5175",
-                "http://192.168.1.33:5178",
-                "http://ng0gg0wckg8s84kow0swgw84.170.168.6.82.sslip.io",
-                "https://ng0gg0wckg8s84kow0swgw84.170.168.6.82.sslip.io"
+                "http://192.168.1.33:5178"
         ));
+        if (extraOrigins != null && !extraOrigins.isBlank()) {
+            Arrays.stream(extraOrigins.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .forEach(origins::add);
+        }
+        configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
         ));
