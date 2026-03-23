@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wallet, CreditCard, PiggyBank, Smartphone, Landmark, Receipt,
@@ -18,6 +18,7 @@ import {
   formatCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
 } from '../../config/constants';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { Select } from '../../components/ui/Select';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -280,9 +281,13 @@ type ViewMode = 'grid' | 'table';
 
 export function AccountsPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   // Data
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const allItemsRef = useRef<Account[]>([]);
+  const [allItems, setAllItems] = useState<Account[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
   const [totalElements, setTotalElements] = useState(0);
@@ -329,14 +334,19 @@ export function AccountsPage() {
   }, []);
 
   const fetchAccounts = useCallback(async () => {
-    setLoading(true);
+    if (isMobile && page > 0) setLoadingMore(true);
+    else setLoading(true);
     try {
+      let content: Account[];
+      let elems: number;
+      let pages: number;
+
       if (activeTab === 'my') {
         const res = await accountsApi.getMy(page, pageSize);
         const data = res.data as ApiResponse<PagedResponse<Account>>;
-        setAccounts(data.data.content);
-        setTotalElements(data.data.totalElements);
-        setTotalPages(data.data.totalPages);
+        content = data.data.content;
+        elems = data.data.totalElements;
+        pages = data.data.totalPages;
       } else {
         const filters: AccountFilters = { page, size: pageSize };
         if (search) filters.search = search;
@@ -345,17 +355,37 @@ export function AccountsPage() {
 
         const res = await accountsApi.getAll(filters);
         const data = res.data as ApiResponse<PagedResponse<Account>>;
-        setAccounts(data.data.content);
-        setTotalElements(data.data.totalElements);
-        setTotalPages(data.data.totalPages);
+        content = data.data.content;
+        elems = data.data.totalElements;
+        pages = data.data.totalPages;
+      }
+
+      setAccounts(content);
+      setTotalElements(elems);
+      setTotalPages(pages);
+
+      if (isMobile && page > 0) {
+        const newAll = [...allItemsRef.current, ...content];
+        allItemsRef.current = newAll;
+        setAllItems(newAll);
+      } else {
+        allItemsRef.current = content;
+        setAllItems(content);
       }
     } catch {
       toast.error('Hisoblarni yuklashda xatolik');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
       setInitialLoading(false);
     }
-  }, [activeTab, page, pageSize, search, filterType, filterStatus]);
+  }, [activeTab, page, pageSize, search, filterType, filterStatus, isMobile]);
+
+  const handleLoadMore = useCallback(() => {
+    if (page < totalPages - 1 && !loadingMore) {
+      setPage((p) => p + 1);
+    }
+  }, [page, totalPages, loadingMore]);
 
   useEffect(() => {
     fetchAccounts();
@@ -891,7 +921,7 @@ export function AccountsPage() {
             </>
           ) : (
             <DataTable<Account>
-              data={accounts}
+              data={isMobile ? allItems : accounts}
               columns={columns}
               keyExtractor={(item) => item.id}
               loading={loading}
@@ -901,6 +931,9 @@ export function AccountsPage() {
               pageSize={pageSize}
               onPageChange={setPage}
               onPageSizeChange={(size) => { setPageSize(size); setPage(0); }}
+              onLoadMore={handleLoadMore}
+              hasMore={page < totalPages - 1}
+              loadingMore={loadingMore}
               onRowClick={(item) => navigate(`/accounts/${item.id}`)}
               renderMobileCard={renderMobileCard}
               emptyIcon={<Wallet className="h-12 w-12 text-base-content/20" />}

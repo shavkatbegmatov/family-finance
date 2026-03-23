@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
 import {
   Plus,
@@ -29,6 +29,7 @@ import { Select } from '../../components/ui/Select';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { ModalPortal } from '../../components/common/Modal';
 import { FilterSheet } from '../../components/common/FilterSheet';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import type {
@@ -64,8 +65,13 @@ const EMPTY_FORM: TransactionRequest = {
 };
 
 export function TransactionsPage() {
+  const isMobile = useIsMobile();
+
   // Data state
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const allItemsRef = useRef<Transaction[]>([]);
+  const [allItems, setAllItems] = useState<Transaction[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [members, setMembers] = useState<FamilyMember[]>([]);
@@ -138,18 +144,41 @@ export function TransactionsPage() {
   // Load transactions
   const loadTransactions = useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true);
+    else if (isMobile && page > 0) setLoadingMore(true);
     try {
       const res = await transactionsApi.getAll(page, pageSize, filters);
       const data = (res.data as ApiResponse<PagedResponse<Transaction>>).data;
       setTransactions(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
+
+      if (isMobile && page > 0) {
+        const newAll = [...allItemsRef.current, ...data.content];
+        allItemsRef.current = newAll;
+        setAllItems(newAll);
+      } else {
+        allItemsRef.current = data.content;
+        setAllItems(data.content);
+      }
     } catch {
       toast.error('Tranzaksiyalarni yuklashda xatolik');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [page, pageSize, filters]);
+  }, [page, pageSize, filters, isMobile]);
+
+  const handleLoadMore = useCallback(() => {
+    if (page < totalPages - 1 && !loadingMore) {
+      setPage((p) => p + 1);
+    }
+  }, [page, totalPages, loadingMore]);
+
+  // Reset allItems when filters change
+  useEffect(() => {
+    allItemsRef.current = [];
+    setAllItems([]);
+  }, [filters]);
 
   // Initial load
   useEffect(() => {
@@ -540,7 +569,7 @@ export function TransactionsPage() {
 
         {/* Data Table */}
         <DataTable
-          data={transactions}
+          data={isMobile ? allItems : transactions}
           columns={columns}
           keyExtractor={(t) => t.id}
           loading={loading}
@@ -553,6 +582,9 @@ export function TransactionsPage() {
           pageSize={pageSize}
           onPageChange={setPage}
           onPageSizeChange={handlePageSizeChange}
+          onLoadMore={handleLoadMore}
+          hasMore={page < totalPages - 1}
+          loadingMore={loadingMore}
           renderMobileCard={(t) => (
             <div className="surface-panel flex flex-col gap-3 rounded-xl p-4">
               <div className="flex items-start justify-between gap-3">
