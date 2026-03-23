@@ -4,6 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 COPY . .
+ARG VITE_IMGBB_API_KEY
+ENV VITE_IMGBB_API_KEY=$VITE_IMGBB_API_KEY
 RUN npm run build
 
 # ---- Serve stage ----
