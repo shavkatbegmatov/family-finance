@@ -70,7 +70,10 @@ class WebSocketService {
 
     this.client = new Client({
       // SockJS orqali ulanish (WebSocket fallback bilan)
-      webSocketFactory: () => new SockJS('/api/v1/ws'),
+      webSocketFactory: () => {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+        return new SockJS(`${baseUrl}/v1/ws`);
+      },
 
       // Auth header
       connectHeaders: {
