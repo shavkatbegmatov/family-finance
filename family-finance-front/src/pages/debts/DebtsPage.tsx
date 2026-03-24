@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   HandMetal,
@@ -30,6 +30,7 @@ import { TextArea } from '../../components/ui/TextArea';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { Select } from '../../components/ui/Select';
 import { DataTable, Column } from '../../components/ui/DataTable';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -51,8 +52,13 @@ interface DebtSummary {
 }
 
 export function DebtsPage() {
+  const isMobile = useIsMobile();
+
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [debts, setDebts] = useState<FamilyDebt[]>([]);
+  const allItemsRef = useRef<FamilyDebt[]>([]);
+  const [allItems, setAllItems] = useState<FamilyDebt[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(0);
@@ -234,7 +240,9 @@ export function DebtsPage() {
   // ==================== DATA LOADING ====================
 
   const loadDebts = useCallback(async (isInitial = false) => {
-    if (!isInitial) setRefreshing(true);
+    if (isInitial) { /* keep initialLoading true */ }
+    else if (isMobile && page > 0) setLoadingMore(true);
+    else setRefreshing(true);
     try {
       const res = await familyDebtsApi.getAll(
         page,
@@ -247,13 +255,29 @@ export function DebtsPage() {
       setDebts(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
+
+      if (isMobile && page > 0) {
+        const newAll = [...allItemsRef.current, ...data.content];
+        allItemsRef.current = newAll;
+        setAllItems(newAll);
+      } else {
+        allItemsRef.current = data.content;
+        setAllItems(data.content);
+      }
     } catch {
       toast.error('Qarzlarni yuklashda xatolik');
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  }, [page, pageSize, effectiveType, effectiveStatus, searchQuery]);
+  }, [page, pageSize, effectiveType, effectiveStatus, searchQuery, isMobile]);
+
+  const handleLoadMore = useCallback(() => {
+    if (page < totalPages - 1 && !loadingMore) {
+      setPage((p) => p + 1);
+    }
+  }, [page, totalPages, loadingMore]);
 
   const loadSummary = useCallback(async () => {
     try {
@@ -721,7 +745,7 @@ export function DebtsPage() {
                     </div>
                   )}
                   <DataTable
-                    data={debts}
+                    data={isMobile ? allItems : debts}
                     columns={columns}
                     keyExtractor={(debt) => debt.id}
                     loading={initialLoading && !refreshing}
@@ -741,6 +765,9 @@ export function DebtsPage() {
                     pageSize={pageSize}
                     onPageChange={setPage}
                     onPageSizeChange={handlePageSizeChange}
+                    onLoadMore={handleLoadMore}
+                    hasMore={page < totalPages - 1}
+                    loadingMore={loadingMore}
                     renderMobileCard={(debt) => (
                       <div
                         className={clsx(

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -37,6 +37,7 @@ import {
 import { familyMembersApi } from '../../api/family-members.api';
 import { transactionsApi } from '../../api/transactions.api';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import {
   formatCurrency,
   formatDate,
@@ -111,6 +112,7 @@ const genderLabel = (gender: string): string =>
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const memberId = Number(id);
 
   const [data, setData] = useState<MemberFinancialSummary | null>(null);
@@ -119,6 +121,9 @@ export function MemberDetailPage() {
 
   // Transactions tab state
   const [txData, setTxData] = useState<Transaction[]>([]);
+  const allTxRef = useRef<Transaction[]>([]);
+  const [allTxItems, setAllTxItems] = useState<Transaction[]>([]);
+  const [txLoadingMore, setTxLoadingMore] = useState(false);
   const [txLoading, setTxLoading] = useState(false);
   const [txPage, setTxPage] = useState(0);
   const [txTotalElements, setTxTotalElements] = useState(0);
@@ -139,7 +144,8 @@ export function MemberDetailPage() {
   }, [memberId]);
 
   const loadTransactions = useCallback(async () => {
-    setTxLoading(true);
+    if (isMobile && txPage > 0) setTxLoadingMore(true);
+    else setTxLoading(true);
     try {
       const filters: Record<string, unknown> = { memberId };
       if (txTypeFilter) filters.type = txTypeFilter;
@@ -148,12 +154,28 @@ export function MemberDetailPage() {
       setTxData(pageData.content);
       setTxTotalElements(pageData.totalElements);
       setTxTotalPages(pageData.totalPages);
+
+      if (isMobile && txPage > 0) {
+        const newAll = [...allTxRef.current, ...pageData.content];
+        allTxRef.current = newAll;
+        setAllTxItems(newAll);
+      } else {
+        allTxRef.current = pageData.content;
+        setAllTxItems(pageData.content);
+      }
     } catch {
       toast.error("Tranzaksiyalarni yuklashda xatolik");
     } finally {
       setTxLoading(false);
+      setTxLoadingMore(false);
     }
-  }, [memberId, txPage, txTypeFilter]);
+  }, [memberId, txPage, txTypeFilter, isMobile]);
+
+  const handleTxLoadMore = useCallback(() => {
+    if (txPage < txTotalPages - 1 && !txLoadingMore) {
+      setTxPage((p) => p + 1);
+    }
+  }, [txPage, txTotalPages, txLoadingMore]);
 
   useEffect(() => { loadSummary(); }, [loadSummary]);
 
@@ -252,7 +274,7 @@ export function MemberDetailPage() {
       {activeTab === 'overview' && <OverviewTab data={data} />}
       {activeTab === 'transactions' && (
         <TransactionsTab
-          data={txData}
+          data={isMobile ? allTxItems : txData}
           loading={txLoading}
           page={txPage}
           totalElements={txTotalElements}
@@ -260,6 +282,9 @@ export function MemberDetailPage() {
           typeFilter={txTypeFilter}
           onPageChange={setTxPage}
           onTypeFilterChange={(val) => { setTxTypeFilter(val); setTxPage(0); }}
+          onLoadMore={handleTxLoadMore}
+          hasMore={txPage < txTotalPages - 1}
+          loadingMore={txLoadingMore}
         />
       )}
       {activeTab === 'accounts' && <AccountsTab accounts={data.accounts} />}
@@ -406,6 +431,7 @@ function RecentTxRow({ tx }: { tx: MemberRecentTransaction }) {
 function TransactionsTab({
   data, loading, page, totalElements, totalPages, typeFilter,
   onPageChange, onTypeFilterChange,
+  onLoadMore, hasMore, loadingMore,
 }: {
   data: Transaction[];
   loading: boolean;
@@ -415,6 +441,9 @@ function TransactionsTab({
   typeFilter: string;
   onPageChange: (p: number) => void;
   onTypeFilterChange: (v: string) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }) {
   const txColumns: Column<Transaction>[] = [
     {
@@ -513,6 +542,9 @@ function TransactionsTab({
           pageSize={15}
           onPageChange={onPageChange}
           renderMobileCard={renderMobileCard}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
           emptyTitle="Tranzaksiya topilmadi"
           emptyDescription="Bu a'zoda hali tranzaksiyalar mavjud emas"
         />

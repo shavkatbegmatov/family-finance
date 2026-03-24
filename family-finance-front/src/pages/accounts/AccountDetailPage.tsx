@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, RefreshCw, Plus, Wallet, CreditCard, PiggyBank,
@@ -18,6 +18,7 @@ import {
   ACCOUNT_TYPES, ACCOUNT_STATUSES, TRANSACTION_TYPES,
 } from '../../config/constants';
 import { DataTable, type Column } from '../../components/ui/DataTable';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { ModalPortal } from '../../components/common/Modal';
@@ -39,6 +40,7 @@ const ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSP
 export function AccountDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { canConfirmTransactions, canCancelTransactions, canUpdateAccounts } = usePermission();
 
   // Account data
@@ -48,6 +50,9 @@ export function AccountDetailPage() {
 
   // Transactions
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const allTxRef = useRef<Transaction[]>([]);
+  const [allTx, setAllTx] = useState<Transaction[]>([]);
+  const [txLoadingMore, setTxLoadingMore] = useState(false);
   const [txLoading, setTxLoading] = useState(true);
   const [txPage, setTxPage] = useState(0);
   const [txTotalElements, setTxTotalElements] = useState(0);
@@ -81,19 +86,36 @@ export function AccountDetailPage() {
   }, [accountId]);
 
   const fetchTransactions = useCallback(async () => {
-    setTxLoading(true);
+    if (isMobile && txPage > 0) setTxLoadingMore(true);
+    else setTxLoading(true);
     try {
       const res = await transactionsApi.getByAccount(accountId, txPage, 10);
       const data = res.data as ApiResponse<PagedResponse<Transaction>>;
       setTransactions(data.data.content);
       setTxTotalElements(data.data.totalElements);
       setTxTotalPages(data.data.totalPages);
+
+      if (isMobile && txPage > 0) {
+        const newAll = [...allTxRef.current, ...data.data.content];
+        allTxRef.current = newAll;
+        setAllTx(newAll);
+      } else {
+        allTxRef.current = data.data.content;
+        setAllTx(data.data.content);
+      }
     } catch {
       toast.error('Tranzaksiyalarni yuklashda xatolik');
     } finally {
       setTxLoading(false);
+      setTxLoadingMore(false);
     }
-  }, [accountId, txPage]);
+  }, [accountId, txPage, isMobile]);
+
+  const handleTxLoadMore = useCallback(() => {
+    if (txPage < txTotalPages - 1 && !txLoadingMore) {
+      setTxPage((p) => p + 1);
+    }
+  }, [txPage, txTotalPages, txLoadingMore]);
 
   useEffect(() => { fetchAccount(); }, [fetchAccount]);
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
@@ -449,7 +471,7 @@ export function AccountDetailPage() {
         </div>
 
         <DataTable<Transaction>
-          data={transactions}
+          data={isMobile ? allTx : transactions}
           columns={txColumns}
           keyExtractor={(t) => t.id}
           loading={txLoading}
@@ -459,6 +481,9 @@ export function AccountDetailPage() {
           pageSize={10}
           onPageChange={setTxPage}
           renderMobileCard={renderTxMobileCard}
+          onLoadMore={handleTxLoadMore}
+          hasMore={txPage < txTotalPages - 1}
+          loadingMore={txLoadingMore}
           emptyTitle="Tranzaksiya topilmadi"
           emptyDescription="Bu hisobda hali tranzaksiyalar mavjud emas"
         />

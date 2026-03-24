@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import toast from 'react-hot-toast';
 import {
   Users,
@@ -18,6 +19,7 @@ import {
   Shield,
   ClipboardCopy,
   UserCheck,
+  Loader2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
@@ -48,8 +50,13 @@ const AUTO_DEFAULT_ROW_HEIGHT = 61;
 
 export function FamilyMembersPage() {
   const user = useAuthStore((s) => s.user);
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
   const [members, setMembers] = useState<FamilyMember[]>([]);
+  const allMembersRef = useRef<FamilyMember[]>([]);
+  const [allMembers, setAllMembers] = useState<FamilyMember[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const mobileSentinelRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSizeMode, setPageSizeMode] = useState<'auto' | number>('auto');
@@ -183,6 +190,8 @@ export function FamilyMembersPage() {
   const loadMembers = useCallback(async () => {
     const requestId = ++latestMembersRequestRef.current;
 
+    if (isMobile && page > 0) setLoadingMore(true);
+
     try {
       const res = await familyMembersApi.getAll(page, pageSize, searchQuery || undefined);
       if (requestId !== latestMembersRequestRef.current) return;
@@ -190,15 +199,25 @@ export function FamilyMembersPage() {
       const data = res.data.data as PagedResponse<FamilyMember>;
       setMembers(data.content);
       setTotalElements(data.totalElements);
+
+      if (isMobile && page > 0) {
+        const newAll = [...allMembersRef.current, ...data.content];
+        allMembersRef.current = newAll;
+        setAllMembers(newAll);
+      } else {
+        allMembersRef.current = data.content;
+        setAllMembers(data.content);
+      }
     } catch {
       if (requestId !== latestMembersRequestRef.current) return;
       toast.error("Oila a'zolarini yuklashda xatolik");
     } finally {
       if (requestId === latestMembersRequestRef.current) {
         setLoading(false);
+        setLoadingMore(false);
       }
     }
-  }, [page, pageSize, searchQuery]);
+  }, [page, pageSize, searchQuery, isMobile]);
 
   useEffect(() => {
     if (activeTab !== 'list') return;
@@ -216,6 +235,36 @@ export function FamilyMembersPage() {
     });
     previousPageSizeRef.current = pageSize;
   }, [pageSize]);
+
+  // Mobile infinite scroll
+  const totalPages = Math.ceil(totalElements / pageSize);
+  const hasMore = page < totalPages - 1;
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !loadingMore) {
+      setPage((p) => p + 1);
+    }
+  }, [hasMore, loadingMore]);
+
+  useEffect(() => {
+    if (!isMobile || !mobileSentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(mobileSentinelRef.current);
+    return () => observer.disconnect();
+  }, [isMobile, hasMore, loadingMore, handleLoadMore]);
+
+  // Reset allMembers when searchQuery changes
+  useEffect(() => {
+    allMembersRef.current = [];
+    setAllMembers([]);
+  }, [searchQuery]);
 
   // ==================== MODAL ====================
 
@@ -499,7 +548,7 @@ export function FamilyMembersPage() {
             <div className="flex-1 min-h-0 surface-card overflow-hidden flex flex-col">
               {/* Mobile card view */}
               <div className="flex-1 overflow-auto p-3 space-y-3 lg:hidden">
-                {members.map((member) => {
+                {(isMobile ? allMembers : members).map((member) => {
                   const age = member.birthDate
                     ? Math.floor(
                       (Date.now() - new Date(member.birthDate).getTime()) /
@@ -612,6 +661,16 @@ export function FamilyMembersPage() {
                     </div>
                   );
                 })}
+                {/* Infinite scroll sentinel */}
+                {isMobile && (
+                  <div ref={mobileSentinelRef} className="py-4 flex justify-center">
+                    {loadingMore ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-base-content/40" />
+                    ) : hasMore ? null : allMembers.length > 0 ? (
+                      <span className="text-xs text-base-content/30">Hammasi yuklandi</span>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
               {/* Desktop table view */}
@@ -817,7 +876,7 @@ export function FamilyMembersPage() {
 
               {/* Pagination */}
               {totalElements > pageSize && (
-                <div className="flex items-center justify-between px-5 py-3 border-t border-base-200">
+                <div className={clsx("flex items-center justify-between px-5 py-3 border-t border-base-200", isMobile && "hidden lg:flex")}>
                   <span className="text-sm text-base-content/50">
                     {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalElements)} / {totalElements} ta
                   </span>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, ReactNode } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RotateCcw, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { Select } from './Select';
 import { ResizeHandle } from './ResizeHandle';
@@ -66,6 +66,11 @@ export interface DataTableProps<T> {
 
   // Mobile card
   renderMobileCard?: (item: T, index: number) => ReactNode;
+
+  // Mobile infinite scroll
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 
   // Column resize
   tableId?: string;
@@ -140,6 +145,9 @@ export function DataTable<T>({
   highlightId,
   onHighlightComplete,
   renderMobileCard,
+  onLoadMore,
+  hasMore,
+  loadingMore,
   tableId,
   resizable = false,
   className,
@@ -155,6 +163,22 @@ export function DataTable<T>({
   const [activeHighlight, setActiveHighlight] = useState<string | number | null>(null);
   const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Mobile infinite scroll
+  useEffect(() => {
+    if (!onLoadMore || !sentinelRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, loadingMore]);
 
   // Column resize
   const {
@@ -435,12 +459,25 @@ export function DataTable<T>({
               </div>
             );
           })}
+          {/* Infinite scroll sentinel */}
+          {onLoadMore && (
+            <div ref={sentinelRef} className="py-4 flex justify-center">
+              {loadingMore ? (
+                <Loader2 className="h-5 w-5 animate-spin text-base-content/40" />
+              ) : hasMore ? null : sortedData.length > 0 ? (
+                <span className="text-xs text-base-content/30">Hammasi yuklandi</span>
+              ) : null}
+            </div>
+          )}
         </div>
       )}
 
       {/* Pagination */}
       {(totalPages > 1 || totalElements > 0) && onPageChange && (
-        <div className="flex flex-col gap-3 border-t border-base-200 bg-base-100/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className={clsx(
+          "flex flex-col gap-3 border-t border-base-200 bg-base-100/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+          onLoadMore && "hidden lg:flex"
+        )}>
           {/* Left side - Info & Page size */}
           <div className="flex flex-wrap items-center gap-3 text-sm">
             {totalElements > 0 && (
