@@ -651,7 +651,7 @@ export function TransactionsPage() {
 
       {/* Create/Edit Modal */}
       <ModalPortal isOpen={showFormModal} onClose={handleCloseForm}>
-        <div className="w-full max-w-lg bg-base-100 rounded-2xl shadow-2xl">
+        <div className="w-full max-w-lg bg-base-100 lg:rounded-2xl shadow-2xl">
           <div className="p-4 sm:p-6">
             {/* Modal header */}
             <div className="flex items-start justify-between gap-4 mb-6">

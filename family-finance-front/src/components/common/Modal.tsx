@@ -70,16 +70,20 @@ export function ModalPortal({ isOpen, onClose, children }: ModalPortalProps) {
       <div
         className={clsx(
           'relative z-10',
-          isMobile && 'w-full animate-slide-up'
+          isMobile
+            ? 'w-full max-h-[90vh] overflow-hidden rounded-t-2xl animate-slide-up'
+            : ''
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {isMobile && (
-          <div className="flex justify-center pb-2 pt-3">
+          <div className="flex justify-center pb-2 pt-3 bg-base-100">
             <div className="h-1 w-10 rounded-full bg-base-300" />
           </div>
         )}
-        {children}
+        <div className={clsx(isMobile && 'overflow-y-auto max-h-[calc(90vh-28px)]')}>
+          {children}
+        </div>
       </div>
     </div>
   );
