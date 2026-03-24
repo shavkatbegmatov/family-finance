@@ -677,13 +677,13 @@ export function TransactionsPage() {
                 <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
                   Tranzaksiya turi *
                 </span>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {Object.entries(TRANSACTION_TYPES).map(([key, { label }]) => (
                     <button
                       key={key}
                       type="button"
                       className={clsx(
-                        'btn btn-sm',
+                        'btn btn-sm min-h-0 whitespace-nowrap',
                         form.type === key ? 'btn-primary' : 'btn-outline'
                       )}
                       onClick={() =>
