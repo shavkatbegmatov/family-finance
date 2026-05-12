@@ -94,6 +94,14 @@ export function PointsSavingsPage() {
       toast.error("Miqdorni kiriting");
       return;
     }
+    if (depositMode === 'deposit' && balance && amount > balance.currentBalance) {
+      toast.error(`Yetarli ball mavjud emas. Mavjud: ${balance.currentBalance.toLocaleString()} ball`);
+      return;
+    }
+    if (depositMode === 'withdraw' && savings && amount > savings.balance) {
+      toast.error(`Jamg'armada yetarli ball mavjud emas. Mavjud: ${savings.balance.toLocaleString()} ball`);
+      return;
+    }
     try {
       setSubmitting(true);
       if (depositMode === 'deposit') {
@@ -106,8 +114,11 @@ export function PointsSavingsPage() {
       setShowDepositModal(false);
       setAmount(0);
       loadData();
-    } catch {
-      toast.error("Amal bajarishda xatolik");
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { message?: string } } };
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || "Amal bajarishda xatolik");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -118,6 +129,10 @@ export function PointsSavingsPage() {
       toast.error("Miqdorni kiriting");
       return;
     }
+    if (balance && investForm.amount > balance.currentBalance) {
+      toast.error(`Yetarli ball mavjud emas. Mavjud: ${balance.currentBalance.toLocaleString()} ball`);
+      return;
+    }
     try {
       setSubmitting(true);
       await pointInvestmentApi.create(selectedParticipantId, investForm);
@@ -125,8 +140,11 @@ export function PointsSavingsPage() {
       setShowInvestModal(false);
       setInvestForm({ type: 'STABLE', amount: 0 });
       loadData();
-    } catch {
-      toast.error("Investitsiya yaratishda xatolik");
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { message?: string } } };
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || "Investitsiya yaratishda xatolik");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -138,8 +156,11 @@ export function PointsSavingsPage() {
       await pointInvestmentApi.sell(id);
       toast.success("Investitsiya sotildi");
       loadData();
-    } catch {
-      toast.error("Sotishda xatolik");
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { message?: string } } };
+      if (error.response?.status !== 403) {
+        toast.error(error.response?.data?.message || "Sotishda xatolik");
+      }
     }
   };
 
