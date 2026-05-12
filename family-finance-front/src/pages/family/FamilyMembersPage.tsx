@@ -905,23 +905,25 @@ export function FamilyMembersPage() {
 
       {/* Add/Edit Modal */}
       <ModalPortal isOpen={showModal} onClose={handleCloseModal}>
-        <div className="w-full max-w-lg bg-base-100 rounded-2xl shadow-2xl">
-          <div className="p-4 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-semibold">
-                  A'zoni tahrirlash
-                </h3>
-                <p className="text-sm text-base-content/60 mt-1">
-                  Ma'lumotlarni yangilang
-                </p>
-              </div>
-              <button className="btn btn-ghost btn-sm btn-square" onClick={handleCloseModal}>
-                <X className="h-4 w-4" />
-              </button>
+        <div className="w-full max-w-3xl bg-base-100 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+          {/* Sticky Header */}
+          <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-base-200 bg-base-100 rounded-t-2xl px-4 py-4 sm:px-6">
+            <div>
+              <h3 className="text-xl font-semibold">
+                A'zoni tahrirlash
+              </h3>
+              <p className="text-sm text-base-content/60 mt-1">
+                Ma'lumotlarni yangilang
+              </p>
             </div>
+            <button className="btn btn-ghost btn-sm btn-square" onClick={handleCloseModal}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
 
-            <div className="mt-4 space-y-4">
+          {/* Scrollable Body */}
+          <div className="overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
               {/* First Name */}
               <TextInput
                 label="Ism"
@@ -940,13 +942,15 @@ export function FamilyMembersPage() {
                 placeholder="Familiya"
               />
 
-              {/* Middle Name */}
-              <TextInput
-                label="Otasining ismi"
-                value={form.middleName || ''}
-                onChange={(val) => setForm((prev) => ({ ...prev, middleName: val }))}
-                placeholder="Otasining ismi"
-              />
+              {/* Middle Name — to'liq kenglikda */}
+              <div className="sm:col-span-2">
+                <TextInput
+                  label="Otasining ismi"
+                  value={form.middleName || ''}
+                  onChange={(val) => setForm((prev) => ({ ...prev, middleName: val }))}
+                  placeholder="Otasining ismi"
+                />
+              </div>
 
               {/* Role */}
               <Select
@@ -978,47 +982,53 @@ export function FamilyMembersPage() {
                 placeholder="Tanlanmagan"
               />
 
-              {/* Phone */}
-              <PhoneInput
-                label="Telefon raqami"
-                value={form.phone || ''}
-                onChange={(val) => setForm((prev) => ({ ...prev, phone: val }))}
-              />
-
-              {/* Birth Date & Death Date */}
-              <div className="grid grid-cols-2 gap-4">
-                <DateInput
-                  label="Tug'ilgan sana"
-                  value={form.birthDate || ''}
-                  onChange={(val) => setForm((prev) => ({ ...prev, birthDate: val }))}
-                  max={new Date().toISOString().slice(0, 10)}
-                />
-                <DateInput
-                  label="Vafot sanasi"
-                  value={form.deathDate || ''}
-                  onChange={(val) => setForm((prev) => ({ ...prev, deathDate: val }))}
-                  max={new Date().toISOString().slice(0, 10)}
+              {/* Phone — to'liq kenglikda */}
+              <div className="sm:col-span-2">
+                <PhoneInput
+                  label="Telefon raqami"
+                  value={form.phone || ''}
+                  onChange={(val) => setForm((prev) => ({ ...prev, phone: val }))}
                 />
               </div>
 
-              {/* Birth Place */}
-              <TextInput
-                label="Tug'ilgan joy"
-                value={form.birthPlace || ''}
-                onChange={(val) => setForm((prev) => ({ ...prev, birthPlace: val }))}
-                placeholder="Shahar, viloyat"
+              {/* Birth Date */}
+              <DateInput
+                label="Tug'ilgan sana"
+                value={form.birthDate || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, birthDate: val }))}
+                max={new Date().toISOString().slice(0, 10)}
               />
 
-              {/* Avatar Upload */}
-              <AvatarUploader
-                label="Rasm"
-                value={form.avatar || ''}
-                onChange={(val) => setForm((prev) => ({ ...prev, avatar: val }))}
+              {/* Death Date */}
+              <DateInput
+                label="Vafot sanasi"
+                value={form.deathDate || ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, deathDate: val }))}
+                max={new Date().toISOString().slice(0, 10)}
               />
 
-              {/* Create Account Section — faqat yangi a'zo uchun */}
+              {/* Birth Place — to'liq kenglikda */}
+              <div className="sm:col-span-2">
+                <TextInput
+                  label="Tug'ilgan joy"
+                  value={form.birthPlace || ''}
+                  onChange={(val) => setForm((prev) => ({ ...prev, birthPlace: val }))}
+                  placeholder="Shahar, viloyat"
+                />
+              </div>
+
+              {/* Avatar Upload — to'liq kenglikda */}
+              <div className="sm:col-span-2">
+                <AvatarUploader
+                  label="Rasm"
+                  value={form.avatar || ''}
+                  onChange={(val) => setForm((prev) => ({ ...prev, avatar: val }))}
+                />
+              </div>
+
+              {/* Create Account Section — faqat yangi a'zo uchun, to'liq kenglikda */}
               {(!editingMember?.userId || editingMember?.userId === null) && (
-                <div className="space-y-3">
+                <div className="sm:col-span-2 space-y-3">
                   <div className="form-control">
                     <label className="label cursor-pointer justify-start gap-3">
                       <input
@@ -1045,7 +1055,7 @@ export function FamilyMembersPage() {
                   </div>
 
                   {form.createAccount && (
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Account Role */}
                       <div className="form-control">
                         <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
@@ -1113,24 +1123,25 @@ export function FamilyMembersPage() {
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                className="btn btn-ghost"
-                onClick={handleCloseModal}
-                disabled={submitting}
-              >
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSubmit}
-                disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
-              >
-                {submitting && <span className="loading loading-spinner loading-sm" />}
-                Saqlash
-              </button>
-            </div>
+          {/* Sticky Footer */}
+          <div className="sticky bottom-0 z-10 flex justify-end gap-2 border-t border-base-200 bg-base-100 rounded-b-2xl px-4 py-3 sm:px-6">
+            <button
+              className="btn btn-ghost"
+              onClick={handleCloseModal}
+              disabled={submitting}
+            >
+              Bekor qilish
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
+            >
+              {submitting && <span className="loading loading-spinner loading-sm" />}
+              Saqlash
+            </button>
           </div>
         </div>
       </ModalPortal>
