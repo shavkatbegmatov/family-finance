@@ -637,6 +637,33 @@ public class TransactionService {
             r.setOriginalTransactionId(t.getOriginalTransaction().getId());
         }
 
+        // Tags
+        if (t.getTagEntities() != null && !t.getTagEntities().isEmpty()) {
+            r.setTagIds(t.getTagEntities().stream()
+                    .map(uz.familyfinance.api.entity.Tag::getId)
+                    .collect(java.util.stream.Collectors.toSet()));
+        }
+
+        // Splits
+        java.util.List<uz.familyfinance.api.entity.TransactionSplit> splits =
+                transactionSplitRepository.findByTransactionId(t.getId());
+        if (!splits.isEmpty()) {
+            r.setSplits(splits.stream()
+                    .map(s -> {
+                        uz.familyfinance.api.dto.response.TransactionSplitResponse sr =
+                                new uz.familyfinance.api.dto.response.TransactionSplitResponse();
+                        sr.setId(s.getId());
+                        sr.setAmount(s.getAmount());
+                        sr.setNote(s.getNote());
+                        if (s.getCategory() != null) {
+                            sr.setCategoryId(s.getCategory().getId());
+                            sr.setCategoryName(s.getCategory().getName());
+                        }
+                        return sr;
+                    })
+                    .toList());
+        }
+
         return r;
     }
 }

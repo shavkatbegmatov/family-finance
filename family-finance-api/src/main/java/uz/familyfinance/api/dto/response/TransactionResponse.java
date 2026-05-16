@@ -5,6 +5,8 @@ import uz.familyfinance.api.enums.RecurringPattern;
 import uz.familyfinance.api.enums.TransactionType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 
 @Data
 public class TransactionResponse {
@@ -24,6 +26,8 @@ public class TransactionResponse {
     private Boolean isRecurring;
     private RecurringPattern recurringPattern;
     private String tags;
+    private Set<Long> tagIds;
+    private List<TransactionSplitResponse> splits;
     private LocalDateTime createdAt;
     private Long debitAccountId;
     private String debitAccountName;

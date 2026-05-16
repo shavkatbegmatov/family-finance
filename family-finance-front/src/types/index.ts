@@ -439,6 +439,16 @@ export interface Transaction {
   balanceBeforeCredit?: number;
   balanceAfterCredit?: number;
   originalTransactionId?: number;
+  tagIds?: number[];
+  splits?: TransactionSplitResponse[];
+}
+
+export interface TransactionSplitResponse {
+  id: number;
+  categoryId: number;
+  categoryName?: string;
+  amount: number;
+  note?: string;
 }
 
 export interface TransactionSplitItem {
