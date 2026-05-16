@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Plus,
@@ -26,6 +27,7 @@ import { FilterSheet } from '../../components/common/FilterSheet';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { PermissionCode } from '../../hooks/usePermission';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useHighlight } from '../../hooks/useHighlight';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
 import { resolvePreset } from '../../utils/dateRangePresets';
@@ -53,6 +55,8 @@ const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
 
 export function TransactionsPage() {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { highlightId, clearHighlight } = useHighlight();
   const lastCreatedAt = useQuickEntryStore((s) => s.lastCreatedAt);
 
   // Data state
@@ -729,6 +733,9 @@ export function TransactionsPage() {
           onLoadMore={handleLoadMore}
           hasMore={page < totalPages - 1}
           loadingMore={loadingMore}
+          onRowClick={(t) => navigate(`/transactions/${t.id}`)}
+          highlightId={highlightId}
+          onHighlightComplete={clearHighlight}
           renderMobileCard={(t) => (
             <div className="surface-panel flex flex-col gap-3 rounded-xl p-4">
               <div className="flex items-start justify-between gap-3">
