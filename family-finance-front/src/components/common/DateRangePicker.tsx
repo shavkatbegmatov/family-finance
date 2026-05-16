@@ -9,14 +9,15 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { getTashkentToday, getDateDaysAgo, formatDateForApi, getTashkentNow } from '../../config/constants';
+import { getTashkentToday, getDateDaysAgo, formatDateForApi, getTashkentNow, MONTHS_UZ } from '../../config/constants';
+import {
+  PRESET_OPTIONS,
+  QUICK_PRESET_VALUES,
+  type DateRangePreset,
+  type DateRange,
+} from '../../utils/dateRangePresets';
 
-export type DateRangePreset = 'all' | 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
-
-export interface DateRange {
-  start: string;
-  end: string;
-}
+export type { DateRangePreset, DateRange };
 
 interface DateRangePickerProps {
   value: DateRangePreset;
@@ -24,21 +25,6 @@ interface DateRangePickerProps {
   onChange: (preset: DateRangePreset, customRange?: DateRange) => void;
   className?: string;
 }
-
-const PRESET_OPTIONS: { value: DateRangePreset; label: string; icon?: string }[] = [
-  { value: 'all', label: 'Barchasi' },
-  { value: 'today', label: 'Bugun' },
-  { value: 'week', label: 'Hafta' },
-  { value: 'month', label: 'Oy' },
-  { value: 'quarter', label: 'Chorak' },
-  { value: 'year', label: 'Yil' },
-  { value: 'custom', label: 'Maxsus' },
-];
-
-const MONTHS_UZ = [
-  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
-];
 
 const WEEKDAYS_UZ = ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'];
 
@@ -356,12 +342,10 @@ export function DateRangePicker({
 
           {/* Quick Select */}
           <div className="mt-4 flex flex-wrap gap-1">
-            {['today', 'week', 'month'].map((preset) => (
+            {QUICK_PRESET_VALUES.map((preset) => (
               <button
                 key={preset}
-                onClick={() => {
-                  handlePresetSelect(preset as DateRangePreset);
-                }}
+                onClick={() => handlePresetSelect(preset)}
                 className="rounded-lg bg-base-200 px-2 py-1 text-xs font-medium transition-colors hover:bg-base-300"
               >
                 {PRESET_OPTIONS.find((o) => o.value === preset)?.label}

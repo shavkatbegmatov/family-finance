@@ -8,6 +8,7 @@ import uz.familyfinance.api.entity.Debt;
 import uz.familyfinance.api.enums.DebtStatus;
 import uz.familyfinance.api.enums.StaffNotificationType;
 import uz.familyfinance.api.repository.DebtRepository;
+import uz.familyfinance.api.service.RecurringTransactionService;
 import uz.familyfinance.api.service.StaffNotificationService;
 
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class FinanceScheduler {
 
     private final DebtRepository debtRepository;
     private final StaffNotificationService notificationService;
+    private final RecurringTransactionService recurringTransactionService;
 
     @Scheduled(cron = "0 0 9 * * *")
     public void checkOverdueDebts() {
@@ -59,5 +61,16 @@ public class FinanceScheduler {
         log.info("Starting notification cleanup...");
         int deleted = notificationService.cleanupOldNotifications();
         log.info("Notification cleanup completed. Deleted {} old notifications", deleted);
+    }
+
+    /**
+     * Har kuni soat 00:05 da recurring tranzaksiyalarni avtomatik yaratadi.
+     * Idempotent — qayta ishlatilsa, takror tranzaksiya yaratilmaydi.
+     */
+    @Scheduled(cron = "0 5 0 * * *")
+    public void executeRecurringTransactions() {
+        log.info("Recurring transactions executor boshlanmoqda...");
+        int created = recurringTransactionService.executeDueRecurringTransactions(LocalDate.now());
+        log.info("Recurring transactions executor tugadi. {} ta yangi tranzaksiya yaratildi", created);
     }
 }

@@ -441,6 +441,12 @@ export interface Transaction {
   originalTransactionId?: number;
 }
 
+export interface TransactionSplitItem {
+  categoryId: number;
+  amount: number;
+  note?: string;
+}
+
 export interface TransactionRequest {
   type: TransactionType;
   amount: number;
@@ -453,6 +459,8 @@ export interface TransactionRequest {
   isRecurring?: boolean;
   recurringPattern?: RecurringPattern;
   tags?: string;
+  tagIds?: number[];
+  splits?: TransactionSplitItem[];
 }
 
 export interface TransactionFilters {
@@ -462,6 +470,7 @@ export interface TransactionFilters {
   memberId?: number;
   from?: string;
   to?: string;
+  search?: string;
 }
 
 // Budget Types

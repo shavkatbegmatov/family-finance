@@ -3,13 +3,14 @@ import toast from 'react-hot-toast';
 import {
   Plus,
   ArrowLeftRight,
+  ArrowRightLeft,
   TrendingUp,
   TrendingDown,
-  ArrowRightLeft,
   Filter,
   X,
   Edit2,
   Trash2,
+  Search,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -17,24 +18,21 @@ import { transactionsApi } from '../../api/transactions.api';
 import { accountsApi } from '../../api/accounts.api';
 import { categoriesApi } from '../../api/categories.api';
 import { familyMembersApi } from '../../api/family-members.api';
-import {
-  formatCurrency,
-  formatDate,
-  TRANSACTION_TYPES,
-} from '../../config/constants';
+import { formatCurrency, formatDate } from '../../config/constants';
 import { DataTable, Column } from '../../components/ui/DataTable';
-import { DateInput } from '../../components/ui/DateInput';
-import { TextArea } from '../../components/ui/TextArea';
 import { Select } from '../../components/ui/Select';
-import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { ModalPortal } from '../../components/common/Modal';
 import { FilterSheet } from '../../components/common/FilterSheet';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { PermissionCode } from '../../hooks/usePermission';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
+import { resolvePreset } from '../../utils/dateRangePresets';
+import { TransactionFormModal } from '../../components/common/TransactionFormModal';
+import { useQuickEntryStore } from '../../store/quickEntryStore';
 import type {
   Transaction,
-  TransactionRequest,
   TransactionType,
   TransactionFilters,
   Account,
@@ -53,19 +51,9 @@ const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: 'TRANSFER', label: "O'tkazma", icon: ArrowRightLeft },
 ];
 
-const EMPTY_FORM: TransactionRequest = {
-  type: 'EXPENSE',
-  amount: 0,
-  accountId: 0,
-  toAccountId: undefined,
-  categoryId: undefined,
-  familyMemberId: undefined,
-  transactionDate: new Date().toISOString().split('T')[0],
-  description: '',
-};
-
 export function TransactionsPage() {
   const isMobile = useIsMobile();
+  const lastCreatedAt = useQuickEntryStore((s) => s.lastCreatedAt);
 
   // Data state
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -88,31 +76,45 @@ export function TransactionsPage() {
 
   // Filters
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
-  const [filterFrom, setFilterFrom] = useState('');
-  const [filterTo, setFilterTo] = useState('');
+  const [datePreset, setDatePreset] = useState<DateRangePreset>('all');
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({ start: '', end: '' });
   const [filterAccountId, setFilterAccountId] = useState<number | undefined>(undefined);
   const [filterCategoryId, setFilterCategoryId] = useState<number | undefined>(undefined);
   const [filterMemberId, setFilterMemberId] = useState<number | undefined>(undefined);
+  const [filterSearch, setFilterSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(filterSearch, 300);
   const [showFilters, setShowFilters] = useState(false);
+
+  const resolvedRange = useMemo(
+    () => resolvePreset(datePreset, customDateRange),
+    [datePreset, customDateRange]
+  );
 
   // Modal state
   const [showFormModal, setShowFormModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
-  const [form, setForm] = useState<TransactionRequest>({ ...EMPTY_FORM });
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBulkReverseModal, setShowBulkReverseModal] = useState(false);
+  const [showBulkCategorizeModal, setShowBulkCategorizeModal] = useState(false);
+  const [bulkCategoryId, setBulkCategoryId] = useState<number | undefined>(undefined);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Build filters object
   const filters = useMemo<TransactionFilters>(() => {
     const f: TransactionFilters = {};
     if (activeTab !== 'ALL') f.type = activeTab as TransactionType;
-    if (filterFrom) f.from = filterFrom;
-    if (filterTo) f.to = filterTo;
+    if (resolvedRange?.start) f.from = resolvedRange.start;
+    if (resolvedRange?.end) f.to = resolvedRange.end;
     if (filterAccountId) f.accountId = filterAccountId;
     if (filterCategoryId) f.categoryId = filterCategoryId;
     if (filterMemberId) f.memberId = filterMemberId;
+    if (debouncedSearch.trim()) f.search = debouncedSearch.trim();
     return f;
-  }, [activeTab, filterFrom, filterTo, filterAccountId, filterCategoryId, filterMemberId]);
+  }, [activeTab, resolvedRange, filterAccountId, filterCategoryId, filterMemberId, debouncedSearch]);
 
   // Load reference data
   const loadReferenceData = useCallback(async () => {
@@ -189,6 +191,13 @@ export function TransactionsPage() {
     void loadTransactions(true);
   }, [loadTransactions]);
 
+  // FAB orqali yaratilgan tranzaksiyalar ham ro'yxatda ko'rinishi uchun
+  useEffect(() => {
+    if (lastCreatedAt === 0) return;
+    void loadTransactions(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastCreatedAt]);
+
   // Tab change -> reset page
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -202,50 +211,37 @@ export function TransactionsPage() {
 
   // Clear filters
   const clearFilters = () => {
-    setFilterFrom('');
-    setFilterTo('');
+    setDatePreset('all');
+    setCustomDateRange({ start: '', end: '' });
     setFilterAccountId(undefined);
     setFilterCategoryId(undefined);
     setFilterMemberId(undefined);
+    setFilterSearch('');
     setPage(0);
   };
 
-  const hasActiveFilters = filterFrom || filterTo || filterAccountId || filterCategoryId || filterMemberId;
+  const hasActiveFilters = Boolean(
+    datePreset !== 'all' || filterAccountId || filterCategoryId || filterMemberId || filterSearch
+  );
 
-  // Open form modal for create
   const handleOpenCreate = () => {
     setEditingTransaction(null);
-    setForm({ ...EMPTY_FORM });
     setShowFormModal(true);
   };
 
-  // Open form modal for edit
   const handleOpenEdit = (transaction: Transaction) => {
     setEditingTransaction(transaction);
-    setForm({
-      type: transaction.type,
-      amount: transaction.amount,
-      accountId: transaction.accountId,
-      toAccountId: transaction.toAccountId,
-      categoryId: transaction.categoryId,
-      familyMemberId: transaction.familyMemberId,
-      transactionDate: transaction.transactionDate?.split('T')[0] ?? '',
-      description: transaction.description ?? '',
-    });
     setShowFormModal(true);
   };
 
-  // Open delete confirmation
   const handleOpenDelete = (transaction: Transaction) => {
     setDeletingTransaction(transaction);
     setShowDeleteModal(true);
   };
 
-  // Close modals
   const handleCloseForm = () => {
     setShowFormModal(false);
     setEditingTransaction(null);
-    setForm({ ...EMPTY_FORM });
   };
 
   const handleCloseDelete = () => {
@@ -253,36 +249,96 @@ export function TransactionsPage() {
     setDeletingTransaction(null);
   };
 
-  // Submit create/update
-  const handleSubmit = async () => {
-    if (!form.accountId || form.amount <= 0) return;
-    if (form.type === 'TRANSFER' && !form.toAccountId) return;
+  const handleFormSuccess = () => {
+    void loadTransactions();
+  };
 
-    setSubmitting(true);
-    try {
-      const payload: TransactionRequest = {
-        ...form,
-        transactionDate: form.transactionDate.includes('T')
-          ? form.transactionDate
-          : form.transactionDate + 'T00:00:00',
-        categoryId: form.type === 'TRANSFER' ? undefined : form.categoryId,
-        toAccountId: form.type === 'TRANSFER' ? form.toAccountId : undefined,
-      };
+  // ===== Bulk operations =====
 
-      if (editingTransaction) {
-        await transactionsApi.update(editingTransaction.id, payload);
+  const allVisibleIds = useMemo(() => {
+    const source = isMobile ? allItems : transactions;
+    return source.filter((t) => t.status !== 'REVERSED').map((t) => t.id);
+  }, [transactions, allItems, isMobile]);
+
+  const isAllSelected = allVisibleIds.length > 0
+    && allVisibleIds.every((id) => selectedIds.has(id));
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
       } else {
-        await transactionsApi.create(payload);
+        next.add(id);
       }
+      return next;
+    });
+  };
 
-      handleCloseForm();
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (allVisibleIds.every((id) => prev.has(id))) {
+        const next = new Set(prev);
+        allVisibleIds.forEach((id) => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      allVisibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkReverseSubmit = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkProcessing(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const res = await transactionsApi.bulkReverse(ids, 'Bulk storno');
+      const data = (res.data as { data: { successCount: number; failures: unknown[] } }).data;
+      if (data.failures.length > 0) {
+        toast.success(`${data.successCount} storno qilindi, ${data.failures.length} xatolik`);
+      } else {
+        toast.success(`${data.successCount} ta tranzaksiya storno qilindi`);
+      }
+      setShowBulkReverseModal(false);
+      clearSelection();
       void loadTransactions();
     } catch {
-      toast.error('Tranzaksiyani saqlashda xatolik');
+      toast.error('Bulk storno qilishda xatolik');
     } finally {
-      setSubmitting(false);
+      setBulkProcessing(false);
     }
   };
+
+  const handleBulkCategorizeSubmit = async () => {
+    if (selectedIds.size === 0 || !bulkCategoryId) return;
+    setBulkProcessing(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const res = await transactionsApi.bulkCategorize(ids, bulkCategoryId);
+      const data = (res.data as { data: { successCount: number; failures: unknown[] } }).data;
+      if (data.failures.length > 0) {
+        toast.success(`${data.successCount} kategoriyalandi, ${data.failures.length} xatolik`);
+      } else {
+        toast.success(`${data.successCount} ta tranzaksiya kategoriyalandi`);
+      }
+      setShowBulkCategorizeModal(false);
+      setBulkCategoryId(undefined);
+      clearSelection();
+      void loadTransactions();
+    } catch {
+      toast.error('Bulk kategoriyalashda xatolik');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // Filterlar o'zgarganda tanlovlarni tozalash
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, filters]);
 
   // Submit storno (reverse)
   const handleDelete = async () => {
@@ -328,15 +384,31 @@ export function TransactionsPage() {
     );
   };
 
-  // Filtered categories based on transaction type in form
-  const filteredFormCategories = useMemo(() => {
-    if (form.type === 'TRANSFER') return [];
-    const catType = form.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
-    return categories.filter((c) => c.type === catType);
-  }, [form.type, categories]);
-
   // Table columns
   const columns: Column<Transaction>[] = [
+      {
+        key: 'select',
+        header: '',
+        sortable: false,
+        className: 'w-10',
+        render: (t) => {
+          const disabled = t.status === 'REVERSED';
+          return (
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={selectedIds.has(t.id)}
+              onChange={(e) => {
+                e.stopPropagation();
+                toggleSelect(t.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              disabled={disabled}
+              aria-label={`Tranzaksiyani tanlash: ${t.id}`}
+            />
+          );
+        },
+      },
       {
         key: 'transactionDate',
         header: 'Sana',
@@ -449,6 +521,52 @@ export function TransactionsPage() {
         </div>
       </div>
 
+      {/* Bulk actions toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="surface-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              className="checkbox checkbox-sm"
+              checked={isAllSelected}
+              onChange={toggleSelectAll}
+              aria-label="Hammasini tanlash"
+            />
+            <span className="text-sm font-medium">
+              <span className="text-primary">{selectedIds.size}</span> ta tanlangan
+            </span>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="btn btn-ghost btn-xs"
+            >
+              Bekor qilish
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <PermissionGate permission={PermissionCode.TRANSACTIONS_UPDATE}>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={() => setShowBulkCategorizeModal(true)}
+              >
+                Kategoriyalash
+              </button>
+            </PermissionGate>
+            <PermissionGate permission={PermissionCode.TRANSACTIONS_DELETE}>
+              <button
+                type="button"
+                className="btn btn-warning btn-sm"
+                onClick={() => setShowBulkReverseModal(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Storno qilish
+              </button>
+            </PermissionGate>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="surface-card">
         <div className="flex overflow-x-auto border-b border-base-200">
@@ -495,31 +613,57 @@ export function TransactionsPage() {
           isOpen={showFilters}
           onClose={() => setShowFilters(false)}
           onClear={clearFilters}
-          hasActiveFilters={!!hasActiveFilters}
+          hasActiveFilters={hasActiveFilters}
         >
-          {/* Date from */}
-          <DateInput
-            label="Boshlanish sanasi"
-            value={filterFrom}
-            onChange={(val) => {
-              setFilterFrom(val);
-              setPage(0);
-            }}
-            showTodayButton={false}
-            className="lg:w-48"
-          />
+          {/* Text search */}
+          <div className="flex flex-col gap-1.5 lg:w-64">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+              Qidiruv
+            </span>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/40 pointer-events-none" />
+              <input
+                type="text"
+                value={filterSearch}
+                onChange={(e) => {
+                  setFilterSearch(e.target.value);
+                  setPage(0);
+                }}
+                placeholder="Tavsif bo'yicha..."
+                className="input input-bordered w-full pl-10 pr-9 h-12"
+                maxLength={100}
+              />
+              {filterSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterSearch('');
+                    setPage(0);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-square"
+                  aria-label="Qidiruvni tozalash"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
 
-          {/* Date to */}
-          <DateInput
-            label="Tugash sanasi"
-            value={filterTo}
-            onChange={(val) => {
-              setFilterTo(val);
-              setPage(0);
-            }}
-            showTodayButton={false}
-            className="lg:w-48"
-          />
+          {/* Date range picker */}
+          <div className="flex flex-col gap-1.5 lg:w-64">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+              Davr
+            </span>
+            <DateRangePicker
+              value={datePreset}
+              customRange={customDateRange}
+              onChange={(preset, range) => {
+                setDatePreset(preset);
+                if (range) setCustomDateRange(range);
+                setPage(0);
+              }}
+            />
+          </div>
 
           {/* Account filter */}
           <Select
@@ -650,174 +794,15 @@ export function TransactionsPage() {
       </div>
 
       {/* Create/Edit Modal */}
-      <ModalPortal isOpen={showFormModal} onClose={handleCloseForm}>
-        <div className="w-full max-w-lg bg-base-100 lg:rounded-2xl shadow-2xl">
-          <div className="p-4 sm:p-6">
-            {/* Modal header */}
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
-                <h3 className="text-xl font-semibold">
-                  {editingTransaction ? 'Tranzaksiyani tahrirlash' : 'Yangi tranzaksiya'}
-                </h3>
-                <p className="text-sm text-base-content/60">
-                  {editingTransaction
-                    ? 'Tranzaksiya ma\'lumotlarini o\'zgartiring'
-                    : 'Yangi moliyaviy operatsiya qo\'shing'}
-                </p>
-              </div>
-              <button className="btn btn-ghost btn-sm btn-square" onClick={handleCloseForm}>
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <div className="space-y-4">
-              {/* Transaction type */}
-              <div className="form-control">
-                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                  Tranzaksiya turi *
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {Object.entries(TRANSACTION_TYPES).map(([key, { label }]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={clsx(
-                        'btn btn-sm min-h-0 whitespace-nowrap',
-                        form.type === key ? 'btn-primary' : 'btn-outline'
-                      )}
-                      onClick={() =>
-                        setForm((prev) => ({
-                          ...prev,
-                          type: key as TransactionType,
-                          categoryId: undefined,
-                          toAccountId: undefined,
-                        }))
-                      }
-                    >
-                      {key === 'INCOME' && <TrendingUp className="h-4 w-4" />}
-                      {key === 'EXPENSE' && <TrendingDown className="h-4 w-4" />}
-                      {key === 'TRANSFER' && <ArrowRightLeft className="h-4 w-4" />}
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Amount */}
-              <CurrencyInput
-                label="Summa *"
-                value={form.amount}
-                onChange={(val) => setForm((prev) => ({ ...prev, amount: val }))}
-                showQuickButtons
-              />
-
-              {/* Account */}
-              <Select
-                label={form.type === 'TRANSFER' ? 'Qaysi hisobdan *' : 'Hisob *'}
-                value={form.accountId || undefined}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, accountId: Number(val) || 0 }))
-                }
-                options={accounts.map((a) => ({ value: a.id, label: `${a.name} (${formatCurrency(a.balance)})` }))}
-                placeholder="Hisobni tanlang"
-                required
-              />
-
-              {/* To Account (only for TRANSFER) */}
-              {form.type === 'TRANSFER' && (
-                <Select
-                  label="Qaysi hisobga *"
-                  value={form.toAccountId || undefined}
-                  onChange={(val) =>
-                    setForm((prev) => ({ ...prev, toAccountId: Number(val) || undefined }))
-                  }
-                  options={accounts
-                    .filter((a) => a.id !== form.accountId)
-                    .map((a) => ({ value: a.id, label: `${a.name} (${formatCurrency(a.balance)})` }))}
-                  placeholder="Hisobni tanlang"
-                  required
-                />
-              )}
-
-              {/* Category (not for TRANSFER) */}
-              {form.type !== 'TRANSFER' && (
-                <Select
-                  label="Kategoriya"
-                  value={form.categoryId || undefined}
-                  onChange={(val) =>
-                    setForm((prev) => ({ ...prev, categoryId: val ? Number(val) : undefined }))
-                  }
-                  options={[
-                    { value: '', label: 'Tanlanmagan' },
-                    ...filteredFormCategories.map((c) => ({ value: c.id, label: c.name })),
-                  ]}
-                  placeholder="Kategoriyani tanlang"
-                />
-              )}
-
-              {/* Family member */}
-              <Select
-                label="Oila a'zosi"
-                value={form.familyMemberId || undefined}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, familyMemberId: val ? Number(val) : undefined }))
-                }
-                options={[
-                  { value: '', label: 'Tanlanmagan' },
-                  ...members.map((m) => ({ value: m.id, label: m.fullName })),
-                ]}
-                placeholder="Oila a'zosini tanlang"
-              />
-
-              {/* Transaction date */}
-              <DateInput
-                label="Sana"
-                required
-                value={form.transactionDate}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, transactionDate: val }))
-                }
-              />
-
-              {/* Description */}
-              <TextArea
-                label="Tavsif"
-                value={form.description ?? ''}
-                onChange={(val) =>
-                  setForm((prev) => ({ ...prev, description: val }))
-                }
-                placeholder="Qo'shimcha ma'lumot..."
-                rows={2}
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                className="btn btn-ghost"
-                onClick={handleCloseForm}
-                disabled={submitting}
-              >
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSubmit}
-                disabled={
-                  submitting ||
-                  form.amount <= 0 ||
-                  !form.accountId ||
-                  (form.type === 'TRANSFER' && !form.toAccountId)
-                }
-              >
-                {submitting && <span className="loading loading-spinner loading-sm" />}
-                {editingTransaction ? 'Saqlash' : "Qo'shish"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </ModalPortal>
+      <TransactionFormModal
+        isOpen={showFormModal}
+        onClose={handleCloseForm}
+        onSuccess={handleFormSuccess}
+        editingTransaction={editingTransaction}
+        accounts={accounts}
+        categories={categories}
+        members={members}
+      />
 
       {/* Delete Confirmation Modal */}
       <ModalPortal isOpen={showDeleteModal && !!deletingTransaction} onClose={handleCloseDelete}>
@@ -878,6 +863,95 @@ export function TransactionsPage() {
             </div>
           </div>
         )}
+      </ModalPortal>
+
+      {/* Bulk Reverse Modal */}
+      <ModalPortal isOpen={showBulkReverseModal} onClose={() => setShowBulkReverseModal(false)}>
+        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-warning" />
+              </div>
+              <button
+                className="btn btn-ghost btn-sm btn-square"
+                onClick={() => setShowBulkReverseModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <h3 className="text-lg font-semibold mb-2">
+              {selectedIds.size} ta tranzaksiyani storno qilish
+            </h3>
+            <p className="text-sm text-base-content/60 mb-4">
+              Tanlangan barcha tranzaksiyalar uchun teskari operatsiya yaratiladi.
+              Bu amalni qaytarib bo'lmaydi.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowBulkReverseModal(false)}
+                disabled={bulkProcessing}
+              >
+                Bekor qilish
+              </button>
+              <button
+                className="btn btn-warning"
+                onClick={handleBulkReverseSubmit}
+                disabled={bulkProcessing}
+              >
+                {bulkProcessing && <span className="loading loading-spinner loading-sm" />}
+                Storno qilish
+              </button>
+            </div>
+          </div>
+        </div>
+      </ModalPortal>
+
+      {/* Bulk Categorize Modal */}
+      <ModalPortal isOpen={showBulkCategorizeModal} onClose={() => setShowBulkCategorizeModal(false)}>
+        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
+          <div className="p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h3 className="text-lg font-semibold">
+                {selectedIds.size} ta tranzaksiyaga kategoriya o'rnatish
+              </h3>
+              <button
+                className="btn btn-ghost btn-sm btn-square"
+                onClick={() => setShowBulkCategorizeModal(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <Select
+                label="Yangi kategoriya"
+                value={bulkCategoryId}
+                onChange={(val) => setBulkCategoryId(val ? Number(val) : undefined)}
+                options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Kategoriyani tanlang"
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowBulkCategorizeModal(false)}
+                disabled={bulkProcessing}
+              >
+                Bekor qilish
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleBulkCategorizeSubmit}
+                disabled={bulkProcessing || !bulkCategoryId}
+              >
+                {bulkProcessing && <span className="loading loading-spinner loading-sm" />}
+                Saqlash
+              </button>
+            </div>
+          </div>
+        </div>
       </ModalPortal>
     </div>
   );

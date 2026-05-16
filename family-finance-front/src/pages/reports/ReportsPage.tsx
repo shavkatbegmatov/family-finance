@@ -1,5 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
-import { familyReportsApi } from '../../api/family-reports.api';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
+import { familyReportsApi, type ExportFormat } from '../../api/family-reports.api';
+import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
+import { resolvePreset } from '../../utils/dateRangePresets';
+import { ExportButtons } from '../../components/common/ExportButtons';
+import { downloadBlob, extractFileName } from '../../utils/downloadFile';
 import type {
   IncomeExpenseReport,
   CategoryReport,
@@ -40,13 +45,20 @@ const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'
 type ReportTab = 'income-expense' | 'category' | 'member';
 
 export function ReportsPage() {
-  // Date range: default = current month start to today
+  // Default = current month
   const today = getTashkentToday();
   const monthStart = today.slice(0, 8) + '01';
 
-  const [fromDate, setFromDate] = useState(monthStart);
-  const [toDate, setToDate] = useState(today);
+  const [datePreset, setDatePreset] = useState<DateRangePreset>('month');
+  const [customRange, setCustomRange] = useState<DateRange>({ start: monthStart, end: today });
   const [activeTab, setActiveTab] = useState<ReportTab>('income-expense');
+
+  const resolvedRange = useMemo(
+    () => resolvePreset(datePreset, customRange) ?? { start: monthStart, end: today },
+    [datePreset, customRange, monthStart, today]
+  );
+  const fromDate = resolvedRange.start;
+  const toDate = resolvedRange.end;
 
   // Tab 1: Income/Expense
   const [incomeExpense, setIncomeExpense] = useState<IncomeExpenseReport | null>(null);
@@ -62,6 +74,48 @@ export function ReportsPage() {
   const [memLoading, setMemLoading] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const downloadReport = useCallback(async (
+    invoke: () => Promise<{ data: Blob; headers: unknown }>,
+    fallbackName: string
+  ): Promise<void> => {
+    setExporting(true);
+    try {
+      const response = await invoke();
+      const headers = response.headers as Record<string, string | undefined>;
+      const fileName = extractFileName(headers['content-disposition'] ?? null, fallbackName);
+      downloadBlob(response.data, fileName);
+      toast.success('Fayl yuklab olindi');
+    } catch {
+      toast.error('Eksportda xatolik');
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
+  const handleExport = useCallback(
+    (format: ExportFormat) => {
+      const ext = format === 'excel' ? 'xlsx' : 'pdf';
+      if (activeTab === 'income-expense') {
+        void downloadReport(
+          () => familyReportsApi.exportIncomeExpense(fromDate, toDate, format),
+          `daromad_xarajat.${ext}`
+        );
+      } else if (activeTab === 'category') {
+        void downloadReport(
+          () => familyReportsApi.exportCategoryReport(categoryType, fromDate, toDate, format),
+          `kategoriya.${ext}`
+        );
+      } else if (activeTab === 'member') {
+        void downloadReport(
+          () => familyReportsApi.exportMemberReport(fromDate, toDate, format),
+          `oila_azolari.${ext}`
+        );
+      }
+    },
+    [activeTab, categoryType, fromDate, toDate, downloadReport]
+  );
 
   // ------ Data Loaders ------
 
@@ -147,6 +201,14 @@ export function ReportsPage() {
           <h1 className="section-title">Hisobotlar</h1>
           <p className="section-subtitle">Oilaviy moliyaviy hisobotlar va tahlillar</p>
         </div>
+        <div className="flex items-center gap-2">
+          <ExportButtons
+            onExportExcel={() => handleExport('excel')}
+            onExportPdf={() => handleExport('pdf')}
+            disabled={isLoading || exporting}
+            loading={exporting}
+          />
+        </div>
       </div>
 
       {/* Date Range Picker */}
@@ -156,21 +218,14 @@ export function ReportsPage() {
             <Calendar className="h-5 w-5 text-base-content/60" />
             <span className="text-sm font-medium text-base-content/70">Davr:</span>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <input
-              type="date"
-              className="input input-bordered input-sm"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-            />
-            <span className="text-base-content/50">—</span>
-            <input
-              type="date"
-              className="input input-bordered input-sm"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-            />
-          </div>
+          <DateRangePicker
+            value={datePreset}
+            customRange={customRange}
+            onChange={(preset, range) => {
+              setDatePreset(preset);
+              if (range) setCustomRange(range);
+            }}
+          />
         </div>
       </div>
 

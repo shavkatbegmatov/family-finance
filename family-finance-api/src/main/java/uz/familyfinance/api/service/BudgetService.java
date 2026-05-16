@@ -12,6 +12,7 @@ import uz.familyfinance.api.entity.Budget;
 import uz.familyfinance.api.entity.Category;
 import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.BudgetAlertRepository;
 import uz.familyfinance.api.repository.BudgetRepository;
 import uz.familyfinance.api.repository.CategoryRepository;
 import uz.familyfinance.api.repository.TransactionRepository;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 public class BudgetService {
 
     private final BudgetRepository budgetRepository;
+    private final BudgetAlertRepository budgetAlertRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
 
@@ -70,11 +72,19 @@ public class BudgetService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kategoriya topilmadi"));
 
+        boolean periodChanged = !budget.getStartDate().equals(request.getStartDate())
+                || !budget.getEndDate().equals(request.getEndDate());
+
         budget.setCategory(category);
         budget.setAmount(request.getAmount());
         budget.setPeriod(request.getPeriod());
         budget.setStartDate(request.getStartDate());
         budget.setEndDate(request.getEndDate());
+
+        // Yangi davr bo'lsa, eski alert'lar yangi davrda yana yuborilishi uchun tozalanadi
+        if (periodChanged) {
+            budgetAlertRepository.deleteByBudgetId(budget.getId());
+        }
 
         return toResponse(budgetRepository.save(budget));
     }
