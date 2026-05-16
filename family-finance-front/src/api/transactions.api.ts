@@ -10,6 +10,7 @@ export const transactionsApi = {
     if (filters?.memberId) params.memberId = filters.memberId;
     if (filters?.from) params.from = filters.from;
     if (filters?.to) params.to = filters.to;
+    if (filters?.search) params.search = filters.search;
     return axiosInstance.get('/v1/transactions', { params });
   },
   getRecent: () => axiosInstance.get('/v1/transactions/recent'),
@@ -21,4 +22,8 @@ export const transactionsApi = {
     axiosInstance.get(`/v1/transactions/account/${accountId}`, { params: { page, size } }),
   confirm: (id: number) => axiosInstance.patch(`/v1/transactions/${id}/confirm`),
   cancel: (id: number, reason: string) => axiosInstance.patch(`/v1/transactions/${id}/cancel`, { reason }),
+  bulkReverse: (transactionIds: number[], reason: string) =>
+    axiosInstance.post('/v1/transactions/bulk-reverse', { transactionIds, reason }),
+  bulkCategorize: (transactionIds: number[], categoryId: number) =>
+    axiosInstance.patch('/v1/transactions/bulk-categorize', { transactionIds, categoryId }),
 };

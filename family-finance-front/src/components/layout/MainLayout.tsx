@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { Outlet, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useSessionMonitor } from '../../hooks/useSessionMonitor';
 import { useCrossTabSync } from '../../hooks/useCrossTabSync';
 import { useIdleSessionTimeout } from '../../hooks/useIdleSessionTimeout';
+import { useKeyboardShortcuts, type KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
+import { useQuickEntryStore } from '../../store/quickEntryStore';
+import { PermissionCode, usePermission } from '../../hooks/usePermission';
+import { KeyboardShortcutsModal } from '../common/KeyboardShortcutsModal';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -11,14 +15,69 @@ import { BottomNav } from './BottomNav';
 import { PasswordChangeModal } from '../common/PasswordChangeModal';
 import { SessionTimeoutModal } from '../common/SessionTimeoutModal';
 import { OfflineIndicator } from '../common/OfflineIndicator';
+import { QuickEntryFab } from '../common/QuickEntryFab';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 
 export function MainLayout() {
   const { isAuthenticated, user } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { hasPermission } = usePermission();
+  const openQuickEntry = useQuickEntryStore((s) => s.open);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const isSidebarPinned = useFamilyTreeStore((s) => s.isSidebarPinned);
   const activeModal = useFamilyTreeStore((s) => s.activeModal);
+
+  const canCreateTransaction = hasPermission(PermissionCode.TRANSACTIONS_CREATE);
+
+  const shortcuts = useMemo<KeyboardShortcut[]>(
+    () => [
+      ...(canCreateTransaction
+        ? [
+            {
+              definition: { ctrl: true, key: 'n' },
+              handler: () => openQuickEntry('EXPENSE'),
+              label: 'Yangi tranzaksiya',
+            },
+          ]
+        : []),
+      {
+        definition: { key: '?', shift: true },
+        handler: () => setShowShortcutsModal(true),
+        label: 'Yorliqlar ro\'yxati',
+      },
+      {
+        definition: { key: 'd', alt: true },
+        handler: () => navigate('/'),
+        label: 'Dashboard',
+      },
+      {
+        definition: { key: 't', alt: true },
+        handler: () => navigate('/transactions'),
+        label: 'Tranzaksiyalar',
+      },
+      {
+        definition: { key: 'a', alt: true },
+        handler: () => navigate('/accounts'),
+        label: 'Hisoblar',
+      },
+      {
+        definition: { key: 'b', alt: true },
+        handler: () => navigate('/budget'),
+        label: 'Byudjetlar',
+      },
+      {
+        definition: { key: 'r', alt: true },
+        handler: () => navigate('/reports'),
+        label: 'Hisobotlar',
+      },
+    ],
+    [canCreateTransaction, openQuickEntry, navigate]
+  );
+
+  useKeyboardShortcuts(shortcuts, { enabled: isAuthenticated });
+
   const {
     showWarning,
     remainingSeconds,
@@ -86,6 +145,13 @@ export function MainLayout() {
         remainingSeconds={remainingSeconds}
         onContinue={continueSession}
         onLogout={logoutNow}
+      />
+
+      <QuickEntryFab />
+
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
       />
     </div>
   );

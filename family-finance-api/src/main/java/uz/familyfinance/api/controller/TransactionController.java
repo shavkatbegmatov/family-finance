@@ -6,9 +6,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uz.familyfinance.api.dto.request.BulkCategorizeRequest;
+import uz.familyfinance.api.dto.request.BulkReverseRequest;
 import uz.familyfinance.api.dto.request.ReverseTransactionRequest;
 import uz.familyfinance.api.dto.request.TransactionRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.dto.response.BulkOperationResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
 import uz.familyfinance.api.dto.response.TransactionResponse;
 import uz.familyfinance.api.enums.TransactionType;
@@ -37,9 +40,10 @@ public class TransactionController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long memberId,
             @RequestParam(required = false) LocalDateTime from,
-            @RequestParam(required = false) LocalDateTime to) {
+            @RequestParam(required = false) LocalDateTime to,
+            @RequestParam(required = false) String search) {
         Page<TransactionResponse> result = transactionService.getAll(type, accountId, categoryId, memberId, from, to,
-                PageRequest.of(page, size, Sort.by("transactionDate").descending()));
+                search, PageRequest.of(page, size, Sort.by("transactionDate").descending()));
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
     }
 
@@ -99,5 +103,19 @@ public class TransactionController {
             @PathVariable Long id,
             @RequestBody ReverseTransactionRequest request) {
         return ResponseEntity.ok(ApiResponse.success(transactionService.cancel(id, request.getReason())));
+    }
+
+    @PostMapping("/bulk-reverse")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_REVERSE)
+    public ResponseEntity<ApiResponse<BulkOperationResponse>> bulkReverse(
+            @Valid @RequestBody BulkReverseRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(transactionService.bulkReverse(request)));
+    }
+
+    @PatchMapping("/bulk-categorize")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_UPDATE)
+    public ResponseEntity<ApiResponse<BulkOperationResponse>> bulkCategorize(
+            @Valid @RequestBody BulkCategorizeRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(transactionService.bulkCategorize(request)));
     }
 }

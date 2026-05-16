@@ -14,6 +14,7 @@ import uz.familyfinance.api.enums.TransactionType;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -108,6 +109,15 @@ public class Transaction extends BaseEntity implements Auditable {
 
     @Column(length = 500)
     private String tags;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "transaction_tags",
+            joinColumns = @JoinColumn(name = "transaction_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    private Set<Tag> tagEntities = new HashSet<>();
 
     @Override
     public String getEntityName() {

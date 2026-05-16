@@ -13,7 +13,18 @@ import uz.familyfinance.api.enums.TransactionStatus;
 import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.dto.request.BulkCategorizeRequest;
+import uz.familyfinance.api.dto.request.BulkReverseRequest;
+import uz.familyfinance.api.dto.request.TransactionSplitItem;
+import uz.familyfinance.api.dto.response.BulkOperationResponse;
+import uz.familyfinance.api.dto.response.BulkOperationResponse.BulkOperationFailure;
+import uz.familyfinance.api.entity.BudgetAlert;
+import uz.familyfinance.api.entity.TransactionSplit;
+import uz.familyfinance.api.enums.BudgetAlertThreshold;
+import uz.familyfinance.api.enums.StaffNotificationType;
 import uz.familyfinance.api.repository.*;
+
+import java.util.ArrayList;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -32,14 +43,19 @@ public class TransactionService {
     private final CategoryRepository categoryRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final BudgetRepository budgetRepository;
+    private final BudgetAlertRepository budgetAlertRepository;
     private final StaffNotificationService notificationService;
     private final AccountService accountService;
+    private final TagService tagService;
+    private final TransactionSplitRepository transactionSplitRepository;
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getAll(TransactionType type, Long accountId, Long categoryId,
                                               Long memberId, LocalDateTime from, LocalDateTime to,
-                                              Pageable pageable) {
-        return transactionRepository.findWithFilters(type, accountId, categoryId, memberId, from, to, null, pageable)
+                                              String search, Pageable pageable) {
+        String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
+        return transactionRepository.findWithFilters(type, accountId, categoryId, memberId, from, to,
+                                                       null, normalizedSearch, pageable)
                 .map(this::toResponse);
     }
 
@@ -63,6 +79,7 @@ public class TransactionService {
      */
     @Transactional
     public TransactionResponse create(TransactionRequest request) {
+        validateSplits(request);
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
 
@@ -93,6 +110,11 @@ public class TransactionService {
             FamilyMember member = familyMemberRepository.findById(request.getFamilyMemberId())
                     .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi"));
             transaction.setFamilyMember(member);
+        }
+
+        // Tags
+        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+            transaction.setTagEntities(tagService.findByIds(request.getTagIds()));
         }
 
         // Double-Entry mantiq
@@ -141,6 +163,11 @@ public class TransactionService {
 
         Transaction saved = transactionRepository.save(transaction);
 
+        // Splits
+        if (request.getSplits() != null && !request.getSplits().isEmpty()) {
+            saveSplits(saved, request.getSplits());
+        }
+
         // Check budget warnings for expenses
         if (request.getType() == TransactionType.EXPENSE && request.getCategoryId() != null) {
             checkBudgetWarning(request.getCategoryId(), request.getAmount());
@@ -155,6 +182,7 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse update(Long id, TransactionRequest request) {
+        validateSplits(request);
         Transaction existing = findById(id);
 
         if (existing.getStatus() == TransactionStatus.REVERSED) {
@@ -193,6 +221,11 @@ public class TransactionService {
             existing.setFamilyMember(familyMemberRepository.findById(request.getFamilyMemberId()).orElse(null));
         } else {
             existing.setFamilyMember(null);
+        }
+
+        // Tags
+        if (request.getTagIds() != null) {
+            existing.setTagEntities(tagService.findByIds(request.getTagIds()));
         }
 
         // Yangi double-entry mantiq
@@ -236,7 +269,18 @@ public class TransactionService {
         existing.setBalanceAfterDebit(debitAccount.getBalance().add(request.getAmount()));
         existing.setBalanceAfterCredit(creditAccount.getBalance().subtract(request.getAmount()));
 
-        return toResponse(transactionRepository.save(existing));
+        Transaction savedExisting = transactionRepository.save(existing);
+
+        // Splits — update rejimida ham yangilanadi
+        if (request.getSplits() != null) {
+            if (request.getSplits().isEmpty()) {
+                transactionSplitRepository.deleteByTransactionId(savedExisting.getId());
+            } else {
+                saveSplits(savedExisting, request.getSplits());
+            }
+        }
+
+        return toResponse(savedExisting);
     }
 
     /**
@@ -392,30 +436,151 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Ko'p tranzaksiyani birgalikda storno qilish.
+     * Har biri alohida ishlanadi — bir tranzaksiyaning xatosi qolganlarini buzmaydi.
+     */
+    public BulkOperationResponse bulkReverse(BulkReverseRequest request) {
+        List<BulkOperationFailure> failures = new ArrayList<>();
+        int successCount = 0;
+        for (Long id : request.getTransactionIds()) {
+            try {
+                reverse(id, request.getReason());
+                successCount++;
+            } catch (Exception e) {
+                log.warn("Bulk reverse: tranzaksiya {} storno qilinmadi: {}", id, e.getMessage());
+                failures.add(BulkOperationFailure.builder()
+                        .transactionId(id)
+                        .reason(e.getMessage())
+                        .build());
+            }
+        }
+        return BulkOperationResponse.builder()
+                .successCount(successCount)
+                .failures(failures)
+                .build();
+    }
+
+    /**
+     * Ko'p tranzaksiyaga bir vaqtning o'zida kategoriya o'rnatish.
+     * REVERSED holatdagi tranzaksiyalar e'tiborga olinmaydi.
+     */
+    @Transactional
+    public BulkOperationResponse bulkCategorize(BulkCategorizeRequest request) {
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Kategoriya topilmadi"));
+
+        List<BulkOperationFailure> failures = new ArrayList<>();
+        int successCount = 0;
+        for (Long id : request.getTransactionIds()) {
+            try {
+                Transaction tx = findById(id);
+                if (tx.getStatus() == TransactionStatus.REVERSED) {
+                    failures.add(BulkOperationFailure.builder()
+                            .transactionId(id)
+                            .reason("Storno qilingan tranzaksiyani o'zgartirib bo'lmaydi")
+                            .build());
+                    continue;
+                }
+                tx.setCategory(category);
+                transactionRepository.save(tx);
+                successCount++;
+            } catch (Exception e) {
+                log.warn("Bulk categorize: tranzaksiya {} o'zgartirilmadi: {}", id, e.getMessage());
+                failures.add(BulkOperationFailure.builder()
+                        .transactionId(id)
+                        .reason(e.getMessage())
+                        .build());
+            }
+        }
+        return BulkOperationResponse.builder()
+                .successCount(successCount)
+                .failures(failures)
+                .build();
+    }
+
+    /**
+     * Split'lar yig'indisi tranzaksiya summasiga teng bo'lishi kerak.
+     */
+    private void validateSplits(TransactionRequest request) {
+        if (request.getSplits() == null || request.getSplits().isEmpty()) return;
+        if (request.getType() == TransactionType.TRANSFER) {
+            throw new BadRequestException("TRANSFER tranzaksiyani bo'lib bo'lmaydi");
+        }
+        BigDecimal sum = request.getSplits().stream()
+                .map(TransactionSplitItem::getAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (sum.compareTo(request.getAmount()) != 0) {
+            throw new BadRequestException("Split summasi tranzaksiya summasiga teng bo'lishi kerak");
+        }
+    }
+
+    /**
+     * Yangi split'larni saqlash. Eski splitlar tozalanadi.
+     */
+    private void saveSplits(Transaction transaction, List<TransactionSplitItem> items) {
+        transactionSplitRepository.deleteByTransactionId(transaction.getId());
+        for (TransactionSplitItem item : items) {
+            Category category = categoryRepository.findById(item.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Kategoriya topilmadi: " + item.getCategoryId()));
+            transactionSplitRepository.save(TransactionSplit.builder()
+                    .transaction(transaction)
+                    .category(category)
+                    .amount(item.getAmount())
+                    .note(item.getNote())
+                    .build());
+        }
+    }
+
     private void checkBudgetWarning(Long categoryId, BigDecimal expenseAmount) {
         LocalDate today = LocalDate.now();
         budgetRepository.findByCategoryIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                 categoryId, today, today).ifPresent(budget -> {
             LocalDateTime from = budget.getStartDate().atStartOfDay();
             LocalDateTime to = budget.getEndDate().atTime(23, 59, 59);
-            BigDecimal totalSpent = transactionRepository.sumExpenseByCategoryAndDateRange(categoryId, from, to);
+            BigDecimal directSpent = transactionRepository.sumExpenseByCategoryAndDateRange(categoryId, from, to);
+            BigDecimal splitSpent = transactionSplitRepository.sumExpenseByCategoryAndDateRange(categoryId, from, to);
+            BigDecimal totalSpent = directSpent.add(splitSpent);
             BigDecimal percentage = totalSpent.multiply(BigDecimal.valueOf(100))
                     .divide(budget.getAmount(), 2, RoundingMode.HALF_UP);
 
-            if (percentage.compareTo(BigDecimal.valueOf(100)) >= 0) {
-                notificationService.createGlobalNotification(
+            // 100% chegarasi avval tekshiriladi — agar oshib ketgan bo'lsa, faqat EXCEEDED alert yuboriladi
+            if (percentage.compareTo(BudgetAlertThreshold.EXCEEDED.getPercentBigDecimal()) >= 0) {
+                sendBudgetAlertOnce(budget, BudgetAlertThreshold.EXCEEDED, percentage,
                         "Byudjet oshib ketdi!",
-                        String.format("Kategoriya byudjeti %s%% sarflandi", percentage),
-                        uz.familyfinance.api.enums.StaffNotificationType.BUDGET_EXCEEDED,
-                        "BUDGET", budget.getId());
-            } else if (percentage.compareTo(BigDecimal.valueOf(80)) >= 0) {
-                notificationService.createGlobalNotification(
+                        StaffNotificationType.BUDGET_EXCEEDED);
+            } else if (percentage.compareTo(BudgetAlertThreshold.WARNING.getPercentBigDecimal()) >= 0) {
+                sendBudgetAlertOnce(budget, BudgetAlertThreshold.WARNING, percentage,
                         "Byudjet ogohlantirishi",
-                        String.format("Kategoriya byudjeti %s%% sarflandi", percentage),
-                        uz.familyfinance.api.enums.StaffNotificationType.BUDGET_WARNING,
-                        "BUDGET", budget.getId());
+                        StaffNotificationType.BUDGET_WARNING);
             }
         });
+    }
+
+    /**
+     * Bir budget davri ichida bir threshold uchun faqat bitta notifikatsiya yuboriladi (idempotent).
+     */
+    private void sendBudgetAlertOnce(uz.familyfinance.api.entity.Budget budget,
+                                       BudgetAlertThreshold threshold,
+                                       BigDecimal percentage,
+                                       String title,
+                                       StaffNotificationType notificationType) {
+        if (budgetAlertRepository.existsByBudgetIdAndThreshold(budget.getId(), threshold.getPercent())) {
+            return;
+        }
+        notificationService.createGlobalNotification(
+                title,
+                String.format("Kategoriya byudjeti %s%% sarflandi", percentage),
+                notificationType,
+                "BUDGET",
+                budget.getId());
+        budgetAlertRepository.save(BudgetAlert.builder()
+                .budget(budget)
+                .threshold(threshold.getPercent())
+                .sentAt(LocalDateTime.now())
+                .build());
     }
 
     private Transaction findById(Long id) {

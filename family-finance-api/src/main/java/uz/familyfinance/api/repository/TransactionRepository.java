@@ -23,7 +23,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
                     "(:status IS NULL OR t.status = :status) AND " +
                     "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
-                    "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)",
+                    "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate) AND " +
+                    "(CAST(:search AS string) IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))",
             countQuery = "SELECT COUNT(t) FROM Transaction t WHERE " +
                     "(:type IS NULL OR t.type = :type) AND " +
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
@@ -31,7 +32,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
                     "(:status IS NULL OR t.status = :status) AND " +
                     "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
-                    "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)"
+                    "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate) AND " +
+                    "(CAST(:search AS string) IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))"
     )
     Page<Transaction> findWithFilters(
             @Param("type") TransactionType type,
@@ -41,6 +43,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("fromDate") LocalDateTime from,
             @Param("toDate") LocalDateTime to,
             @Param("status") String status,
+            @Param("search") String search,
             Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND " +
