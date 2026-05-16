@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowRightLeft, Plus, Split, TrendingDown, TrendingUp, X, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Check, Plus, Split, TrendingDown, TrendingUp, Wand2, X, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
 import { transactionsApi } from '../../api/transactions.api';
@@ -121,7 +121,8 @@ export function TransactionFormModal({
     () => splits.reduce((sum, s) => sum + (s.amount || 0), 0),
     [splits]
   );
-  const splitsValid = splitMode && splits.length >= 2 && Math.abs(splitsTotal - form.amount) < 0.01;
+  const splitsDiff = form.amount - splitsTotal;
+  const splitsValid = splitMode && splits.length >= 2 && Math.abs(splitsDiff) < 0.01;
   const canEnableSplit = form.type !== 'TRANSFER' && form.amount > 0;
 
   const filteredCategories = useMemo(() => {
@@ -172,6 +173,33 @@ export function TransactionFormModal({
     setSplits((prev) => prev.filter((_, i) => i !== index));
   };
 
+  /** Qolgan farqni oxirgi qatorga qo'shadi (yoki ayiradi). */
+  const autofillLast = () => {
+    if (Math.abs(splitsDiff) < 0.01 || splits.length === 0) return;
+    setSplits((prev) => {
+      const next = [...prev];
+      const lastIdx = next.length - 1;
+      const newAmount = (next[lastIdx].amount || 0) + splitsDiff;
+      if (newAmount > 0) {
+        next[lastIdx] = { ...next[lastIdx], amount: Math.round(newAmount * 100) / 100 };
+      }
+      return next;
+    });
+  };
+
+  /** Summani teng ulushlarga bo'lib taqsimlaydi. */
+  const distributeEvenly = () => {
+    if (splits.length === 0 || form.amount <= 0) return;
+    const perItem = Math.floor((form.amount * 100) / splits.length) / 100;
+    const remainder = Math.round((form.amount - perItem * splits.length) * 100) / 100;
+    setSplits((prev) =>
+      prev.map((s, i) => ({
+        ...s,
+        amount: i === prev.length - 1 ? perItem + remainder : perItem,
+      }))
+    );
+  };
+
   const handleSubmit = async () => {
     if (!isValid) return;
 
@@ -208,229 +236,310 @@ export function TransactionFormModal({
     }
   };
 
+  const isTransfer = form.type === 'TRANSFER';
+
   return (
     <ModalPortal isOpen={isOpen} onClose={onClose}>
-      <div className="w-full max-w-lg bg-base-100 lg:rounded-2xl shadow-2xl">
-        <div className="p-4 sm:p-6">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div>
-              <h3 className="text-xl font-semibold">
-                {isEdit ? 'Tranzaksiyani tahrirlash' : 'Yangi tranzaksiya'}
-              </h3>
-              <p className="text-sm text-base-content/60">
-                {isEdit
-                  ? 'Tranzaksiya ma\'lumotlarini o\'zgartiring'
-                  : 'Yangi moliyaviy operatsiya qo\'shing'}
-              </p>
-            </div>
-            <button className="btn btn-ghost btn-sm btn-square" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </button>
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col bg-base-100 shadow-2xl lg:max-w-5xl lg:rounded-2xl">
+        {/* Sticky header */}
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-base-200 bg-base-100 px-4 py-4 sm:px-6 lg:rounded-t-2xl">
+          <div>
+            <h3 className="text-xl font-semibold">
+              {isEdit ? 'Tranzaksiyani tahrirlash' : 'Yangi tranzaksiya'}
+            </h3>
+            <p className="text-sm text-base-content/60">
+              {isEdit
+                ? "Tranzaksiya ma'lumotlarini o'zgartiring"
+                : "Yangi moliyaviy operatsiya qo'shing"}
+            </p>
           </div>
+          <button className="btn btn-ghost btn-sm btn-square" onClick={onClose} aria-label="Yopish">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-          {/* Form */}
-          <div className="space-y-4">
-            {/* Type buttons */}
-            <div className="form-control">
-              <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                Tranzaksiya turi *
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(['INCOME', 'EXPENSE', 'TRANSFER'] as const).map((key) => {
-                  const Icon = TYPE_ICONS[key];
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      className={clsx(
-                        'btn btn-sm min-h-0 whitespace-nowrap',
-                        form.type === key ? 'btn-primary' : 'btn-outline'
-                      )}
-                      onClick={() => handleTypeChange(key)}
-                    >
-                      {Icon && <Icon className="h-4 w-4" />}
-                      {TRANSACTION_TYPES[key].label}
-                    </button>
-                  );
-                })}
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-2">
+            {/* ===== LEFT COLUMN ===== */}
+            <div className="space-y-4">
+              {/* Type buttons */}
+              <div className="form-control">
+                <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
+                  Tranzaksiya turi *
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['INCOME', 'EXPENSE', 'TRANSFER'] as const).map((key) => {
+                    const Icon = TYPE_ICONS[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        className={clsx(
+                          'btn btn-sm min-h-0 whitespace-nowrap',
+                          form.type === key ? 'btn-primary' : 'btn-outline'
+                        )}
+                        onClick={() => handleTypeChange(key)}
+                      >
+                        {Icon && <Icon className="h-4 w-4" />}
+                        {TRANSACTION_TYPES[key].label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* Amount */}
-            <CurrencyInput
-              label="Summa *"
-              value={form.amount}
-              onChange={(val) => setForm((prev) => ({ ...prev, amount: val }))}
-              showQuickButtons
-            />
+              {/* Amount */}
+              <CurrencyInput
+                label="Summa *"
+                value={form.amount}
+                onChange={(val) => setForm((prev) => ({ ...prev, amount: val }))}
+                showQuickButtons
+              />
 
-            {/* Account */}
-            <Select
-              label={form.type === 'TRANSFER' ? 'Qaysi hisobdan *' : 'Hisob *'}
-              value={form.accountId || undefined}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, accountId: Number(val) || 0 }))
-              }
-              options={accounts.map((a) => ({
-                value: a.id,
-                label: `${a.name} (${formatCurrency(a.balance)})`,
-              }))}
-              placeholder="Hisobni tanlang"
-              required
-            />
-
-            {/* To Account (TRANSFER) */}
-            {form.type === 'TRANSFER' && (
+              {/* Account */}
               <Select
-                label="Qaysi hisobga *"
-                value={form.toAccountId || undefined}
+                label={isTransfer ? 'Qaysi hisobdan *' : 'Hisob *'}
+                value={form.accountId || undefined}
                 onChange={(val) =>
-                  setForm((prev) => ({ ...prev, toAccountId: Number(val) || undefined }))
+                  setForm((prev) => ({ ...prev, accountId: Number(val) || 0 }))
                 }
-                options={accounts
-                  .filter((a) => a.id !== form.accountId)
-                  .map((a) => ({
-                    value: a.id,
-                    label: `${a.name} (${formatCurrency(a.balance)})`,
-                  }))}
+                options={accounts.map((a) => ({
+                  value: a.id,
+                  label: `${a.name} (${formatCurrency(a.balance)})`,
+                }))}
                 placeholder="Hisobni tanlang"
                 required
               />
-            )}
 
-            {/* Category yoki Split */}
-            {form.type !== 'TRANSFER' && !splitMode && (
+              {/* To Account (TRANSFER) */}
+              {isTransfer && (
+                <Select
+                  label="Qaysi hisobga *"
+                  value={form.toAccountId || undefined}
+                  onChange={(val) =>
+                    setForm((prev) => ({ ...prev, toAccountId: Number(val) || undefined }))
+                  }
+                  options={accounts
+                    .filter((a) => a.id !== form.accountId)
+                    .map((a) => ({
+                      value: a.id,
+                      label: `${a.name} (${formatCurrency(a.balance)})`,
+                    }))}
+                  placeholder="Hisobni tanlang"
+                  required
+                />
+              )}
+
+              {/* Date */}
+              <DateInput
+                label="Sana *"
+                required
+                value={form.transactionDate}
+                onChange={(val) => setForm((prev) => ({ ...prev, transactionDate: val }))}
+              />
+
+              {/* Family member */}
               <Select
-                label="Kategoriya"
-                value={form.categoryId || undefined}
+                label="Oila a'zosi"
+                value={form.familyMemberId || undefined}
                 onChange={(val) =>
-                  setForm((prev) => ({ ...prev, categoryId: val ? Number(val) : undefined }))
+                  setForm((prev) => ({
+                    ...prev,
+                    familyMemberId: val ? Number(val) : undefined,
+                  }))
                 }
                 options={[
                   { value: '', label: 'Tanlanmagan' },
-                  ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
+                  ...members.map((m) => ({ value: m.id, label: m.fullName })),
                 ]}
-                placeholder="Kategoriyani tanlang"
+                placeholder="Oila a'zosini tanlang"
               />
-            )}
+            </div>
 
-            {/* Split toggle */}
-            {form.type !== 'TRANSFER' && (
-              <div className="flex items-center justify-between rounded-xl border border-base-300 px-3 py-2">
-                <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="checkbox checkbox-sm"
-                    checked={splitMode}
-                    onChange={(e) => {
-                      setSplitMode(e.target.checked);
-                      if (e.target.checked && splits.length === 0) {
-                        setSplits([
-                          { categoryId: 0, amount: 0 },
-                          { categoryId: 0, amount: 0 },
-                        ]);
-                      }
-                    }}
-                    disabled={!canEnableSplit}
-                  />
-                  <Split className="h-4 w-4" />
-                  Bir nechta kategoriyaga bo'lish
-                </label>
-                {splitMode && (
-                  <span className={clsx('text-xs', splitsValid ? 'text-success' : 'text-warning')}>
-                    {splitsTotal.toLocaleString()} / {form.amount.toLocaleString()}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* ===== RIGHT COLUMN ===== */}
+            <div className="space-y-4">
+              {/* Category (oddiy rejim) */}
+              {!isTransfer && !splitMode && (
+                <Select
+                  label="Kategoriya"
+                  value={form.categoryId || undefined}
+                  onChange={(val) =>
+                    setForm((prev) => ({ ...prev, categoryId: val ? Number(val) : undefined }))
+                  }
+                  options={[
+                    { value: '', label: 'Tanlanmagan' },
+                    ...filteredCategories.map((c) => ({ value: c.id, label: c.name })),
+                  ]}
+                  placeholder="Kategoriyani tanlang"
+                />
+              )}
 
-            {/* Splits ro'yxati */}
-            {splitMode && (
-              <div className="space-y-2 rounded-xl border border-base-300 p-3">
-                {splits.map((split, index) => (
-                  <div key={index} className="flex items-end gap-2">
-                    <Select
-                      label={index === 0 ? 'Kategoriya' : undefined}
-                      value={split.categoryId || undefined}
-                      onChange={(val) => updateSplit(index, { categoryId: Number(val) || 0 })}
-                      options={filteredCategories.map((c) => ({ value: c.id, label: c.name }))}
-                      placeholder="Kategoriya"
-                      className="flex-1"
-                    />
+              {/* Split toggle */}
+              {!isTransfer && (
+                <div
+                  className={clsx(
+                    'flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 transition-colors',
+                    splitMode ? 'border-primary/40 bg-primary/5' : 'border-base-300'
+                  )}
+                >
+                  <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
                     <input
-                      type="number"
-                      className="input input-bordered input-sm w-32"
-                      value={split.amount || ''}
-                      onChange={(e) => updateSplit(index, { amount: Number(e.target.value) || 0 })}
-                      placeholder="Summa"
-                      min={0}
+                      type="checkbox"
+                      className="checkbox checkbox-sm"
+                      checked={splitMode}
+                      onChange={(e) => {
+                        setSplitMode(e.target.checked);
+                        if (e.target.checked && splits.length === 0) {
+                          setSplits([
+                            { categoryId: 0, amount: 0 },
+                            { categoryId: 0, amount: 0 },
+                          ]);
+                        }
+                      }}
+                      disabled={!canEnableSplit}
                     />
+                    <Split className="h-4 w-4" />
+                    Bir nechta kategoriyaga bo'lish
+                  </label>
+                  {!canEnableSplit && !splitMode && (
+                    <span className="text-xs text-base-content/50">
+                      avval summani kiriting
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Splits ro'yxati */}
+              {splitMode && (
+                <div className="space-y-3 rounded-xl border border-base-300 bg-base-200/30 p-3">
+                  {/* Statistic strip */}
+                  <div
+                    className={clsx(
+                      'flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 transition-colors',
+                      splitsValid
+                        ? 'bg-success/15 text-success'
+                        : splitsDiff > 0
+                          ? 'bg-warning/15 text-warning'
+                          : 'bg-error/15 text-error'
+                    )}
+                  >
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {splitsValid ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Split className="h-4 w-4" />
+                      )}
+                      <span>
+                        {formatCurrency(splitsTotal)} / {formatCurrency(form.amount)}
+                      </span>
+                    </div>
+                    <div className="text-xs font-medium">
+                      {splitsValid && "Yig'indi mos keladi"}
+                      {!splitsValid && splitsDiff > 0 &&
+                        `${formatCurrency(splitsDiff)} yetishmayapti`}
+                      {!splitsValid && splitsDiff < 0 &&
+                        `${formatCurrency(Math.abs(splitsDiff))} ortiqcha`}
+                    </div>
+                  </div>
+
+                  {/* Quick actions */}
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => removeSplit(index)}
-                      className="btn btn-ghost btn-sm btn-square"
-                      disabled={splits.length <= 2}
-                      aria-label="Ulushni o'chirish"
+                      onClick={autofillLast}
+                      disabled={splitsValid || form.amount <= 0}
+                      className="btn btn-ghost btn-xs gap-1"
+                      title="Farqni oxirgi qatorga taqsimlash"
                     >
-                      <Trash2 className="h-4 w-4 text-error" />
+                      <Wand2 className="h-3.5 w-3.5" />
+                      Qolganini oxirgi qatorga
+                    </button>
+                    <button
+                      type="button"
+                      onClick={distributeEvenly}
+                      disabled={splits.length === 0 || form.amount <= 0}
+                      className="btn btn-ghost btn-xs gap-1"
+                      title="Teng ulushlarga bo'lib taqsimlash"
+                    >
+                      <Split className="h-3.5 w-3.5" />
+                      Teng taqsimlash
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addSplit}
-                  className="btn btn-ghost btn-sm gap-1"
-                >
-                  <Plus className="h-4 w-4" />
-                  Ulush qo'shish
-                </button>
-              </div>
-            )}
 
-            {/* Family member */}
-            <Select
-              label="Oila a'zosi"
-              value={form.familyMemberId || undefined}
-              onChange={(val) =>
-                setForm((prev) => ({
-                  ...prev,
-                  familyMemberId: val ? Number(val) : undefined,
-                }))
-              }
-              options={[
-                { value: '', label: 'Tanlanmagan' },
-                ...members.map((m) => ({ value: m.id, label: m.fullName })),
-              ]}
-              placeholder="Oila a'zosini tanlang"
-            />
+                  {/* Rows */}
+                  <div className="space-y-2">
+                    {splits.map((split, index) => (
+                      <div key={index} className="flex items-end gap-2">
+                        <Select
+                          value={split.categoryId || undefined}
+                          onChange={(val) => updateSplit(index, { categoryId: Number(val) || 0 })}
+                          options={filteredCategories.map((c) => ({ value: c.id, label: c.name }))}
+                          placeholder="Kategoriya"
+                          className="flex-1"
+                        />
+                        <div className="w-36 shrink-0">
+                          <CurrencyInput
+                            value={split.amount}
+                            onChange={(val) => updateSplit(index, { amount: val })}
+                            size="sm"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeSplit(index)}
+                          className="btn btn-ghost btn-sm btn-square"
+                          disabled={splits.length <= 2}
+                          aria-label="Ulushni o'chirish"
+                        >
+                          <Trash2 className="h-4 w-4 text-error" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
 
-            {/* Date */}
-            <DateInput
-              label="Sana"
-              required
-              value={form.transactionDate}
-              onChange={(val) => setForm((prev) => ({ ...prev, transactionDate: val }))}
-            />
+                  <button
+                    type="button"
+                    onClick={addSplit}
+                    className="btn btn-ghost btn-sm w-full justify-center gap-1"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ulush qo'shish
+                  </button>
+                </div>
+              )}
 
-            {/* Description */}
-            <TextArea
-              label="Tavsif"
-              value={form.description ?? ''}
-              onChange={(val) => setForm((prev) => ({ ...prev, description: val }))}
-              placeholder="Qo'shimcha ma'lumot..."
-              rows={2}
-            />
+              {/* Description */}
+              <TextArea
+                label="Tavsif"
+                value={form.description ?? ''}
+                onChange={(val) => setForm((prev) => ({ ...prev, description: val }))}
+                placeholder="Qo'shimcha ma'lumot..."
+                rows={2}
+              />
 
-            {/* Tags */}
-            <TagInput
-              selectedIds={form.tagIds ?? []}
-              onChange={(ids) => setForm((prev) => ({ ...prev, tagIds: ids }))}
-            />
+              {/* Tags */}
+              <TagInput
+                selectedIds={form.tagIds ?? []}
+                onChange={(ids) => setForm((prev) => ({ ...prev, tagIds: ids }))}
+              />
+            </div>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="mt-6 flex justify-end gap-2">
+        {/* Sticky footer */}
+        <div className="sticky bottom-0 z-10 flex items-center justify-between gap-2 border-t border-base-200 bg-base-100 px-4 py-3 sm:px-6 lg:rounded-b-2xl">
+          <div className="text-xs text-base-content/50">
+            {!isValid && splitMode && !splitsValid && (
+              <span className="text-warning">
+                Ulushlar yig'indisini summaga moslang
+              </span>
+            )}
+            {!isValid && !splitMode && form.amount <= 0 && (
+              <span className="text-base-content/50">Summani kiriting</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
             <button className="btn btn-ghost" onClick={onClose} disabled={submitting}>
               Bekor qilish
             </button>
