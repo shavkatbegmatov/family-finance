@@ -14,6 +14,7 @@ import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 // Lazy-loaded main app pages
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TransactionsPage = lazy(() => import('../pages/transactions/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
+const TransactionDetailPage = lazy(() => import('../pages/transactions/TransactionDetailPage').then(m => ({ default: m.TransactionDetailPage })));
 const AccountsPage = lazy(() => import('../pages/accounts/AccountsPage').then(m => ({ default: m.AccountsPage })));
 const AccountDetailPage = lazy(() => import('../pages/accounts/AccountDetailPage').then(m => ({ default: m.AccountDetailPage })));
 const CategoriesPage = lazy(() => import('../pages/categories/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
@@ -112,6 +113,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: 'Tranzaksiyalar' },
+      },
+      {
+        path: 'transactions/:id',
+        element: (
+          <ProtectedRoute permission={PermissionCode.TRANSACTIONS_VIEW}>
+            <LazyRoute><TransactionDetailPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Tranzaksiya tafsiloti' },
       },
       {
         path: 'accounts',
