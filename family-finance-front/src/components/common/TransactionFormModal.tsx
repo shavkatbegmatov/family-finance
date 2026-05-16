@@ -64,6 +64,7 @@ const fromTransaction = (transaction: Transaction): TransactionRequest => ({
   familyMemberId: transaction.familyMemberId,
   transactionDate: transaction.transactionDate?.split('T')[0] ?? '',
   description: transaction.description ?? '',
+  tagIds: transaction.tagIds ?? [],
 });
 
 export function TransactionFormModal({
@@ -108,12 +109,26 @@ export function TransactionFormModal({
   // Modal ochilganda formani qayta sozlash
   useEffect(() => {
     if (!isOpen) return;
-    setSplitMode(false);
-    setSplits([]);
     if (editingTransaction) {
       setForm(fromTransaction(editingTransaction));
+      const existingSplits = editingTransaction.splits ?? [];
+      if (existingSplits.length > 0) {
+        setSplits(
+          existingSplits.map((s) => ({
+            categoryId: s.categoryId,
+            amount: s.amount,
+            note: s.note,
+          }))
+        );
+        setSplitMode(true);
+      } else {
+        setSplits([]);
+        setSplitMode(false);
+      }
     } else {
       setForm(applyDefaults(defaultType));
+      setSplits([]);
+      setSplitMode(false);
     }
   }, [isOpen, editingTransaction, defaultType, applyDefaults]);
 
