@@ -193,6 +193,25 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount) + " so'm";
 };
 
+export const formatCompactCurrency = (value: number): string => {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs >= 1_000_000_000) {
+    return `${sign}${(abs / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (abs >= 1_000_000) {
+    return `${sign}${(abs / 1_000_000).toFixed(1)}M`;
+  }
+  if (abs >= 1_000) {
+    return `${sign}${Math.round(abs / 1_000)}K`;
+  }
+  return `${sign}${abs}`;
+};
+
+export const formatCompactSum = (value: number): string => {
+  return `${formatCompactCurrency(value)} so'm`;
+};
+
 export const formatNumber = (num: number): string => {
   return new Intl.NumberFormat('uz-UZ').format(num);
 };
