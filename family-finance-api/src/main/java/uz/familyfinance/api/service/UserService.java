@@ -95,6 +95,8 @@ public class UserService {
         User createdBy = getCurrentUser();
 
         // Create user
+        // Foydalanuvchi yaratilganda member.familyGroup ham inherit qilinadi —
+        // aks holda yangi user "Siz hech bir guruhga a'zo emassiz" muammosini ko'radi.
         Role legacyRole = resolveLegacyRole(roleCode);
         User user = User.builder()
                 .username(username)
@@ -105,6 +107,7 @@ public class UserService {
                 .active(true)
                 .mustChangePassword(!isCustomPassword)
                 .createdBy(createdBy)
+                .familyGroup(member.getFamilyGroup())
                 .build();
 
         // Add role to user (ensures proper persistence of user_roles join table)

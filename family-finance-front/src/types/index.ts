@@ -671,3 +671,6 @@ export * from './audit-log.types';
 
 // Family Tree V2 Types
 export * from './family-tree.types';
+
+// Person Wizard Types
+export * from './persons.types';

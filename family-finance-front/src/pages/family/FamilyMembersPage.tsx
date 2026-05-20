@@ -20,6 +20,7 @@ import {
   ClipboardCopy,
   UserCheck,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
@@ -30,6 +31,7 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
+import { AddPersonWizard } from '../../components/persons';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -157,6 +159,9 @@ export function FamilyMembersPage() {
     }
   }, [pageSizeMode]);
 
+
+  // Wizard ("Yangi shaxs qo'shish")
+  const [showWizard, setShowWizard] = useState(false);
 
   // Add/Edit modal
   const [showModal, setShowModal] = useState(false);
@@ -418,6 +423,17 @@ export function FamilyMembersPage() {
           <span className="pill">
             {totalElements} ta a'zo
           </span>
+          <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm gap-2"
+              onClick={() => setShowWizard(true)}
+              title="Yangi shaxs qo'shish (wizard)"
+            >
+              <Sparkles className="h-4 w-4" />
+              Yangi shaxs
+            </button>
+          </PermissionGate>
           <PermissionGate permission={PermissionCode.FAMILY_EXPORT}>
             <ExportButtons
               onExportExcel={() => handleExport('excel')}
@@ -1280,6 +1296,13 @@ export function FamilyMembersPage() {
           </div>
         </div>
       </ModalPortal>
+
+      {/* "Yangi shaxs qo'shish" wizard — atomik tarzda FamilyMember + User (+ Participant) yaratadi */}
+      <AddPersonWizard
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onCreated={() => { void loadMembers(); }}
+      />
     </div>
   );
 }

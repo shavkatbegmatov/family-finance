@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, UserX, Link as LinkIcon, Users, X } from 'lucide-react';
+import { Plus, Edit2, UserX, Link as LinkIcon, Users, X, Sparkles } from 'lucide-react';
 import clsx from 'clsx';
 import { pointParticipantApi, pointBalanceApi } from '../../api/points.api';
 import type {
@@ -10,6 +10,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { ComboBox } from '../../components/ui/ComboBox';
 import { useFamilyMemberOptions } from '../../hooks/useFamilyMemberOptions';
+import { AddPersonWizard } from '../../components/persons';
 import {
   PointsEmptyState,
   PointsLoadingState,
@@ -58,6 +59,9 @@ export function PointsParticipantsPage() {
   const [unlinkReason, setUnlinkReason] = useState('');
   const [linkSubmitting, setLinkSubmitting] = useState(false);
   const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
+
+  // Wizard ("Yangi shaxs qo'shish")
+  const [showWizard, setShowWizard] = useState(false);
 
   const selectedParticipant = useMemo(
     () => participants.find((p) => p.id === linkParticipantId) ?? null,
@@ -252,10 +256,26 @@ export function PointsParticipantsPage() {
       description="Ball tizimiga ulangan a'zolarni boshqaring va ularning natijalarini kuzating."
       icon={Users}
       actions={canManagePoints ? (
-        <button className="btn btn-primary btn-sm gap-2" onClick={openCreateModal}>
-          <Plus className="h-4 w-4" />
-          Qo'shish
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="btn btn-primary btn-sm gap-2"
+            onClick={() => setShowWizard(true)}
+            title="To'liq wizard — oila a'zosi va akkaunt bilan birga"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Yangi shaxs</span>
+            <span className="sm:hidden">Wizard</span>
+          </button>
+          <button
+            className="btn btn-ghost btn-sm gap-2"
+            onClick={openCreateModal}
+            title="Tezkor — faqat ball ishtirokchisi"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Tezkor qo'shish</span>
+            <span className="sm:hidden">Tezkor</span>
+          </button>
+        </div>
       ) : undefined}
     >
       {loading ? (
@@ -547,6 +567,14 @@ export function PointsParticipantsPage() {
           )}
         </div>
       </ModalPortal>
+
+      {/* "Yangi shaxs qo'shish" wizard — to'liq (User + FamilyMember + Participant) */}
+      <AddPersonWizard
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onCreated={loadParticipants}
+        defaultType="CHILD"
+      />
     </PointsPageShell>
   );
 }
