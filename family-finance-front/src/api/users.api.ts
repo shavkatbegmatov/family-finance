@@ -32,6 +32,10 @@ export interface UserDetail {
   linkedFamilyMemberId?: number;
   linkedFamilyMemberName?: string;
   linkedFamilyMemberActive?: boolean;
+  /** Bog'langan oila a'zosi orqali bog'langan PointParticipant ID si. */
+  pointParticipantId?: number;
+  /** Bog'langan ishtirokchining laqabi (tooltip uchun). */
+  pointParticipantNickname?: string;
   createdAt: string;
   updatedAt?: string;
 }

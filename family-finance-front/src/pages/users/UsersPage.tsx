@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   UserCog,
@@ -24,10 +24,13 @@ import { rolesApi } from '../../api/roles.api';
 import { familyMembersApi } from '../../api/family-members.api';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
-import { PermissionCode } from '../../hooks/usePermission';
+import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { pointParticipantApi } from '../../api/points.api';
 import type { CredentialsInfo, Role, FamilyMember } from '../../types';
 import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../../api/users.api';
+import { PersonBadges, SuggestionsBanner, type Suggestion } from '../../components/persons';
+import { Users as UsersIcon, Trophy } from 'lucide-react';
 
 type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | 'family-link' | null;
 
@@ -35,6 +38,8 @@ const USERNAME_REGEX = /^[a-z][a-z0-9._]{2,49}$/;
 
 export function UsersPage() {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermission();
+  const canManagePoints = hasPermission(PermissionCode.POINTS_MANAGE);
 
   // Search & filter state
   const [search, setSearch] = useState('');
@@ -129,6 +134,35 @@ export function UsersPage() {
     queryKey: ['users', search, activeFilter, page],
     queryFn: () => usersApi.search({ search: search || undefined, active: activeParam, page, size: pageSize }),
   });
+
+  /** Joriy sahifadagi userlar bo'yicha capability bo'shliqlari — banner uchun. */
+  const userSuggestions = useMemo<Suggestion[]>(() => {
+    if (!usersPage?.content) return [];
+    const active = usersPage.content.filter((u) => u.active);
+    const withoutFamily = active.filter((u) => !u.linkedFamilyMemberId).length;
+    const withoutPoints = active.filter((u) => u.linkedFamilyMemberId && !u.pointParticipantId).length;
+
+    const list: Suggestion[] = [];
+    if (withoutFamily > 0) {
+      list.push({
+        key: 'users-without-family',
+        icon: UsersIcon,
+        tone: 'warning',
+        title: `${withoutFamily} ta foydalanuvchi oila a'zosiga bog'lanmagan`,
+        description: 'Bog\'lash uchun ism yonidagi xira "👥+" belgini bosing — oila a\'zolari ro\'yxati ochiladi.',
+      });
+    }
+    if (withoutPoints > 0 && canManagePoints) {
+      list.push({
+        key: 'users-without-points',
+        icon: Trophy,
+        tone: 'info',
+        title: `${withoutPoints} ta foydalanuvchi ball tizimida emas`,
+        description: 'Ishtirokchi sifatida qo\'shish uchun ism yonidagi xira "🏆+" belgini bosing.',
+      });
+    }
+    return list;
+  }, [usersPage, canManagePoints]);
 
   const { data: userDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['user-detail', selectedUser?.id],
@@ -288,6 +322,26 @@ export function UsersPage() {
       if (error.response?.status !== 403) {
         toast.error(error.response?.data?.message || 'Bog\'lanishni uzishda xatolik yuz berdi');
       }
+    },
+  });
+
+  /**
+   * Tezkor amal: foydalanuvchining oila a'zosini ball tizimiga qo'shish.
+   * Faqat user.linkedFamilyMemberId bo'lganda mavjud.
+   * Ism sifatida user.fullName ishlatiladi; admin keyinroq ishtirokchi sahifasida tahrirlashi mumkin.
+   */
+  const quickAddParticipantMutation = useMutation({
+    mutationFn: (targetUser: UserDetail) =>
+      pointParticipantApi.create({
+        firstName: targetUser.fullName,
+        familyMemberId: targetUser.linkedFamilyMemberId!,
+      }),
+    onSuccess: (_data, targetUser) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(`${targetUser.fullName} ball tizimiga qo'shildi`);
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      toast.error(error.response?.data?.message ?? "Ball tizimiga qo'shishda xatolik");
     },
   });
 
@@ -512,6 +566,11 @@ export function UsersPage() {
         </select>
       </div>
 
+      {/* Smart suggestions — capability bo'shliqlari haqida eslatma */}
+      {userSuggestions.length > 0 && (
+        <SuggestionsBanner suggestions={userSuggestions} />
+      )}
+
       {/* Table */}
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -547,6 +606,22 @@ export function UsersPage() {
                     <div>
                       <div className="font-medium">{user.fullName}</div>
                       <div className="text-xs text-base-content/50">@{user.username}</div>
+                      <PersonBadges
+                        hasUser
+                        hasFamilyMember={!!user.linkedFamilyMemberId}
+                        hasParticipant={!!user.pointParticipantId}
+                        userTooltip={`Tizimga kira oladi: @${user.username}`}
+                        participantTooltip={user.pointParticipantNickname ? `Ball tizimida: @${user.pointParticipantNickname}` : undefined}
+                        onAddParticipant={
+                          canManagePoints && user.active && user.linkedFamilyMemberId && !user.pointParticipantId
+                            ? () => quickAddParticipantMutation.mutate(user)
+                            : undefined
+                        }
+                        onAddFamilyMember={
+                          !user.linkedFamilyMemberId ? () => openModal('family-link', user) : undefined
+                        }
+                        className="mt-1"
+                      />
                     </div>
                   </td>
                   <td className="hidden text-sm md:table-cell">

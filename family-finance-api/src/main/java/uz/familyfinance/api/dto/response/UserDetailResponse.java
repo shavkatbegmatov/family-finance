@@ -57,6 +57,11 @@ public class UserDetailResponse {
     private String linkedFamilyMemberName;
     private Boolean linkedFamilyMemberActive;
 
+    /** Bog'langan oila a'zosi orqali bog'langan PointParticipant ID si. */
+    private Long pointParticipantId;
+    /** Bog'langan ishtirokchining laqabi (tooltip uchun). */
+    private String pointParticipantNickname;
+
     @ExportColumn(header = "Yaratilgan", order = 10, type = ColumnType.DATETIME)
     private LocalDateTime createdAt;
 
@@ -77,7 +82,7 @@ public class UserDetailResponse {
      * Full mapping with roles, createdBy, familyGroup (requires eager fetch)
      */
     public static UserDetailResponse from(User user) {
-        return from(user, null, null, null);
+        return from(user, null, null, null, null, null);
     }
 
     public static UserDetailResponse from(
@@ -85,6 +90,17 @@ public class UserDetailResponse {
             Long linkedFamilyMemberId,
             String linkedFamilyMemberName,
             Boolean linkedFamilyMemberActive
+    ) {
+        return from(user, linkedFamilyMemberId, linkedFamilyMemberName, linkedFamilyMemberActive, null, null);
+    }
+
+    public static UserDetailResponse from(
+            User user,
+            Long linkedFamilyMemberId,
+            String linkedFamilyMemberName,
+            Boolean linkedFamilyMemberActive,
+            Long pointParticipantId,
+            String pointParticipantNickname
     ) {
         UserDetailResponseBuilder builder = UserDetailResponse.builder()
                 .id(user.getId())
@@ -99,7 +115,9 @@ public class UserDetailResponse {
                 .updatedAt(user.getUpdatedAt())
                 .linkedFamilyMemberId(linkedFamilyMemberId)
                 .linkedFamilyMemberName(linkedFamilyMemberName)
-                .linkedFamilyMemberActive(linkedFamilyMemberActive);
+                .linkedFamilyMemberActive(linkedFamilyMemberActive)
+                .pointParticipantId(pointParticipantId)
+                .pointParticipantNickname(pointParticipantNickname);
 
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
             builder.rolesText(user.getRoles().stream()
@@ -130,7 +148,7 @@ public class UserDetailResponse {
      * Simple mapping without lazy associations (safe for list queries)
      */
     public static UserDetailResponse simpleFrom(User user) {
-        return simpleFrom(user, null, null, null);
+        return simpleFrom(user, null, null, null, null, null);
     }
 
     public static UserDetailResponse simpleFrom(
@@ -138,6 +156,17 @@ public class UserDetailResponse {
             Long linkedFamilyMemberId,
             String linkedFamilyMemberName,
             Boolean linkedFamilyMemberActive
+    ) {
+        return simpleFrom(user, linkedFamilyMemberId, linkedFamilyMemberName, linkedFamilyMemberActive, null, null);
+    }
+
+    public static UserDetailResponse simpleFrom(
+            User user,
+            Long linkedFamilyMemberId,
+            String linkedFamilyMemberName,
+            Boolean linkedFamilyMemberActive,
+            Long pointParticipantId,
+            String pointParticipantNickname
     ) {
         return UserDetailResponse.builder()
                 .id(user.getId())
@@ -153,6 +182,8 @@ public class UserDetailResponse {
                 .linkedFamilyMemberId(linkedFamilyMemberId)
                 .linkedFamilyMemberName(linkedFamilyMemberName)
                 .linkedFamilyMemberActive(linkedFamilyMemberActive)
+                .pointParticipantId(pointParticipantId)
+                .pointParticipantNickname(pointParticipantNickname)
                 .build();
     }
 }

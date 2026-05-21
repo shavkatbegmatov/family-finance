@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import toast from 'react-hot-toast';
 import {
@@ -24,13 +24,15 @@ import {
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 import { familyMembersApi } from '../../api/family-members.api';
+import { pointParticipantApi } from '../../api/points.api';
 import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
-import { PermissionCode } from '../../hooks/usePermission';
+import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
-import { AddPersonWizard, PersonBadges } from '../../components/persons';
+import { AddPersonWizard, PersonBadges, SuggestionsBanner, type Suggestion } from '../../components/persons';
+import { Trophy } from 'lucide-react';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -52,6 +54,8 @@ const AUTO_DEFAULT_ROW_HEIGHT = 61;
 export function FamilyMembersPage() {
   const user = useAuthStore((s) => s.user);
   const isMobile = useIsMobile();
+  const { hasPermission } = usePermission();
+  const canManagePoints = hasPermission(PermissionCode.POINTS_MANAGE);
   const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const allMembersRef = useRef<FamilyMember[]>([]);
@@ -319,6 +323,56 @@ export function FamilyMembersPage() {
     }
   };
 
+  /**
+   * Joriy sahifadagi a'zolar bo'yicha capability bo'shliqlari — banner uchun.
+   */
+  const memberSuggestions = useMemo<Suggestion[]>(() => {
+    const activeMembers = members.filter((m) => m.isActive);
+    const withoutLogin = activeMembers.filter((m) => !m.userId).length;
+    const withoutPoints = activeMembers.filter((m) => !m.pointParticipantId).length;
+
+    const list: Suggestion[] = [];
+    if (withoutLogin > 0) {
+      list.push({
+        key: 'members-without-login',
+        icon: KeyRound,
+        tone: 'info',
+        title: `${withoutLogin} ta oila a'zosi tizimga kira olmaydi`,
+        description: 'Akkaunt yaratish uchun: a\'zo nomi yonidagi xira "🔑+" belgini bosing yoki "Tahrirlash" → "Akkaunt yaratish" ni belgilang.',
+      });
+    }
+    if (withoutPoints > 0 && canManagePoints) {
+      list.push({
+        key: 'members-without-points',
+        icon: Trophy,
+        tone: 'info',
+        title: `${withoutPoints} ta oila a'zosi ball tizimida emas`,
+        description: 'Ball tizimiga qo\'shish uchun a\'zo nomi yonidagi xira "🏆+" belgini bosing — bir bosishda qo\'shiladi.',
+      });
+    }
+    return list;
+  }, [members, canManagePoints]);
+
+  /**
+   * Tezkor amal: bu oila a'zosini ball tizimiga ishtirokchi sifatida qo'shish.
+   * Badge'dagi "+" tugmasi orqali chaqiriladi.
+   */
+  const handleQuickAddParticipant = useCallback(async (member: FamilyMember) => {
+    try {
+      await pointParticipantApi.create({
+        firstName: member.firstName,
+        lastName: member.lastName,
+        familyMemberId: member.id,
+      });
+      toast.success(`${member.fullName} ball tizimiga qo'shildi`);
+      void loadMembers();
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? "Ball tizimiga qo'shishda xatolik";
+      toast.error(message);
+    }
+  }, [loadMembers]);
+
   const handleCopyToClipboard = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -444,6 +498,11 @@ export function FamilyMembersPage() {
 
         </div>
       </div>
+
+      {/* Smart suggestions — capability bo'shliqlari haqida eslatma */}
+      {activeTab === 'list' && memberSuggestions.length > 0 && (
+        <SuggestionsBanner suggestions={memberSuggestions} />
+      )}
 
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
@@ -612,6 +671,11 @@ export function FamilyMembersPage() {
                             hasParticipant={!!member.pointParticipantId}
                             userTooltip={member.userName ? `Tizimga kira oladi: @${member.userName}` : undefined}
                             participantTooltip={member.pointParticipantNickname ? `Ball tizimida: @${member.pointParticipantNickname}` : undefined}
+                            onAddParticipant={
+                              canManagePoints && member.isActive && !member.pointParticipantId
+                                ? () => handleQuickAddParticipant(member)
+                                : undefined
+                            }
                             className="mt-1"
                           />
 

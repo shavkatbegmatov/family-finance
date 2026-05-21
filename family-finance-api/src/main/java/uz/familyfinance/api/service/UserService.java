@@ -21,8 +21,10 @@ import uz.familyfinance.api.enums.Role;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.PointParticipantRepository;
 import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.UserRepository;
+import uz.familyfinance.api.entity.PointParticipant;
 
 import java.security.SecureRandom;
 import java.text.Normalizer;
@@ -47,6 +49,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final PointParticipantRepository pointParticipantRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final SessionService sessionService;
@@ -712,22 +715,38 @@ public class UserService {
 
     private UserDetailResponse toSimpleResponseWithFamilyLink(User user) {
         FamilyMember linkedMember = familyMemberRepository.findByUserId(user.getId()).orElse(null);
+        PointParticipant participant = lookupParticipantForMember(linkedMember);
         return UserDetailResponse.simpleFrom(
                 user,
                 linkedMember != null ? linkedMember.getId() : null,
                 linkedMember != null ? linkedMember.getDisplayName() : null,
-                linkedMember != null ? linkedMember.getIsActive() : null
+                linkedMember != null ? linkedMember.getIsActive() : null,
+                participant != null ? participant.getId() : null,
+                participant != null ? participant.getNickname() : null
         );
     }
 
     private UserDetailResponse toDetailedResponseWithFamilyLink(User user) {
         FamilyMember linkedMember = familyMemberRepository.findByUserId(user.getId()).orElse(null);
+        PointParticipant participant = lookupParticipantForMember(linkedMember);
         return UserDetailResponse.from(
                 user,
                 linkedMember != null ? linkedMember.getId() : null,
                 linkedMember != null ? linkedMember.getDisplayName() : null,
-                linkedMember != null ? linkedMember.getIsActive() : null
+                linkedMember != null ? linkedMember.getIsActive() : null,
+                participant != null ? participant.getId() : null,
+                participant != null ? participant.getNickname() : null
         );
+    }
+
+    /** Oila a'zosi orqali ball ishtirokchisini topadi (badge'lar uchun). */
+    private PointParticipant lookupParticipantForMember(FamilyMember member) {
+        if (member == null || member.getFamilyGroup() == null) {
+            return null;
+        }
+        return pointParticipantRepository
+                .findByFamilyGroupIdAndFamilyMemberId(member.getFamilyGroup().getId(), member.getId())
+                .orElse(null);
     }
 
     private void validatePassword(String password) {
