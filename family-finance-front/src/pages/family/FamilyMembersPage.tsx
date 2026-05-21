@@ -31,7 +31,13 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
-import { AddPersonWizard, PersonBadges, SuggestionsBanner, type Suggestion } from '../../components/persons';
+import {
+  AddPersonWizard,
+  CapabilityFilterChips,
+  PersonBadges,
+  SuggestionsBanner,
+  type Suggestion,
+} from '../../components/persons';
 import { Trophy } from 'lucide-react';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
@@ -165,6 +171,9 @@ export function FamilyMembersPage() {
 
   // Wizard ("Yangi shaxs qo'shish")
   const [showWizard, setShowWizard] = useState(false);
+
+  // Capability filter (chip): joriy sahifa ichida client-side filtrlash
+  const [capFilter, setCapFilter] = useState<'all' | 'no_login' | 'has_login' | 'no_points' | 'has_points'>('all');
 
   // Add/Edit modal
   const [showModal, setShowModal] = useState(false);
@@ -322,6 +331,40 @@ export function FamilyMembersPage() {
       setSubmitting(false);
     }
   };
+
+  /**
+   * Capability filter chip'lari uchun hisob-kitob (joriy sahifa ichida).
+   * Bu yerda total emas, ko'rinadigan sahifa filtrlanadi — backend filter qo'shilsa,
+   * counts ham backend'dan kelishi mumkin.
+   */
+  const capCounts = useMemo(() => {
+    const active = members.filter((m) => m.isActive);
+    return {
+      all: members.length,
+      has_login: active.filter((m) => m.userId).length,
+      no_login: active.filter((m) => !m.userId).length,
+      has_points: active.filter((m) => m.pointParticipantId).length,
+      no_points: active.filter((m) => !m.pointParticipantId).length,
+    };
+  }, [members]);
+
+  /** Capability filter qo'llash uchun yordamchi (bitta funksiya — DRY). */
+  const applyCapFilter = useCallback((list: FamilyMember[]) => {
+    if (capFilter === 'all') return list;
+    return list.filter((m) => {
+      if (!m.isActive) return false;
+      switch (capFilter) {
+        case 'has_login': return !!m.userId;
+        case 'no_login': return !m.userId;
+        case 'has_points': return !!m.pointParticipantId;
+        case 'no_points': return !m.pointParticipantId;
+        default: return true;
+      }
+    });
+  }, [capFilter]);
+
+  const displayedMembers = useMemo(() => applyCapFilter(members), [members, applyCapFilter]);
+  const displayedAllMembers = useMemo(() => applyCapFilter(allMembers), [allMembers, applyCapFilter]);
 
   /**
    * Joriy sahifadagi a'zolar bo'yicha capability bo'shliqlari — banner uchun.
@@ -600,6 +643,12 @@ export function FamilyMembersPage() {
             </div>
           </div>
 
+          {/* Capability filter chips — joriy sahifa ichida filtrlash */}
+          <CapabilityFilterChips
+            value={capFilter}
+            onChange={setCapFilter}
+            counts={capCounts}
+          />
 
           {/* Table */}
           {loading ? (
@@ -622,7 +671,7 @@ export function FamilyMembersPage() {
             <div className="flex-1 min-h-0 surface-card overflow-hidden flex flex-col">
               {/* Mobile card view */}
               <div className="flex-1 overflow-auto p-3 space-y-3 lg:hidden">
-                {(isMobile ? allMembers : members).map((member) => {
+                {(isMobile ? displayedAllMembers : displayedMembers).map((member) => {
                   const age = member.birthDate
                     ? Math.floor(
                       (Date.now() - new Date(member.birthDate).getTime()) /
@@ -781,7 +830,7 @@ export function FamilyMembersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-base-200">
-                      {members.map((member, idx) => {
+                      {displayedMembers.map((member, idx) => {
                         const birthYear = member.birthDate
                           ? new Date(member.birthDate).getFullYear()
                           : null;
