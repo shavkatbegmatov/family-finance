@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import toast from 'react-hot-toast';
 import {
@@ -18,18 +18,27 @@ import {
   EyeOff,
   Shield,
   ClipboardCopy,
-  UserCheck,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 import { familyMembersApi } from '../../api/family-members.api';
+import { pointParticipantApi } from '../../api/points.api';
 import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
-import { PermissionCode } from '../../hooks/usePermission';
+import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
+import {
+  AddPersonWizard,
+  CapabilityFilterChips,
+  PersonBadges,
+  SuggestionsBanner,
+  type Suggestion,
+} from '../../components/persons';
+import { Trophy } from 'lucide-react';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -51,6 +60,8 @@ const AUTO_DEFAULT_ROW_HEIGHT = 61;
 export function FamilyMembersPage() {
   const user = useAuthStore((s) => s.user);
   const isMobile = useIsMobile();
+  const { hasPermission } = usePermission();
+  const canManagePoints = hasPermission(PermissionCode.POINTS_MANAGE);
   const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const allMembersRef = useRef<FamilyMember[]>([]);
@@ -157,6 +168,12 @@ export function FamilyMembersPage() {
     }
   }, [pageSizeMode]);
 
+
+  // Wizard ("Yangi shaxs qo'shish")
+  const [showWizard, setShowWizard] = useState(false);
+
+  // Capability filter (chip): joriy sahifa ichida client-side filtrlash
+  const [capFilter, setCapFilter] = useState<'all' | 'no_login' | 'has_login' | 'no_points' | 'has_points'>('all');
 
   // Add/Edit modal
   const [showModal, setShowModal] = useState(false);
@@ -315,6 +332,90 @@ export function FamilyMembersPage() {
     }
   };
 
+  /**
+   * Capability filter chip'lari uchun hisob-kitob (joriy sahifa ichida).
+   * Bu yerda total emas, ko'rinadigan sahifa filtrlanadi — backend filter qo'shilsa,
+   * counts ham backend'dan kelishi mumkin.
+   */
+  const capCounts = useMemo(() => {
+    const active = members.filter((m) => m.isActive);
+    return {
+      all: members.length,
+      has_login: active.filter((m) => m.userId).length,
+      no_login: active.filter((m) => !m.userId).length,
+      has_points: active.filter((m) => m.pointParticipantId).length,
+      no_points: active.filter((m) => !m.pointParticipantId).length,
+    };
+  }, [members]);
+
+  /** Capability filter qo'llash uchun yordamchi (bitta funksiya — DRY). */
+  const applyCapFilter = useCallback((list: FamilyMember[]) => {
+    if (capFilter === 'all') return list;
+    return list.filter((m) => {
+      if (!m.isActive) return false;
+      switch (capFilter) {
+        case 'has_login': return !!m.userId;
+        case 'no_login': return !m.userId;
+        case 'has_points': return !!m.pointParticipantId;
+        case 'no_points': return !m.pointParticipantId;
+        default: return true;
+      }
+    });
+  }, [capFilter]);
+
+  const displayedMembers = useMemo(() => applyCapFilter(members), [members, applyCapFilter]);
+  const displayedAllMembers = useMemo(() => applyCapFilter(allMembers), [allMembers, applyCapFilter]);
+
+  /**
+   * Joriy sahifadagi a'zolar bo'yicha capability bo'shliqlari — banner uchun.
+   */
+  const memberSuggestions = useMemo<Suggestion[]>(() => {
+    const activeMembers = members.filter((m) => m.isActive);
+    const withoutLogin = activeMembers.filter((m) => !m.userId).length;
+    const withoutPoints = activeMembers.filter((m) => !m.pointParticipantId).length;
+
+    const list: Suggestion[] = [];
+    if (withoutLogin > 0) {
+      list.push({
+        key: 'members-without-login',
+        icon: KeyRound,
+        tone: 'info',
+        title: `${withoutLogin} ta oila a'zosi tizimga kira olmaydi`,
+        description: 'Akkaunt yaratish uchun: a\'zo nomi yonidagi xira "🔑+" belgini bosing yoki "Tahrirlash" → "Akkaunt yaratish" ni belgilang.',
+      });
+    }
+    if (withoutPoints > 0 && canManagePoints) {
+      list.push({
+        key: 'members-without-points',
+        icon: Trophy,
+        tone: 'info',
+        title: `${withoutPoints} ta oila a'zosi ball tizimida emas`,
+        description: 'Ball tizimiga qo\'shish uchun a\'zo nomi yonidagi xira "🏆+" belgini bosing — bir bosishda qo\'shiladi.',
+      });
+    }
+    return list;
+  }, [members, canManagePoints]);
+
+  /**
+   * Tezkor amal: bu oila a'zosini ball tizimiga ishtirokchi sifatida qo'shish.
+   * Badge'dagi "+" tugmasi orqali chaqiriladi.
+   */
+  const handleQuickAddParticipant = useCallback(async (member: FamilyMember) => {
+    try {
+      await pointParticipantApi.create({
+        firstName: member.firstName,
+        lastName: member.lastName,
+        familyMemberId: member.id,
+      });
+      toast.success(`${member.fullName} ball tizimiga qo'shildi`);
+      void loadMembers();
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        ?? "Ball tizimiga qo'shishda xatolik";
+      toast.error(message);
+    }
+  }, [loadMembers]);
+
   const handleCopyToClipboard = async (text: string, field: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -418,6 +519,17 @@ export function FamilyMembersPage() {
           <span className="pill">
             {totalElements} ta a'zo
           </span>
+          <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm gap-2"
+              onClick={() => setShowWizard(true)}
+              title="Yangi shaxs qo'shish (wizard)"
+            >
+              <Sparkles className="h-4 w-4" />
+              Yangi shaxs
+            </button>
+          </PermissionGate>
           <PermissionGate permission={PermissionCode.FAMILY_EXPORT}>
             <ExportButtons
               onExportExcel={() => handleExport('excel')}
@@ -429,6 +541,11 @@ export function FamilyMembersPage() {
 
         </div>
       </div>
+
+      {/* Smart suggestions — capability bo'shliqlari haqida eslatma */}
+      {activeTab === 'list' && memberSuggestions.length > 0 && (
+        <SuggestionsBanner suggestions={memberSuggestions} />
+      )}
 
       {/* ============ TREE VIEW ============ */}
       {activeTab === 'tree' && (
@@ -526,6 +643,12 @@ export function FamilyMembersPage() {
             </div>
           </div>
 
+          {/* Capability filter chips — joriy sahifa ichida filtrlash */}
+          <CapabilityFilterChips
+            value={capFilter}
+            onChange={setCapFilter}
+            counts={capCounts}
+          />
 
           {/* Table */}
           {loading ? (
@@ -548,7 +671,7 @@ export function FamilyMembersPage() {
             <div className="flex-1 min-h-0 surface-card overflow-hidden flex flex-col">
               {/* Mobile card view */}
               <div className="flex-1 overflow-auto p-3 space-y-3 lg:hidden">
-                {(isMobile ? allMembers : members).map((member) => {
+                {(isMobile ? displayedAllMembers : displayedMembers).map((member) => {
                   const age = member.birthDate
                     ? Math.floor(
                       (Date.now() - new Date(member.birthDate).getTime()) /
@@ -587,16 +710,23 @@ export function FamilyMembersPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{member.fullName}</span>
-                            {member.userId && (
-                              <span className="badge badge-xs badge-success gap-1">
-                                <UserCheck className="h-2.5 w-2.5" />
-                                Tizimda
-                              </span>
-                            )}
                             {member.userId === user?.id && (
                               <span className="badge badge-xs badge-primary">Sen</span>
                             )}
                           </div>
+                          <PersonBadges
+                            hasUser={!!member.userId}
+                            hasFamilyMember
+                            hasParticipant={!!member.pointParticipantId}
+                            userTooltip={member.userName ? `Tizimga kira oladi: @${member.userName}` : undefined}
+                            participantTooltip={member.pointParticipantNickname ? `Ball tizimida: @${member.pointParticipantNickname}` : undefined}
+                            onAddParticipant={
+                              canManagePoints && member.isActive && !member.pointParticipantId
+                                ? () => handleQuickAddParticipant(member)
+                                : undefined
+                            }
+                            className="mt-1"
+                          />
 
                           <div className="flex flex-wrap items-center gap-2 mt-1.5">
                             <span className="badge badge-sm badge-outline">
@@ -700,7 +830,7 @@ export function FamilyMembersPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-base-200">
-                      {members.map((member, idx) => {
+                      {displayedMembers.map((member, idx) => {
                         const birthYear = member.birthDate
                           ? new Date(member.birthDate).getFullYear()
                           : null;
@@ -749,21 +879,20 @@ export function FamilyMembersPage() {
                                   <span className="font-semibold text-sm truncate max-w-[180px]">
                                     {member.fullName}
                                   </span>
-                                  {member.userId && (
-                                    <span
-                                      className="badge badge-xs badge-success gap-1"
-                                      title="Tizim foydalanuvchisi bilan bog'langan"
-                                    >
-                                      <UserCheck className="h-2.5 w-2.5" />
-                                      Tizimda
-                                    </span>
-                                  )}
                                   {member.userId === user?.id && (
                                     <span className="badge badge-xs badge-primary">Sen</span>
                                   )}
                                 </div>
+                                <PersonBadges
+                                  hasUser={!!member.userId}
+                                  hasFamilyMember
+                                  hasParticipant={!!member.pointParticipantId}
+                                  userTooltip={member.userName ? `Tizimga kira oladi: @${member.userName}` : undefined}
+                                  participantTooltip={member.pointParticipantNickname ? `Ball tizimida: @${member.pointParticipantNickname}` : undefined}
+                                  className="mt-1"
+                                />
                                 {member.birthPlace && (
-                                  <p className="text-xs text-base-content/40 truncate max-w-[160px]">
+                                  <p className="text-xs text-base-content/40 truncate max-w-[160px] mt-1">
                                     {member.birthPlace}
                                   </p>
                                 )}
@@ -1280,6 +1409,13 @@ export function FamilyMembersPage() {
           </div>
         </div>
       </ModalPortal>
+
+      {/* "Yangi shaxs qo'shish" wizard — atomik tarzda FamilyMember + User (+ Participant) yaratadi */}
+      <AddPersonWizard
+        isOpen={showWizard}
+        onClose={() => setShowWizard(false)}
+        onCreated={() => { void loadMembers(); }}
+      />
     </div>
   );
 }

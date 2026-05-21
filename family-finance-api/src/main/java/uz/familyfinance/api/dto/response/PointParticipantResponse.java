@@ -18,6 +18,10 @@ public class PointParticipantResponse {
     private String avatar;
     private Long familyMemberId;
     private String familyMemberName;
+    /** Bog'langan oila a'zosining User ID si (login bor-yo'qligini bildirish uchun). */
+    private Long familyMemberUserId;
+    /** Bog'langan oila a'zosining username'i (tooltip uchun). */
+    private String familyMemberUsername;
     private Boolean isActive;
     private LocalDateTime createdAt;
 }

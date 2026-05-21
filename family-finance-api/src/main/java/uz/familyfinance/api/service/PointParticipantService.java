@@ -251,6 +251,11 @@ public class PointParticipantService {
         if (p.getFamilyMember() != null) {
             r.setFamilyMemberId(p.getFamilyMember().getId());
             r.setFamilyMemberName(p.getFamilyMember().getFullName());
+            // Bog'langan oila a'zosining User akkaunti bormi — badge'lar uchun.
+            if (p.getFamilyMember().getUser() != null) {
+                r.setFamilyMemberUserId(p.getFamilyMember().getUser().getId());
+                r.setFamilyMemberUsername(p.getFamilyMember().getUser().getUsername());
+            }
         }
         return r;
     }
