@@ -1,11 +1,14 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Edit2, UserX, Link as LinkIcon, Users, X, Sparkles } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Plus, Edit2, UserX, Link as LinkIcon, Users, X, Sparkles, UserPlus } from 'lucide-react';
 import clsx from 'clsx';
 import { pointParticipantApi, pointBalanceApi } from '../../api/points.api';
+import { familyMembersApi } from '../../api/family-members.api';
 import type {
   PointParticipant, PointParticipantRequest, PointBalance,
 } from '../../types/points.types';
+import type { FamilyMember, FamilyMemberRequest, Gender, ApiResponse } from '../../types';
 import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { ComboBox } from '../../components/ui/ComboBox';
@@ -62,6 +65,17 @@ export function PointsParticipantsPage() {
 
   // Wizard ("Yangi shaxs qo'shish")
   const [showWizard, setShowWizard] = useState(false);
+
+  // Inline member creation (link modal ichidan)
+  const queryClient = useQueryClient();
+  const [showInlineMemberModal, setShowInlineMemberModal] = useState(false);
+  const [inlineMemberForm, setInlineMemberForm] = useState({
+    firstName: '',
+    lastName: '',
+    gender: '' as Gender | '',
+    birthDate: '',
+  });
+  const [inlineMemberSubmitting, setInlineMemberSubmitting] = useState(false);
 
   const selectedParticipant = useMemo(
     () => participants.find((p) => p.id === linkParticipantId) ?? null,
@@ -208,6 +222,47 @@ export function PointsParticipantsPage() {
       setLinkSubmitting(false);
     }
   };
+
+  /**
+   * Inline modal'da yangi FamilyMember yaratadi, ro'yxatni yangilaydi va
+   * dropdown'da uni avtomatik tanlaydi. Link modal'idan chiqish shart emas.
+   */
+  const openInlineMemberModal = useCallback(() => {
+    setInlineMemberForm({ firstName: '', lastName: '', gender: '', birthDate: '' });
+    setShowInlineMemberModal(true);
+  }, []);
+
+  const closeInlineMemberModal = useCallback(() => {
+    setShowInlineMemberModal(false);
+  }, []);
+
+  const handleCreateInlineMember = useCallback(async () => {
+    if (!inlineMemberForm.firstName.trim()) {
+      toast.error('Ism majburiy');
+      return;
+    }
+    try {
+      setInlineMemberSubmitting(true);
+      const payload: FamilyMemberRequest = {
+        firstName: inlineMemberForm.firstName.trim(),
+        lastName: inlineMemberForm.lastName.trim() || undefined,
+        gender: inlineMemberForm.gender || undefined,
+        birthDate: inlineMemberForm.birthDate || undefined,
+      };
+      const res = await familyMembersApi.create(payload);
+      const created = (res.data as ApiResponse<FamilyMember>).data;
+      // Dropdown qayta o'qisin
+      await queryClient.invalidateQueries({ queryKey: ['family-members', 'list'] });
+      // Yangi a'zo avtomatik tanlanadi
+      setLinkMemberId(created.id);
+      toast.success(`${created.fullName} qo'shildi va tanlandi`);
+      closeInlineMemberModal();
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Oila a'zosini qo'shishda xatolik"));
+    } finally {
+      setInlineMemberSubmitting(false);
+    }
+  }, [inlineMemberForm, queryClient, closeInlineMemberModal]);
 
   const handleUnlinkMember = async () => {
     if (!linkParticipantId) return;
@@ -484,9 +539,18 @@ export function PointsParticipantsPage() {
             </div>
 
             <div className="form-control">
-              <label className="label">
+              <div className="flex items-center justify-between mb-1">
                 <span className="label-text">Oila a'zosini tanlang</span>
-              </label>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs gap-1"
+                  onClick={openInlineMemberModal}
+                  title="Ro'yxatda yo'q? Tezda yangi a'zo yarating"
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Yangi a'zo
+                </button>
+              </div>
               <ComboBox
                 value={linkMemberId}
                 onChange={(val) => setLinkMemberId(val as number | undefined)}
@@ -583,6 +647,87 @@ export function PointsParticipantsPage() {
         onCreated={loadParticipants}
         defaultType="CHILD"
       />
+
+      {/* Link modal ichidan chaqirilgan inline "Yangi a'zo" modal — minimal maydonlar bilan */}
+      <ModalPortal isOpen={showInlineMemberModal} onClose={closeInlineMemberModal}>
+        <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold">Tezkor: yangi oila a'zosi</h3>
+              <p className="text-xs text-base-content/60 mt-1">
+                Yaratilgach, dropdown'da avtomatik tanlanadi
+              </p>
+            </div>
+            <button className="btn btn-ghost btn-sm btn-square" onClick={closeInlineMemberModal}>
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="form-control">
+              <label className="label py-1"><span className="label-text">Ism *</span></label>
+              <input
+                type="text"
+                className="input input-bordered"
+                value={inlineMemberForm.firstName}
+                onChange={(e) => setInlineMemberForm((p) => ({ ...p, firstName: e.target.value }))}
+                placeholder="Anvar"
+                autoFocus
+                maxLength={100}
+              />
+            </div>
+            <div className="form-control">
+              <label className="label py-1"><span className="label-text">Familiya</span></label>
+              <input
+                type="text"
+                className="input input-bordered"
+                value={inlineMemberForm.lastName}
+                onChange={(e) => setInlineMemberForm((p) => ({ ...p, lastName: e.target.value }))}
+                placeholder="Karimov"
+                maxLength={100}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text">Jinsi</span></label>
+                <select
+                  className="select select-bordered"
+                  value={inlineMemberForm.gender}
+                  onChange={(e) => setInlineMemberForm((p) => ({ ...p, gender: e.target.value as Gender | '' }))}
+                >
+                  <option value="">Tanlang...</option>
+                  <option value="MALE">Erkak</option>
+                  <option value="FEMALE">Ayol</option>
+                </select>
+              </div>
+              <div className="form-control">
+                <label className="label py-1"><span className="label-text">Tug'ilgan sana</span></label>
+                <input
+                  type="date"
+                  className="input input-bordered"
+                  value={inlineMemberForm.birthDate}
+                  onChange={(e) => setInlineMemberForm((p) => ({ ...p, birthDate: e.target.value }))}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-5">
+            <button className="btn btn-ghost btn-sm" onClick={closeInlineMemberModal} disabled={inlineMemberSubmitting}>
+              Bekor qilish
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleCreateInlineMember}
+              disabled={!inlineMemberForm.firstName.trim() || inlineMemberSubmitting}
+            >
+              {inlineMemberSubmitting && <span className="loading loading-spinner loading-xs" />}
+              Yaratish va tanlash
+            </button>
+          </div>
+        </div>
+      </ModalPortal>
     </PointsPageShell>
   );
 }
