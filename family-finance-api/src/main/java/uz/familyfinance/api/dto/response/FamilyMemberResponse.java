@@ -25,6 +25,10 @@ public class FamilyMemberResponse {
     private Boolean isActive;
     private Long userId;
     private String userName;
+    /** Bog'langan PointParticipant ID si — bu a'zo ball tizimida qatnashayotganini bildiradi. */
+    private Long pointParticipantId;
+    /** Bog'langan ishtirokchining laqabi (tooltip uchun). */
+    private String pointParticipantNickname;
     private LocalDateTime createdAt;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -25,9 +25,11 @@ import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.entity.PointParticipant;
 import uz.familyfinance.api.repository.AccountRepository;
 import uz.familyfinance.api.repository.CategoryRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.PointParticipantRepository;
 import uz.familyfinance.api.repository.TransactionRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
@@ -55,6 +57,7 @@ public class FamilyMemberService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+    private final PointParticipantRepository pointParticipantRepository;
 
     @Transactional
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable, CustomUserDetails currentUser) {
@@ -504,6 +507,16 @@ public class FamilyMemberService {
         if (m.getUser() != null) {
             r.setUserId(m.getUser().getId());
             r.setUserName(m.getUser().getUsername());
+        }
+        // Ball tizimida ishtirokchi sifatida ro'yxatdan o'tganmi — badge'lar uchun.
+        // Indexed lookup (family_group_id, family_member_id) — kichik oilalar uchun N+1 maqbul.
+        if (m.getFamilyGroup() != null) {
+            pointParticipantRepository
+                    .findByFamilyGroupIdAndFamilyMemberId(m.getFamilyGroup().getId(), m.getId())
+                    .ifPresent(p -> {
+                        r.setPointParticipantId(p.getId());
+                        r.setPointParticipantNickname(p.getNickname());
+                    });
         }
         r.setCredentials(credentials);
         return r;

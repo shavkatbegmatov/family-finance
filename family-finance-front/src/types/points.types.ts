@@ -39,6 +39,10 @@ export interface PointParticipant {
   avatar?: string;
   familyMemberId?: number;
   familyMemberName?: string;
+  /** Bog'langan oila a'zosining User ID si — login bor-yo'qligini bildiradi. */
+  familyMemberUserId?: number;
+  /** Bog'langan oila a'zosining username'i (tooltip uchun). */
+  familyMemberUsername?: string;
   isActive: boolean;
   createdAt: string;
 }

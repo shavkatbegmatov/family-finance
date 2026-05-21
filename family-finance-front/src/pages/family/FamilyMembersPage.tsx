@@ -18,7 +18,6 @@ import {
   EyeOff,
   Shield,
   ClipboardCopy,
-  UserCheck,
   Loader2,
   Sparkles,
 } from 'lucide-react';
@@ -31,7 +30,7 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
-import { AddPersonWizard } from '../../components/persons';
+import { AddPersonWizard, PersonBadges } from '../../components/persons';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -603,16 +602,18 @@ export function FamilyMembersPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{member.fullName}</span>
-                            {member.userId && (
-                              <span className="badge badge-xs badge-success gap-1">
-                                <UserCheck className="h-2.5 w-2.5" />
-                                Tizimda
-                              </span>
-                            )}
                             {member.userId === user?.id && (
                               <span className="badge badge-xs badge-primary">Sen</span>
                             )}
                           </div>
+                          <PersonBadges
+                            hasUser={!!member.userId}
+                            hasFamilyMember
+                            hasParticipant={!!member.pointParticipantId}
+                            userTooltip={member.userName ? `Tizimga kira oladi: @${member.userName}` : undefined}
+                            participantTooltip={member.pointParticipantNickname ? `Ball tizimida: @${member.pointParticipantNickname}` : undefined}
+                            className="mt-1"
+                          />
 
                           <div className="flex flex-wrap items-center gap-2 mt-1.5">
                             <span className="badge badge-sm badge-outline">
@@ -765,21 +766,20 @@ export function FamilyMembersPage() {
                                   <span className="font-semibold text-sm truncate max-w-[180px]">
                                     {member.fullName}
                                   </span>
-                                  {member.userId && (
-                                    <span
-                                      className="badge badge-xs badge-success gap-1"
-                                      title="Tizim foydalanuvchisi bilan bog'langan"
-                                    >
-                                      <UserCheck className="h-2.5 w-2.5" />
-                                      Tizimda
-                                    </span>
-                                  )}
                                   {member.userId === user?.id && (
                                     <span className="badge badge-xs badge-primary">Sen</span>
                                   )}
                                 </div>
+                                <PersonBadges
+                                  hasUser={!!member.userId}
+                                  hasFamilyMember
+                                  hasParticipant={!!member.pointParticipantId}
+                                  userTooltip={member.userName ? `Tizimga kira oladi: @${member.userName}` : undefined}
+                                  participantTooltip={member.pointParticipantNickname ? `Ball tizimida: @${member.pointParticipantNickname}` : undefined}
+                                  className="mt-1"
+                                />
                                 {member.birthPlace && (
-                                  <p className="text-xs text-base-content/40 truncate max-w-[160px]">
+                                  <p className="text-xs text-base-content/40 truncate max-w-[160px] mt-1">
                                     {member.birthPlace}
                                   </p>
                                 )}

@@ -10,7 +10,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { ComboBox } from '../../components/ui/ComboBox';
 import { useFamilyMemberOptions } from '../../hooks/useFamilyMemberOptions';
-import { AddPersonWizard } from '../../components/persons';
+import { AddPersonWizard, PersonBadges } from '../../components/persons';
 import {
   PointsEmptyState,
   PointsLoadingState,
@@ -318,6 +318,14 @@ export function PointsParticipantsPage() {
                         {p.familyMemberName && (
                           <p className="text-xs text-info">{p.familyMemberName}</p>
                         )}
+                        <PersonBadges
+                          hasUser={!!p.familyMemberUserId}
+                          hasFamilyMember={!!p.familyMemberId}
+                          hasParticipant
+                          userTooltip={p.familyMemberUsername ? `Tizimga kira oladi: @${p.familyMemberUsername}` : undefined}
+                          participantTooltip={p.nickname ? `Ball tizimida: @${p.nickname}` : 'Ball tizimida qatnashadi'}
+                          className="mt-1.5"
+                        />
                       </div>
                       {!p.isActive && (
                         <span className="badge badge-error badge-xs">Nofaol</span>

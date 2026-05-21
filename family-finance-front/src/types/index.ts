@@ -171,6 +171,10 @@ export interface FamilyMember {
   isActive: boolean;
   userId?: number;
   userName?: string;
+  /** Bog'langan PointParticipant ID si — ball tizimida qatnashayotganini bildiradi. */
+  pointParticipantId?: number;
+  /** Bog'langan ishtirokchining laqabi (tooltip uchun). */
+  pointParticipantNickname?: string;
   createdAt: string;
   credentials?: CredentialsInfo;
 }
