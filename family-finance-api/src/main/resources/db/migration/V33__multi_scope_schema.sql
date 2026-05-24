@@ -81,7 +81,7 @@ CREATE INDEX idx_scope_memberships_user ON scope_memberships(user_id);
 CREATE INDEX idx_scope_memberships_active ON scope_memberships(user_id, status) WHERE status = 'ACTIVE';
 CREATE INDEX idx_scope_memberships_role ON scope_memberships(scope_id, role) WHERE status = 'ACTIVE';
 
-COMMENT ON TABLE scope_memberships IS 'User va Scope orasidagi M:N bog'lanish, har biri rol va status bilan';
+COMMENT ON TABLE scope_memberships IS 'User va Scope orasidagi M:N bog''lanish, har biri rol va status bilan';
 COMMENT ON COLUMN scope_memberships.role IS 'OWNER=egasi, ADMIN=boshqaruvchi, MEMBER=a''zo, VIEWER=ko''ruvchi, GUEST=mehmon';
 COMMENT ON COLUMN scope_memberships.status IS 'ACTIVE=faol, LEFT=chiqib ketgan, EXPELLED=chiqarib yuborilgan, PENDING=taklif kutilmoqda';
 
