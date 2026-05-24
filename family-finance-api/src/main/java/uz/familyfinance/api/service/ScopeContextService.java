@@ -69,8 +69,12 @@ public class ScopeContextService {
     // ====================================================================
 
     /**
-     * Joriy "aktiv" scope. Phase 1 da {@code User.primaryScope} qaytariladi.
-     * Phase 2 da JWT'dagi {@code active_scope_id} ustun bo'ladi.
+     * Joriy "aktiv" scope. Phase 2 da quyidagi tartibda olinadi:
+     * <ol>
+     *   <li>JWT'dagi {@code activeScopeId} (CustomUserDetails.activeScopeId)</li>
+     *   <li>Fallback: {@code User.primaryScope}</li>
+     *   <li>Fallback: birinchi ACTIVE membership scope'i</li>
+     * </ol>
      *
      * @throws ResourceNotFoundException agar user hech qanday scope'ga a'zo bo'lmasa
      */
@@ -85,11 +89,27 @@ public class ScopeContextService {
 
     @Transactional(readOnly = true)
     public Optional<Scope> getActiveScopeOptional() {
-        User user = getCurrentUser();
+        CustomUserDetails details = getCurrentUserDetails();
+        if (details == null) {
+            return Optional.empty();
+        }
+
+        // 1) JWT'dan kelgan activeScopeId (eng yuqori prioritet)
+        Long jwtActiveScopeId = details.getActiveScopeId();
+        if (jwtActiveScopeId != null) {
+            Optional<Scope> fromJwt = scopeRepository.findById(jwtActiveScopeId);
+            if (fromJwt.isPresent()) {
+                return fromJwt;
+            }
+        }
+
+        // 2) Fallback: User.primaryScope
+        User user = details.getUser();
         if (user.getPrimaryScope() != null) {
             return Optional.of(user.getPrimaryScope());
         }
-        // Fallback: birinchi ACTIVE membership'dagi scope
+
+        // 3) Fallback: birinchi ACTIVE membership'dagi scope
         return membershipRepository.findByUserIdAndStatus(user.getId(), MembershipStatus.ACTIVE)
                 .stream()
                 .findFirst()

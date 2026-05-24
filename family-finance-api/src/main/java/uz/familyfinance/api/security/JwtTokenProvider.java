@@ -38,11 +38,16 @@ public class JwtTokenProvider {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         if (userDetails instanceof CustomUserDetails) {
             CustomUserDetails customUserDetails = (CustomUserDetails) userDetails;
+            // Phase 2: Login paytida default activeScopeId — primaryScope dan
+            Long activeScopeId = customUserDetails.getUser().getPrimaryScope() != null
+                    ? customUserDetails.getUser().getPrimaryScope().getId()
+                    : null;
             return generateStaffTokenWithPermissions(
                     customUserDetails.getUsername(),
                     customUserDetails.getId(),
                     customUserDetails.getRoleCodes(),
-                    customUserDetails.getPermissions()
+                    customUserDetails.getPermissions(),
+                    activeScopeId
             );
         }
         return generateToken(userDetails.getUsername());
@@ -74,9 +79,22 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Generate token with permissions for staff users
+     * Generate token with permissions for staff users.
+     * Backward-compatible overload — calls full version with null activeScopeId.
      */
-    public String generateStaffTokenWithPermissions(String username, Long userId, Set<String> roles, Set<String> permissions) {
+    public String generateStaffTokenWithPermissions(String username, Long userId,
+                                                    Set<String> roles, Set<String> permissions) {
+        return generateStaffTokenWithPermissions(username, userId, roles, permissions, null);
+    }
+
+    /**
+     * Phase 2: Generate token with permissions AND active scope ID claim.
+     * The active scope determines which Scope's data is shown by default —
+     * user can switch via POST /v1/auth/switch-scope.
+     */
+    public String generateStaffTokenWithPermissions(String username, Long userId,
+                                                    Set<String> roles, Set<String> permissions,
+                                                    Long activeScopeId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
@@ -88,6 +106,10 @@ public class JwtTokenProvider {
                 .claim("permissions", new ArrayList<>(permissions))
                 .issuedAt(now)
                 .expiration(expiryDate);
+
+        if (activeScopeId != null) {
+            builder.claim("activeScopeId", activeScopeId);
+        }
 
         return builder.signWith(key).compact();
     }
@@ -167,6 +189,22 @@ public class JwtTokenProvider {
         Claims claims = getClaims(token);
         List<String> permissions = claims.get("permissions", List.class);
         return permissions != null ? new HashSet<>(permissions) : new HashSet<>();
+    }
+
+    /**
+     * Phase 2: Get the active scope ID from JWT token (added by switch-scope endpoint
+     * or set to User.primaryScope on login). Returns null for legacy tokens.
+     */
+    public Long getActiveScopeIdFromToken(String token) {
+        Claims claims = getClaims(token);
+        Object value = claims.get("activeScopeId");
+        if (value == null) return null;
+        if (value instanceof Number n) return n.longValue();
+        try {
+            return Long.parseLong(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private Claims getClaims(String token) {

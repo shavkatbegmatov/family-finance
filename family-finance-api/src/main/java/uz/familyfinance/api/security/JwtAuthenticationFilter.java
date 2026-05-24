@@ -55,6 +55,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 UserDetails userDetails = staffUserDetailsService.loadUserByUsername(username);
 
+                // Phase 2: JWT'dan active scope ID ni olamiz va userDetails ga o'rnatamiz.
+                // Bu ScopeContextService.getActiveScope() uchun ishlatiladi.
+                if (userDetails instanceof CustomUserDetails custom) {
+                    Long activeScopeId = tokenProvider.getActiveScopeIdFromToken(jwt);
+                    if (activeScopeId == null && custom.getUser().getPrimaryScope() != null) {
+                        // Legacy tokenlar uchun: User.primaryScope ga fallback
+                        activeScopeId = custom.getUser().getPrimaryScope().getId();
+                    }
+                    custom.setActiveScopeId(activeScopeId);
+                }
+
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,

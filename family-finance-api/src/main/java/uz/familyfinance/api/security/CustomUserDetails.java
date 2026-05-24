@@ -1,6 +1,7 @@
 package uz.familyfinance.api.security;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,6 +21,16 @@ public class CustomUserDetails implements UserDetails {
     private final User user;
     private final Set<String> permissions;
     private final Set<String> roleCodes;
+
+    /**
+     * Joriy "aktiv" scope ID — JWT'dan kelgan {@code active_scope_id} claim asosida.
+     * Login paytida default {@code User.primaryScope.id} dan boshlanadi;
+     * foydalanuvchi {@code POST /v1/auth/switch-scope} orqali boshqasiga o'zgartirishi mumkin.
+     *
+     * <p>Mutable — JwtAuthenticationFilter har so'rovda yangilaydi.</p>
+     */
+    @Setter
+    private Long activeScopeId;
 
     public CustomUserDetails(User user) {
         this.user = user;

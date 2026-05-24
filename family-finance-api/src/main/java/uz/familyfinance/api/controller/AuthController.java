@@ -12,12 +12,15 @@ import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.ChangePasswordRequest;
 import uz.familyfinance.api.dto.request.LoginRequest;
 import uz.familyfinance.api.dto.request.RegisterRequest;
+import uz.familyfinance.api.dto.request.SwitchScopeRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.JwtResponse;
+import uz.familyfinance.api.dto.response.SwitchScopeResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.Session;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.service.AuthService;
+import uz.familyfinance.api.service.ScopeSwitchService;
 import uz.familyfinance.api.service.SessionService;
 import uz.familyfinance.api.service.UserService;
 
@@ -30,6 +33,7 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final SessionService sessionService;
+    private final ScopeSwitchService scopeSwitchService;
 
     @PostMapping("/register")
     @Operation(summary = "Register", description = "Yangi foydalanuvchi ro'yxatdan o'tish")
@@ -64,6 +68,16 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser() {
         UserResponse response = authService.getCurrentUser();
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/switch-scope")
+    @Operation(summary = "Switch Active Scope",
+               description = "Aktiv scope'ni o'zgartirish — yangi JWT token qaytariladi")
+    public ResponseEntity<ApiResponse<SwitchScopeResponse>> switchScope(
+            @Valid @RequestBody SwitchScopeRequest request) {
+        SwitchScopeResponse response = scopeSwitchService.switchScope(request);
+        return ResponseEntity.ok(ApiResponse.success(
+                "Aktiv scope o'zgartirildi. Yangi token bilan davom eting.", response));
     }
 
     @PostMapping("/logout")
