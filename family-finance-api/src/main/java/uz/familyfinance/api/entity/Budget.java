@@ -29,6 +29,19 @@ public class Budget extends BaseEntity implements Auditable {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    /**
+     * Phase 2: Scope tuzilmasi (odatda HOUSEHOLD).
+     * Hozircha nullable — V35 migration bilan to'lgan.
+     * V37 (Phase 2 oxiri) da NOT NULL bo'ladi.
+     *
+     * <p>Bu maydon mavjud bo'lmasligi tarixiy bug edi: Budget hech qachon
+     * guruh/xonadon bilan bog'lanmagan, bir oilaning byudjeti boshqa oila
+     * ko'ra olardi.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 

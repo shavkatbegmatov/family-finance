@@ -28,6 +28,15 @@ import java.util.Set;
 @Builder
 public class Debt extends BaseEntity implements Auditable {
 
+    /**
+     * Phase 2: Scope tuzilmasi (odatda HOUSEHOLD — qarz oilaviy masala).
+     * Bu maydon avval mavjud bo'lmagan (kritik bug — qarzlar global edi).
+     * V35 backfill bilan to'lgan, V37 da NOT NULL bo'ladi.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private DebtType type;
