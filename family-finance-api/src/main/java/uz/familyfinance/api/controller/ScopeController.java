@@ -1,0 +1,88 @@
+package uz.familyfinance.api.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import uz.familyfinance.api.dto.request.MembershipInviteRequest;
+import uz.familyfinance.api.dto.request.ScopeCreateRequest;
+import uz.familyfinance.api.dto.request.ScopeRoleUpdateRequest;
+import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.dto.response.MembershipResponse;
+import uz.familyfinance.api.dto.response.ScopeResponse;
+import uz.familyfinance.api.service.MembershipService;
+import uz.familyfinance.api.service.ScopeService;
+
+import java.util.List;
+
+/**
+ * Multi-level scope va membership boshqaruvi uchun REST endpoint'lar.
+ *
+ * <p>Ko'pchilik amallar uchun ruxsatlar service ichida {@code ScopeContextService}
+ * orqali tekshiriladi (scope-aware). Shuning uchun bu controller'da
+ * {@code @RequiresPermission} kerak emas — har bir scope'ning OWNER/ADMIN'i
+ * o'z scope'ini boshqara oladi.</p>
+ */
+@RestController
+@RequestMapping("/v1/scopes")
+@RequiredArgsConstructor
+public class ScopeController {
+
+    private final ScopeService scopeService;
+    private final MembershipService membershipService;
+
+    // ===== Scope CRUD =====
+
+    /** Joriy user a'zo bo'lgan barcha scope'lar (ScopeSwitcher uchun). */
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<List<ScopeResponse>>> getMyScopes() {
+        return ResponseEntity.ok(ApiResponse.success(scopeService.getMyScopes()));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ScopeResponse>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(scopeService.getById(id)));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<ScopeResponse>> create(
+            @Valid @RequestBody ScopeCreateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(scopeService.create(request)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
+        scopeService.deactivate(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // ===== Memberships =====
+
+    @GetMapping("/{id}/memberships")
+    public ResponseEntity<ApiResponse<List<MembershipResponse>>> listMemberships(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(membershipService.listForScope(id)));
+    }
+
+    @PostMapping("/{id}/memberships")
+    public ResponseEntity<ApiResponse<MembershipResponse>> invite(
+            @PathVariable Long id, @Valid @RequestBody MembershipInviteRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(membershipService.invite(id, request)));
+    }
+
+    @PutMapping("/{id}/memberships/{userId}")
+    public ResponseEntity<ApiResponse<MembershipResponse>> updateRole(
+            @PathVariable Long id,
+            @PathVariable Long userId,
+            @Valid @RequestBody ScopeRoleUpdateRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                membershipService.updateRole(id, userId, request)));
+    }
+
+    @DeleteMapping("/{id}/memberships/{userId}")
+    public ResponseEntity<ApiResponse<Void>> removeMembership(
+            @PathVariable Long id, @PathVariable Long userId) {
+        membershipService.remove(id, userId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+}

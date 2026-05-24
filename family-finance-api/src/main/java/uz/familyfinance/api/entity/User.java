@@ -69,6 +69,22 @@ public class User extends BaseEntity implements Auditable {
     @JoinColumn(name = "family_group_id")
     private FamilyGroup familyGroup;
 
+    /**
+     * Platforma darajasidagi super-admin flag'i. {@code true} bo'lsa, user har qanday
+     * scope'ga (membership bo'lmasa ham) kira oladi. Har bir kirish audit log'ga yoziladi.
+     */
+    @Column(name = "is_super_admin", nullable = false)
+    @Builder.Default
+    private Boolean isSuperAdmin = false;
+
+    /**
+     * Foydalanuvchining default "ishlash" scope'i. Login paytida JWT'da
+     * {@code active_scope_id} sifatida o'rnatiladi.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "primary_scope_id")
+    private Scope primaryScope;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     @Builder.Default
