@@ -48,14 +48,34 @@ public class TransactionService {
     private final AccountService accountService;
     private final TagService tagService;
     private final TransactionSplitRepository transactionSplitRepository;
+    private final ScopeContextService scopeContext;
+
+    /**
+     * Aktiv scope'ga mos family_group_id ni qaytaradi.
+     * SUPER_ADMIN bo'lsa yoki scope topilmasa null — query global qoladi.
+     */
+    private Long resolveActiveFamilyGroupIdOrNull() {
+        if (scopeContext.isSuperAdmin()) {
+            return null; // SUPER_ADMIN barcha tranzaksiyalarni ko'radi
+        }
+        try {
+            return scopeContext.getActiveFamilyGroupOptional()
+                    .map(fg -> fg.getId())
+                    .orElse(-1L); // -1 = hech bir tranzaksiya mos kelmaydi (xavfsiz default)
+        } catch (Exception e) {
+            log.warn("Aktiv family group olib bo'lmadi: {}", e.getMessage());
+            return -1L;
+        }
+    }
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getAll(TransactionType type, Long accountId, Long categoryId,
                                               Long memberId, LocalDateTime from, LocalDateTime to,
                                               String search, Pageable pageable) {
         String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
-        return transactionRepository.findWithFilters(type, accountId, categoryId, memberId, from, to,
-                                                       null, normalizedSearch, pageable)
+        Long familyGroupId = resolveActiveFamilyGroupIdOrNull();
+        return transactionRepository.findWithFilters(familyGroupId, type, accountId, categoryId, memberId,
+                                                       from, to, null, normalizedSearch, pageable)
                 .map(this::toResponse);
     }
 
@@ -66,8 +86,15 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public List<TransactionResponse> getRecent() {
-        return transactionRepository.findTop10ByOrderByTransactionDateDesc().stream()
-                .map(this::toResponse).collect(Collectors.toList());
+        Long familyGroupId = resolveActiveFamilyGroupIdOrNull();
+        if (familyGroupId == null) {
+            // SUPER_ADMIN — eski global qaytaradi
+            return transactionRepository.findTop10ByOrderByTransactionDateDesc().stream()
+                    .map(this::toResponse).collect(Collectors.toList());
+        }
+        return transactionRepository
+                .findTop10ByFamilyGroup(familyGroupId, org.springframework.data.domain.PageRequest.of(0, 10))
+                .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     /**

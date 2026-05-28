@@ -17,6 +17,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query(
             value = "SELECT t FROM Transaction t WHERE " +
+                    "(:familyGroupId IS NULL OR t.account.familyGroup.id = :familyGroupId) AND " +
                     "(:type IS NULL OR t.type = :type) AND " +
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
                     "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
@@ -26,6 +27,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate) AND " +
                     "(CAST(:search AS string) IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))",
             countQuery = "SELECT COUNT(t) FROM Transaction t WHERE " +
+                    "(:familyGroupId IS NULL OR t.account.familyGroup.id = :familyGroupId) AND " +
                     "(:type IS NULL OR t.type = :type) AND " +
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
                     "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
@@ -36,6 +38,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(CAST(:search AS string) IS NULL OR LOWER(t.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))"
     )
     Page<Transaction> findWithFilters(
+            @Param("familyGroupId") Long familyGroupId,
             @Param("type") TransactionType type,
             @Param("accountId") Long accountId,
             @Param("categoryId") Long categoryId,
@@ -75,6 +78,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                 @Param("to") LocalDateTime to);
 
     List<Transaction> findTop10ByOrderByTransactionDateDesc();
+
+    /** Scope-aware: faqat berilgan family_group'ning oxirgi 10 ta tranzaksiyasi. */
+    @Query("SELECT t FROM Transaction t WHERE t.account.familyGroup.id = :familyGroupId "
+         + "ORDER BY t.transactionDate DESC")
+    List<Transaction> findTop10ByFamilyGroup(@Param("familyGroupId") Long familyGroupId, Pageable pageable);
 
     @Query("SELECT t FROM Transaction t WHERE t.isRecurring = true AND t.recurringPattern IS NOT NULL")
     List<Transaction> findRecurringTransactions();

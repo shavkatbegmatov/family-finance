@@ -36,7 +36,14 @@ public class SavingsGoalService {
 
     @Transactional(readOnly = true)
     public Page<SavingsGoalResponse> getAll(Pageable pageable) {
-        return savingsGoalRepository.findAll(pageable).map(this::toResponse);
+        if (scopeContext.isSuperAdmin()) {
+            return savingsGoalRepository.findAll(pageable).map(this::toResponse);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return savingsGoalRepository.findByScopeIds(visible, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

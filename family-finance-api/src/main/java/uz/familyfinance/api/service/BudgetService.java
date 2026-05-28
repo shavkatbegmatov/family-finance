@@ -37,12 +37,27 @@ public class BudgetService {
 
     @Transactional(readOnly = true)
     public Page<BudgetResponse> getAll(Pageable pageable) {
-        return budgetRepository.findByIsActiveTrue(pageable).map(this::toResponse);
+        if (scopeContext.isSuperAdmin()) {
+            return budgetRepository.findByIsActiveTrue(pageable).map(this::toResponse);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return budgetRepository.findByIsActiveTrueAndScopeIds(visible, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
     public List<BudgetResponse> getActiveByDate(LocalDate date) {
-        return budgetRepository.findActiveByDate(date).stream()
+        if (scopeContext.isSuperAdmin()) {
+            return budgetRepository.findActiveByDate(date).stream()
+                    .map(this::toResponse).collect(Collectors.toList());
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return budgetRepository.findActiveByDateAndScopeIds(date, visible).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 

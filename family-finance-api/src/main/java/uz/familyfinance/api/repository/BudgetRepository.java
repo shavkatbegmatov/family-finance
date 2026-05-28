@@ -15,6 +15,11 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     List<Budget> findByIsActiveTrue();
     Page<Budget> findByIsActiveTrue(Pageable pageable);
 
+    /** Scope-aware: ko'rinadigan scope ID'lar bo'yicha aktiv byudjetlar. */
+    @Query("SELECT b FROM Budget b LEFT JOIN FETCH b.category "
+         + "WHERE b.isActive = true AND b.scope.id IN :scopeIds")
+    Page<Budget> findByIsActiveTrueAndScopeIds(@Param("scopeIds") java.util.Collection<Long> scopeIds, Pageable pageable);
+
     @Query("SELECT b FROM Budget b LEFT JOIN FETCH b.category WHERE b.isActive = true AND " +
            "b.startDate <= :date AND b.endDate >= :date")
     List<Budget> findActiveByDate(@Param("date") LocalDate date);
@@ -23,6 +28,12 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     @Query("SELECT b FROM Budget b LEFT JOIN FETCH b.category WHERE b.isActive = true AND "
          + "b.startDate <= :date AND b.endDate >= :date AND b.scope.id = :scopeId")
     List<Budget> findActiveByDateAndScope(@Param("date") LocalDate date, @Param("scopeId") Long scopeId);
+
+    /** Scope-aware: ko'rinadigan scope ID'lar bo'yicha aktiv byudjetlar (sana bilan). */
+    @Query("SELECT b FROM Budget b LEFT JOIN FETCH b.category WHERE b.isActive = true AND "
+         + "b.startDate <= :date AND b.endDate >= :date AND b.scope.id IN :scopeIds")
+    List<Budget> findActiveByDateAndScopeIds(@Param("date") LocalDate date,
+                                              @Param("scopeIds") java.util.Collection<Long> scopeIds);
 
     Optional<Budget> findByCategoryIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Long categoryId, LocalDate startDate, LocalDate endDate);

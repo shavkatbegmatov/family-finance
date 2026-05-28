@@ -36,7 +36,15 @@ public class DebtService {
 
     @Transactional(readOnly = true)
     public Page<DebtResponse> getAll(DebtType type, DebtStatus status, String search, Pageable pageable) {
-        return debtRepository.findWithFilters(type, status, search, pageable).map(this::toResponse);
+        if (scopeContext.isSuperAdmin()) {
+            return debtRepository.findWithFilters(type, status, search, pageable).map(this::toResponse);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return debtRepository.findWithFiltersAndScopeIds(visible, type, status, search, pageable)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

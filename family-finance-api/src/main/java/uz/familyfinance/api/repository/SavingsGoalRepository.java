@@ -15,6 +15,10 @@ public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long> 
     List<SavingsGoal> findByIsCompletedFalse();
     Page<SavingsGoal> findByIsCompletedFalse(Pageable pageable);
 
+    /** Scope-aware: ko'rinadigan scope ID'lar bo'yicha jamg'armalar (Page). */
+    @Query("SELECT sg FROM SavingsGoal sg WHERE sg.scope.id IN :scopeIds")
+    Page<SavingsGoal> findByScopeIds(@Param("scopeIds") java.util.Collection<Long> scopeIds, Pageable pageable);
+
     @Query("SELECT COALESCE(SUM(sg.currentAmount), 0) FROM SavingsGoal sg WHERE sg.isCompleted = false")
     BigDecimal getTotalSavings();
 

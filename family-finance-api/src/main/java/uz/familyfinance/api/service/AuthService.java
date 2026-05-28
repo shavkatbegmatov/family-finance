@@ -18,13 +18,19 @@ import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.enums.MembershipStatus;
 import uz.familyfinance.api.enums.Role;
+import uz.familyfinance.api.enums.ScopeRole;
+import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.AccountDisabledException;
 import uz.familyfinance.api.exception.AccountLockedException;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.FamilyGroupRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.RoleRepository;
+import uz.familyfinance.api.repository.ScopeMembershipRepository;
+import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.JwtTokenProvider;
@@ -41,6 +47,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final FamilyGroupRepository familyGroupRepository;
+    private final ScopeRepository scopeRepository;
+    private final ScopeMembershipRepository scopeMembershipRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
     private final LoginAttemptService loginAttemptService;
@@ -81,16 +90,12 @@ public class AuthService {
                 .build();
 
         user.getRoles().add(memberRole);
-        userRepository.save(user);
+        user = userRepository.save(user);
 
-        // Avtomatik FamilyMember yaratish va user ga bog'lash
-        FamilyMember familyMember = FamilyMember.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .role(FamilyRole.OTHER)
-                .user(user)
-                .build();
-        familyMemberRepository.save(familyMember);
+        // YANGI: Avtomatik FamilyGroup + CLAN + HOUSEHOLD scope yaratish.
+        // Bu yangi user uchun izolyatsiyalangan moliyaviy makonni ta'minlaydi —
+        // shu yo'l bilan boshqa user'larning tranzaksiyalari/balanslari ko'rinmaydi.
+        provisionInitialScopeFor(user, request);
 
         // Audit log (userId=null to avoid FK constraint since user is not yet committed)
         auditLogService.log(
@@ -102,9 +107,93 @@ public class AuthService {
                 null
         );
 
-        log.info("New user registered: {}", user.getUsername());
+        log.info("New user registered: {} with new clan/household scopes", user.getUsername());
 
         return UserResponse.from(user);
+    }
+
+    /**
+     * Yangi ro'yxatdan o'tgan user uchun to'liq scope strukturasini yaratadi:
+     * <ol>
+     *   <li>FamilyGroup (legacy uyg'unligi uchun)</li>
+     *   <li>CLAN scope (parent=null, owner=user)</li>
+     *   <li>HOUSEHOLD scope (parent=CLAN, owner=user)</li>
+     *   <li>2 ta ScopeMembership: ikkalasida ham OWNER role</li>
+     *   <li>User.familyGroup va User.primaryScope (=household) o'rnatiladi</li>
+     *   <li>FamilyMember (legacy) — yangi familyGroup'ga biriktiriladi</li>
+     * </ol>
+     */
+    private void provisionInitialScopeFor(User user, RegisterRequest request) {
+        String displayName = buildDisplayName(request);
+
+        // 1) FamilyGroup
+        FamilyGroup familyGroup = FamilyGroup.builder()
+                .name(displayName + " oilasi")
+                .admin(user)
+                .active(true)
+                .build();
+        familyGroup = familyGroupRepository.save(familyGroup);
+
+        // 2) CLAN scope (parent=null)
+        Scope clan = Scope.builder()
+                .type(ScopeType.CLAN)
+                .name(displayName + " urug'i")
+                .ownerUser(user)
+                .legacyFamilyGroup(familyGroup)
+                .isActive(true)
+                .build();
+        clan = scopeRepository.save(clan);
+
+        // 3) HOUSEHOLD scope (parent=clan)
+        Scope household = Scope.builder()
+                .type(ScopeType.HOUSEHOLD)
+                .name(displayName + " xonadoni")
+                .parentScope(clan)
+                .ownerUser(user)
+                .legacyFamilyGroup(familyGroup)
+                .isActive(true)
+                .build();
+        household = scopeRepository.save(household);
+
+        // 4) ScopeMembership x2 (clan + household, ikkalasida ham OWNER)
+        LocalDateTime now = LocalDateTime.now();
+        scopeMembershipRepository.save(ScopeMembership.builder()
+                .scope(clan)
+                .user(user)
+                .role(ScopeRole.OWNER)
+                .status(MembershipStatus.ACTIVE)
+                .joinedAt(now)
+                .build());
+        scopeMembershipRepository.save(ScopeMembership.builder()
+                .scope(household)
+                .user(user)
+                .role(ScopeRole.OWNER)
+                .status(MembershipStatus.ACTIVE)
+                .joinedAt(now)
+                .build());
+
+        // 5) User ni familyGroup va primaryScope (HOUSEHOLD) ga bog'lash
+        user.setFamilyGroup(familyGroup);
+        user.setPrimaryScope(household);
+        userRepository.save(user);
+
+        // 6) FamilyMember (legacy) — yangi familyGroup'ga biriktirib
+        FamilyMember familyMember = FamilyMember.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .role(FamilyRole.OTHER)
+                .user(user)
+                .familyGroup(familyGroup)
+                .build();
+        familyMemberRepository.save(familyMember);
+    }
+
+    private String buildDisplayName(RegisterRequest request) {
+        String last = request.getLastName() != null ? request.getLastName().trim() : "";
+        String first = request.getFirstName() != null ? request.getFirstName().trim() : "";
+        if (!last.isEmpty()) return last;
+        if (!first.isEmpty()) return first;
+        return request.getUsername();
     }
 
     private void validatePassword(String password) {
