@@ -59,6 +59,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        // Phase 3: scope cache'ni ham tozalash (yangi user kirsa, eski scope'lar ko'rinmasin)
+        localStorage.removeItem('scope-store');
         set({
           user: null,
           accessToken: null,

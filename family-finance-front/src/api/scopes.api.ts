@@ -1,0 +1,68 @@
+import axiosInstance from './axios';
+import type { ApiResponse } from '../types';
+import type {
+  Membership,
+  MembershipInviteRequest,
+  Scope,
+  ScopeCreateRequest,
+  ScopeRoleUpdateRequest,
+  SwitchScopeRequest,
+  SwitchScopeResponse,
+} from '../types/scope.types';
+
+/**
+ * Multi-level Scope (Clan + Household + Project + Event + Fund + Trustee + Property)
+ * va Membership boshqaruvi uchun REST klient.
+ *
+ * Backend: ScopeController (/v1/scopes/*) va AuthController (/v1/auth/switch-scope).
+ */
+export const scopesApi = {
+  // ===== Scopes =====
+
+  /** Joriy user a'zo bo'lgan barcha scope'lar (ScopeSwitcher uchun). */
+  getMyScopes: () =>
+    axiosInstance.get<ApiResponse<Scope[]>>('/v1/scopes/my'),
+
+  getById: (id: number) =>
+    axiosInstance.get<ApiResponse<Scope>>(`/v1/scopes/${id}`),
+
+  create: (data: ScopeCreateRequest) =>
+    axiosInstance.post<ApiResponse<Scope>>('/v1/scopes', data),
+
+  deactivate: (id: number) =>
+    axiosInstance.delete<ApiResponse<void>>(`/v1/scopes/${id}`),
+
+  // ===== Memberships =====
+
+  listMemberships: (scopeId: number) =>
+    axiosInstance.get<ApiResponse<Membership[]>>(`/v1/scopes/${scopeId}/memberships`),
+
+  inviteMember: (scopeId: number, data: MembershipInviteRequest) =>
+    axiosInstance.post<ApiResponse<Membership>>(
+      `/v1/scopes/${scopeId}/memberships`,
+      data,
+    ),
+
+  updateMemberRole: (scopeId: number, userId: number, data: ScopeRoleUpdateRequest) =>
+    axiosInstance.put<ApiResponse<Membership>>(
+      `/v1/scopes/${scopeId}/memberships/${userId}`,
+      data,
+    ),
+
+  removeMember: (scopeId: number, userId: number) =>
+    axiosInstance.delete<ApiResponse<void>>(
+      `/v1/scopes/${scopeId}/memberships/${userId}`,
+    ),
+
+  // ===== Switch scope (auth endpoint) =====
+
+  /**
+   * Aktiv scope'ni o'zgartirish — yangi JWT token qaytaradi.
+   * authStore'da setAuth() bilan token'ni yangilash kerak.
+   */
+  switchScope: (data: SwitchScopeRequest) =>
+    axiosInstance.post<ApiResponse<SwitchScopeResponse>>(
+      '/v1/auth/switch-scope',
+      data,
+    ),
+};
