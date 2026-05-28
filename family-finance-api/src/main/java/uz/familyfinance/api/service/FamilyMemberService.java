@@ -58,13 +58,26 @@ public class FamilyMemberService {
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final PointParticipantRepository pointParticipantRepository;
+    private final ScopeContextService scopeContext;
+
+    /**
+     * Joriy aktiv scope'ga tegishli family_group_id ni qaytaradi.
+     * Scope switch'dan keyin to'g'ri qiymat keladi (eski User.familyGroup emas).
+     * Fallback: -1L (hech qachon mos kelmaydi, faqat NPE'dan saqlash uchun).
+     */
+    private Long resolveActiveFamilyGroupId() {
+        try {
+            return scopeContext.getActiveFamilyGroup().getId();
+        } catch (Exception e) {
+            log.warn("Aktiv scope'dan family group olib bo'lmadi: {}", e.getMessage());
+            return -1L;
+        }
+    }
 
     @Transactional
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable, CustomUserDetails currentUser) {
         ensureSelfMemberActive();
-        Long familyGroupId = currentUser.getUser().getFamilyGroup() != null
-                ? currentUser.getUser().getFamilyGroup().getId()
-                : -1L;
+        Long familyGroupId = resolveActiveFamilyGroupId();
         boolean isAdmin = currentUser.isAdmin();
 
         if (search != null && !search.isBlank()) {
@@ -76,9 +89,7 @@ public class FamilyMemberService {
 
     @Transactional(readOnly = true)
     public List<FamilyMemberResponse> getAllActive(CustomUserDetails currentUser) {
-        Long familyGroupId = currentUser.getUser().getFamilyGroup() != null
-                ? currentUser.getUser().getFamilyGroup().getId()
-                : -1L;
+        Long familyGroupId = resolveActiveFamilyGroupId();
         boolean isAdmin = currentUser.isAdmin();
         return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin).stream()
                 .map(this::toResponse).collect(Collectors.toList());
@@ -239,9 +250,14 @@ public class FamilyMemberService {
             member.setUser(user);
         }
 
-        // FamilyGroup o'rnatish (sidebar bug fix)
-        if (currentUser.getUser().getFamilyGroup() != null) {
-            member.setFamilyGroup(currentUser.getUser().getFamilyGroup());
+        // FamilyGroup o'rnatish — aktiv scope orqali (scope switch'da to'g'ri ishlaydi)
+        try {
+            member.setFamilyGroup(scopeContext.getActiveFamilyGroup());
+        } catch (Exception e) {
+            // Fallback: eski mexanizm
+            if (currentUser.getUser().getFamilyGroup() != null) {
+                member.setFamilyGroup(currentUser.getUser().getFamilyGroup());
+            }
         }
 
         FamilyMember saved = familyMemberRepository.save(member);
@@ -428,9 +444,7 @@ public class FamilyMemberService {
 
     @Transactional(readOnly = true)
     public List<FamilyMember> getAllEntities(CustomUserDetails currentUser) {
-        Long familyGroupId = currentUser.getUser().getFamilyGroup() != null
-                ? currentUser.getUser().getFamilyGroup().getId()
-                : -1L;
+        Long familyGroupId = resolveActiveFamilyGroupId();
         boolean isAdmin = currentUser.isAdmin();
         return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin);
     }
@@ -440,10 +454,12 @@ public class FamilyMemberService {
             return;
         if (member.getFamilyGroup() == null)
             return;
-        if (currentUser.getUser().getFamilyGroup() == null)
+
+        Long activeFamilyGroupId = resolveActiveFamilyGroupId();
+        if (activeFamilyGroupId == null || activeFamilyGroupId < 0)
             return;
 
-        if (!member.getFamilyGroup().getId().equals(currentUser.getUser().getFamilyGroup().getId())) {
+        if (!member.getFamilyGroup().getId().equals(activeFamilyGroupId)) {
             throw new AccessDeniedException(
                     "Siz ushbu oila a'zosini ko'rish yoki tahrirlash huquqiga ega emassiz.");
         }
