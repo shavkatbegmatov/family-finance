@@ -74,8 +74,11 @@ public class AuthController {
     @Operation(summary = "Switch Active Scope",
                description = "Aktiv scope'ni o'zgartirish — yangi JWT token qaytariladi")
     public ResponseEntity<ApiResponse<SwitchScopeResponse>> switchScope(
-            @Valid @RequestBody SwitchScopeRequest request) {
-        SwitchScopeResponse response = scopeSwitchService.switchScope(request);
+            @Valid @RequestBody SwitchScopeRequest request,
+            HttpServletRequest httpRequest) {
+        String ipAddress = getClientIpAddress(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+        SwitchScopeResponse response = scopeSwitchService.switchScope(request, ipAddress, userAgent);
         return ResponseEntity.ok(ApiResponse.success(
                 "Aktiv scope o'zgartirildi. Yangi token bilan davom eting.", response));
     }

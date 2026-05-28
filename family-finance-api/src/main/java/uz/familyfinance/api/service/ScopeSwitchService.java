@@ -2,6 +2,7 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.security.JwtTokenProvider;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
@@ -41,9 +43,13 @@ public class ScopeSwitchService {
     private final UserRepository userRepository;
     private final ScopeContextService scopeContext;
     private final JwtTokenProvider jwtTokenProvider;
+    private final SessionService sessionService;
+
+    @Value("${jwt.expiration}")
+    private long jwtExpiration;
 
     @Transactional
-    public SwitchScopeResponse switchScope(SwitchScopeRequest request) {
+    public SwitchScopeResponse switchScope(SwitchScopeRequest request, String ipAddress, String userAgent) {
         Scope target = scopeRepository.findById(request.getScopeId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Scope topilmadi: id=" + request.getScopeId()));
@@ -72,6 +78,11 @@ public class ScopeSwitchService {
                 scopeContext.getCurrentUserDetails().getPermissions(),
                 target.getId()
         );
+
+        // Yangi session yaratish — aks holda JwtAuthenticationFilter yangi tokenni
+        // "revoked session" deb hisoblaydi va 401 qaytaradi.
+        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(jwtExpiration / 1000);
+        sessionService.createSession(currentUser, newToken, ipAddress, userAgent, expiresAt);
 
         // Ixtiyoriy: User.primaryScope ni ham yangilash (default sifatida)
         if (Boolean.TRUE.equals(request.getPersistAsPrimary())) {
