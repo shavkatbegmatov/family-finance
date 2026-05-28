@@ -18,6 +18,16 @@ public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long> 
     @Query("SELECT COALESCE(SUM(sg.currentAmount), 0) FROM SavingsGoal sg WHERE sg.isCompleted = false")
     BigDecimal getTotalSavings();
 
+    /** Scope-aware: faqat berilgan scope'dagi jamg'armalar. */
+    @Query("SELECT COALESCE(SUM(sg.currentAmount), 0) FROM SavingsGoal sg "
+         + "WHERE sg.isCompleted = false AND sg.scope.id = :scopeId")
+    BigDecimal getTotalSavingsByScope(@Param("scopeId") Long scopeId);
+
+    /** Scope-aware: faqat berilgan scope'dagi aktiv jamg'arma maqsadlari. */
+    @Query("SELECT sg FROM SavingsGoal sg "
+         + "WHERE sg.isCompleted = false AND sg.scope.id = :scopeId")
+    List<SavingsGoal> findByIsCompletedFalseAndScope(@Param("scopeId") Long scopeId);
+
     @Query("SELECT COALESCE(SUM(sg.targetAmount), 0) FROM SavingsGoal sg WHERE sg.isCompleted = false")
     BigDecimal getTotalTarget();
 

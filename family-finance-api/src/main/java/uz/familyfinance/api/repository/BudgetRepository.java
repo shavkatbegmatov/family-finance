@@ -19,6 +19,11 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
            "b.startDate <= :date AND b.endDate >= :date")
     List<Budget> findActiveByDate(@Param("date") LocalDate date);
 
+    /** Scope-aware: faqat berilgan scope'dagi aktiv byudjetlar. */
+    @Query("SELECT b FROM Budget b LEFT JOIN FETCH b.category WHERE b.isActive = true AND "
+         + "b.startDate <= :date AND b.endDate >= :date AND b.scope.id = :scopeId")
+    List<Budget> findActiveByDateAndScope(@Param("date") LocalDate date, @Param("scopeId") Long scopeId);
+
     Optional<Budget> findByCategoryIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Long categoryId, LocalDate startDate, LocalDate endDate);
 

@@ -31,8 +31,18 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
        List<Account> findByTypeAndCurrencyAndIsActiveTrue(AccountType type, String currency);
 
+       /**
+        * @deprecated Multi-tenant data leak — barcha oilalar balansini qo'shadi.
+        *             Phase 2'dan keyin: {@link #getTotalBalanceByFamilyGroup(Long)} ishlatish kerak.
+        */
+       @Deprecated
        @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.isActive = true")
        BigDecimal getTotalBalance();
+
+       /** Faqat berilgan family_group'ning hisoblar yig'indisi (scope-aware). */
+       @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a "
+            + "WHERE a.isActive = true AND a.familyGroup.id = :familyGroupId")
+       BigDecimal getTotalBalanceByFamilyGroup(@Param("familyGroupId") Long familyGroupId);
 
        @Query("SELECT a FROM Account a WHERE a.isActive = true AND " +
                      "LOWER(a.name) LIKE LOWER(CONCAT('%', :search, '%'))")

@@ -24,6 +24,11 @@ public interface DebtRepository extends JpaRepository<Debt, Long> {
     @Query("SELECT COALESCE(SUM(d.remainingAmount), 0) FROM Debt d WHERE d.type = :type AND d.status != 'PAID'")
     BigDecimal sumRemainingByType(@Param("type") DebtType type);
 
+    /** Scope-aware: faqat berilgan scope'dagi qarzlar. */
+    @Query("SELECT COALESCE(SUM(d.remainingAmount), 0) FROM Debt d "
+         + "WHERE d.type = :type AND d.status != 'PAID' AND d.scope.id = :scopeId")
+    BigDecimal sumRemainingByTypeAndScope(@Param("type") DebtType type, @Param("scopeId") Long scopeId);
+
     @Query("SELECT d FROM Debt d WHERE " +
            "(:type IS NULL OR d.type = :type) AND " +
            "(:status IS NULL OR d.status = :status) AND " +
