@@ -6,11 +6,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uz.familyfinance.api.entity.FamilyGroup;
 import uz.familyfinance.api.entity.Scope;
 import uz.familyfinance.api.entity.ScopeMembership;
 import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.MembershipStatus;
 import uz.familyfinance.api.enums.ScopeRole;
+import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.ScopeMembershipRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
@@ -118,6 +120,51 @@ public class ScopeContextService {
 
     public Long getActiveScopeId() {
         return getActiveScope().getId();
+    }
+
+    // ====================================================================
+    // Legacy family_group bridge (Phase 2 transition helper)
+    // ====================================================================
+
+    /**
+     * Aktiv scope ga mos asl {@link FamilyGroup} ni qaytaradi.
+     *
+     * <p>HOUSEHOLD scope'da bo'lsak, parent CLAN orqali boramiz.
+     * CLAN scope'da bo'lsak, {@code Scope.legacyFamilyGroup} dan o'qiymiz.</p>
+     *
+     * <p>Yangi yaratilgan (V34 dan keyin) scope'lar uchun null bo'lishi mumkin —
+     * bu vaziyatda chaqiruvchi servis o'zining xato logikasini ishlatadi.</p>
+     */
+    @Transactional(readOnly = true)
+    public Optional<FamilyGroup> getActiveFamilyGroupOptional() {
+        return getActiveScopeOptional().flatMap(this::resolveFamilyGroup);
+    }
+
+    /**
+     * Aktiv scope ga mos asl FamilyGroup ni qaytaradi yoki xato.
+     *
+     * <p>{@link PointConfigService#getCurrentFamilyGroup()} ning yangi
+     * implementatsiyasi shu metoddan foydalanadi.</p>
+     */
+    @Transactional(readOnly = true)
+    public FamilyGroup getActiveFamilyGroup() {
+        return getActiveFamilyGroupOptional().orElseThrow(
+            () -> new ResourceNotFoundException(
+                "Joriy aktiv scope hech bir family_group ga bog'lanmagan. "
+                + "Yangi scope yaratganingizda bunday holat yuz beradi — eski "
+                + "Points tizimi bu scope'da hali ishlamaydi."
+            )
+        );
+    }
+
+    private Optional<FamilyGroup> resolveFamilyGroup(Scope scope) {
+        Scope clanScope = (scope.getType() == ScopeType.CLAN)
+                ? scope
+                : scope.getParentScope();
+        if (clanScope == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(clanScope.getLegacyFamilyGroup());
     }
 
     // ====================================================================

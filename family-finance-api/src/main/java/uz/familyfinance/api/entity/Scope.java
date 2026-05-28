@@ -67,4 +67,17 @@ public class Scope extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    /**
+     * V34 da migrated CLAN scope'lar uchun asl FamilyGroup mapping'i.
+     *
+     * <p>Phase 2 davomida eski servislar (PointConfigService.getCurrentFamilyGroup()
+     * va undan foydalanuvchilar) shu mapping orqali aktiv scope'ga mos
+     * FamilyGroup'ni topadi — har bir caller'ni qayta yozish o'rniga.</p>
+     *
+     * <p>Yangi yaratilgan (V34 dan keyin) scope'larda NULL bo'lishi mumkin.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "legacy_family_group_id")
+    private FamilyGroup legacyFamilyGroup;
 }
