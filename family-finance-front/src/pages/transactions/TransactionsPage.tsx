@@ -33,6 +33,7 @@ import { DateRangePicker, type DateRangePreset, type DateRange } from '../../com
 import { resolvePreset } from '../../utils/dateRangePresets';
 import { TransactionFormModal } from '../../components/common/TransactionFormModal';
 import { useQuickEntryStore } from '../../store/quickEntryStore';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import type {
   Transaction,
   TransactionType,
@@ -201,6 +202,11 @@ export function TransactionsPage() {
     void loadTransactions(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCreatedAt]);
+
+  // Phase 3: aktiv scope o'zgarganda tranzaksiyalarni qayta yuklash
+  useScopeChangeEffect(() => {
+    void loadTransactions(true);
+  });
 
   // Tab change -> reset page
   const handleTabChange = (tab: TabType) => {

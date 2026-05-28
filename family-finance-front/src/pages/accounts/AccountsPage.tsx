@@ -19,6 +19,7 @@ import {
 } from '../../config/constants';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { Select } from '../../components/ui/Select';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -394,6 +395,12 @@ export function AccountsPage() {
   useEffect(() => {
     fetchTotalBalance();
   }, [fetchTotalBalance]);
+
+  // Phase 3: aktiv scope o'zgarganda hisoblar va umumiy balansni qayta yuklash
+  useScopeChangeEffect(() => {
+    fetchAccounts();
+    fetchTotalBalance();
+  });
 
   // Reset page on filter change
   useEffect(() => {

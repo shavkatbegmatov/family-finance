@@ -11,6 +11,7 @@ import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { getCategoryIcon } from '../../utils/icons';
 import type { Budget, BudgetRequest, BudgetPeriod, FinanceCategory, ApiResponse, PagedResponse } from '../../types';
 
@@ -68,6 +69,11 @@ export function BudgetPage() {
       toast.error('Kategoriyalarni yuklashda xatolik');
     }
   }, []);
+
+  // Phase 3: aktiv scope o'zgarganda byudjetlarni qayta yuklash
+  useScopeChangeEffect(() => {
+    void loadBudgets();
+  });
 
   useEffect(() => {
     void loadBudgets();
