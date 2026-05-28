@@ -80,22 +80,35 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
   const [switchingId, setSwitchingId] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Login bo'lganidan keyin scope'larni yuklash
+  // Login bo'lganidan keyin scope'larni yuklash.
+  // Background refresh pattern: cache mavjud bo'lsa darhol ko'rsatamiz,
+  // lekin har mount'da serverdan yangi ma'lumotni ham olamiz (yangi
+  // membership'lar, role o'zgarishlari kabilar avtomatik paydo bo'ladi).
   useEffect(() => {
     if (!accessToken) return;
-    if (myScopes.length > 0 && activeScope) return;
 
     let cancelled = false;
-    setLoading(true);
+    const hasCache = myScopes.length > 0;
+
+    // Cache bo'lmasa loading spinner ko'rsatamiz, bo'lsa silent refresh
+    if (!hasCache) setLoading(true);
+
     scopesApi
       .getMyScopes()
       .then((res) => {
         if (cancelled) return;
         const scopes = (res.data as ApiResponse<Scope[]>).data ?? [];
         setMyScopes(scopes);
-        // Aktiv scope'ni aniqlash: hozircha User.primaryScope yo'q, shuning uchun
-        // birinchi OWNER bo'lgan scope yoki birinchi scope tanlanadi
-        if (scopes.length > 0 && !activeScope) {
+
+        // Aktiv scope tanlash mantiqi:
+        //   1. Avvalgi aktiv scope hali ham mavjud bo'lsa, uni saqlaymiz
+        //   2. Aks holda OWNER bo'lgan scope (asosiyroq)
+        //   3. Aks holda birinchi scope
+        const currentActiveStillExists = activeScope
+          ? scopes.some((s) => s.id === activeScope.id)
+          : false;
+
+        if (!currentActiveStillExists && scopes.length > 0) {
           const owner = scopes.find((s) => s.currentUserRole === 'OWNER');
           setActiveScope(owner ?? scopes[0]);
         }
@@ -110,7 +123,10 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, myScopes.length, activeScope, setMyScopes, setActiveScope, setLoading]);
+    // accessToken o'zgargandagina qayta yuklash (login/switch). Membership
+    // ro'yxati kerak bo'lsa, qo'lda refetch trigger qilish mumkin.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
 
   // Tashqariga bosilganda dropdown'ni yopish
   useEffect(() => {
