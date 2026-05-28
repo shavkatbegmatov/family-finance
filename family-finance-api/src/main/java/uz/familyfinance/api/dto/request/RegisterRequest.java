@@ -38,6 +38,14 @@ public class RegisterRequest {
     private String phone;
 
     /**
+     * Ixtiyoriy: Oila taklif kodi. Bo'lsa — mavjud scope'ga MEMBER bo'lib qo'shiladi,
+     * bo'lmasa — yangi CLAN+HOUSEHOLD avtomatik yaratiladi (auto-provisioning).
+     * Format: prefiks (C/H) + 10 ta belgi, masalan "CABCDEF2345".
+     */
+    @Size(max = 32, message = "Taklif kodi 32 belgidan oshmasligi kerak")
+    private String inviteCode;
+
+    /**
      * Ism, familiya va otasining ismidan to'liq ism yaratish
      */
     public String getFullName() {

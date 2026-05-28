@@ -27,6 +27,9 @@ public interface ScopeRepository extends JpaRepository<Scope, Long> {
     /** Berilgan parent ostidagi barcha bevosita farzand scope'lar. */
     List<Scope> findByParentScopeIdAndIsActiveTrue(Long parentScopeId);
 
+    /** Berilgan parent ostidagi birinchi ma'lum tipdagi aktiv scope. */
+    Optional<Scope> findFirstByParentScopeIdAndTypeAndIsActiveTrue(Long parentScopeId, ScopeType type);
+
     /**
      * Berilgan user ko'rishi mumkin bo'lgan barcha scope ID'lari:
      * <ul>

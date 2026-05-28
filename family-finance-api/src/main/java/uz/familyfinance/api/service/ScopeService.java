@@ -17,8 +17,8 @@ import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.ScopeMembershipRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
+import uz.familyfinance.api.util.InviteCodeGenerator;
 
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,13 +37,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ScopeService {
 
-    private static final SecureRandom RANDOM = new SecureRandom();
-    private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private static final int CODE_LENGTH = 10;
-
     private final ScopeRepository scopeRepository;
     private final ScopeMembershipRepository membershipRepository;
     private final ScopeContextService scopeContext;
+    private final InviteCodeGenerator inviteCodeGenerator;
 
     // ====================================================================
     // List & get
@@ -100,7 +97,7 @@ public class ScopeService {
                 .name(request.getName().trim())
                 .parentScope(parent)
                 .ownerUser(currentUser)
-                .uniqueCode(generateUniqueCode(request.getType()))
+                .uniqueCode(inviteCodeGenerator.generateForType(request.getType()))
                 .metadata(request.getMetadata())
                 .startsAt(request.getStartsAt())
                 .endsAt(request.getEndsAt())
@@ -158,6 +155,49 @@ public class ScopeService {
     }
 
     // ====================================================================
+    // Invite code
+    // ====================================================================
+
+    /** Scope egasi/admin'i o'z scope'ining hozirgi taklif kodini ko'rishi. */
+    @Transactional(readOnly = true)
+    public String getInviteCode(Long scopeId) {
+        Scope scope = findScopeOrThrow(scopeId);
+        if (!scopeContext.canManageScope(scopeId)) {
+            throw new AccessDeniedException("Sizda bu scope kodi ko'rish ruxsati yo'q");
+        }
+        return scope.getUniqueCode();
+    }
+
+    /**
+     * Kodi yo'q scope uchun kod yaratish yoki mavjudini yangilash. Eski kod
+     * bilan kelgan har qanday taklif buziladi — bu xavfsizlik vositasidir.
+     */
+    @Transactional
+    public String regenerateInviteCode(Long scopeId) {
+        Scope scope = findScopeOrThrow(scopeId);
+        if (!scopeContext.canManageScope(scopeId)) {
+            throw new AccessDeniedException("Sizda bu kodi yangilash ruxsati yo'q");
+        }
+        String newCode = inviteCodeGenerator.generateForType(scope.getType());
+        scope.setUniqueCode(newCode);
+        scopeRepository.save(scope);
+        log.info("Invite code regenerated for scope {} by user {}",
+                scopeId, scopeContext.getCurrentUserId());
+        return newCode;
+    }
+
+    /** Kodga ko'ra ma'lumot olish (registratsiya UI'da preview uchun). */
+    @Transactional(readOnly = true)
+    public ScopeResponse lookupByCode(String code) {
+        Scope scope = scopeRepository.findByUniqueCode(code)
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Bunday taklif kodi topilmadi yoki bekor qilingan"));
+        // Faqat bazaviy ma'lumot: nom va turi — sezgir narsa qaytarmaymiz
+        return ScopeResponse.from(scope);
+    }
+
+    // ====================================================================
     // Lifecycle
     // ====================================================================
 
@@ -187,30 +227,5 @@ public class ScopeService {
     Scope findScopeOrThrow(Long id) {
         return scopeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Scope topilmadi: id=" + id));
-    }
-
-    private String generateUniqueCode(ScopeType type) {
-        // Prefiks: C=CLAN, H=HOUSEHOLD, P=PROJECT, E=EVENT, F=FUND, T=TRUSTEE, R=PROPERTY
-        char prefix = switch (type) {
-            case CLAN -> 'C';
-            case HOUSEHOLD -> 'H';
-            case PROJECT -> 'P';
-            case EVENT -> 'E';
-            case FUND -> 'F';
-            case TRUSTEE -> 'T';
-            case PROPERTY -> 'R';
-        };
-        for (int attempt = 0; attempt < 20; attempt++) {
-            StringBuilder sb = new StringBuilder(CODE_LENGTH + 1);
-            sb.append(prefix);
-            for (int i = 0; i < CODE_LENGTH; i++) {
-                sb.append(CODE_ALPHABET.charAt(RANDOM.nextInt(CODE_ALPHABET.length())));
-            }
-            String code = sb.toString();
-            if (!scopeRepository.existsByUniqueCode(code)) {
-                return code;
-            }
-        }
-        throw new IllegalStateException("Unique code yaratib bo'lmadi");
     }
 }

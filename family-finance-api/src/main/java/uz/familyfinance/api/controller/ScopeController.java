@@ -56,6 +56,31 @@ public class ScopeController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    // ===== Invite codes =====
+
+    /** Joriy scope egasi/admin'i o'z taklif kodini ko'rishi. */
+    @GetMapping("/{id}/invite-code")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> getInviteCode(
+            @PathVariable Long id) {
+        String code = scopeService.getInviteCode(id);
+        return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("inviteCode", code)));
+    }
+
+    /** Eski kodni bekor qilib, yangi unique kod yaratish. */
+    @PostMapping("/{id}/invite-code/regenerate")
+    public ResponseEntity<ApiResponse<java.util.Map<String, String>>> regenerateInviteCode(
+            @PathVariable Long id) {
+        String code = scopeService.regenerateInviteCode(id);
+        return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("inviteCode", code)));
+    }
+
+    /** Login qilmagan user uchun ham — kod bo'yicha ma'lumot ko'rish (nom + turi). */
+    @GetMapping("/lookup")
+    public ResponseEntity<ApiResponse<ScopeResponse>> lookupByCode(
+            @RequestParam("code") String code) {
+        return ResponseEntity.ok(ApiResponse.success(scopeService.lookupByCode(code)));
+    }
+
     // ===== Memberships =====
 
     @GetMapping("/{id}/memberships")
@@ -84,5 +109,49 @@ public class ScopeController {
             @PathVariable Long id, @PathVariable Long userId) {
         membershipService.remove(id, userId);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // ===== Pending invitations + accept/decline =====
+
+    /** Joriy user uchun barcha kutilayotgan oila takliflari. */
+    @GetMapping("/invitations/pending")
+    public ResponseEntity<ApiResponse<List<MembershipResponse>>> myPendingInvitations() {
+        return ResponseEntity.ok(ApiResponse.success(membershipService.myPendingInvitations()));
+    }
+
+    /** Taklifni qabul qilish. */
+    @PostMapping("/invitations/{membershipId}/accept")
+    public ResponseEntity<ApiResponse<MembershipResponse>> acceptInvitation(
+            @PathVariable Long membershipId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                membershipService.acceptInvitation(membershipId)));
+    }
+
+    /** Taklifni rad etish. */
+    @PostMapping("/invitations/{membershipId}/decline")
+    public ResponseEntity<ApiResponse<Void>> declineInvitation(
+            @PathVariable Long membershipId) {
+        membershipService.declineInvitation(membershipId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /** Joriy user scope'dan o'zi chiqishi. */
+    @PostMapping("/{id}/leave")
+    public ResponseEntity<ApiResponse<Void>> leaveScope(@PathVariable Long id) {
+        membershipService.leaveScope(id);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /**
+     * Login qilingan user invite code orqali boshqa oilaga qo'shilishi.
+     * archiveOldClan=true bo'lsa, eski auto-yaratilgan bo'sh clan arxivlanadi.
+     */
+    @PostMapping("/join-by-code")
+    public ResponseEntity<ApiResponse<MembershipResponse>> joinByCode(
+            @RequestBody java.util.Map<String, Object> body) {
+        String code = (String) body.get("inviteCode");
+        boolean archive = body.get("archiveOldClan") instanceof Boolean b ? b : false;
+        return ResponseEntity.ok(ApiResponse.success(
+                membershipService.joinByCode(code, archive)));
     }
 }
