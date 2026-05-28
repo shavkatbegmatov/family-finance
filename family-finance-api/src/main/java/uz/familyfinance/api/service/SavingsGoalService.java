@@ -32,6 +32,7 @@ public class SavingsGoalService {
     private final SavingsContributionRepository contributionRepository;
     private final AccountRepository accountRepository;
     private final StaffNotificationService notificationService;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<SavingsGoalResponse> getAll(Pageable pageable) {
@@ -51,6 +52,8 @@ public class SavingsGoalService {
                 .deadline(request.getDeadline())
                 .icon(request.getIcon())
                 .color(request.getColor())
+                // Phase 2: scope'ga bog'lash (kritik bug fix — jamg'arma maqsadlari global edi)
+                .scope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
 
         if (request.getAccountId() != null) {

@@ -128,4 +128,9 @@ public class PointConfigService {
     public CustomUserDetails getCurrentUserDetails() {
         return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
+
+    /** Phase 2: ScopeContext'ni bog'liq Points servislariga ochish (DI shorthand). */
+    public ScopeContextService getScopeContext() {
+        return scopeContext;
+    }
 }

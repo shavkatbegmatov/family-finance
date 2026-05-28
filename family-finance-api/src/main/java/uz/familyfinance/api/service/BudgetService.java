@@ -33,6 +33,7 @@ public class BudgetService {
     private final BudgetAlertRepository budgetAlertRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<BudgetResponse> getAll(Pageable pageable) {
@@ -61,6 +62,9 @@ public class BudgetService {
                 .period(request.getPeriod())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
+                // Phase 2: yangi byudjet aktiv scope'ga bog'lanadi (kritik bug fix —
+                // ilgari byudjetlar global edi, har xil oilalar bir-birinikini ko'rardi)
+                .scope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
 
         return toResponse(budgetRepository.save(budget));

@@ -32,6 +32,7 @@ public class DebtService {
 
     private final DebtRepository debtRepository;
     private final DebtPaymentRepository debtPaymentRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<DebtResponse> getAll(DebtType type, DebtStatus status, String search, Pageable pageable) {
@@ -54,6 +55,8 @@ public class DebtService {
                 .dueDate(request.getDueDate())
                 .description(request.getDescription())
                 .status(DebtStatus.ACTIVE)
+                // Phase 2: scope'ga bog'lash (kritik bug fix — qarzlar global edi)
+                .scope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
         return toResponse(debtRepository.save(debt));
     }
