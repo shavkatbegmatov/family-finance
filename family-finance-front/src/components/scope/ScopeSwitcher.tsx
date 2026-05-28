@@ -2,12 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Crown, Loader2, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { useScopeStore } from '../../store/scopeStore';
+import { useNotificationsStore } from '../../store/notificationsStore';
 import { scopesApi } from '../../api/scopes.api';
 import type { ApiResponse } from '../../types';
 import type { Scope, ScopeRole } from '../../types/scope.types';
 import { SCOPE_TYPE_META } from './scopeTypeMeta';
+
+/**
+ * Scope o'zgartirishi haqida xabar berish uchun global event.
+ * Pages that don't use React Query (legacy useState+useEffect pattern) can
+ * subscribe to this event and re-fetch their data.
+ *
+ * @see useScopeChangeEffect hook (foydalanish uchun)
+ */
+export const SCOPE_CHANGED_EVENT = 'scope-changed';
 
 // =============================================================================
 // Constants
@@ -59,6 +70,11 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
   const setActiveScope = useScopeStore((s) => s.setActiveScope);
   const setMyScopes = useScopeStore((s) => s.setMyScopes);
   const setLoading = useScopeStore((s) => s.setLoading);
+
+  // Professional approach uchun react-query va websocket bilan integratsiya
+  const queryClient = useQueryClient();
+  const connectWebSocket = useNotificationsStore((s) => s.connectWebSocket);
+  const disconnectWebSocket = useNotificationsStore((s) => s.disconnectWebSocket);
 
   const [isOpen, setIsOpen] = useState(false);
   const [switchingId, setSwitchingId] = useState<number | null>(null);
@@ -129,27 +145,43 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
           throw new Error('Yangi token kelmadi');
         }
 
-        // authStore'ni yangilash — yangi JWT bilan
-        // refreshToken o'zgartirilmaydi (faqat access token yangilanadi)
+        const newAccessToken = data.accessToken;
+
+        // 1) authStore'ni yangilash — yangi JWT bilan.
+        //    setAuth localStorage.accessToken'ni ham yangilaydi → axios darhol
+        //    yangi tokenni Authorization header'ga qo'shadi.
         setAuth(
           user,
-          data.accessToken,
+          newAccessToken,
           refreshToken,
           Array.from(permissions),
           Array.from(roles),
         );
 
-        // scopeStore'da aktiv scope'ni yangilash
+        // 2) scopeStore'da aktiv scope'ni yangilash
         setActiveScope(target);
+
+        // 3) WebSocket'ni yangi token bilan qayta ulash — eski ulanish eski
+        //    JWT'da edi, server-side yangi scope context'ni bilmaydi.
+        disconnectWebSocket();
+        connectWebSocket(newAccessToken);
+
+        // 4) React Query cache'ini to'liq invalidate qilish — barcha
+        //    `useQuery` mavjud sahifalar yangi scope kontekstida ma'lumotni
+        //    avtomatik qayta yuklaydi. Reload kerak emas.
+        await queryClient.invalidateQueries();
+
+        // 5) Eski useState+useEffect pattern bilan ma'lumot olishadigan
+        //    sahifalarni xabardor qilish uchun custom event.
+        //    @see useScopeChangeEffect hook
+        window.dispatchEvent(
+          new CustomEvent(SCOPE_CHANGED_EVENT, {
+            detail: { scope: target, previousScopeId: activeScope?.id ?? null },
+          }),
+        );
 
         toast.success(`"${target.name}" ga o'tildi`);
         setIsOpen(false);
-
-        // Yangi scope konteksti bilan sahifani yangilash —
-        // soft reload (har bir react-query/swr fetcher yangi data oladi)
-        window.setTimeout(() => {
-          window.location.reload();
-        }, 200);
       } catch (err) {
         const msg = (err as { response?: { data?: { message?: string } } })
           ?.response?.data?.message;
@@ -158,7 +190,20 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
         setSwitchingId(null);
       }
     },
-    [activeScope?.id, switchingId, user, accessToken, refreshToken, permissions, roles, setAuth, setActiveScope],
+    [
+      activeScope?.id,
+      switchingId,
+      user,
+      accessToken,
+      refreshToken,
+      permissions,
+      roles,
+      setAuth,
+      setActiveScope,
+      queryClient,
+      connectWebSocket,
+      disconnectWebSocket,
+    ],
   );
 
   // Render
