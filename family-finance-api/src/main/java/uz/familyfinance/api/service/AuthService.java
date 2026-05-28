@@ -125,6 +125,41 @@ public class AuthService {
      */
     private void provisionInitialScopeFor(User user, RegisterRequest request) {
         String displayName = buildDisplayName(request);
+        provisionScopeAndFamilyGroup(user, displayName, request.getFirstName(), request.getLastName());
+    }
+
+    /**
+     * Auto-provisioning eski user'lar uchun: login paytida agar user'da
+     * familyGroup yoki primaryScope yo'q bo'lsa, avtomatik yaratadi.
+     * Bu V34 dan oldin ro'yxatdan o'tgan yoki migratsiya o'tkazib yuborilgan
+     * user'larni ham yangi multi-scope tizimiga moslab beradi.
+     */
+    @Transactional
+    public void ensureUserHasScope(User user) {
+        if (user == null) return;
+        if (user.getFamilyGroup() != null && user.getPrimaryScope() != null) {
+            return; // hammasi joyida
+        }
+        String displayName = user.getFullName() != null && !user.getFullName().isBlank()
+                ? user.getFullName().trim()
+                : user.getUsername();
+        // Ism/familiyani ajratish (fullName'dan)
+        String firstName = displayName;
+        String lastName = "";
+        if (displayName.contains(" ")) {
+            String[] parts = displayName.split("\\s+", 2);
+            firstName = parts[0];
+            lastName = parts[1];
+        }
+        provisionScopeAndFamilyGroup(user, displayName, firstName, lastName);
+        log.info("Auto-provisioned scope for legacy user: {}", user.getUsername());
+    }
+
+    /**
+     * Asosiy scope provisioning mantig'i — register va auto-provision ikkalasida ishlatiladi.
+     */
+    private void provisionScopeAndFamilyGroup(User user, String displayName,
+                                               String firstName, String lastName) {
 
         // 1) FamilyGroup
         FamilyGroup familyGroup = FamilyGroup.builder()
@@ -178,14 +213,27 @@ public class AuthService {
         userRepository.save(user);
 
         // 6) FamilyMember (legacy) — yangi familyGroup'ga biriktirib
-        FamilyMember familyMember = FamilyMember.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .role(FamilyRole.OTHER)
-                .user(user)
-                .familyGroup(familyGroup)
-                .build();
-        familyMemberRepository.save(familyMember);
+        // Eski user'larda allaqachon familyMember bo'lishi mumkin (User.familyMember mavjud bo'lmasa).
+        boolean hasMember = familyMemberRepository.findByUserId(user.getId()).isPresent();
+        if (!hasMember) {
+            FamilyMember familyMember = FamilyMember.builder()
+                    .firstName(firstName != null ? firstName : displayName)
+                    .lastName(lastName)
+                    .role(FamilyRole.OTHER)
+                    .user(user)
+                    .familyGroup(familyGroup)
+                    .build();
+            familyMemberRepository.save(familyMember);
+        } else {
+            // Mavjud familyMember'ga familyGroup biriktirish (agar yo'q bo'lsa)
+            final FamilyGroup fgRef = familyGroup;
+            familyMemberRepository.findByUserId(user.getId()).ifPresent(fm -> {
+                if (fm.getFamilyGroup() == null) {
+                    fm.setFamilyGroup(fgRef);
+                    familyMemberRepository.save(fm);
+                }
+            });
+        }
     }
 
     private String buildDisplayName(RegisterRequest request) {
@@ -243,6 +291,15 @@ public class AuthService {
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             Long userId = userDetails.getUser().getId();
+
+            // Auto-provision: eski user'larga ham CLAN+HOUSEHOLD scope yaratamiz
+            // agar mavjud bo'lmasa. Bu seamless UX ta'minlaydi — bir kelin
+            // qoldirmaslik kerak.
+            try {
+                ensureUserHasScope(userDetails.getUser());
+            } catch (Exception ex) {
+                log.warn("ensureUserHasScope login paytida muvaffaqiyatsiz: {}", ex.getMessage());
+            }
 
             // Generate token with permissions
             String accessToken = tokenProvider.generateStaffTokenWithPermissions(

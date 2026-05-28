@@ -48,6 +48,7 @@ public class FamilyGroupService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final AuthService authService;
     private final FamilyAddressHistoryRepository familyAddressHistoryRepository;
 
     private String generateUniqueCode() {
@@ -319,10 +320,22 @@ public class FamilyGroupService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public HouseholdDashboardResponse getHouseholdDashboard(CustomUserDetails currentUser) {
         User user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        // Lazy provisioning: eski user'lar uchun ham CLAN+HOUSEHOLD avtomatik
+        // yaratiladi. Bu seamless UX ta'minlaydi — F5 yoki re-login kerak emas.
+        if (user.getFamilyGroup() == null || user.getPrimaryScope() == null) {
+            try {
+                authService.ensureUserHasScope(user);
+                user = userRepository.findById(currentUser.getId()).orElse(user);
+            } catch (Exception ex) {
+                log.warn("Eski user uchun scope provision'da xato: {}", ex.getMessage());
+            }
+        }
+
         FamilyGroup familyGroup = user.getFamilyGroup();
         if (familyGroup == null) {
             throw new ResourceNotFoundException("Siz biron bir Oila guruhiga a'zo emassiz");
