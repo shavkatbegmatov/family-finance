@@ -24,6 +24,8 @@ import { formatCurrency, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { useAuthStore } from '../../store/authStore';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
+import { InviteCodeCard } from '../../components/scope/InviteCodeCard';
+import { JoinFamilyModal } from '../../components/scope/JoinFamilyModal';
 
 const roleLabel = (role: string): string =>
   (FAMILY_ROLES as Record<string, { label: string }>)[role]?.label || role;
@@ -46,6 +48,9 @@ export function HouseholdPage() {
   // A'zo qo'shish
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+
+  // Boshqa oilaga qo'shilish
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
   // A'zo o'chirish
   const [memberToRemove, setMemberToRemove] = useState<HouseholdMemberSummary | null>(null);
@@ -142,12 +147,18 @@ export function HouseholdPage() {
           </h1>
           <p className="mt-1 text-base-content/60">Oilaviy xo'jalik boshqaruvi</p>
         </div>
-        {data.admin && (
-          <Link to="/my-family/settings" className="btn btn-outline btn-sm gap-2">
-            <Settings className="h-4 w-4" />
-            Guruh sozlamalari
-          </Link>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setIsJoinModalOpen(true)} className="btn btn-outline btn-sm gap-2">
+            <UserPlus className="h-4 w-4" />
+            Boshqa oilaga qo'shilish
+          </button>
+          {data.admin && (
+            <Link to="/my-family/settings" className="btn btn-outline btn-sm gap-2">
+              <Settings className="h-4 w-4" />
+              Guruh sozlamalari
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -181,6 +192,9 @@ export function HouseholdPage() {
           style={{ '--i': 3 } as CSSProperties}
         />
       </div>
+
+      {/* Taklif kodi — admin/owner uchun */}
+      <InviteCodeCard />
 
       {/* Oila a'zolari */}
       <div className="surface-card overflow-hidden">
@@ -253,6 +267,12 @@ export function HouseholdPage() {
         }}
         onInvite={handleAddMember}
         loading={isAdding}
+      />
+
+      <JoinFamilyModal
+        isOpen={isJoinModalOpen}
+        onClose={() => setIsJoinModalOpen(false)}
+        onJoined={loadData}
       />
 
       {/* A'zo o'chirish tasdiqlash modali */}

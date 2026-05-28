@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Controller, useForm } from 'react-hook-form';
 import {
@@ -10,9 +10,12 @@ import {
   Sparkles,
   Check,
   X,
+  Home,
+  Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
+import { scopesApi } from '../../api/scopes.api';
 import { EmailInput } from '../../components/ui/EmailInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import type { RegisterRequest } from '../../types';
@@ -37,6 +40,39 @@ export function RegisterPage() {
   });
 
   const password = watch('password', '');
+  const inviteCode = watch('inviteCode', '');
+
+  // Invite code preview: real-time scope ma'lumotini ko'rsatish
+  const [codePreview, setCodePreview] = useState<{
+    name: string;
+    type: string;
+  } | null>(null);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeLoading, setCodeLoading] = useState(false);
+
+  useEffect(() => {
+    const trimmed = inviteCode?.trim() ?? '';
+    if (trimmed.length < 6) {
+      setCodePreview(null);
+      setCodeError(null);
+      return;
+    }
+    setCodeLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await scopesApi.lookupByCode(trimmed);
+        const scope = res.data.data;
+        setCodePreview({ name: scope.name, type: scope.type });
+        setCodeError(null);
+      } catch {
+        setCodePreview(null);
+        setCodeError("Kod topilmadi yoki bekor qilingan");
+      } finally {
+        setCodeLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [inviteCode]);
 
   // Password strength indicators
   const hasMinLength = password.length >= 6;
@@ -66,6 +102,12 @@ export function RegisterPage() {
       return;
     }
 
+    // Agar invite code kiritilgan bo'lsa va u noto'g'ri bo'lsa — to'xtatamiz
+    if (data.inviteCode?.trim() && codeError) {
+      toast.error('Oila kodi noto\'g\'ri — to\'g\'rilang yoki bo\'sh qoldiring');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload: RegisterRequest = {
@@ -74,9 +116,13 @@ export function RegisterPage() {
         lastName: data.lastName?.trim() || undefined,
         email: data.email?.trim() || undefined,
         phone: data.phone?.trim() || undefined,
+        inviteCode: data.inviteCode?.trim() || undefined,
       };
       await authApi.register(payload);
-      toast.success("Muvaffaqiyatli ro'yxatdan o'tildi! Endi tizimga kirishingiz mumkin.");
+      const successMsg = payload.inviteCode
+        ? `Muvaffaqiyatli ro'yxatdan o'tildi va "${codePreview?.name ?? 'oila'}"ga qo'shildingiz!`
+        : "Muvaffaqiyatli ro'yxatdan o'tildi! Endi tizimga kirishingiz mumkin.";
+      toast.success(successMsg);
       navigate('/login');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
@@ -316,6 +362,46 @@ export function RegisterPage() {
                   />
                 )}
               />
+
+              {/* Invite Code (optional) — mavjud oilaga qo'shilish uchun */}
+              <div className="rounded-xl border border-base-200 bg-base-200/30 p-3">
+                <label className="form-control">
+                  <span className="label-text text-sm font-medium flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Oila taklif kodi (ixtiyoriy)
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Masalan: CABC234DEF"
+                    autoComplete="off"
+                    maxLength={32}
+                    className={`input input-bordered w-full uppercase tracking-wider ${
+                      codeError ? 'input-error' : codePreview ? 'input-success' : ''
+                    }`}
+                    {...register('inviteCode')}
+                  />
+                  <span className="mt-1 text-xs text-base-content/50">
+                    Oila a'zosidan kod oldingizmi? Kiriting — yangi oila yaratilmaydi.
+                  </span>
+                </label>
+                {codeLoading && (
+                  <div className="mt-2 text-xs text-base-content/60">
+                    <span className="loading loading-spinner loading-xs" /> Tekshirilmoqda...
+                  </div>
+                )}
+                {codePreview && (
+                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
+                    {codePreview.type === 'CLAN' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
+                    <span>
+                      <strong>{codePreview.name}</strong> ({codePreview.type === 'CLAN' ? 'Urug\'' : 'Xonadon'}) ga
+                      MEMBER bo'lib qo'shilasiz
+                    </span>
+                  </div>
+                )}
+                {codeError && (
+                  <div className="mt-2 text-xs text-error">{codeError}</div>
+                )}
+              </div>
 
               <button
                 type="submit"

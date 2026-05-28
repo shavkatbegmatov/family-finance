@@ -65,4 +65,55 @@ export const scopesApi = {
       '/v1/auth/switch-scope',
       data,
     ),
+
+  // ===== Invite codes (Phase 4.A) =====
+
+  /** Scope owner/admin uchun joriy taklif kodi. */
+  getInviteCode: (scopeId: number) =>
+    axiosInstance.get<ApiResponse<{ inviteCode: string }>>(
+      `/v1/scopes/${scopeId}/invite-code`,
+    ),
+
+  /** Eski kodni bekor qilib yangi kod yaratish. */
+  regenerateInviteCode: (scopeId: number) =>
+    axiosInstance.post<ApiResponse<{ inviteCode: string }>>(
+      `/v1/scopes/${scopeId}/invite-code/regenerate`,
+    ),
+
+  /** Kod bo'yicha scope ma'lumotlarini ko'rish (preview). */
+  lookupByCode: (code: string) =>
+    axiosInstance.get<ApiResponse<Scope>>('/v1/scopes/lookup', {
+      params: { code },
+    }),
+
+  // ===== Pending invitations (Phase 4.B) =====
+
+  /** Joriy user uchun kutilayotgan barcha taklif. */
+  getPendingInvitations: () =>
+    axiosInstance.get<ApiResponse<Membership[]>>('/v1/scopes/invitations/pending'),
+
+  acceptInvitation: (membershipId: number) =>
+    axiosInstance.post<ApiResponse<Membership>>(
+      `/v1/scopes/invitations/${membershipId}/accept`,
+    ),
+
+  declineInvitation: (membershipId: number) =>
+    axiosInstance.post<ApiResponse<void>>(
+      `/v1/scopes/invitations/${membershipId}/decline`,
+    ),
+
+  // ===== Leave / Join by code (Phase 4.C) =====
+
+  leaveScope: (scopeId: number) =>
+    axiosInstance.post<ApiResponse<void>>(`/v1/scopes/${scopeId}/leave`),
+
+  /**
+   * Login qilingan user invite code orqali boshqa oilaga qo'shiladi.
+   * archiveOldClan=true bo'lsa, eski bo'sh clan arxivlanadi.
+   */
+  joinByCode: (inviteCode: string, archiveOldClan: boolean = false) =>
+    axiosInstance.post<ApiResponse<Membership>>('/v1/scopes/join-by-code', {
+      inviteCode,
+      archiveOldClan,
+    }),
 };
