@@ -62,22 +62,38 @@ public class FamilyMemberService {
 
     /**
      * Joriy aktiv scope'ga tegishli family_group_id ni qaytaradi.
-     * Scope switch'dan keyin to'g'ri qiymat keladi (eski User.familyGroup emas).
-     * Fallback: -1L (hech qachon mos kelmaydi, faqat NPE'dan saqlash uchun).
+     * Prioritet:
+     *   1) Aktiv scope (scope switch'da to'g'ri qiymat)
+     *   2) Fallback: legacy User.familyGroup (eski user'lar)
+     *   3) Fallback: -1L (hech qachon mos kelmaydi — xavfsiz default)
      */
-    private Long resolveActiveFamilyGroupId() {
+    private Long resolveActiveFamilyGroupId(CustomUserDetails currentUser) {
+        // 1) Aktiv scope orqali
         try {
-            return scopeContext.getActiveFamilyGroup().getId();
+            Long fromScope = scopeContext.getActiveFamilyGroupOptional()
+                    .map(fg -> fg.getId())
+                    .orElse(null);
+            if (fromScope != null) {
+                return fromScope;
+            }
         } catch (Exception e) {
-            log.warn("Aktiv scope'dan family group olib bo'lmadi: {}", e.getMessage());
-            return -1L;
+            log.debug("Aktiv scope'dan family group olib bo'lmadi: {}", e.getMessage());
         }
+
+        // 2) Legacy fallback
+        if (currentUser != null && currentUser.getUser() != null
+                && currentUser.getUser().getFamilyGroup() != null) {
+            return currentUser.getUser().getFamilyGroup().getId();
+        }
+
+        // 3) Xavfsiz default
+        return -1L;
     }
 
     @Transactional
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable, CustomUserDetails currentUser) {
         ensureSelfMemberActive();
-        Long familyGroupId = resolveActiveFamilyGroupId();
+        Long familyGroupId = resolveActiveFamilyGroupId(currentUser);
         boolean isAdmin = currentUser.isAdmin();
 
         if (search != null && !search.isBlank()) {
@@ -89,7 +105,7 @@ public class FamilyMemberService {
 
     @Transactional(readOnly = true)
     public List<FamilyMemberResponse> getAllActive(CustomUserDetails currentUser) {
-        Long familyGroupId = resolveActiveFamilyGroupId();
+        Long familyGroupId = resolveActiveFamilyGroupId(currentUser);
         boolean isAdmin = currentUser.isAdmin();
         return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin).stream()
                 .map(this::toResponse).collect(Collectors.toList());
@@ -444,7 +460,7 @@ public class FamilyMemberService {
 
     @Transactional(readOnly = true)
     public List<FamilyMember> getAllEntities(CustomUserDetails currentUser) {
-        Long familyGroupId = resolveActiveFamilyGroupId();
+        Long familyGroupId = resolveActiveFamilyGroupId(currentUser);
         boolean isAdmin = currentUser.isAdmin();
         return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin);
     }
@@ -455,7 +471,7 @@ public class FamilyMemberService {
         if (member.getFamilyGroup() == null)
             return;
 
-        Long activeFamilyGroupId = resolveActiveFamilyGroupId();
+        Long activeFamilyGroupId = resolveActiveFamilyGroupId(currentUser);
         if (activeFamilyGroupId == null || activeFamilyGroupId < 0)
             return;
 
