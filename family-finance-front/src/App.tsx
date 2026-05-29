@@ -49,7 +49,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <RouterProvider router={router} future={{ v7_startTransition: true }} />
       <Toaster
         position={isMobile ? 'top-center' : 'top-right'}
         gutter={12}
