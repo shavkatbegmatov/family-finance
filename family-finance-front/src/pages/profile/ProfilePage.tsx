@@ -222,6 +222,17 @@ export function ProfilePage() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmitPassword)} className="w-full max-w-md space-y-3 sm:space-y-4">
+              {/* Yashirin username maydoni — parol menejerlari va accessibility uchun (Chrome tavsiyasi).
+                  Submit'ga kirmaydi, faqat brauzerga qaysi hisob ekanini bildiradi. */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={userData?.username ?? ''}
+                readOnly
+                tabIndex={-1}
+                className="hidden"
+              />
               {/* Current Password */}
               <div className="form-control">
                 <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
