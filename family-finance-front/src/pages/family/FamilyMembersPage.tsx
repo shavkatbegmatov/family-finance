@@ -323,7 +323,21 @@ export function FamilyMembersPage() {
     setSubmitting(true);
     try {
       if (editingMember) {
-        const res = await familyMembersApi.update(editingMember.id, form);
+        // Bo'sh string maydonlar backend validatsiyasini buzadi: LocalDate ("" ni parse qila olmaydi)
+        // va accountPassword @Size(min=6). Shuning uchun bo'shlarni undefined ga aylantiramiz.
+        const payload: FamilyMemberRequest = {
+          ...form,
+          middleName: form.middleName?.trim() || undefined,
+          lastName: form.lastName?.trim() || undefined,
+          phone: form.phone?.trim() || undefined,
+          birthPlace: form.birthPlace?.trim() || undefined,
+          birthDate: form.birthDate || undefined,
+          deathDate: form.deathDate || undefined,
+          avatar: form.avatar || undefined,
+          accountPassword: form.createAccount && form.accountPassword ? form.accountPassword : undefined,
+          accountRole: form.createAccount ? form.accountRole : undefined,
+        };
+        const res = await familyMembersApi.update(editingMember.id, payload);
         const updated = res.data.data as FamilyMember;
         if (updated.credentials) {
           setCredentialsInfo(updated.credentials);
