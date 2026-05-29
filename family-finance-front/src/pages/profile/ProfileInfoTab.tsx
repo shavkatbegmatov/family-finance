@@ -18,6 +18,7 @@ import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { Select } from '../../components/ui/Select';
 import { DateInput } from '../../components/ui/DateInput';
+import { formatPhoneDisplay } from '../../utils/phone';
 import { useUpdateSelf, useActivePersonsQuery } from '../../hooks/useFamilyTreeQueries';
 import { useAuthStore } from '../../store/authStore';
 import { authApi } from '../../api/auth.api';
@@ -365,7 +366,7 @@ export function ProfileInfoTab({ userData, onUserDataChange }: ProfileInfoTabPro
             <InfoItem
               icon={<Phone className="h-5 w-5 text-primary" />}
               label="Telefon"
-              value={familyMember?.phone || userData?.phone}
+              value={formatPhoneDisplay(familyMember?.phone || userData?.phone)}
               bgColor="bg-primary/10"
             />
           </div>

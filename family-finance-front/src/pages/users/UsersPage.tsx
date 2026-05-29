@@ -31,6 +31,7 @@ import type { CredentialsInfo, Role, FamilyMember } from '../../types';
 import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../../api/users.api';
 import { PersonBadges, SuggestionsBanner, type Suggestion } from '../../components/persons';
 import { Users as UsersIcon, Trophy } from 'lucide-react';
+import { formatPhoneDisplay } from '../../utils/phone';
 
 type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | 'family-link' | null;
 
@@ -628,7 +629,7 @@ export function UsersPage() {
                     {user.email || <span className="text-base-content/30">-</span>}
                   </td>
                   <td className="hidden text-sm lg:table-cell">
-                    {user.phone || <span className="text-base-content/30">-</span>}
+                    {user.phone ? formatPhoneDisplay(user.phone) : <span className="text-base-content/30">-</span>}
                   </td>
                   <td className="hidden text-sm lg:table-cell">
                     {user.linkedFamilyMemberName ? (
@@ -828,7 +829,7 @@ export function UsersPage() {
                   </div>
                   <div>
                     <span className="text-base-content/50">Telefon</span>
-                    <p className="font-medium">{userDetails.phone || '-'}</p>
+                    <p className="font-medium">{formatPhoneDisplay(userDetails.phone) || '-'}</p>
                   </div>
                   <div>
                     <span className="text-base-content/50">Holat</span>

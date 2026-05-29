@@ -43,6 +43,7 @@ import { Trophy } from 'lucide-react';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
+import { formatPhoneDisplay } from '../../utils/phone';
 import { DateInput } from '../../components/ui/DateInput';
 import { Select } from '../../components/ui/Select';
 import { AvatarUploader } from '../../components/ui/AvatarUploader';
@@ -781,7 +782,7 @@ export function FamilyMembersPage() {
                               className="flex items-center gap-1.5 text-sm text-base-content/60 hover:text-primary mt-1.5"
                             >
                               <Phone className="h-3 w-3" />
-                              {member.phone}
+                              {formatPhoneDisplay(member.phone)}
                             </a>
                           )}
                         </div>
@@ -955,7 +956,7 @@ export function FamilyMembersPage() {
                                 className="flex items-center gap-1.5 text-sm text-base-content/70 hover:text-primary transition-colors"
                               >
                                 <Phone className="h-3 w-3 shrink-0" />
-                                {member.phone}
+                                {formatPhoneDisplay(member.phone)}
                               </a>
                             ) : (
                               <span className="text-base-content/20 text-xs">—</span>

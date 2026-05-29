@@ -56,6 +56,7 @@ import type {
   ApiResponse,
   PagedResponse,
 } from '../../types';
+import { formatPhoneDisplay } from '../../utils/phone';
 
 // ========== Constants ==========
 
@@ -246,7 +247,7 @@ export function MemberDetailPage() {
             <p className="text-xs text-base-content/50">
               {age !== null && `${age} yosh`}
               {age !== null && profile.phone && ' \u00B7 '}
-              {profile.phone}
+              {formatPhoneDisplay(profile.phone)}
             </p>
           </div>
         </div>
@@ -329,7 +330,7 @@ function OverviewTab({ data }: { data: MemberFinancialSummary }) {
               <InfoRow icon={MapPin} label="Tug'ilgan joy" value={profile.birthPlace} />
             )}
             {profile.phone && (
-              <InfoRow icon={Phone} label="Telefon" value={profile.phone} />
+              <InfoRow icon={Phone} label="Telefon" value={formatPhoneDisplay(profile.phone)} />
             )}
             {profile.userName && (
               <InfoRow icon={User} label="Username" value={`@${profile.userName}`} />

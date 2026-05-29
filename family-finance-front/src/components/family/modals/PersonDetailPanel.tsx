@@ -24,6 +24,7 @@ import {
   LINEAGE_TYPES,
   RELATIONSHIP_TYPES,
 } from '../../../config/constants';
+import { formatPhoneDisplay } from '../../../utils/phone';
 
 interface PersonDetailPanelProps {
   isOpen: boolean;
@@ -43,20 +44,6 @@ const categoryColors: Record<string, string> = {
   extended: 'badge-ghost',
   other: 'badge-ghost',
 };
-
-// Telefon raqamni formatlash (display uchun)
-function formatPhoneDisplay(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  // 998XXYYYYYYY formatni +998 (XX) YYY-YY-YY ga aylantirish
-  if (digits.length === 12 && digits.startsWith('998')) {
-    const code = digits.slice(3, 5);
-    const p1 = digits.slice(5, 8);
-    const p2 = digits.slice(8, 10);
-    const p3 = digits.slice(10, 12);
-    return `+998 (${code}) ${p1}-${p2}-${p3}`;
-  }
-  return phone;
-}
 
 // Gender ga qarab gradient
 function getGenderGradient(gender?: string) {

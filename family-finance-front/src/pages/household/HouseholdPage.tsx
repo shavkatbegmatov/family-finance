@@ -26,6 +26,7 @@ import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
 import { InviteCodeCard } from '../../components/scope/InviteCodeCard';
 import { JoinFamilyModal } from '../../components/scope/JoinFamilyModal';
+import { formatPhoneDisplay } from '../../utils/phone';
 
 const roleLabel = (role: string): string =>
   (FAMILY_ROLES as Record<string, { label: string }>)[role]?.label || role;
@@ -396,7 +397,7 @@ function MemberCard({
         {member.phone && (
           <div className="flex items-center gap-2">
             <Phone className="h-3.5 w-3.5" />
-            <span>{member.phone}</span>
+            <span>{formatPhoneDisplay(member.phone)}</span>
           </div>
         )}
       </div>
