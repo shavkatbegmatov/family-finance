@@ -18,6 +18,7 @@ import { familyGroupApi, type FamilyGroupInviteCandidate } from '../../../api/fa
 import { FAMILY_ROLES, GENDERS } from '../../../config/constants';
 import { ModalPortal } from '../../common/Modal';
 import { SearchInput } from '../../ui/SearchInput';
+import { formatPhoneDisplay } from '../../../utils/phone';
 
 interface InviteFamilyMemberModalProps {
   isOpen: boolean;
@@ -414,7 +415,7 @@ export function InviteFamilyMemberModal({
                                 {candidate.phone && (
                                   <span className="inline-flex items-center gap-1">
                                     <Phone className="h-3 w-3" />
-                                    {candidate.phone}
+                                    {formatPhoneDisplay(candidate.phone)}
                                   </span>
                                 )}
                                 {candidate.email && (
@@ -499,7 +500,7 @@ export function InviteFamilyMemberModal({
                       {selectedCandidate.username && (
                         <InfoRow icon={<AtSign className="h-4 w-4" />} label="Username" value={`@${selectedCandidate.username}`} />
                       )}
-                      <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefon" value={selectedCandidate.phone || "Ko'rsatilmagan"} />
+                      <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefon" value={formatPhoneDisplay(selectedCandidate.phone) || "Ko'rsatilmagan"} />
                       {selectedCandidate.username && (
                         <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={selectedCandidate.email || "Ko'rsatilmagan"} />
                       )}

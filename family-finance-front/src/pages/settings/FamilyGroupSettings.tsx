@@ -9,6 +9,7 @@ import { useAuthStore } from '../../store/authStore';
 import { ModalPortal } from '../../components/common/Modal';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
 import type { ApiResponse } from '../../types';
+import { formatPhoneDisplay } from '../../utils/phone';
 
 interface AddressHistoryItem {
     id: number;
@@ -214,7 +215,7 @@ export function FamilyGroupSettings() {
                                         </div>
                                     </td>
                                     <td className="font-mono text-sm">{m.username}</td>
-                                    <td>{m.phone || '-'}</td>
+                                    <td>{formatPhoneDisplay(m.phone) || '-'}</td>
                                     <td className="text-right pr-6">
                                         {isAdmin && !isMemberAdmin && (
                                             <button

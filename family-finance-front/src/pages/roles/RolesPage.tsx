@@ -20,6 +20,7 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { usePermission, PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import type { Role, RoleRequest } from '../../types';
+import { formatPhoneDisplay } from '../../utils/phone';
 
 export function RolesPage() {
   const { hasPermission } = usePermission();
@@ -926,7 +927,7 @@ export function RolesPage() {
                                 </p>
                                 {(user.email || user.phone) && (
                                   <p className="text-xs text-base-content/50 truncate">
-                                    {user.email || user.phone}
+                                    {user.email || formatPhoneDisplay(user.phone)}
                                   </p>
                                 )}
                               </div>
