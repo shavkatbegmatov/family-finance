@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import {
-  AlertTriangle,
   ArrowRightLeft,
   AtSign,
   CheckCircle2,
@@ -87,7 +86,7 @@ const FILTERS: Array<{
   { value: 'ready', label: "Qo'shish mumkin", description: "Hozirgi oilaga darhol qo'shiladi" },
   { value: 'with-tree', label: 'Shajara bor', description: "Shajara a'zosi bilan bog'langanlar" },
   { value: 'tree-only', label: 'Accountsiz', description: "Shajarada bor, tizimda accounti yo'q" },
-  { value: 'external', label: 'Boshqa oilada', description: "Hozircha tanlab bo'lmaydigan foydalanuvchilar" },
+  { value: 'external', label: 'Boshqa oilada', description: "Ko'chirib qo'shish mumkin bo'lgan foydalanuvchilar" },
 ];
 
 export function InviteFamilyMemberModal({
@@ -176,14 +175,25 @@ export function InviteFamilyMemberModal({
     ?? candidates.find((candidate) => getCandidateKey(candidate) === selectedCandidateId)
     ?? null;
   const selectedState = selectedCandidate ? getCandidateState(selectedCandidate) : null;
-  const canSubmit = Boolean(selectedCandidate && selectedState === 'ready' && !loading);
+  // 'ready' — darhol qo'shiladi. 'external' — boshqa oiladan ko'chiriladi (account'i bor user'lar).
+  const isSubmittableState = selectedState === 'ready' || selectedState === 'external';
+  const canSubmit = Boolean(selectedCandidate && isSubmittableState && selectedCandidate.username && !loading);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
-    if (!selectedCandidate || selectedState !== 'ready') {
+    if (!selectedCandidate || !isSubmittableState || !selectedCandidate.username) {
       return;
+    }
+
+    // Boshqa oiladan ko'chirayotganda tasdiq so'raymiz
+    if (selectedState === 'external') {
+      const ok = window.confirm(
+        `"${selectedCandidate.fullName}" hozirda "${selectedCandidate.familyGroupName ?? 'boshqa oila'}" oilasida. ` +
+        `Uni sizning oilangizga ko'chiramizmi? (Uning shaxsiy ma'lumotlari saqlanadi)`,
+      );
+      if (!ok) return;
     }
 
     try {
@@ -480,7 +490,7 @@ export function InviteFamilyMemberModal({
                       )}
                       {selectedState === 'external' && (
                         <div className="shrink-0">
-                          <StatusPill label="Boshqa oilada" tone={STATE_META.external.className} />
+                          <StatusPill label="Ko'chiriladi" tone={STATE_META.external.className} />
                         </div>
                       )}
                     </div>
@@ -530,10 +540,10 @@ export function InviteFamilyMemberModal({
                     )}
                     {selectedState === 'external' && (
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <ArrowRightLeft className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <p className="break-words">
-                          <span className="font-semibold">{selectedCandidate.familyGroupName}</span> guruhiga biriktirilgan.
-                          Avval o'sha guruhdan chiqarilishi kerak.
+                          Hozirda <span className="font-semibold">{selectedCandidate.familyGroupName}</span> oilasida.
+                          "Qo'shish" bosilsa, sizning oilangizga ko'chiriladi (shaxsiy ma'lumotlari saqlanadi).
                         </p>
                       </div>
                     )}
@@ -579,7 +589,7 @@ export function InviteFamilyMemberModal({
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-info" />
               <p>
                 <span className="font-medium text-info">Eslatma.</span> Faqat faol foydalanuvchilar ko'rsatiladi.
-                Boshqa oilaga tegishli accountlar bu oynadan ko'chirilmaydi.
+                Boshqa oilaga tegishli account'larni ham ko'chirib qo'shish mumkin.
               </p>
             </div>
 
