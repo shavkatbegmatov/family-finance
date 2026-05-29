@@ -88,6 +88,18 @@ const formatTimeAgo = (dateString: string) => {
   }
 };
 
+// Ism va familiya bosh harflaridan initials yasaydi (masalan "Shavkat Begmatov" → "SB").
+// Bitta so'z bo'lsa — uning birinchi harfi qaytadi.
+const getUserInitials = (name?: string, fallback?: string): string => {
+  const source = name?.trim() || fallback?.trim() || '';
+  if (!source) return '?';
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+  return parts[0].charAt(0).toUpperCase();
+};
+
 type RouteHandle = {
   title?: string;
 };
@@ -167,10 +179,7 @@ export function Header() {
 
   const title = crumbs.length > 0 ? crumbs[crumbs.length - 1].title : 'Dashboard';
 
-  const userInitial =
-    user?.fullName?.charAt(0)?.toUpperCase() ||
-    user?.username?.charAt(0)?.toUpperCase() ||
-    '?';
+  const userInitial = getUserInitials(user?.fullName, user?.username);
 
   const handleLogout = async () => {
     try {
@@ -426,9 +435,14 @@ export function Header() {
                   <span className="text-sm font-semibold">{userInitial}</span>
                 </div>
               </div>
-              <div className="hidden lg:block text-left max-w-[120px]">
-                <div className="text-sm font-medium truncate">{user?.fullName}</div>
-                <div className="text-[10px] text-base-content/50 uppercase tracking-wider">
+              <div className="hidden lg:block text-left min-w-0 max-w-[240px] xl:max-w-[340px]">
+                <div
+                  className="text-sm font-semibold leading-tight truncate"
+                  title={user?.fullName}
+                >
+                  {user?.fullName}
+                </div>
+                <div className="text-[10px] text-base-content/50 uppercase tracking-wider truncate">
                   {user?.role && getRoleLabel(user.role)}
                 </div>
               </div>
@@ -440,7 +454,7 @@ export function Header() {
 
             <div
               className={clsx(
-                "absolute right-0 z-50 mt-3 w-64 rounded-xl bg-base-100 p-0 shadow-xl border border-base-200 transition-all duration-200 origin-top-right",
+                "absolute right-0 z-50 mt-3 w-72 rounded-xl bg-base-100 p-0 shadow-xl border border-base-200 transition-all duration-200 origin-top-right",
                 userDropdownOpen
                   ? "opacity-100 scale-100 visible"
                   : "opacity-0 scale-95 invisible"
@@ -459,7 +473,7 @@ export function Header() {
                     <span className="text-lg font-semibold">{userInitial}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{user?.fullName}</p>
+                    <p className="font-semibold leading-snug break-words">{user?.fullName}</p>
                     <p className="text-xs text-base-content/60 truncate">
                       {user?.username}
                     </p>
