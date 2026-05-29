@@ -15,6 +15,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.ChangeUsernameRequest;
 import uz.familyfinance.api.dto.request.LinkFamilyMemberRequest;
@@ -26,8 +28,10 @@ import uz.familyfinance.api.dto.response.UserActivityResponse;
 import uz.familyfinance.api.dto.response.UserDetailResponse;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.exception.BadRequestException;
+import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.RequiresPermission;
 import uz.familyfinance.api.service.AuditLogService;
+import uz.familyfinance.api.service.PermissionService;
 import uz.familyfinance.api.service.UserService;
 import uz.familyfinance.api.service.export.ExcelExportService;
 import uz.familyfinance.api.service.export.GenericExportService;
@@ -54,6 +58,7 @@ public class UserController {
     private final ExcelExportService excelExportService;
     private final PdfExportService pdfExportService;
     private final GenericExportService genericExportService;
+    private final PermissionService permissionService;
 
     @GetMapping("/search")
     @Operation(summary = "Search users with pagination", description = "Foydalanuvchilarni qidirish va sahifalash")
@@ -194,8 +199,8 @@ public class UserController {
 
     @GetMapping("/{userId}/activity")
     @Operation(summary = "Get user activity history", description = "Foydalanuvchi faoliyat tarixini olish")
-    @RequiresPermission(PermissionCode.USERS_VIEW)
     public ResponseEntity<ApiResponse<Page<UserActivityResponse>>> getUserActivity(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable Long userId,
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) String action,
@@ -203,6 +208,8 @@ public class UserController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
+        // O'z faoliyatini ko'rish har doim ruxsat etiladi; boshqa foydalanuvchiniki USERS_VIEW talab qiladi
+        verifySelfOrPermission(currentUser, userId, PermissionCode.USERS_VIEW);
         Page<UserActivityResponse> activity = auditLogService.getUserActivity(
                 userId, entityType, action, startDate, endDate, pageable
         );
@@ -211,8 +218,8 @@ public class UserController {
 
     @GetMapping("/{userId}/activity/export")
     @Operation(summary = "Export user activity", description = "Foydalanuvchi faoliyat tarixini Excel yoki PDF formatida eksport qilish")
-    @RequiresPermission(PermissionCode.REPORTS_EXPORT)
     public ResponseEntity<Resource> exportUserActivity(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
             @PathVariable Long userId,
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) String action,
@@ -221,6 +228,8 @@ public class UserController {
             @RequestParam(defaultValue = "excel") String format,
             @RequestParam(defaultValue = "10000") int maxRecords
     ) {
+        // O'z faoliyatini eksport qilish har doim ruxsat; boshqaniki REPORTS_EXPORT talab qiladi
+        verifySelfOrPermission(currentUser, userId, PermissionCode.REPORTS_EXPORT);
         maxRecords = Math.min(maxRecords, 10000);
         try {
             Pageable pageable = PageRequest.of(0, maxRecords, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -254,6 +263,20 @@ public class UserController {
                     .body(resource);
         } catch (Exception e) {
             throw new BadRequestException("Eksport xatoligi");
+        }
+    }
+
+    /**
+     * Self-access tekshiruvi: foydalanuvchi o'z ma'lumotiga (targetUserId == joriy user)
+     * har doim kira oladi; boshqa foydalanuvchi ma'lumoti uchun ko'rsatilgan permission talab qilinadi.
+     */
+    private void verifySelfOrPermission(CustomUserDetails currentUser, Long targetUserId, PermissionCode permission) {
+        if (currentUser == null) {
+            throw new AccessDeniedException("Autentifikatsiya talab qilinadi");
+        }
+        boolean isSelf = targetUserId.equals(currentUser.getId());
+        if (!isSelf && !permissionService.hasPermission(currentUser.getId(), permission)) {
+            throw new AccessDeniedException("Bu amalni bajarish uchun ruxsat yo'q (" + permission.getCode() + ")");
         }
     }
 }
