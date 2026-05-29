@@ -27,6 +27,7 @@ import {
   Legend,
 } from 'recharts';
 import { familyDashboardApi } from '../../api/family-dashboard.api';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { formatCurrency, formatCompactCurrency, MONTHS_UZ } from '../../config/constants';
 import type {
   FamilyDashboardStats,
@@ -459,6 +460,12 @@ export function DashboardPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length]);
+
+  // Phase 3: aktiv scope o'zgarganda dashboard ma'lumotlarini qayta yuklash
+  // (F5 bosish kerak emas — switching avtomatik refresh qiladi)
+  useScopeChangeEffect(() => {
+    void loadData();
+  });
 
   // Range bo'yicha trend formatlash (oxirgi N oy)
   const formattedMonthlyTrend = useMemo(() => {

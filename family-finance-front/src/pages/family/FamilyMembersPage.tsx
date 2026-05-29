@@ -29,6 +29,7 @@ import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
 import {
@@ -240,6 +241,11 @@ export function FamilyMembersPage() {
     if (activeTab !== 'list') return;
     void loadMembers();
   }, [activeTab, loadMembers]);
+
+  // Phase 3: aktiv scope o'zgarganda oila a'zolarini qayta yuklash
+  useScopeChangeEffect(() => {
+    void loadMembers();
+  });
 
   // page size o'zgarganda joriy element atrofidagi sahifani saqlab qolish
   useLayoutEffect(() => {

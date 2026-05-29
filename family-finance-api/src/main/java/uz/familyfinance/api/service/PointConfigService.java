@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 public class PointConfigService {
 
     private final PointConfigRepository configRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public PointConfigResponse getConfig() {
@@ -104,15 +105,32 @@ public class PointConfigService {
         return getCurrentFamilyGroup().getId();
     }
 
+    /**
+     * Phase 2: JWT'dagi activeScopeId orqali aktiv scope'ga mos asl FamilyGroup ni
+     * qaytaradi. Bu mavjud 31+ chaqiruvchini qayta yozmasdan scope-aware bo'lish
+     * imkonini beradi (Strategy: scope.legacy_family_group_id mapping orqali).
+     *
+     * <p>Eski fallback: agar aktiv scope topilmasa (legacy token), User.familyGroup
+     * dan o'qiladi — eski Phase 1 oldidagi xulq-atvor.</p>
+     */
     public FamilyGroup getCurrentFamilyGroup() {
-        FamilyGroup group = getCurrentUserDetails().getUser().getFamilyGroup();
-        if (group == null) {
-            throw new ResourceNotFoundException("Siz biron bir Oila guruhiga a'zo emassiz");
-        }
-        return group;
+        return scopeContext.getActiveFamilyGroupOptional()
+                .orElseGet(() -> {
+                    FamilyGroup group = getCurrentUserDetails().getUser().getFamilyGroup();
+                    if (group == null) {
+                        throw new ResourceNotFoundException(
+                                "Siz biron bir Oila guruhiga a'zo emassiz");
+                    }
+                    return group;
+                });
     }
 
     public CustomUserDetails getCurrentUserDetails() {
         return (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    /** Phase 2: ScopeContext'ni bog'liq Points servislariga ochish (DI shorthand). */
+    public ScopeContextService getScopeContext() {
+        return scopeContext;
     }
 }

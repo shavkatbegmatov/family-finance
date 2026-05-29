@@ -82,6 +82,15 @@ public class FamilyMember extends BaseEntity implements Auditable {
     private FamilyGroup familyGroup;
 
     /**
+     * Phase 2: yangi scope tuzilmasi. Oila a'zosi odatda CLAN darajasida (genealogiya),
+     * lekin moliyaviy kontekstda HOUSEHOLD ham bo'lishi mumkin.
+     * V35 backfill bilan to'lgan. V37 da NOT NULL bo'ladi.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
+    /**
      * To'liq ismni hisoblash: "Familiya Ism Otasining ismi" formatida.
      * getFullName() ham shu methodga yo'naltiradi — orqaga qarab moslik uchun.
      */

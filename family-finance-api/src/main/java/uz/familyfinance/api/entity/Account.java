@@ -94,6 +94,20 @@ public class Account extends BaseEntity implements Auditable {
     @JoinColumn(name = "family_group_id")
     private FamilyGroup familyGroup;
 
+    /**
+     * Phase 2: yangi scope tuzilmasi (odatda HOUSEHOLD, ba'zan CLAN-level
+     * umumiy hisoblar uchun). Hozircha nullable — V35 backfill orqali to'lgan.
+     * V37 (Phase 2 oxiri) da NOT NULL bo'ladi va eski familyGroup deprecated.
+     *
+     * <p>Nom {@code homeScope} (umumiy {@code scope} emas) — chunki Account'da
+     * allaqachon {@link AccountScope} enum {@code scope} maydoni mavjud
+     * (visibility uchun: PERSONAL/FAMILY). Kelajakda enum {@code visibility}'ga
+     * ko'chiriladi va bu maydon faqat {@code scope}'ga aylanadi.</p>
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope homeScope;
+
     @Column(name = "balance_account_code", length = 5)
     private String balanceAccountCode;
 

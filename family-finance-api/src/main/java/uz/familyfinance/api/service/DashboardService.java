@@ -34,6 +34,7 @@ public class DashboardService {
     private final SavingsGoalRepository savingsGoalRepository;
     private final DebtRepository debtRepository;
     private final CategoryRepository categoryRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public DashboardStatsResponse getStats() {
@@ -41,10 +42,16 @@ public class DashboardService {
         LocalDateTime monthStart = now.withDayOfMonth(1).atStartOfDay();
         LocalDateTime monthEnd = now.plusMonths(1).withDayOfMonth(1).atStartOfDay().minusSeconds(1);
 
-        BigDecimal totalIncome = transactionRepository.sumByTypeAndDateRange(TransactionType.INCOME, monthStart, monthEnd);
-        BigDecimal totalExpense = transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, monthStart, monthEnd);
+        // Phase 2/3: scope-aware — aktiv scope orqali family_group va scope_id ni olamiz
+        Long familyGroupId = scopeContext.getActiveFamilyGroup().getId();
+        Long scopeId = scopeContext.getActiveScopeId();
 
-        List<Budget> activeBudgets = budgetRepository.findActiveByDate(now);
+        BigDecimal totalIncome = transactionRepository.sumByTypeAndDateRangeAndFamilyGroup(
+                TransactionType.INCOME, monthStart, monthEnd, familyGroupId);
+        BigDecimal totalExpense = transactionRepository.sumByTypeAndDateRangeAndFamilyGroup(
+                TransactionType.EXPENSE, monthStart, monthEnd, familyGroupId);
+
+        List<Budget> activeBudgets = budgetRepository.findActiveByDateAndScope(now, scopeId);
 
         // Batch: barcha budget category'lar uchun bitta query bilan expense sumlarni olish
         List<DashboardStatsResponse.BudgetProgress> budgetProgress;
@@ -60,7 +67,7 @@ public class DashboardService {
                     .max(LocalDateTime::compareTo).orElse(monthEnd);
 
             Map<Long, BigDecimal> spentMap = transactionRepository
-                    .sumExpenseByCategoryIds(budgetCategoryIds, budgetFrom, budgetTo).stream()
+                    .sumExpenseByCategoryIdsAndFamilyGroup(budgetCategoryIds, budgetFrom, budgetTo, familyGroupId).stream()
                     .collect(Collectors.toMap(
                             row -> (Long) row[0],
                             row -> (BigDecimal) row[1]));
@@ -81,7 +88,7 @@ public class DashboardService {
             budgetProgress = List.of();
         }
 
-        List<SavingsGoal> activeGoals = savingsGoalRepository.findByIsCompletedFalse();
+        List<SavingsGoal> activeGoals = savingsGoalRepository.findByIsCompletedFalseAndScope(scopeId);
         List<DashboardStatsResponse.SavingsProgress> savingsProgress = activeGoals.stream()
                 .map(g -> {
                     double pct = g.getTargetAmount().compareTo(BigDecimal.ZERO) > 0
@@ -95,12 +102,12 @@ public class DashboardService {
                 }).toList();
 
         return DashboardStatsResponse.builder()
-                .totalBalance(accountRepository.getTotalBalance())
+                .totalBalance(accountRepository.getTotalBalanceByFamilyGroup(familyGroupId))
                 .totalIncome(totalIncome)
                 .totalExpense(totalExpense)
-                .totalSavings(savingsGoalRepository.getTotalSavings())
-                .totalDebtsGiven(debtRepository.sumRemainingByType(uz.familyfinance.api.enums.DebtType.GIVEN))
-                .totalDebtsTaken(debtRepository.sumRemainingByType(uz.familyfinance.api.enums.DebtType.TAKEN))
+                .totalSavings(savingsGoalRepository.getTotalSavingsByScope(scopeId))
+                .totalDebtsGiven(debtRepository.sumRemainingByTypeAndScope(uz.familyfinance.api.enums.DebtType.GIVEN, scopeId))
+                .totalDebtsTaken(debtRepository.sumRemainingByTypeAndScope(uz.familyfinance.api.enums.DebtType.TAKEN, scopeId))
                 .activeGoals(activeGoals.size())
                 .activeBudgets(activeBudgets.size())
                 .budgetProgress(budgetProgress)
@@ -112,6 +119,9 @@ public class DashboardService {
     public ChartDataResponse getCharts() {
         LocalDate now = LocalDate.now();
 
+        // Phase 2/3: scope-aware
+        Long familyGroupId = scopeContext.getActiveFamilyGroup().getId();
+
         // 6 oy trend - bitta batch query bilan
         LocalDate sixMonthsAgo = now.minusMonths(5).withDayOfMonth(1);
         LocalDateTime trendFrom = sixMonthsAgo.atStartOfDay();
@@ -119,7 +129,7 @@ public class DashboardService {
 
         // {month -> {type -> sum}} map yaratish
         Map<Integer, Map<TransactionType, BigDecimal>> monthlyMap = new HashMap<>();
-        for (Object[] row : transactionRepository.sumByTypeGroupedByMonth(trendFrom, trendTo)) {
+        for (Object[] row : transactionRepository.sumByTypeGroupedByMonthAndFamilyGroup(trendFrom, trendTo, familyGroupId)) {
             TransactionType type = (TransactionType) row[0];
             int month = ((Number) row[1]).intValue();
             BigDecimal sum = (BigDecimal) row[2];
@@ -144,7 +154,8 @@ public class DashboardService {
 
         // Expense by category - batch
         List<Category> expenseCategories = categoryRepository.findByTypeAndIsActiveTrue(CategoryType.EXPENSE);
-        Map<Long, BigDecimal> expenseMap = transactionRepository.sumExpenseGroupedByCategory(monthStart, monthEnd).stream()
+        Map<Long, BigDecimal> expenseMap = transactionRepository
+                .sumExpenseGroupedByCategoryAndFamilyGroup(monthStart, monthEnd, familyGroupId).stream()
                 .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]));
         BigDecimal totalExpense = expenseMap.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -161,7 +172,8 @@ public class DashboardService {
 
         // Income by category - batch
         List<Category> incomeCategories = categoryRepository.findByTypeAndIsActiveTrue(CategoryType.INCOME);
-        Map<Long, BigDecimal> incomeMap = transactionRepository.sumIncomeGroupedByCategory(monthStart, monthEnd).stream()
+        Map<Long, BigDecimal> incomeMap = transactionRepository
+                .sumIncomeGroupedByCategoryAndFamilyGroup(monthStart, monthEnd, familyGroupId).stream()
                 .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]));
         BigDecimal totalIncome = incomeMap.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 

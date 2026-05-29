@@ -18,16 +18,23 @@ import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.enums.MembershipStatus;
 import uz.familyfinance.api.enums.Role;
+import uz.familyfinance.api.enums.ScopeRole;
+import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.AccountDisabledException;
 import uz.familyfinance.api.exception.AccountLockedException;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.FamilyGroupRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.RoleRepository;
+import uz.familyfinance.api.repository.ScopeMembershipRepository;
+import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.JwtTokenProvider;
+import uz.familyfinance.api.util.InviteCodeGenerator;
 
 import java.time.LocalDateTime;
 
@@ -41,10 +48,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final FamilyGroupRepository familyGroupRepository;
+    private final ScopeRepository scopeRepository;
+    private final ScopeMembershipRepository scopeMembershipRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
     private final LoginAttemptService loginAttemptService;
     private final AuditLogService auditLogService;
+    private final InviteCodeGenerator inviteCodeGenerator;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -81,16 +92,17 @@ public class AuthService {
                 .build();
 
         user.getRoles().add(memberRole);
-        userRepository.save(user);
+        user = userRepository.save(user);
 
-        // Avtomatik FamilyMember yaratish va user ga bog'lash
-        FamilyMember familyMember = FamilyMember.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .role(FamilyRole.OTHER)
-                .user(user)
-                .build();
-        familyMemberRepository.save(familyMember);
+        // YANGI: Scope provisioning ikki yo'l bilan:
+        // 1) inviteCode bor bo'lsa — mavjud oilaga MEMBER bo'lib qo'shiladi
+        // 2) inviteCode yo'q bo'lsa — yangi CLAN+HOUSEHOLD yaratiladi (auto-provisioning)
+        String code = request.getInviteCode() != null ? request.getInviteCode().trim() : "";
+        if (!code.isEmpty()) {
+            joinExistingScopeByCode(user, code, request);
+        } else {
+            provisionInitialScopeFor(user, request);
+        }
 
         // Audit log (userId=null to avoid FK constraint since user is not yet committed)
         auditLogService.log(
@@ -102,9 +114,234 @@ public class AuthService {
                 null
         );
 
-        log.info("New user registered: {}", user.getUsername());
+        log.info("New user registered: {} with new clan/household scopes", user.getUsername());
 
         return UserResponse.from(user);
+    }
+
+    /**
+     * Yangi ro'yxatdan o'tgan user uchun to'liq scope strukturasini yaratadi:
+     * <ol>
+     *   <li>FamilyGroup (legacy uyg'unligi uchun)</li>
+     *   <li>CLAN scope (parent=null, owner=user)</li>
+     *   <li>HOUSEHOLD scope (parent=CLAN, owner=user)</li>
+     *   <li>2 ta ScopeMembership: ikkalasida ham OWNER role</li>
+     *   <li>User.familyGroup va User.primaryScope (=household) o'rnatiladi</li>
+     *   <li>FamilyMember (legacy) — yangi familyGroup'ga biriktiriladi</li>
+     * </ol>
+     */
+    private void provisionInitialScopeFor(User user, RegisterRequest request) {
+        String displayName = buildDisplayName(request);
+        provisionScopeAndFamilyGroup(user, displayName, request.getFirstName(), request.getLastName());
+    }
+
+    /**
+     * Mavjud Scope'ga (invite code orqali) user'ni MEMBER bo'lib qo'shadi.
+     * <ul>
+     *   <li>Kod prefiksiga ko'ra: C=CLAN, H=HOUSEHOLD, P=PROJECT, EVENT...</li>
+     *   <li>HOUSEHOLD kodi bilan kelsa: HOUSEHOLD'ga MEMBER + parent CLAN'ga ham MEMBER</li>
+     *   <li>CLAN kodi bilan kelsa: CLAN'ga MEMBER + birinchi HOUSEHOLD'ga ham MEMBER (agar bor bo'lsa)</li>
+     *   <li>User.familyGroup va User.primaryScope (=HOUSEHOLD) o'rnatiladi</li>
+     *   <li>FamilyMember (legacy) yaratiladi va familyGroup'ga biriktiriladi</li>
+     * </ul>
+     */
+    private void joinExistingScopeByCode(User user, String inviteCode, RegisterRequest request) {
+        Scope targetScope = scopeRepository.findByUniqueCode(inviteCode)
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
+                .orElseThrow(() -> new BadRequestException(
+                        "Taklif kodi noto'g'ri yoki bekor qilingan: " + inviteCode));
+
+        // CLAN va HOUSEHOLD scope'larini aniqlash
+        Scope clan;
+        Scope household;
+        if (targetScope.getType() == ScopeType.CLAN) {
+            clan = targetScope;
+            household = scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
+                    clan.getId(), ScopeType.HOUSEHOLD)
+                    .orElseThrow(() -> new BadRequestException(
+                            "Bu urug'da hech qanday faol xonadon topilmadi"));
+        } else if (targetScope.getType() == ScopeType.HOUSEHOLD) {
+            household = targetScope;
+            clan = targetScope.getParentScope();
+            if (clan == null || clan.getType() != ScopeType.CLAN) {
+                throw new BadRequestException("Xonadon tegishli urug'ga ulanmagan");
+            }
+        } else {
+            throw new BadRequestException(
+                    "Ushbu kod orqali ro'yxatdan o'tish faqat CLAN/HOUSEHOLD uchun mumkin");
+        }
+
+        FamilyGroup familyGroup = clan.getLegacyFamilyGroup();
+        if (familyGroup == null) {
+            throw new IllegalStateException(
+                    "Tanlangan urug'ning eski oila guruhi yo'q — qo'lda fix talab etiladi");
+        }
+
+        // 1) CLAN'ga MEMBER bo'lib qo'shish (agar yo'q bo'lsa)
+        addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
+        // 2) HOUSEHOLD'ga MEMBER bo'lib qo'shish
+        addMembershipIfAbsent(household, user, ScopeRole.MEMBER);
+
+        // 3) User'ni familyGroup va primaryScope ga bog'lash
+        user.setFamilyGroup(familyGroup);
+        user.setPrimaryScope(household);
+        userRepository.save(user);
+
+        // 4) FamilyMember (legacy)
+        boolean hasMember = familyMemberRepository.findByUserId(user.getId()).isPresent();
+        if (!hasMember) {
+            FamilyMember familyMember = FamilyMember.builder()
+                    .firstName(request.getFirstName())
+                    .lastName(request.getLastName())
+                    .role(FamilyRole.OTHER)
+                    .user(user)
+                    .familyGroup(familyGroup)
+                    .build();
+            familyMemberRepository.save(familyMember);
+        }
+
+        log.info("User '{}' joined existing scope via invite code: clan={}, household={}",
+                user.getUsername(), clan.getId(), household.getId());
+    }
+
+    private void addMembershipIfAbsent(Scope scope, User user, ScopeRole role) {
+        scopeMembershipRepository.findByScopeIdAndUserId(scope.getId(), user.getId())
+                .ifPresentOrElse(existing -> {
+                    if (existing.getStatus() != MembershipStatus.ACTIVE) {
+                        existing.setStatus(MembershipStatus.ACTIVE);
+                        existing.setRole(role);
+                        scopeMembershipRepository.save(existing);
+                    }
+                }, () -> scopeMembershipRepository.save(ScopeMembership.builder()
+                        .scope(scope)
+                        .user(user)
+                        .role(role)
+                        .status(MembershipStatus.ACTIVE)
+                        .joinedAt(LocalDateTime.now())
+                        .build()));
+    }
+
+    /**
+     * Auto-provisioning eski user'lar uchun: login paytida agar user'da
+     * familyGroup yoki primaryScope yo'q bo'lsa, avtomatik yaratadi.
+     * Bu V34 dan oldin ro'yxatdan o'tgan yoki migratsiya o'tkazib yuborilgan
+     * user'larni ham yangi multi-scope tizimiga moslab beradi.
+     */
+    @Transactional
+    public void ensureUserHasScope(User userParam) {
+        if (userParam == null || userParam.getId() == null) return;
+        // MUHIM: login paytida bu metod JWT autentifikatsiyadagi DETACHED user
+        // bilan chaqirilishi mumkin. LAZY maydonlarga (familyGroup/primaryScope)
+        // xavfsiz kirish uchun managed entity'ni repository'dan qayta yuklaymiz.
+        User user = userRepository.findById(userParam.getId()).orElse(null);
+        if (user == null) return;
+        if (user.getFamilyGroup() != null && user.getPrimaryScope() != null) {
+            return; // hammasi joyida
+        }
+        String displayName = user.getFullName() != null && !user.getFullName().isBlank()
+                ? user.getFullName().trim()
+                : user.getUsername();
+        // Ism/familiyani ajratish (fullName'dan)
+        String firstName = displayName;
+        String lastName = "";
+        if (displayName.contains(" ")) {
+            String[] parts = displayName.split("\\s+", 2);
+            firstName = parts[0];
+            lastName = parts[1];
+        }
+        provisionScopeAndFamilyGroup(user, displayName, firstName, lastName);
+        log.info("Auto-provisioned scope for legacy user: {}", user.getUsername());
+    }
+
+    /**
+     * Asosiy scope provisioning mantig'i — register va auto-provision ikkalasida ishlatiladi.
+     */
+    private void provisionScopeAndFamilyGroup(User user, String displayName,
+                                               String firstName, String lastName) {
+
+        // 1) FamilyGroup
+        FamilyGroup familyGroup = FamilyGroup.builder()
+                .name(displayName + " oilasi")
+                .admin(user)
+                .active(true)
+                .build();
+        familyGroup = familyGroupRepository.save(familyGroup);
+
+        // 2) CLAN scope (parent=null) — unique code bilan (taklif uchun)
+        Scope clan = Scope.builder()
+                .type(ScopeType.CLAN)
+                .name(displayName + " urug'i")
+                .ownerUser(user)
+                .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.CLAN))
+                .legacyFamilyGroup(familyGroup)
+                .isActive(true)
+                .build();
+        clan = scopeRepository.save(clan);
+
+        // 3) HOUSEHOLD scope (parent=clan) — unique code bilan
+        Scope household = Scope.builder()
+                .type(ScopeType.HOUSEHOLD)
+                .name(displayName + " xonadoni")
+                .parentScope(clan)
+                .ownerUser(user)
+                .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.HOUSEHOLD))
+                .legacyFamilyGroup(familyGroup)
+                .isActive(true)
+                .build();
+        household = scopeRepository.save(household);
+
+        // 4) ScopeMembership x2 (clan + household, ikkalasida ham OWNER)
+        LocalDateTime now = LocalDateTime.now();
+        scopeMembershipRepository.save(ScopeMembership.builder()
+                .scope(clan)
+                .user(user)
+                .role(ScopeRole.OWNER)
+                .status(MembershipStatus.ACTIVE)
+                .joinedAt(now)
+                .build());
+        scopeMembershipRepository.save(ScopeMembership.builder()
+                .scope(household)
+                .user(user)
+                .role(ScopeRole.OWNER)
+                .status(MembershipStatus.ACTIVE)
+                .joinedAt(now)
+                .build());
+
+        // 5) User ni familyGroup va primaryScope (HOUSEHOLD) ga bog'lash
+        user.setFamilyGroup(familyGroup);
+        user.setPrimaryScope(household);
+        userRepository.save(user);
+
+        // 6) FamilyMember (legacy) — yangi familyGroup'ga biriktirib
+        // Eski user'larda allaqachon familyMember bo'lishi mumkin (User.familyMember mavjud bo'lmasa).
+        boolean hasMember = familyMemberRepository.findByUserId(user.getId()).isPresent();
+        if (!hasMember) {
+            FamilyMember familyMember = FamilyMember.builder()
+                    .firstName(firstName != null ? firstName : displayName)
+                    .lastName(lastName)
+                    .role(FamilyRole.OTHER)
+                    .user(user)
+                    .familyGroup(familyGroup)
+                    .build();
+            familyMemberRepository.save(familyMember);
+        } else {
+            // Mavjud familyMember'ga familyGroup biriktirish (agar yo'q bo'lsa)
+            final FamilyGroup fgRef = familyGroup;
+            familyMemberRepository.findByUserId(user.getId()).ifPresent(fm -> {
+                if (fm.getFamilyGroup() == null) {
+                    fm.setFamilyGroup(fgRef);
+                    familyMemberRepository.save(fm);
+                }
+            });
+        }
+    }
+
+    private String buildDisplayName(RegisterRequest request) {
+        String last = request.getLastName() != null ? request.getLastName().trim() : "";
+        String first = request.getFirstName() != null ? request.getFirstName().trim() : "";
+        if (!last.isEmpty()) return last;
+        if (!first.isEmpty()) return first;
+        return request.getUsername();
     }
 
     private void validatePassword(String password) {
@@ -154,6 +391,15 @@ public class AuthService {
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             Long userId = userDetails.getUser().getId();
+
+            // Auto-provision: eski user'larga ham CLAN+HOUSEHOLD scope yaratamiz
+            // agar mavjud bo'lmasa. Bu seamless UX ta'minlaydi — bir kelin
+            // qoldirmaslik kerak.
+            try {
+                ensureUserHasScope(userDetails.getUser());
+            } catch (Exception ex) {
+                log.warn("ensureUserHasScope login paytida muvaffaqiyatsiz: {}", ex.getMessage());
+            }
 
             // Generate token with permissions
             String accessToken = tokenProvider.generateStaffTokenWithPermissions(

@@ -27,6 +27,7 @@ import { authApi } from '../../api/auth.api';
 import { ROLES } from '../../config/constants';
 import { clearIntendedPath } from '../../utils/sessionNavigation';
 import { SearchCommand } from '../common/SearchCommand';
+import { ScopeSwitcher } from '../scope';
 import { WhatsNewModal } from '../common/WhatsNewModal';
 import { LATEST_VERSION } from '../../data/changelog';
 
@@ -273,6 +274,11 @@ export function Header() {
           {/* Mobile search */}
           <div className="md:hidden">
             <SearchCommand />
+          </div>
+
+          {/* Phase 3: ScopeSwitcher — aktiv scope (Clan/Xonadon/Loyiha) almashtirish */}
+          <div className="hidden lg:flex ml-2">
+            <ScopeSwitcher />
           </div>
 
           {/* Theme toggle */}

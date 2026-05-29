@@ -59,6 +59,8 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        // Phase 3: scope cache'ni ham tozalash (yangi user kirsa, eski scope'lar ko'rinmasin)
+        localStorage.removeItem('scope-store');
         set({
           user: null,
           accessToken: null,
@@ -131,6 +133,18 @@ export const useAuthStore = create<AuthState>()(
             state.roles = new Set(validRoles);
           } else {
             state.roles = new Set<string>();
+          }
+          // accessToken va refreshToken alohida localStorage entry sifatida saqlanadi
+          // (setAuth va axios interceptor shu yerdan o'qiydi). Zustand state'da ham
+          // mavjud bo'lishi shart — aks holda ScopeSwitcher kabi `useAuthStore(s => s.accessToken)`
+          // ishlatadigan komponentlar reload'dan keyin null ko'rib g'oyib bo'ladi.
+          try {
+            const token = localStorage.getItem('accessToken');
+            const refresh = localStorage.getItem('refreshToken');
+            if (token) state.accessToken = token;
+            if (refresh) state.refreshToken = refresh;
+          } catch {
+            // localStorage unavailable — kerakli emas
           }
         }
       },

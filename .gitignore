@@ -110,3 +110,4 @@ package-lock.json
 /family-finance-api/out/production/family-finance-api/db/migration/V24__create_banks_and_bins_tables.sql
 /family-finance-api/out/production/family-finance-api/db/migration/V25__point_system.sql
 /family-finance-api/out/production/family-finance-api/db/migration/V26__rename_legacy_roles.sql
+/Multi-level Scope Architecture - Clan + Household + Multi-scope (To'liq MVP).txt

@@ -40,6 +40,11 @@ export interface RegisterRequest {
   confirmPassword: string;
   email?: string;
   phone?: string;
+  /**
+   * Ixtiyoriy: Mavjud oila taklif kodi. Bo'lsa — user shu oilaga MEMBER bo'lib qo'shiladi,
+   * bo'lmasa — yangi oila yaratiladi (auto-provisioning).
+   */
+  inviteCode?: string;
 }
 
 export interface CredentialsInfo {

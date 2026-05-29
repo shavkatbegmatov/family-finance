@@ -33,15 +33,31 @@ public class BudgetService {
     private final BudgetAlertRepository budgetAlertRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<BudgetResponse> getAll(Pageable pageable) {
-        return budgetRepository.findByIsActiveTrue(pageable).map(this::toResponse);
+        if (scopeContext.isSuperAdmin()) {
+            return budgetRepository.findByIsActiveTrue(pageable).map(this::toResponse);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return budgetRepository.findByIsActiveTrueAndScopeIds(visible, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
     public List<BudgetResponse> getActiveByDate(LocalDate date) {
-        return budgetRepository.findActiveByDate(date).stream()
+        if (scopeContext.isSuperAdmin()) {
+            return budgetRepository.findActiveByDate(date).stream()
+                    .map(this::toResponse).collect(Collectors.toList());
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return budgetRepository.findActiveByDateAndScopeIds(date, visible).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -61,6 +77,9 @@ public class BudgetService {
                 .period(request.getPeriod())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
+                // Phase 2: yangi byudjet aktiv scope'ga bog'lanadi (kritik bug fix —
+                // ilgari byudjetlar global edi, har xil oilalar bir-birinikini ko'rardi)
+                .scope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
 
         return toResponse(budgetRepository.save(budget));

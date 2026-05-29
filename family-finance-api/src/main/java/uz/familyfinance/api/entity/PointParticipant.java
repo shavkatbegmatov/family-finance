@@ -24,6 +24,11 @@ public class PointParticipant extends BaseEntity {
     @JoinColumn(name = "family_group_id", nullable = false)
     private FamilyGroup familyGroup;
 
+    /** Phase 2: yangi scope (HOUSEHOLD). V37 da NOT NULL bo'ladi. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 

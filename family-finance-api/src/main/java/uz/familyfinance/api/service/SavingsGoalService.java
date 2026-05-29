@@ -32,10 +32,18 @@ public class SavingsGoalService {
     private final SavingsContributionRepository contributionRepository;
     private final AccountRepository accountRepository;
     private final StaffNotificationService notificationService;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<SavingsGoalResponse> getAll(Pageable pageable) {
-        return savingsGoalRepository.findAll(pageable).map(this::toResponse);
+        if (scopeContext.isSuperAdmin()) {
+            return savingsGoalRepository.findAll(pageable).map(this::toResponse);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return savingsGoalRepository.findByScopeIds(visible, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +59,8 @@ public class SavingsGoalService {
                 .deadline(request.getDeadline())
                 .icon(request.getIcon())
                 .color(request.getColor())
+                // Phase 2: scope'ga bog'lash (kritik bug fix — jamg'arma maqsadlari global edi)
+                .scope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
 
         if (request.getAccountId() != null) {

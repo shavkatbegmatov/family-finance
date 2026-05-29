@@ -34,6 +34,7 @@ import { useIsMobile } from '../../hooks/useMediaQuery';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import type {
   FamilyDebt,
   FamilyDebtRequest,
@@ -313,6 +314,12 @@ export function DebtsPage() {
     void loadDebts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, effectiveType, effectiveStatus, searchQuery]);
+
+  // Phase 3: aktiv scope o'zgarganda qarzlarni qayta yuklash
+  useScopeChangeEffect(() => {
+    void loadDebts(true);
+    void loadSummary();
+  });
 
   // ==================== DEBT MODAL ====================
 

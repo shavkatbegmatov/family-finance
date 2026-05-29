@@ -43,6 +43,15 @@ public class SavingsGoal extends BaseEntity implements Auditable {
     @JoinColumn(name = "account_id")
     private Account account;
 
+    /**
+     * Phase 2: Scope tuzilmasi (odatda HOUSEHOLD).
+     * Bu maydon avval mavjud bo'lmagan (bug — savings goal'lar global edi).
+     * V35 backfill account orqali to'lgan, V37 da NOT NULL bo'ladi.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Column(length = 50)
     private String icon;
 

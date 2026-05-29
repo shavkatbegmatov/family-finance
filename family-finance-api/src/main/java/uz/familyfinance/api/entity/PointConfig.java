@@ -21,6 +21,11 @@ public class PointConfig extends BaseEntity {
     @JoinColumn(name = "family_group_id", nullable = false, unique = true)
     private FamilyGroup familyGroup;
 
+    /** Phase 2: yangi scope tuzilmasi (HOUSEHOLD). V37 da NOT NULL bo'ladi. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Column(name = "conversion_rate", nullable = false, precision = 19, scale = 4)
     @Builder.Default
     private BigDecimal conversionRate = BigDecimal.valueOf(100);

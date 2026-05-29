@@ -51,6 +51,7 @@ public class AccountService {
     private final TransactionRepository transactionRepository;
     private final CardRepository cardRepository;
     private final CardEncryptionService cardEncryptionService;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
@@ -125,7 +126,11 @@ public class AccountService {
                 .bankMfo(request.getBankMfo())
                 .bankInn(request.getBankInn())
                 .scope(scope)
-                .familyGroup(currentUser.getUser().getFamilyGroup())
+                // Phase 2: scope-aware family_group (active scope dan keladi) +
+                // Scope FK ham bir vaqtda o'rnatamiz (dual-write).
+                .familyGroup(scopeContext.getActiveFamilyGroupOptional()
+                        .orElse(currentUser.getUser().getFamilyGroup()))
+                .homeScope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
 
         // Owner ni bog'lash

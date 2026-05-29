@@ -24,10 +24,25 @@ public interface DebtRepository extends JpaRepository<Debt, Long> {
     @Query("SELECT COALESCE(SUM(d.remainingAmount), 0) FROM Debt d WHERE d.type = :type AND d.status != 'PAID'")
     BigDecimal sumRemainingByType(@Param("type") DebtType type);
 
+    /** Scope-aware: faqat berilgan scope'dagi qarzlar. */
+    @Query("SELECT COALESCE(SUM(d.remainingAmount), 0) FROM Debt d "
+         + "WHERE d.type = :type AND d.status != 'PAID' AND d.scope.id = :scopeId")
+    BigDecimal sumRemainingByTypeAndScope(@Param("type") DebtType type, @Param("scopeId") Long scopeId);
+
     @Query("SELECT d FROM Debt d WHERE " +
            "(:type IS NULL OR d.type = :type) AND " +
            "(:status IS NULL OR d.status = :status) AND " +
            "(LOWER(d.personName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)")
     Page<Debt> findWithFilters(@Param("type") DebtType type, @Param("status") DebtStatus status,
                                 @Param("search") String search, Pageable pageable);
+
+    /** Scope-aware filterli ro'yxat: ko'rinadigan scope ID'lar bo'yicha. */
+    @Query("SELECT d FROM Debt d WHERE d.scope.id IN :scopeIds AND " +
+           "(:type IS NULL OR d.type = :type) AND " +
+           "(:status IS NULL OR d.status = :status) AND " +
+           "(LOWER(d.personName) LIKE LOWER(CONCAT('%', :search, '%')) OR :search IS NULL)")
+    Page<Debt> findWithFiltersAndScopeIds(@Param("scopeIds") java.util.Collection<Long> scopeIds,
+                                          @Param("type") DebtType type,
+                                          @Param("status") DebtStatus status,
+                                          @Param("search") String search, Pageable pageable);
 }

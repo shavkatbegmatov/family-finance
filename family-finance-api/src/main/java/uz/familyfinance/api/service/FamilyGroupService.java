@@ -48,6 +48,9 @@ public class FamilyGroupService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final AuthService authService;
+    private final uz.familyfinance.api.repository.ScopeRepository scopeRepository;
+    private final uz.familyfinance.api.repository.ScopeMembershipRepository scopeMembershipRepository;
     private final FamilyAddressHistoryRepository familyAddressHistoryRepository;
 
     private String generateUniqueCode() {
@@ -108,11 +111,10 @@ public class FamilyGroupService {
             throw new IllegalArgumentException("Bu foydalanuvchi allaqachon oilangiz a'zosi");
         }
 
-        if (userToAdd.getFamilyGroup() != null) {
-            throw new IllegalArgumentException(
-                    "Bu foydalanuvchi boshqa oila guruhiga a'zo. Avval o'sha guruhdan chiqarilishi kerak");
-        }
-
+        // Multi-scope-aware: agar user boshqa oilada bo'lsa ham, qo'shimcha
+        // MEMBER sifatida bu oilaga ham qo'shamiz (legacy familyGroup'ni ham yangilaymiz).
+        // Bu Anvar+Habibulla ssenariysida ishlaydi — Habibulla'ni Anvar oilasiga
+        // qo'shsak, u eski Habibulla oilasidan chiqib, Anvar oilasiga o'tadi.
         userToAdd.setFamilyGroup(familyGroup);
         userRepository.save(userToAdd);
 
@@ -123,6 +125,54 @@ public class FamilyGroupService {
             memberRecord.setFamilyGroup(familyGroup);
             familyMemberRepository.save(memberRecord);
         }
+
+        // Scope-aware: target CLAN va HOUSEHOLD'ga ScopeMembership qo'shamiz
+        attachUserToScopesOfFamilyGroup(userToAdd, familyGroup);
+    }
+
+    /**
+     * Berilgan FamilyGroup'ning CLAN va HOUSEHOLD scope'lariga user'ni MEMBER sifatida
+     * biriktiradi. Mavjud LEFT/PENDING membership'ni qayta tiklash. Idempotent.
+     */
+    private void attachUserToScopesOfFamilyGroup(User user, FamilyGroup familyGroup) {
+        // CLAN scope topish
+        uz.familyfinance.api.entity.Scope clan = scopeRepository
+                .findByTypeAndIsActiveTrue(uz.familyfinance.api.enums.ScopeType.CLAN).stream()
+                .filter(s -> s.getLegacyFamilyGroup() != null
+                        && s.getLegacyFamilyGroup().getId().equals(familyGroup.getId()))
+                .findFirst()
+                .orElse(null);
+        if (clan == null) return;
+
+        attachAsMember(clan, user);
+
+        // HOUSEHOLD scope topish (CLAN ostida)
+        scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
+                clan.getId(), uz.familyfinance.api.enums.ScopeType.HOUSEHOLD)
+                .ifPresent(household -> {
+                    attachAsMember(household, user);
+                    user.setPrimaryScope(household);
+                    userRepository.save(user);
+                });
+    }
+
+    private void attachAsMember(uz.familyfinance.api.entity.Scope scope, User user) {
+        scopeMembershipRepository.findByScopeIdAndUserId(scope.getId(), user.getId())
+                .ifPresentOrElse(existing -> {
+                    if (existing.getStatus() != uz.familyfinance.api.enums.MembershipStatus.ACTIVE) {
+                        existing.setStatus(uz.familyfinance.api.enums.MembershipStatus.ACTIVE);
+                        existing.setRole(uz.familyfinance.api.enums.ScopeRole.MEMBER);
+                        existing.setJoinedAt(java.time.LocalDateTime.now());
+                        scopeMembershipRepository.save(existing);
+                    }
+                }, () -> scopeMembershipRepository.save(
+                        uz.familyfinance.api.entity.ScopeMembership.builder()
+                                .scope(scope)
+                                .user(user)
+                                .role(uz.familyfinance.api.enums.ScopeRole.MEMBER)
+                                .status(uz.familyfinance.api.enums.MembershipStatus.ACTIVE)
+                                .joinedAt(java.time.LocalDateTime.now())
+                                .build()));
     }
 
     @Transactional(readOnly = true)
@@ -319,10 +369,22 @@ public class FamilyGroupService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public HouseholdDashboardResponse getHouseholdDashboard(CustomUserDetails currentUser) {
         User user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        // Lazy provisioning: eski user'lar uchun ham CLAN+HOUSEHOLD avtomatik
+        // yaratiladi. Bu seamless UX ta'minlaydi — F5 yoki re-login kerak emas.
+        if (user.getFamilyGroup() == null || user.getPrimaryScope() == null) {
+            try {
+                authService.ensureUserHasScope(user);
+                user = userRepository.findById(currentUser.getId()).orElse(user);
+            } catch (Exception ex) {
+                log.warn("Eski user uchun scope provision'da xato: {}", ex.getMessage());
+            }
+        }
+
         FamilyGroup familyGroup = user.getFamilyGroup();
         if (familyGroup == null) {
             throw new ResourceNotFoundException("Siz biron bir Oila guruhiga a'zo emassiz");

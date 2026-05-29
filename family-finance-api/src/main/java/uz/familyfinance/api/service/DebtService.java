@@ -32,10 +32,19 @@ public class DebtService {
 
     private final DebtRepository debtRepository;
     private final DebtPaymentRepository debtPaymentRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public Page<DebtResponse> getAll(DebtType type, DebtStatus status, String search, Pageable pageable) {
-        return debtRepository.findWithFilters(type, status, search, pageable).map(this::toResponse);
+        if (scopeContext.isSuperAdmin()) {
+            return debtRepository.findWithFilters(type, status, search, pageable).map(this::toResponse);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return Page.empty(pageable);
+        }
+        return debtRepository.findWithFiltersAndScopeIds(visible, type, status, search, pageable)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -54,6 +63,8 @@ public class DebtService {
                 .dueDate(request.getDueDate())
                 .description(request.getDescription())
                 .status(DebtStatus.ACTIVE)
+                // Phase 2: scope'ga bog'lash (kritik bug fix — qarzlar global edi)
+                .scope(scopeContext.getActiveScopeOptional().orElse(null))
                 .build();
         return toResponse(debtRepository.save(debt));
     }

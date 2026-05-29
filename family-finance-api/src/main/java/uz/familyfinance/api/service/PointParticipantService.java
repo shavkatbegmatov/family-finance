@@ -54,6 +54,9 @@ public class PointParticipantService {
     public PointParticipantResponse create(PointParticipantRequest request) {
         var userDetails = configService.getCurrentUserDetails();
         FamilyGroup group = configService.getCurrentFamilyGroup();
+        // Phase 2: aktiv scope ham olish — yangi entity'larga dual-write uchun
+        var activeScope = configService.getScopeContext()
+                .getActiveScopeOptional().orElse(null);
 
         if (request.getFamilyMemberId() != null) {
             if (participantRepository.existsByFamilyGroupIdAndFamilyMemberId(group.getId(), request.getFamilyMemberId())) {
@@ -63,6 +66,7 @@ public class PointParticipantService {
 
         PointParticipant participant = PointParticipant.builder()
                 .familyGroup(group)
+                .scope(activeScope)
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .nickname(request.getNickname())
@@ -81,6 +85,7 @@ public class PointParticipantService {
         // Avtomatik PointBalance yaratish
         PointBalance balance = PointBalance.builder()
                 .familyGroup(group)
+                .scope(activeScope)
                 .participant(participant)
                 .build();
         balanceRepository.save(balance);
@@ -88,6 +93,7 @@ public class PointParticipantService {
         // Avtomatik PointSavingsAccount yaratish
         PointSavingsAccount savings = PointSavingsAccount.builder()
                 .familyGroup(group)
+                .scope(activeScope)
                 .participant(participant)
                 .build();
         savingsRepository.save(savings);

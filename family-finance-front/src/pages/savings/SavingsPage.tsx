@@ -11,6 +11,7 @@ import { TextArea } from '../../components/ui/TextArea';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import type {
   SavingsGoal,
   SavingsGoalRequest,
@@ -110,6 +111,11 @@ export function SavingsPage() {
     void loadGoals();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Phase 3: aktiv scope o'zgarganda jamg'arma maqsadlarini qayta yuklash
+  useScopeChangeEffect(() => {
+    void loadGoals();
+  });
 
   // ---------- Goal modal handlers ----------
 

@@ -25,6 +25,11 @@ public class PointSavingsAccount extends BaseEntity {
     @JoinColumn(name = "family_group_id", nullable = false)
     private FamilyGroup familyGroup;
 
+    /** Phase 2: yangi scope (HOUSEHOLD). V37 da NOT NULL bo'ladi. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "participant_id", nullable = false)
     private PointParticipant participant;
