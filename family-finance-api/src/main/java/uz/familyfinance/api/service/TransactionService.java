@@ -11,6 +11,7 @@ import uz.familyfinance.api.dto.response.TransactionResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.TransactionStatus;
 import uz.familyfinance.api.enums.TransactionType;
+import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.dto.request.BulkCategorizeRequest;
@@ -98,6 +99,18 @@ public class TransactionService {
     }
 
     /**
+     * Hisob faol (ACTIVE) ekanligini tekshiradi. FROZEN/CLOSED bo'lsa
+     * tranzaksiya kiritishni to'sib, tushunarli xatolik qaytaradi.
+     */
+    private void ensureAccountActive(Account account) {
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            String holat = account.getStatus() == AccountStatus.FROZEN ? "muzlatilgan" : "yopilgan";
+            throw new BadRequestException(
+                    "Hisob " + holat + " holatda bo'lgani uchun unga tranzaksiya kiritib bo'lmaydi");
+        }
+    }
+
+    /**
      * Yangi tranzaksiya yaratadi — to'liq Double-Entry mantiq bilan.
      *
      * INCOME:   debit = foydalanuvchi hisobi (pul tushdi), credit = tranzit daromad hisobi
@@ -110,8 +123,8 @@ public class TransactionService {
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
 
-        // TODO(human): FROZEN/CLOSED hisobga tranzaksiya yaratishni to'sish validatsiyasi
-        // account.getStatus() ni tekshiring va mos xatolik qaytaring
+        // FROZEN/CLOSED holatdagi hisobga tranzaksiya kiritib bo'lmaydi
+        ensureAccountActive(account);
 
         Transaction transaction = Transaction.builder()
                 .type(request.getType())
@@ -163,6 +176,7 @@ public class TransactionService {
                 }
                 Account toAccount = accountRepository.findById(request.getToAccountId())
                         .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                ensureAccountActive(toAccount);
                 transaction.setToAccount(toAccount);
                 debitAccount = toAccount;   // Pul tushayotgan hisob
                 creditAccount = account;     // Pul chiqayotgan hisob
