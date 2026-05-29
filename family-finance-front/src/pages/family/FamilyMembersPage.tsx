@@ -792,6 +792,8 @@ export function FamilyMembersPage() {
                             <button
                               className="btn btn-ghost btn-sm btn-square"
                               onClick={() => handleOpenEditModal(member)}
+                              title="Tahrirlash"
+                              aria-label="Tahrirlash"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -801,6 +803,8 @@ export function FamilyMembersPage() {
                               <button
                                 className="btn btn-ghost btn-sm btn-square text-error"
                                 onClick={() => setDeletingMemberId(member.id)}
+                                title="O'chirish"
+                                aria-label="O'chirish"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -991,25 +995,26 @@ export function FamilyMembersPage() {
 
                           {/* Actions */}
                           <td className="py-3 pr-5">
-                            <div className="flex items-center gap-1 justify-end">
+                            <div className="flex items-center gap-1.5 justify-end">
                               <PermissionGate permission={PermissionCode.FAMILY_UPDATE}>
                                 <button
-                                  className="btn btn-ghost btn-xs"
+                                  className="btn btn-ghost btn-sm btn-square"
                                   onClick={() => handleOpenEditModal(member)}
                                   title="Tahrirlash"
+                                  aria-label="Tahrirlash"
                                 >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                  Tahrirlash
+                                  <Edit2 className="h-[18px] w-[18px]" />
                                 </button>
                               </PermissionGate>
                               {member.userId !== user?.id && (
                                 <PermissionGate permission={PermissionCode.FAMILY_DELETE}>
                                   <button
-                                    className="btn btn-ghost btn-xs text-error"
+                                    className="btn btn-ghost btn-sm btn-square text-error"
                                     onClick={() => setDeletingMemberId(member.id)}
                                     title="O'chirish"
+                                    aria-label="O'chirish"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <Trash2 className="h-[18px] w-[18px]" />
                                   </button>
                                 </PermissionGate>
                               )}
