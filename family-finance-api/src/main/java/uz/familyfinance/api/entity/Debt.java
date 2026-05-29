@@ -33,8 +33,8 @@ public class Debt extends BaseEntity implements Auditable {
      * Bu maydon avval mavjud bo'lmagan (kritik bug — qarzlar global edi).
      * V35 backfill bilan to'lgan, V37 da NOT NULL bo'ladi.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scope_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scope_id", nullable = false)
     private Scope scope;
 
     @Enumerated(EnumType.STRING)

@@ -25,9 +25,9 @@ public class PointBalance extends BaseEntity {
     @JoinColumn(name = "family_group_id", nullable = false)
     private FamilyGroup familyGroup;
 
-    /** Phase 2: yangi scope (HOUSEHOLD). V37 da NOT NULL bo'ladi. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scope_id")
+    /** Phase 2: yangi scope (HOUSEHOLD). V39 da NOT NULL qilindi. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scope_id", nullable = false)
     private Scope scope;
 
     @OneToOne(fetch = FetchType.LAZY)
