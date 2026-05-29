@@ -532,7 +532,12 @@ public class FamilyMemberService {
         r.setBirthDate(m.getBirthDate());
         r.setBirthPlace(m.getBirthPlace());
         r.setDeathDate(m.getDeathDate());
-        r.setPhone(m.getPhone());
+        // Member'da telefon ko'rsatilmagan bo'lsa, bog'langan user telefonini (registratsiyada
+        // kiritilgan) fallback qilamiz — eski a'zolarda member.phone bo'sh bo'lishi mumkin.
+        String memberPhone = (m.getPhone() != null && !m.getPhone().isBlank())
+                ? m.getPhone()
+                : (m.getUser() != null ? m.getUser().getPhone() : null);
+        r.setPhone(memberPhone);
         r.setAvatar(m.getAvatar());
         r.setIsActive(m.getIsActive());
         r.setCreatedAt(m.getCreatedAt());
