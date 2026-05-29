@@ -54,9 +54,9 @@ public class PointParticipantService {
     public PointParticipantResponse create(PointParticipantRequest request) {
         var userDetails = configService.getCurrentUserDetails();
         FamilyGroup group = configService.getCurrentFamilyGroup();
-        // Phase 2: aktiv scope ham olish — yangi entity'larga dual-write uchun
-        var activeScope = configService.getScopeContext()
-                .getActiveScopeOptional().orElse(null);
+        // Phase 2.G: aktiv scope MAJBURIY — participant/balance/savings uchun NOT NULL.
+        // Scope yo'q bo'lsa getActiveScope() aniq xato tashlaydi.
+        var activeScope = configService.getScopeContext().getActiveScope();
 
         if (request.getFamilyMemberId() != null) {
             if (participantRepository.existsByFamilyGroupIdAndFamilyMemberId(group.getId(), request.getFamilyMemberId())) {

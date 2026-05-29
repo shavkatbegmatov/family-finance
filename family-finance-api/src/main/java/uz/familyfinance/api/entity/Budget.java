@@ -38,8 +38,8 @@ public class Budget extends BaseEntity implements Auditable {
      * guruh/xonadon bilan bog'lanmagan, bir oilaning byudjeti boshqa oila
      * ko'ra olardi.</p>
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scope_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scope_id", nullable = false)
     private Scope scope;
 
     @Column(nullable = false, precision = 19, scale = 2)

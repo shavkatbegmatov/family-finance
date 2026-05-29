@@ -77,9 +77,9 @@ public class BudgetService {
                 .period(request.getPeriod())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
-                // Phase 2: yangi byudjet aktiv scope'ga bog'lanadi (kritik bug fix —
-                // ilgari byudjetlar global edi, har xil oilalar bir-birinikini ko'rardi)
-                .scope(scopeContext.getActiveScopeOptional().orElse(null))
+                // Phase 2.G: byudjet AKTIV scope'ga MAJBURIY bog'lanadi. Scope yo'q bo'lsa
+                // getActiveScope() aniq xato tashlaydi — NOT NULL constraint buzilmaydi.
+                .scope(scopeContext.getActiveScope())
                 .build();
 
         return toResponse(budgetRepository.save(budget));

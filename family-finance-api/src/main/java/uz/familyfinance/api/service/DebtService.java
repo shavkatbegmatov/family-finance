@@ -63,8 +63,8 @@ public class DebtService {
                 .dueDate(request.getDueDate())
                 .description(request.getDescription())
                 .status(DebtStatus.ACTIVE)
-                // Phase 2: scope'ga bog'lash (kritik bug fix — qarzlar global edi)
-                .scope(scopeContext.getActiveScopeOptional().orElse(null))
+                // Phase 2.G: qarz AKTIV scope'ga MAJBURIY bog'lanadi (NOT NULL constraint).
+                .scope(scopeContext.getActiveScope())
                 .build();
         return toResponse(debtRepository.save(debt));
     }

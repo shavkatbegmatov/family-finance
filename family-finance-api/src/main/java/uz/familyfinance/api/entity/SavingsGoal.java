@@ -48,8 +48,8 @@ public class SavingsGoal extends BaseEntity implements Auditable {
      * Bu maydon avval mavjud bo'lmagan (bug — savings goal'lar global edi).
      * V35 backfill account orqali to'lgan, V37 da NOT NULL bo'ladi.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scope_id")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "scope_id", nullable = false)
     private Scope scope;
 
     @Column(length = 50)

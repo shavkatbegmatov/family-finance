@@ -59,8 +59,9 @@ public class SavingsGoalService {
                 .deadline(request.getDeadline())
                 .icon(request.getIcon())
                 .color(request.getColor())
-                // Phase 2: scope'ga bog'lash (kritik bug fix — jamg'arma maqsadlari global edi)
-                .scope(scopeContext.getActiveScopeOptional().orElse(null))
+                // Phase 2.G: jamg'arma AKTIV scope'ga MAJBURIY bog'lanadi (NOT NULL constraint).
+                // scope_id — savings_goals'ning yagona tenant kaliti (family_group_id yo'q).
+                .scope(scopeContext.getActiveScope())
                 .build();
 
         if (request.getAccountId() != null) {
