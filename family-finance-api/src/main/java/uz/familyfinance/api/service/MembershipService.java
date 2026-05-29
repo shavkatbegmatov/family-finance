@@ -9,15 +9,18 @@ import uz.familyfinance.api.dto.request.MembershipInviteRequest;
 import uz.familyfinance.api.dto.request.ScopeRoleUpdateRequest;
 import uz.familyfinance.api.dto.response.MembershipResponse;
 import uz.familyfinance.api.entity.FamilyGroup;
+import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.Scope;
 import uz.familyfinance.api.entity.ScopeMembership;
 import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.MembershipStatus;
 import uz.familyfinance.api.enums.ScopeRole;
 import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ConflictException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
+import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.ScopeMembershipRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
@@ -36,6 +39,7 @@ public class MembershipService {
     private final ScopeMembershipRepository membershipRepository;
     private final ScopeRepository scopeRepository;
     private final UserRepository userRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final ScopeContextService scopeContext;
 
     // ====================================================================
@@ -239,6 +243,10 @@ public class MembershipService {
         FamilyGroup fg = clan.getLegacyFamilyGroup();
         if (fg != null) {
             user.setFamilyGroup(fg);
+            // MUHIM: user'ning FamilyMember (genealogiya/a'zo) yozuvini ham yangi
+            // family_group'ga ko'chiramiz — aks holda /my-family va /family
+            // sahifalarida ko'rinmaydi (ular FamilyMember.family_group bo'yicha filtr qiladi).
+            moveOrCreateFamilyMember(user, fg);
         }
         userRepository.save(user);
 
@@ -246,6 +254,44 @@ public class MembershipService {
                 user.getUsername(), clan.getId(), household.getId());
 
         return MembershipResponse.from(newHouseholdMembership);
+    }
+
+    /**
+     * User'ning FamilyMember yozuvini berilgan family_group'ga ko'chiradi.
+     * Mavjud bo'lsa — family_group'ni yangilaydi; bo'lmasa — yangi yaratadi.
+     * Bu user yangi oilaning a'zolar ro'yxatida ko'rinishini ta'minlaydi.
+     */
+    private void moveOrCreateFamilyMember(User user, FamilyGroup targetGroup) {
+        familyMemberRepository.findByUserId(user.getId()).ifPresentOrElse(
+                member -> {
+                    member.setFamilyGroup(targetGroup);
+                    familyMemberRepository.save(member);
+                    log.info("Moved FamilyMember {} to family group {}",
+                            member.getId(), targetGroup.getId());
+                },
+                () -> {
+                    // Ism/familiyani user.fullName'dan ajratamiz
+                    String fullName = user.getFullName() != null ? user.getFullName().trim() : user.getUsername();
+                    String firstName = fullName;
+                    String lastName = "";
+                    if (fullName.contains(" ")) {
+                        String[] parts = fullName.split("\\s+", 2);
+                        // fullName odatda "Familiya Ism" formatida — lekin xavfsizlik uchun ikkalasini ham saqlaymiz
+                        firstName = parts[1];
+                        lastName = parts[0];
+                    }
+                    FamilyMember member = FamilyMember.builder()
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .role(FamilyRole.OTHER)
+                            .user(user)
+                            .familyGroup(targetGroup)
+                            .isActive(true)
+                            .build();
+                    familyMemberRepository.save(member);
+                    log.info("Created FamilyMember for user {} in family group {}",
+                            user.getUsername(), targetGroup.getId());
+                });
     }
 
     private ScopeMembership ensureMembership(Scope scope, User user, ScopeRole role) {
