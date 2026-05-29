@@ -101,14 +101,18 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
         setMyScopes(scopes);
 
         // Aktiv scope tanlash mantiqi:
-        //   1. Avvalgi aktiv scope hali ham mavjud bo'lsa, uni saqlaymiz
+        //   1. Avvalgi aktiv scope hali ham mavjud bo'lsa — server'dan kelgan
+        //      YANGI versiyasi bilan yangilaymiz (currentUserRole eskirmasligi uchun)
         //   2. Aks holda OWNER bo'lgan scope (asosiyroq)
         //   3. Aks holda birinchi scope
-        const currentActiveStillExists = activeScope
-          ? scopes.some((s) => s.id === activeScope.id)
-          : false;
+        const refreshedActive = activeScope
+          ? scopes.find((s) => s.id === activeScope.id)
+          : undefined;
 
-        if (!currentActiveStillExists && scopes.length > 0) {
+        if (refreshedActive) {
+          // Aktiv scope hali mavjud — eng so'nggi ma'lumot bilan yangilaymiz
+          setActiveScope(refreshedActive);
+        } else if (scopes.length > 0) {
           const owner = scopes.find((s) => s.currentUserRole === 'OWNER');
           setActiveScope(owner ?? scopes[0]);
         }

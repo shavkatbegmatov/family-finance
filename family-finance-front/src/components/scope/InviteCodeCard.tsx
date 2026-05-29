@@ -18,9 +18,16 @@ export function InviteCodeCard() {
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
+  // Faqat OWNER/ADMIN invite kodni ko'ra/boshqara oladi. MEMBER/VIEWER bo'lsa
+  // umuman so'rov yubormaymiz — aks holda backend 403 qaytaradi va keraksiz
+  // "ruxsat yo'q" toast chiqadi.
+  const canManage = activeScope?.currentUserRole === 'OWNER'
+    || activeScope?.currentUserRole === 'ADMIN';
+
   useEffect(() => {
-    if (!activeScope?.id) {
+    if (!activeScope?.id || !canManage) {
       setLoading(false);
+      setCode(null);
       return;
     }
     let cancelled = false;
@@ -33,7 +40,7 @@ export function InviteCodeCard() {
         if (!cancelled) setCode(res.data.data.inviteCode);
       })
       .catch(() => {
-        if (!cancelled) setError("Kod olinmadi — siz OWNER yoki ADMIN bo'lishingiz kerak");
+        if (!cancelled) setError("Kod olinmadi");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -42,7 +49,12 @@ export function InviteCodeCard() {
     return () => {
       cancelled = true;
     };
-  }, [activeScope?.id]);
+  }, [activeScope?.id, canManage]);
+
+  // OWNER/ADMIN bo'lmasa — kartani umuman ko'rsatmaymiz
+  if (!canManage) {
+    return null;
+  }
 
   const handleCopy = async () => {
     if (!code) return;
