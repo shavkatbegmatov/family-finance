@@ -1130,10 +1130,13 @@ export function FamilyMembersPage() {
                 onChange={(val) =>
                   setForm((prev) => ({ ...prev, gender: (val as Gender) || undefined }))
                 }
-                options={Object.entries(GENDERS).map(([key, { label }]) => ({
-                  value: key,
-                  label,
-                }))}
+                options={[
+                  { value: '', label: 'Tanlanmagan' },
+                  ...Object.entries(GENDERS).map(([key, { label }]) => ({
+                    value: key,
+                    label,
+                  })),
+                ]}
                 placeholder="Tanlanmagan"
               />
 

@@ -55,9 +55,10 @@ export function AddChildModal({
     ([key, { label }]) => ({ value: key, label })
   );
 
-  const genderOptions: SelectOption[] = Object.entries(GENDERS).map(
-    ([key, { label }]) => ({ value: key, label })
-  );
+  const genderOptions: SelectOption[] = [
+    { value: '', label: 'Tanlanmagan' },
+    ...Object.entries(GENDERS).map(([key, { label }]) => ({ value: key, label })),
+  ];
 
   const resetForm = () => {
     setMode('new');

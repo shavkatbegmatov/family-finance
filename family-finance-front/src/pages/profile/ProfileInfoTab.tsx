@@ -51,9 +51,10 @@ export function ProfileInfoTab({ userData, onUserDataChange }: ProfileInfoTabPro
   const updateSelf = useUpdateSelf();
   const { updateUser } = useAuthStore();
 
-  const genderOptions: SelectOption[] = Object.entries(GENDERS).map(
-    ([key, { label }]) => ({ value: key, label })
-  );
+  const genderOptions: SelectOption[] = [
+    { value: '', label: 'Tanlanmagan' },
+    ...Object.entries(GENDERS).map(([key, { label }]) => ({ value: key, label })),
+  ];
 
   // Helper function to get role label
   const getRoleLabel = (roleCode: string): string => {
