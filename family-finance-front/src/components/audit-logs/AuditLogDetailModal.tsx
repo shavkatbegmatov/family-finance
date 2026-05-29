@@ -302,8 +302,8 @@ export function AuditLogDetailModal({ logId, onClose }: AuditLogDetailModalProps
                         </tr>
                       </thead>
                       <tbody>
-                        {detail.fieldChanges.map((change, index) => (
-                          <tr key={index} className="border-b border-base-300 last:border-0">
+                        {detail.fieldChanges.map((change) => (
+                          <tr key={change.fieldName} className="border-b border-base-300 last:border-0">
                             <td>
                               <div>
                                 <p className="font-medium">{change.fieldLabel}</p>
@@ -350,8 +350,8 @@ export function AuditLogDetailModal({ logId, onClose }: AuditLogDetailModalProps
 
                   {/* Mobile vertical stack */}
                   <div className="md:hidden space-y-3">
-                    {detail.fieldChanges.map((change, index) => (
-                      <div key={index} className="border-l-4 border-base-300 pl-3 py-2 bg-base-100 rounded">
+                    {detail.fieldChanges.map((change) => (
+                      <div key={change.fieldName} className="border-l-4 border-base-300 pl-3 py-2 bg-base-100 rounded">
                         {/* Field label and badge */}
                         <div className="flex items-center justify-between mb-2">
                           <div>

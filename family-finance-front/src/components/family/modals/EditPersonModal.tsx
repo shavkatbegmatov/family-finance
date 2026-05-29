@@ -44,9 +44,10 @@ export function EditPersonModal({
     (person?.userId != null && person.userId === currentUser?.id) ||
     currentUser?.familyMemberId === personId;
 
-  const genderOptions: SelectOption[] = Object.entries(GENDERS).map(
-    ([key, { label }]) => ({ value: key, label })
-  );
+  const genderOptions: SelectOption[] = [
+    { value: '', label: 'Tanlanmagan' },
+    ...Object.entries(GENDERS).map(([key, { label }]) => ({ value: key, label })),
+  ];
 
   // Load person data
   useEffect(() => {

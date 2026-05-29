@@ -119,6 +119,9 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
       })
       .catch((err) => {
         console.error('Scope\'larni yuklashda xato:', err);
+        const msg = (err as { response?: { data?: { message?: string } } })
+          ?.response?.data?.message;
+        toast.error(msg ?? 'Scope\'larni yuklashda xatolik');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

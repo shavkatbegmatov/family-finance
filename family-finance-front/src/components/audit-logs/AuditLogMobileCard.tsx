@@ -134,8 +134,8 @@ export function AuditLogMobileCard({
                     <h4 className="font-medium text-sm text-base-content/80">
                       O'zgarishlar ({fieldChanges.length})
                     </h4>
-                    {fieldChanges.map((change, index) => (
-                      <MobileFieldChangeRow key={index} change={change} />
+                    {fieldChanges.map((change) => (
+                      <MobileFieldChangeRow key={change.fieldName} change={change} />
                     ))}
                   </div>
                 ) : (

@@ -185,8 +185,8 @@ export function AuditLogExpandableRow({
                             </tr>
                           </thead>
                           <tbody>
-                            {fieldChanges.map((change, index) => (
-                              <tr key={index} className="border-b border-base-300 last:border-0">
+                            {fieldChanges.map((change) => (
+                              <tr key={change.fieldName} className="border-b border-base-300 last:border-0">
                                 <td className="py-2 font-medium text-sm">{change.fieldLabel}</td>
                                 <td
                                   className={`py-2 text-sm ${
