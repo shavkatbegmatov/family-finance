@@ -10,6 +10,11 @@
     --font-display: 'Sora', 'Manrope', sans-serif;
     --shadow-soft: 0 16px 40px -28px rgba(15, 23, 42, 0.45);
     --shadow-strong: 0 24px 60px -28px rgba(15, 23, 42, 0.6);
+    --app-header-height: 4rem;
+    --toast-viewport-gap: 0.875rem;
+    --toast-public-top-offset: calc(1rem + env(safe-area-inset-top, 0px));
+    --toast-top-offset: calc(var(--app-header-height) + var(--toast-viewport-gap) + env(safe-area-inset-top, 0px));
+    --toast-bottom-offset: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 
   html {
@@ -200,6 +205,18 @@
 
   .form-control-wrapper.disabled {
     @apply opacity-50 pointer-events-none bg-base-200;
+  }
+
+  .app-toast {
+    width: min(390px, calc(100vw - 2rem));
+    box-shadow:
+      0 18px 48px -24px rgba(2, 6, 23, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .app-toast-viewport {
+    z-index: 80;
   }
 
   /* Standardized label styling */

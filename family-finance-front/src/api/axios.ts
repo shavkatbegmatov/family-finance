@@ -165,6 +165,7 @@ api.interceptors.response.use(
         responseData?.message || "Sizda bu amalni bajarish uchun ruxsat yo'q";
 
       toast.error(message, {
+        id: 'permission-denied',
         duration: 4000,
         icon: '🔒',
       });
