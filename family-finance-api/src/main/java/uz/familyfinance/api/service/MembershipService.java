@@ -189,7 +189,16 @@ public class MembershipService {
      */
     @Transactional
     public MembershipResponse joinByCode(String inviteCode, boolean archiveOldClan) {
-        User user = scopeContext.getCurrentUser();
+        // MUHIM: scopeContext.getCurrentUser() JWT autentifikatsiyada yuklangan
+        // DETACHED User qaytaradi — uning LAZY maydonlari (primaryScope, familyGroup)
+        // ga kirsak LazyInitializationException bo'ladi. Shu sabab repository'dan
+        // qayta yuklaymiz (managed entity).
+        Long currentUserId = scopeContext.getCurrentUserId();
+        if (currentUserId == null) {
+            throw new AccessDeniedException("Autentifikatsiya kerak");
+        }
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
         Scope target = scopeRepository.findByUniqueCode(inviteCode)
                 .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
                 .orElseThrow(() -> new BadRequestException(

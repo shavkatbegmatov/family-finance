@@ -228,7 +228,12 @@ public class AuthService {
      * user'larni ham yangi multi-scope tizimiga moslab beradi.
      */
     @Transactional
-    public void ensureUserHasScope(User user) {
+    public void ensureUserHasScope(User userParam) {
+        if (userParam == null || userParam.getId() == null) return;
+        // MUHIM: login paytida bu metod JWT autentifikatsiyadagi DETACHED user
+        // bilan chaqirilishi mumkin. LAZY maydonlarga (familyGroup/primaryScope)
+        // xavfsiz kirish uchun managed entity'ni repository'dan qayta yuklaymiz.
+        User user = userRepository.findById(userParam.getId()).orElse(null);
         if (user == null) return;
         if (user.getFamilyGroup() != null && user.getPrimaryScope() != null) {
             return; // hammasi joyida
