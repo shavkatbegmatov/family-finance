@@ -11,6 +11,7 @@ import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -120,10 +121,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
        // Access-controlled queries
 
        @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Account a WHERE a.id = :accountId AND " +
-                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
+                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.homeScope.id IN :visibleScopeIds) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
        boolean canUserAccessAccount(@Param("accountId") Long accountId,
                      @Param("userId") Long userId,
-                     @Param("isAdmin") boolean isAdmin);
+                     @Param("isAdmin") boolean isAdmin,
+                     @Param("visibleScopeIds") Collection<Long> visibleScopeIds);
 
        @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner " +
                      "WHERE a.familyGroup.id = :familyGroupId AND a.scope = 'FAMILY' " +
