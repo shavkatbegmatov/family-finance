@@ -56,17 +56,22 @@ public class AccountService {
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
             Pageable pageable, CustomUserDetails currentUser) {
-        Page<Account> page = accountRepository.findAccessibleAccounts(
-                currentUser.getId(), currentUser.isAdmin(),
-                search, accountType, status, pageable);
+        Long scopeId = scopeContext.getActiveScopeIdOrNull();
+        if (scopeId == null) {
+            return Page.empty(pageable);
+        }
+        Page<Account> page = accountRepository.findByScopeId(scopeId, search, accountType, status, pageable);
         Map<Long, AccountAccessRole> roleMap = buildRoleMap(page.getContent(), currentUser.getId());
         return page.map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()));
     }
 
     @Transactional(readOnly = true)
     public List<AccountResponse> getAllActive(CustomUserDetails currentUser) {
-        List<Account> accounts = accountRepository.findAccessibleActiveAccounts(currentUser.getId(),
-                currentUser.isAdmin());
+        Long scopeId = scopeContext.getActiveScopeIdOrNull();
+        if (scopeId == null) {
+            return List.of();
+        }
+        List<Account> accounts = accountRepository.findActiveByScopeId(scopeId);
         Map<Long, AccountAccessRole> roleMap = buildRoleMap(accounts, currentUser.getId());
         return accounts.stream()
                 .map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()))
@@ -90,7 +95,11 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public BigDecimal getTotalBalance() {
-        return accountRepository.getTotalBalance();
+        Long scopeId = scopeContext.getActiveScopeIdOrNull();
+        if (scopeId == null) {
+            return BigDecimal.ZERO;
+        }
+        return accountRepository.getTotalBalanceByScopeId(scopeId);
     }
 
     @Transactional
@@ -203,7 +212,11 @@ public class AccountService {
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getMyAccounts(Long userId, Pageable pageable) {
-        Page<Account> page = accountRepository.findMyAccountsWithScope(userId, pageable);
+        Long scopeId = scopeContext.getActiveScopeIdOrNull();
+        if (scopeId == null) {
+            return Page.empty(pageable);
+        }
+        Page<Account> page = accountRepository.findMyAccountsByScopeId(scopeId, userId, pageable);
         Map<Long, AccountAccessRole> roleMap = buildRoleMap(page.getContent(), userId);
         return page.map(a -> toResponseWithAccessRole(a, roleMap, userId));
     }

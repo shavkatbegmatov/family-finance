@@ -10,8 +10,6 @@ import uz.familyfinance.api.entity.Account;
 import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
 
-import uz.familyfinance.api.enums.AccountScope;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -31,18 +29,20 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
        List<Account> findByTypeAndCurrencyAndIsActiveTrue(AccountType type, String currency);
 
-       /**
-        * @deprecated Multi-tenant data leak — barcha oilalar balansini qo'shadi.
-        *             Phase 2'dan keyin: {@link #getTotalBalanceByFamilyGroup(Long)} ishlatish kerak.
-        */
-       @Deprecated
-       @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a WHERE a.isActive = true")
-       BigDecimal getTotalBalance();
-
-       /** Faqat berilgan family_group'ning hisoblar yig'indisi (scope-aware). */
+       /** Faqat berilgan family_group'ning hisoblar yig'indisi (legacy — Dashboard ishlatadi). */
        @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a "
             + "WHERE a.isActive = true AND a.familyGroup.id = :familyGroupId")
        BigDecimal getTotalBalanceByFamilyGroup(@Param("familyGroupId") Long familyGroupId);
+
+       /**
+        * Aktiv scope'dagi hisoblar balansi yig'indisi (scope-aware, "Umumiy balans" KPI).
+        *
+        * <p>{@code homeScope.id = :scopeId} filtri SYSTEM_TRANSIT global hisoblarni
+        * (scope_id = NULL) avtomatik chiqaradi.</p>
+        */
+       @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a "
+            + "WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId")
+       BigDecimal getTotalBalanceByScopeId(@Param("scopeId") Long scopeId);
 
        @Query("SELECT a FROM Account a WHERE a.isActive = true AND " +
                      "LOWER(a.name) LIKE LOWER(CONCAT('%', :search, '%'))")
@@ -71,49 +71,58 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                      @Param("status") AccountStatus status,
                      Pageable pageable);
 
-       @Query("SELECT a FROM Account a JOIN a.accessList al WHERE al.user.id = :userId AND a.isActive = true AND a.type <> 'SYSTEM_TRANSIT'")
-       Page<Account> findMyAccounts(@Param("userId") Long userId, Pageable pageable);
-
        List<Account> findByStatusAndIsActiveTrue(AccountStatus status);
 
-       // Access-controlled queries
+       // ==========================================================
+       // Scope-aware queries (Phase 2 — homeScope/scope_id bo'yicha)
+       // ==========================================================
 
-       @Query(value = "SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND "
-                     +
-                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
+       /**
+        * "Barcha hisoblar" tabi — aktiv scope'ga tegishli barcha hisoblar.
+        *
+        * <p>{@code homeScope.id = :scopeId} aniq tanlangan scope bilan filtrlaydi
+        * (SYSTEM_TRANSIT global hisoblar scope_id = NULL bo'lgani uchun chiqib ketadi).</p>
+        */
+       @Query(value = "SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
                      +
                      "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
                      +
                      "(:accountType IS NULL OR a.type = :accountType) AND " +
-                     "(:status IS NULL OR a.status = :status)", countQuery = "SELECT COUNT(a) FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND "
-                                   +
-                                   "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
+                     "(:status IS NULL OR a.status = :status)", countQuery = "SELECT COUNT(a) FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
                                    +
                                    "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
                                    +
                                    "(:accountType IS NULL OR a.type = :accountType) AND " +
                                    "(:status IS NULL OR a.status = :status)")
-       Page<Account> findAccessibleAccounts(@Param("userId") Long userId,
-                     @Param("isAdmin") boolean isAdmin,
+       Page<Account> findByScopeId(@Param("scopeId") Long scopeId,
                      @Param("search") String search,
                      @Param("accountType") AccountType accountType,
                      @Param("status") AccountStatus status,
                      Pageable pageable);
 
+       /**
+        * "Mening hisoblarim" tabi — aktiv scope ichida men bilan bog'liq hisoblar:
+        * men owner (FamilyMember.user = me) bo'lgan YOKI menga AccountAccess berilgan.
+        */
+       @Query("SELECT a FROM Account a LEFT JOIN a.owner o LEFT JOIN o.user ou "
+                     +
+                     "WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
+                     +
+                     "(ou.id = :userId OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
+       Page<Account> findMyAccountsByScopeId(@Param("scopeId") Long scopeId,
+                     @Param("userId") Long userId,
+                     Pageable pageable);
+
+       /** Aktiv scope'dagi barcha aktiv hisoblar (/list dropdown uchun). */
+       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId")
+       List<Account> findActiveByScopeId(@Param("scopeId") Long scopeId);
+
+       // Access-controlled queries
+
        @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Account a WHERE a.id = :accountId AND " +
                      "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
        boolean canUserAccessAccount(@Param("accountId") Long accountId,
                      @Param("userId") Long userId,
-                     @Param("isAdmin") boolean isAdmin);
-
-       @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
-                     "((a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
-       Page<Account> findMyAccountsWithScope(@Param("userId") Long userId, Pageable pageable);
-
-       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND "
-                     +
-                     "(:isAdmin = true OR (a.scope = 'FAMILY' AND a.familyGroup.id = (SELECT u.familyGroup.id FROM User u WHERE u.id = :userId)) OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
-       List<Account> findAccessibleActiveAccounts(@Param("userId") Long userId,
                      @Param("isAdmin") boolean isAdmin);
 
        @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner " +

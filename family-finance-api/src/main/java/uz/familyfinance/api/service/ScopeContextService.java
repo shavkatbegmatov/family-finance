@@ -122,6 +122,18 @@ public class ScopeContextService {
         return getActiveScope().getId();
     }
 
+    /**
+     * Aktiv scope ID yoki {@code null} (aktiv scope aniqlanmasa).
+     *
+     * <p>{@link #getActiveScopeId()} dan farqli — exception tashlamaydi.
+     * Yangi yoki scope tanlanmagan user'lar uchun read-only ro'yxat/KPI
+     * so'rovlarida bo'sh natija qaytarish uchun ishlatiladi.</p>
+     */
+    @Transactional(readOnly = true)
+    public Long getActiveScopeIdOrNull() {
+        return getActiveScopeOptional().map(Scope::getId).orElse(null);
+    }
+
     // ====================================================================
     // Legacy family_group bridge (Phase 2 transition helper)
     // ====================================================================
