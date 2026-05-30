@@ -35,8 +35,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,6 +54,12 @@ public class AccountService {
     private final CardRepository cardRepository;
     private final CardEncryptionService cardEncryptionService;
     private final ScopeContextService scopeContext;
+
+    /**
+     * Sentinel — JPQL {@code IN :visibleScopeIds} hech qachon bo'sh kolleksiya
+     * olmasligi kerak. Mavjud bo'lmagan ID hech qaysi hisobga mos kelmaydi.
+     */
+    private static final Collection<Long> NO_VISIBLE_SCOPES = List.of(-1L);
 
     @Transactional(readOnly = true)
     public Page<AccountResponse> getAll(String search, AccountType accountType, AccountStatus status,
@@ -298,12 +306,24 @@ public class AccountService {
     // Access check helpers
     // -----------------------------------------------------------------------
 
+    /**
+     * Joriy foydalanuvchining ko'rinadigan scope ID'lari (FAMILY hisoblar uchun).
+     * Bo'sh bo'lsa sentinel qaytaradi — JPQL {@code IN} bo'sh ro'yxat olmasligi uchun.
+     */
+    private Collection<Long> visibleScopeIds() {
+        Set<Long> visible = scopeContext.getVisibleScopeIds();
+        return visible.isEmpty() ? NO_VISIBLE_SCOPES : visible;
+    }
+
     private void checkAccess(Account account, CustomUserDetails currentUser) {
         if (currentUser.isAdmin())
             return;
-        if (account.getScope() == AccountScope.FAMILY)
-            return;
-        if (!accountRepository.canUserAccessAccount(account.getId(), currentUser.getId(), false)) {
+        // Scope-aware tekshiruv: FAMILY hisob faqat o'sha hisobning homeScope'i
+        // joriy foydalanuvchiga ko'rinadigan scope'lar ichida bo'lsagina ochiladi
+        // (cross-tenant ma'lumot oqishining oldini oladi). Boshqa hisoblar esa
+        // faqat aniq AccountAccess grant orqali ko'rinadi.
+        if (!accountRepository.canUserAccessAccount(account.getId(), currentUser.getId(), false,
+                visibleScopeIds())) {
             throw new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q");
         }
     }
