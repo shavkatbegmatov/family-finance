@@ -124,6 +124,18 @@ export interface AddChildRequest {
   birthOrder?: number;
 }
 
+export interface AddParentsRequest {
+  childPersonId: number;
+  fatherId?: number;
+  fatherFirstName?: string;
+  fatherBirthDate?: string;
+  motherId?: number;
+  motherFirstName?: string;
+  motherBirthDate?: string;
+  marriageType?: MarriageType;
+  marriageDate?: string;
+}
+
 // ============ React Flow Node/Edge Data ============
 export interface PersonNodeData {
   person: TreePerson;
