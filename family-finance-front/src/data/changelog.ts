@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.4.1',
+        date: '2026-06-01 02:15',
+        title: "Xonadon ko'rinishi: yangi a'zolar avtomatik bog'lanadi",
+        features: [],
+        fixes: [
+            "Yangi ro'yxatdan o'tgan foydalanuvchi, qo'shilgan oila a'zosi va yaratilgan nikoh endi avtomatik xonadonga bog'lanadi — \"Xonadonlar\" ko'rinishida darhol paydo bo'ladi (ilgari scope bog'lanmagani uchun ko'rinmasdi).",
+            "Yangi xonadonlarga avtomatik raqam (masalan \"278-541\") beriladi.",
+            "Xonadon hali bo'lmaganda tushunarli ko'rsatma va \"Shaxslar\" ko'rinishiga o'tish tugmasi qo'shildi."
+        ]
+    },
+    {
         version: '1.4.0',
         date: '2026-05-31 05:15',
         title: "Xonadon-markazli oila shajarasi",

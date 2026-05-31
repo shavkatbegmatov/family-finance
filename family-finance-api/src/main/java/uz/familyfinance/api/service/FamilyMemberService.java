@@ -275,6 +275,8 @@ public class FamilyMemberService {
                 member.setFamilyGroup(currentUser.getUser().getFamilyGroup());
             }
         }
+        // Yangi a'zoni aktiv HOUSEHOLD scope'iga bog'lash (xonadon ko'rinishi uchun)
+        scopeContext.getActiveHousehold().ifPresent(member::setScope);
 
         FamilyMember saved = familyMemberRepository.save(member);
 
@@ -330,6 +332,9 @@ public class FamilyMemberService {
             if (currentUser.getFamilyGroup() != null && existing.getFamilyGroup() == null) {
                 existing.setFamilyGroup(currentUser.getFamilyGroup());
             }
+            if (existing.getScope() == null) {
+                scopeContext.getActiveHousehold().ifPresent(existing::setScope);
+            }
             FamilyMember saved = familyMemberRepository.save(existing);
             currentUser.setFullName(saved.getDisplayName());
             userRepository.save(currentUser);
@@ -348,6 +353,7 @@ public class FamilyMemberService {
                 .role(role)
                 .user(currentUser)
                 .familyGroup(currentUser.getFamilyGroup())
+                .scope(scopeContext.getActiveHousehold().orElse(null))
                 .build();
 
         FamilyMember saved = familyMemberRepository.save(member);

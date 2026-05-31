@@ -8,9 +8,11 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react';
 import toast from 'react-hot-toast';
+import { Home, Users } from 'lucide-react';
 import { useHouseholdLayout } from '../../../hooks/useHouseholdLayout';
 import { nodeTypes, edgeTypes } from './nodeTypes';
 import { useScopeStore } from '../../../store/scopeStore';
+import { useFamilyTreeStore } from '../../../store/familyTreeStore';
 import { useSwitchScope } from '../../../hooks/useSwitchScope';
 import type { HouseholdTreeResponse, HouseholdNodeData } from '../../../types';
 
@@ -23,6 +25,7 @@ export function HouseholdFlowTree({ data }: HouseholdFlowTreeProps) {
   const reactFlow = useReactFlow();
   const isInitialLoad = useRef(true);
   const myScopes = useScopeStore((s) => s.myScopes);
+  const setViewMode = useFamilyTreeStore((s) => s.setViewMode);
   const { switchScope } = useSwitchScope();
 
   // Xonadon qutisini bosish → o'sha xonadonning moliyaviy scope'iga o'tish.
@@ -60,10 +63,23 @@ export function HouseholdFlowTree({ data }: HouseholdFlowTreeProps) {
 
   if (nodes.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-center">
-        <p className="text-sm text-base-content/50">
-          Xonadonlar topilmadi. Oila a'zolarini xonadonga (HOUSEHOLD scope) bog'lang.
-        </p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
+        <Home className="h-12 w-12 text-base-content/20" />
+        <div>
+          <p className="text-base font-medium">Hali xonadon yo'q</p>
+          <p className="mt-1 max-w-md text-sm text-base-content/50">
+            Xonadon — bu nikoh (ota-ona va farzandlar). "Shaxslar" ko'rinishida oila daraxtini
+            quring: turmush o'rtoq va farzandlar qo'shilgach, ular shu yerda xonadon bo'lib ko'rinadi.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm gap-1.5"
+          onClick={() => setViewMode('person')}
+        >
+          <Users className="h-4 w-4" />
+          Shaxslar ko'rinishiga o'tish
+        </button>
       </div>
     );
   }

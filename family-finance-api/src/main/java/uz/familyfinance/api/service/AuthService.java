@@ -34,6 +34,7 @@ import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.JwtTokenProvider;
+import uz.familyfinance.api.util.HouseholdCodeGenerator;
 import uz.familyfinance.api.util.InviteCodeGenerator;
 
 import java.time.LocalDateTime;
@@ -56,6 +57,7 @@ public class AuthService {
     private final LoginAttemptService loginAttemptService;
     private final AuditLogService auditLogService;
     private final InviteCodeGenerator inviteCodeGenerator;
+    private final HouseholdCodeGenerator householdCodeGenerator;
 
     @Value("${jwt.expiration}")
     private long jwtExpiration;
@@ -197,6 +199,7 @@ public class AuthService {
                     .role(FamilyRole.OTHER)
                     .user(user)
                     .familyGroup(familyGroup)
+                    .scope(household)
                     .build();
             familyMemberRepository.save(familyMember);
         }
@@ -286,6 +289,7 @@ public class AuthService {
                 .parentScope(clan)
                 .ownerUser(user)
                 .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.HOUSEHOLD))
+                .displayCode(householdCodeGenerator.generate())
                 .legacyFamilyGroup(familyGroup)
                 .isActive(true)
                 .build();
@@ -324,6 +328,7 @@ public class AuthService {
                     .role(FamilyRole.OTHER)
                     .user(user)
                     .familyGroup(familyGroup)
+                    .scope(household)
                     .build();
             familyMemberRepository.save(familyMember);
         } else {
