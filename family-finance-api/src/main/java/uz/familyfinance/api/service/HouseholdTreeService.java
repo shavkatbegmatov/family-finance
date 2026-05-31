@@ -17,6 +17,7 @@ import uz.familyfinance.api.repository.FamilyUnitRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,14 +29,18 @@ import java.util.stream.Collectors;
 /**
  * Xonadon-markazli oila daraxti servisi.
  *
- * <p>Tugun = HOUSEHOLD scope (ichida bir yoki bir nechta {@link FamilyUnit}),
- * qirra = bir xonadon farzandi boshqa xonadonda ota/ona (partner) bo'lganda.</p>
+ * <p>Tugun = bitta {@link FamilyUnit} (nikoh birligi: ota-ona + farzandlar) —
+ * aynan vizual diagrammadagi har bir "xonadon" qutisi. Bir HOUSEHOLD scope'da bir
+ * nechta FamilyUnit bo'lsa, har biri ALOHIDA tugun bo'ladi (birlashtirilmaydi).
+ * {@code scopeId}/{@code displayCode} esa shu oila tegishli byudjet-xonadonni
+ * bildiradi (UI'da bosilganda o'sha scope'ga o'tish uchun).</p>
  *
- * <p>Shaxs-markazli {@link TreeTraversalService} dan ataylab AYRIM: u yerda tugun
- * shaxs, bu yerda tugun xonadon — semantika boshqacha (Single Responsibility).</p>
+ * <p>Qirra = bir FamilyUnit farzandi boshqa FamilyUnit'da ota/ona (partner) bo'lganda
+ * (turmush qurib yangi oila tashkil etgan).</p>
  *
- * <p>Xavfsizlik: tugunlar faqat {@code getVisibleScopeIds()} ichidagi HOUSEHOLD'lar;
- * qirralar faqat shu tugun-to'plam ichida bog'lanadi (cross-tenant leak himoyasi).</p>
+ * <p>Shaxs-markazli {@link TreeTraversalService} dan ataylab AYRIM (Single
+ * Responsibility). Xavfsizlik: faqat {@code getVisibleScopeIds()} ichidagi
+ * HOUSEHOLD'larga tegishli unit'lar; qirralar faqat shu tugun-to'plam ichida.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -47,7 +52,7 @@ public class HouseholdTreeService {
     private final FamilyUnitService familyUnitService;
     private final ScopeContextService scopeContext;
 
-    /** Joriy user ko'ra oladigan barcha xonadonlar grafi. */
+    /** Joriy user ko'ra oladigan barcha oilalar (FamilyUnit) grafi. */
     @Transactional(readOnly = true)
     public HouseholdTreeResponse getHouseholdTree() {
         return buildResponse(resolveVisibleHouseholds());
@@ -80,20 +85,22 @@ public class HouseholdTreeService {
     }
 
     // ====================================================================
-    // Javob qurish (tugun + qirra)
+    // Javob qurish — har FamilyUnit alohida tugun
     // ====================================================================
 
     private HouseholdTreeResponse buildResponse(List<Scope> households) {
-        Set<Long> nodeScopeIds = households.stream().map(Scope::getId).collect(Collectors.toSet());
+        List<FamilyUnit> units = new ArrayList<>();
+        for (Scope household : households) {
+            units.addAll(familyUnitRepository.findByScopeIdWithRelations(household.getId()));
+        }
+        Set<Long> nodeUnitIds = units.stream().map(FamilyUnit::getId).collect(Collectors.toSet());
 
-        List<HouseholdNodeDto> nodes = new ArrayList<>();
+        List<HouseholdNodeDto> nodes = units.stream().map(this::buildNode).collect(Collectors.toList());
+
         List<HouseholdEdgeDto> edges = new ArrayList<>();
         Set<String> seenEdges = new HashSet<>();
-
-        for (Scope household : households) {
-            List<FamilyUnit> units = familyUnitRepository.findByScopeIdWithRelations(household.getId());
-            nodes.add(buildNode(household, units));
-            collectEdges(household.getId(), units, nodeScopeIds, edges, seenEdges);
+        for (FamilyUnit unit : units) {
+            collectEdges(unit, nodeUnitIds, edges, seenEdges);
         }
 
         HouseholdTreeResponse response = new HouseholdTreeResponse();
@@ -102,54 +109,54 @@ public class HouseholdTreeService {
         return response;
     }
 
-    private HouseholdNodeDto buildNode(Scope household, List<FamilyUnit> units) {
+    private HouseholdNodeDto buildNode(FamilyUnit unit) {
+        Scope scope = unit.getScope();
         HouseholdNodeDto node = new HouseholdNodeDto();
-        node.setScopeId(household.getId());
-        node.setDisplayCode(household.getDisplayCode());
-        node.setName(household.getName());
-        node.setFamilyUnitIds(units.stream().map(FamilyUnit::getId).collect(Collectors.toList()));
-        node.setParents(units.stream()
-                .flatMap(u -> familyUnitService.mapPartners(u).stream())
-                .collect(Collectors.toList()));
-        node.setChildren(units.stream()
-                .flatMap(u -> familyUnitService.mapChildren(u).stream())
-                .collect(Collectors.toList()));
+        node.setFamilyUnitId(unit.getId());
+        node.setScopeId(scope != null ? scope.getId() : null);
+        node.setDisplayCode(scope != null ? scope.getDisplayCode() : null);
+        node.setName(unitName(unit));
+        node.setParents(familyUnitService.mapPartners(unit));
+        node.setChildren(familyUnitService.mapChildren(unit));
         return node;
     }
 
-    private void collectEdges(Long fromScopeId, List<FamilyUnit> units, Set<Long> nodeScopeIds,
+    /** Oila nomi — birinchi partner (PARTNER1) ning to'liq ismi. */
+    private String unitName(FamilyUnit unit) {
+        return unit.getPartners().stream()
+                .min(Comparator.comparing(FamilyPartner::getRole))
+                .map(p -> p.getPerson().getFullName())
+                .orElse("Oila");
+    }
+
+    /** Bu unit farzandi boshqa unit'da partner (ota/ona) bo'lsa → qirra. */
+    private void collectEdges(FamilyUnit unit, Set<Long> nodeUnitIds,
                               List<HouseholdEdgeDto> edges, Set<String> seenEdges) {
-        for (FamilyUnit unit : units) {
-            for (FamilyChild child : unit.getChildren()) {
-                addEdgesForChild(fromScopeId, child.getPerson().getId(), nodeScopeIds, edges, seenEdges);
+        for (FamilyChild child : unit.getChildren()) {
+            Long childPersonId = child.getPerson().getId();
+            for (FamilyUnit partnerUnit : familyUnitRepository.findByPartnerId(childPersonId)) {
+                Long toUnitId = partnerUnit.getId();
+                if (Objects.equals(toUnitId, unit.getId()) || !nodeUnitIds.contains(toUnitId)) {
+                    continue;
+                }
+                String key = unit.getId() + "->" + toUnitId + ":" + childPersonId;
+                if (seenEdges.add(key)) {
+                    edges.add(buildEdge(unit.getId(), toUnitId, childPersonId));
+                }
             }
         }
     }
 
-    private void addEdgesForChild(Long fromScopeId, Long childPersonId, Set<Long> nodeScopeIds,
-                                  List<HouseholdEdgeDto> edges, Set<String> seenEdges) {
-        for (FamilyUnit partnerUnit : familyUnitRepository.findByPartnerId(childPersonId)) {
-            Long toScopeId = scopeIdOf(partnerUnit);
-            if (toScopeId == null || Objects.equals(toScopeId, fromScopeId) || !nodeScopeIds.contains(toScopeId)) {
-                continue;
-            }
-            String key = fromScopeId + "->" + toScopeId + ":" + childPersonId;
-            if (seenEdges.add(key)) {
-                edges.add(buildEdge(fromScopeId, toScopeId, childPersonId));
-            }
-        }
-    }
-
-    private HouseholdEdgeDto buildEdge(Long fromScopeId, Long toScopeId, Long viaChildPersonId) {
+    private HouseholdEdgeDto buildEdge(Long fromUnitId, Long toUnitId, Long viaChildPersonId) {
         HouseholdEdgeDto edge = new HouseholdEdgeDto();
-        edge.setFromScopeId(fromScopeId);
-        edge.setToScopeId(toScopeId);
+        edge.setFromUnitId(fromUnitId);
+        edge.setToUnitId(toUnitId);
         edge.setViaChildPersonId(viaChildPersonId);
         return edge;
     }
 
     // ====================================================================
-    // BFS — bitta xonadondan kengayish
+    // BFS — bitta xonadon (scope) dan kengayish (getHouseholdTreeFrom uchun)
     // ====================================================================
 
     private Set<Long> bfsReachableHouseholds(Long startScopeId, int depth, Set<Long> visibleIds) {

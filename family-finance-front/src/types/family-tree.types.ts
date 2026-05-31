@@ -64,17 +64,17 @@ export interface TreeResponse {
 
 // ============ Household Tree (xonadon-markazli) ============
 export interface HouseholdNodeDto {
-  scopeId: number;
+  familyUnitId: number;
+  scopeId?: number;
   displayCode?: string;
   name: string;
-  familyUnitIds: number[];
   parents: PartnerDto[];
   children: ChildDto[];
 }
 
 export interface HouseholdEdgeDto {
-  fromScopeId: number;
-  toScopeId: number;
+  fromUnitId: number;
+  toUnitId: number;
   viaChildPersonId: number;
 }
 

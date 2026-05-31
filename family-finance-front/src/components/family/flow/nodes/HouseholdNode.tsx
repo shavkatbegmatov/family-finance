@@ -83,12 +83,15 @@ function HouseholdNodeComponent({ data }: NodeProps) {
       <Handle id="hh-top" type="target" position={Position.Top} className={HANDLE_CLASS} />
       <Handle id="hh-bottom" type="source" position={Position.Bottom} className={HANDLE_CLASS} />
 
-      {/* Sarlavha */}
+      {/* Sarlavha — oila boshlig'i ismi + byudjet-xonadon raqami */}
       <div className="flex items-center gap-2 border-b border-base-300 bg-base-300/50 px-3 py-2">
         <Home className="h-4 w-4 shrink-0 text-base-content/60" />
-        <span className="truncate text-sm font-semibold">
-          Xonadon{household.displayCode ? `: ${household.displayCode}` : ''}
-        </span>
+        <span className="flex-1 truncate text-sm font-semibold">{household.name || 'Oila'}</span>
+        {household.displayCode && (
+          <span className="shrink-0 text-[10px] text-base-content/40" title="Xonadon raqami">
+            #{household.displayCode}
+          </span>
+        )}
       </div>
 
       <div className="space-y-3 p-3">
