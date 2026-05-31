@@ -18,7 +18,9 @@ export const changelogData: ChangelogEntry[] = [
             "Xonadon qutisini bosib bevosita o'sha xonadonning moliyaviy bo'limiga (byudjet/hisoblar) o'tish imkoniyati qo'shildi.",
             "Har bir xonadonga inson o'qiy oladigan qisqa raqam (masalan \"278-541\") biriktirildi."
         ],
-        fixes: []
+        fixes: [
+            "Nikohi yo'q shaxsga farzand qo'shish oynasi qulayroq qilindi: \"Turmush o'rtoq qo'shish\" va \"Yagona ota-ona\" variantlari endi aniq tanlov kartalari ko'rinishida, izohlari bilan ko'rsatiladi."
+        ]
     },
     {
         version: '1.3.4',
