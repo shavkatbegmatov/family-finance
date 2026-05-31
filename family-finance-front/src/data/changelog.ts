@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.4.0',
+        date: '2026-05-31 05:15',
+        title: "Xonadon-markazli oila shajarasi",
+        features: [
+            "Oila a'zolari → \"Daraxti\" sahifasiga yangi \"Xonadonlar\" ko'rinishi qo'shildi: har bir xonadon alohida quti bo'lib, ichida ota-ona va farzandlar birga ko'rsatiladi.",
+            "\"Shaxslar\" va \"Xonadonlar\" ko'rinishlari orasida bitta tugma bilan almashtirish mumkin.",
+            "Xonadonlar bir-biriga farzandlar orqali bog'lanadi: bir xonadonda farzand bo'lgan kishi turmush qurib boshqa xonadonda ota/ona bo'lgani avtomatik strelka bilan ko'rsatiladi.",
+            "Xonadon qutisini bosib bevosita o'sha xonadonning moliyaviy bo'limiga (byudjet/hisoblar) o'tish imkoniyati qo'shildi.",
+            "Har bir xonadonga inson o'qiy oladigan qisqa raqam (masalan \"278-541\") biriktirildi."
+        ],
+        fixes: [
+            "Nikohi yo'q shaxsga farzand qo'shish oynasi qulayroq qilindi: \"Turmush o'rtoq qo'shish\" va \"Yagona ota-ona\" variantlari endi aniq tanlov kartalari ko'rinishida, izohlari bilan ko'rsatiladi."
+        ]
+    },
+    {
         version: '1.3.4',
         date: '2026-02-26 04:30',
         title: "Banklar katalogi va karta-bank integratsiyasi",

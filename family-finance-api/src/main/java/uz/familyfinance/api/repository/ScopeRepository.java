@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import uz.familyfinance.api.entity.Scope;
 import uz.familyfinance.api.enums.ScopeType;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -18,11 +19,17 @@ public interface ScopeRepository extends JpaRepository<Scope, Long> {
 
     boolean existsByUniqueCode(String uniqueCode);
 
+    /** Xonadon display_code unikalligi tekshiruvi (HouseholdCodeGenerator uchun). */
+    boolean existsByDisplayCode(String displayCode);
+
     /** Berilgan user OWNER bo'lgan barcha scope'lar. */
     List<Scope> findByOwnerUserId(Long ownerUserId);
 
     /** Ma'lum tipdagi va aktiv scope'lar. */
     List<Scope> findByTypeAndIsActiveTrue(ScopeType type);
+
+    /** Ma'lum tipdagi, berilgan ID'lar ichidagi aktiv scope'lar (visibility filtri uchun). */
+    List<Scope> findByTypeAndIdInAndIsActiveTrue(ScopeType type, Collection<Long> ids);
 
     /** Berilgan parent ostidagi barcha bevosita farzand scope'lar. */
     List<Scope> findByParentScopeIdAndIsActiveTrue(Long parentScopeId);

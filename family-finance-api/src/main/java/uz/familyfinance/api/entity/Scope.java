@@ -51,6 +51,14 @@ public class Scope extends BaseEntity {
     @Column(name = "unique_code", unique = true, length = 32)
     private String uniqueCode;
 
+    /**
+     * Inson o'qiy oladigan qisqa xonadon raqami (masalan "278-541").
+     * {@link #uniqueCode} (sir invite kod) dan ALOHIDA — UI'da ko'rsatish uchun.
+     * Faqat HOUSEHOLD turidagi scope'larda to'ldiriladi.
+     */
+    @Column(name = "display_code", length = 16)
+    private String displayCode;
+
     /** Tur-specifik konfiguratsiya. Misol: EVENT uchun {expectedBudget: 50000000}. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "jsonb")

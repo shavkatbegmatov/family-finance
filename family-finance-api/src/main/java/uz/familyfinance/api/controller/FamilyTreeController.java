@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.response.*;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.security.RequiresPermission;
+import uz.familyfinance.api.service.HouseholdTreeService;
 import uz.familyfinance.api.service.KinshipCalculatorService;
 import uz.familyfinance.api.service.TreeTraversalService;
 
@@ -18,6 +19,7 @@ public class FamilyTreeController {
 
     private final TreeTraversalService treeTraversalService;
     private final KinshipCalculatorService kinshipCalculatorService;
+    private final HouseholdTreeService householdTreeService;
 
     @GetMapping
     @RequiresPermission(PermissionCode.FAMILY_VIEW)
@@ -63,5 +65,19 @@ public class FamilyTreeController {
                 .collect(java.util.stream.Collectors.toList()));
         response.setFamilyUnits(tree.getFamilyUnits());
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/households")
+    @RequiresPermission(PermissionCode.FAMILY_VIEW)
+    public ResponseEntity<ApiResponse<HouseholdTreeResponse>> getHouseholdTree() {
+        return ResponseEntity.ok(ApiResponse.success(householdTreeService.getHouseholdTree()));
+    }
+
+    @GetMapping("/households/{scopeId}")
+    @RequiresPermission(PermissionCode.FAMILY_VIEW)
+    public ResponseEntity<ApiResponse<HouseholdTreeResponse>> getHouseholdTreeFrom(
+            @PathVariable Long scopeId,
+            @RequestParam(defaultValue = "5") int depth) {
+        return ResponseEntity.ok(ApiResponse.success(householdTreeService.getHouseholdTreeFrom(scopeId, depth)));
     }
 }

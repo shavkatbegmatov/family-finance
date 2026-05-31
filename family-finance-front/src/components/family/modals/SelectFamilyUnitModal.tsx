@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import { X, Users } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { X, HeartOff, HeartHandshake, User, ChevronRight } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useFamilyUnitsByPersonQuery } from '../../../hooks/useFamilyTreeQueries';
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
@@ -19,6 +19,7 @@ export function SelectFamilyUnitModal({
 }: SelectFamilyUnitModalProps) {
   const { data: allFamilyUnits = [], isLoading } = useFamilyUnitsByPersonQuery(personId);
   const { openModal } = useFamilyTreeStore();
+  const [isCreatingUnit, setIsCreatingUnit] = useState(false);
 
   // Faqat partner sifatida bo'lgan unitlar (farzand qo'shish uchun)
   const familyUnits = useMemo(
@@ -38,6 +39,8 @@ export function SelectFamilyUnitModal({
   );
 
   const handleSingleParent = async () => {
+    if (isCreatingUnit) return;
+    setIsCreatingUnit(true);
     try {
       const { familyUnitApi } = await import('../../../api/family-unit.api');
       const res = await familyUnitApi.createFamilyUnit({ partner1Id: personId });
@@ -46,6 +49,7 @@ export function SelectFamilyUnitModal({
       openModal({ type: 'addChild', familyUnitId: newUnit.id });
     } catch {
       toast.error("Oila birligini yaratishda xatolik");
+      setIsCreatingUnit(false);
     }
   };
 
@@ -61,29 +65,66 @@ export function SelectFamilyUnitModal({
     return (
       <ModalPortal isOpen={isOpen} onClose={onClose}>
         <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
-          <div className="p-4 sm:p-6 text-center">
-            <Users className="h-12 w-12 mx-auto mb-3 text-base-content/30" />
-            <h3 className="text-lg font-semibold mb-2">Nikoh topilmadi</h3>
-            <p className="text-sm text-base-content/60 mb-4">
-              Farzand qo&apos;shish uchun turmush o&apos;rtoq qo&apos;shing yoki yagona ota-ona sifatida davom eting.
-            </p>
-            <div className="flex gap-2 justify-center">
-              <button className="btn btn-ghost btn-sm" onClick={onClose}>
-                Bekor qilish
-              </button>
+          <div className="p-5 sm:p-6">
+            {/* Header */}
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-base-200">
+                <HeartOff className="h-7 w-7 text-base-content/40" />
+              </div>
+              <h3 className="text-lg font-semibold">Nikoh topilmadi</h3>
+              <p className="mt-1.5 text-sm text-base-content/60">
+                Farzand qo&apos;shish uchun avval turmush o&apos;rtoq qo&apos;shing yoki yagona ota-ona sifatida davom eting.
+              </p>
+            </div>
+
+            {/* Choice cards */}
+            <div className="mt-5 space-y-2.5">
               <button
-                className="btn btn-outline btn-sm"
+                className="group w-full flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+                disabled={isCreatingUnit}
                 onClick={() => {
                   onClose();
                   openModal({ type: 'addSpouse', personId });
                 }}
               >
-                Turmush o&apos;rtoq qo&apos;shish
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <HeartHandshake className="h-5 w-5" />
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium">Turmush o&apos;rtoq qo&apos;shish</p>
+                  <p className="text-xs text-base-content/50">Nikoh yaratib, so&apos;ng farzand qo&apos;shasiz</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-base-content/30 transition-colors group-hover:text-primary" />
               </button>
-              <button className="btn btn-primary btn-sm" onClick={handleSingleParent}>
-                Yagona ota-ona
+
+              <button
+                className="group w-full flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+                disabled={isCreatingUnit}
+                onClick={handleSingleParent}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                  {isCreatingUnit ? (
+                    <span className="loading loading-spinner loading-sm" />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
+                </span>
+                <div className="flex-1">
+                  <p className="font-medium">Yagona ota-ona</p>
+                  <p className="text-xs text-base-content/50">Turmush o&apos;rtoqsiz farzand qo&apos;shasiz</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-base-content/30 transition-colors group-hover:text-primary" />
               </button>
             </div>
+
+            {/* Cancel */}
+            <button
+              className="btn btn-ghost btn-sm btn-block mt-3 text-base-content/60"
+              onClick={onClose}
+              disabled={isCreatingUnit}
+            >
+              Bekor qilish
+            </button>
           </div>
         </div>
       </ModalPortal>

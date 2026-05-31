@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Users, Plus, AlertTriangle, RefreshCw, UserPlus } from 'lucide-react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FamilyFlowTree } from './flow/FamilyFlowTree';
+import { HouseholdFlowTree } from './flow/HouseholdFlowTree';
 import { FamilyTreeToolbar } from './FamilyTreeToolbar';
 import { TreeContextMenu } from './TreeContextMenu';
 import { FamilyTreeModals } from './modals/FamilyTreeModals';
 import { PersonDetailPanel } from './modals/PersonDetailPanel';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
-import { useTreeQuery, useLabeledTreeQuery, useRegisterSelf } from '../../hooks/useFamilyTreeQueries';
+import { useTreeQuery, useLabeledTreeQuery, useRegisterSelf, useHouseholdTreeQuery } from '../../hooks/useFamilyTreeQueries';
 import { useAuthStore } from '../../store/authStore';
 import { GENDERS, FAMILY_ROLES } from '../../config/constants';
 import type { TreeResponse } from '../../types';
@@ -21,6 +22,7 @@ export function FamilyTreeView() {
     activeModal,
     isSidebarPinned,
     closeModal,
+    viewMode,
   } = useFamilyTreeStore();
 
   // Use labeled tree if viewer is selected, otherwise use normal tree
@@ -30,6 +32,7 @@ export function FamilyTreeView() {
     viewerPersonId ?? 0,
     depth
   );
+  const householdQuery = useHouseholdTreeQuery();
 
   // Pick the right data
   const isLabeled = !!viewerPersonId;
@@ -73,7 +76,7 @@ export function FamilyTreeView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.familyMemberId, treeQuery.data?.rootPersonId]);
 
-  if (isLoading) {
+  if (viewMode === 'person' && isLoading) {
     return (
       <div className="flex justify-center py-16">
         <span className="loading loading-spinner loading-lg text-primary" />
@@ -82,7 +85,7 @@ export function FamilyTreeView() {
   }
 
   // Error: not linked — show register-self form
-  if (isError) {
+  if (viewMode === 'person' && isError) {
     const axiosErr = error as { response?: { status?: number } };
     if (axiosErr?.response?.status === 404) {
       return <RegisterSelfForm />;
@@ -107,7 +110,7 @@ export function FamilyTreeView() {
   }
 
   // Empty tree
-  if (!treeData || treeData.persons.length === 0) {
+  if (viewMode === 'person' && (!treeData || treeData.persons.length === 0)) {
     return (
       <div className="surface-card p-12 text-center">
         <Users className="h-16 w-16 mx-auto mb-4 text-base-content/20" />
@@ -150,7 +153,17 @@ export function FamilyTreeView() {
         <div className="bg-base-200/30 flex-1 min-h-0">
           {/* React Flow container */}
           <div className="h-full">
-            <FamilyFlowTree treeData={treeData} />
+            {viewMode === 'household' ? (
+              householdQuery.isLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <span className="loading loading-spinner loading-lg text-primary" />
+                </div>
+              ) : (
+                <HouseholdFlowTree data={householdQuery.data ?? { households: [], edges: [] }} />
+              )
+            ) : (
+              <FamilyFlowTree treeData={treeData!} />
+            )}
           </div>
 
         </div>

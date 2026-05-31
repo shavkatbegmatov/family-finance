@@ -3,6 +3,7 @@ import { familyUnitApi } from '../api/family-unit.api';
 import { familyMembersApi } from '../api/family-members.api';
 import type {
   TreeResponse,
+  HouseholdTreeResponse,
   FamilyUnitDto,
   RelationshipResult,
   CreateFamilyUnitRequest,
@@ -32,6 +33,8 @@ export const familyTreeKeys = {
     [...familyTreeKeys.all, 'by-person', personId] as const,
   activePersons: () =>
     [...familyTreeKeys.all, 'active-persons'] as const,
+  households: () =>
+    [...familyTreeKeys.all, 'households'] as const,
 };
 
 // ========== Tree Queries ==========
@@ -41,6 +44,18 @@ export function useTreeQuery(personId?: number, depth = 5) {
     queryFn: async () => {
       const res = await familyUnitApi.getTree(personId, depth);
       return (res.data as ApiResponse<TreeResponse>).data;
+    },
+    retry: false,
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function useHouseholdTreeQuery() {
+  return useQuery({
+    queryKey: familyTreeKeys.households(),
+    queryFn: async () => {
+      const res = await familyUnitApi.getHouseholdTree();
+      return (res.data as ApiResponse<HouseholdTreeResponse>).data;
     },
     retry: false,
     placeholderData: (previousData) => previousData,

@@ -209,8 +209,17 @@ public class FamilyUnitService {
         r.setStatus(unit.getStatus());
         r.setMarriageDate(unit.getMarriageDate());
         r.setDivorceDate(unit.getDivorceDate());
+        r.setPartners(mapPartners(unit));
+        r.setChildren(mapChildren(unit));
+        return r;
+    }
 
-        r.setPartners(unit.getPartners().stream()
+    /**
+     * FamilyUnit partnerlarini PartnerResponse ro'yxatiga (role, person id tartibida).
+     * DRY — {@code toResponse} va {@code HouseholdTreeService} ikkalasi ishlatadi.
+     */
+    public List<PartnerResponse> mapPartners(FamilyUnit unit) {
+        return unit.getPartners().stream()
                 .sorted(Comparator
                         .comparing(FamilyPartner::getRole)
                         .thenComparing(p -> p.getPerson().getId()))
@@ -224,9 +233,15 @@ public class FamilyUnitService {
                     pr.setRole(p.getRole());
                     return pr;
                 })
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
+    }
 
-        r.setChildren(unit.getChildren().stream()
+    /**
+     * FamilyUnit farzandlarini ChildResponse ro'yxatiga (birthOrder, birthDate, id tartibida).
+     * DRY — {@code toResponse} va {@code HouseholdTreeService} ikkalasi ishlatadi.
+     */
+    public List<ChildResponse> mapChildren(FamilyUnit unit) {
+        return unit.getChildren().stream()
                 .sorted(Comparator
                         .comparing(FamilyChild::getBirthOrder, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(c -> c.getPerson().getBirthDate(), Comparator.nullsLast(Comparator.naturalOrder()))
@@ -242,8 +257,6 @@ public class FamilyUnitService {
                     cr.setBirthOrder(c.getBirthOrder());
                     return cr;
                 })
-                .collect(Collectors.toList()));
-
-        return r;
+                .collect(Collectors.toList());
     }
 }
