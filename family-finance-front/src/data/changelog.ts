@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.4.5',
+        date: '2026-06-01 04:00',
+        title: "Turmush o'rtoq mavjud oilaga qo'shiladi",
+        features: [],
+        fixes: [
+            "Yagona ota-ona sifatida farzand qo'shilgan oilaga keyin turmush o'rtoq qo'shilsa, endi turmush o'rtoq O'SHA nikohga qo'shiladi (ilgari alohida nikoh yaratilib, farzand shajara daraxtida ko'rinmay qolardi)."
+        ]
+    },
+    {
         version: '1.4.4',
         date: '2026-06-01 03:42',
         title: "Ota-ona qo'shish endi atomik",

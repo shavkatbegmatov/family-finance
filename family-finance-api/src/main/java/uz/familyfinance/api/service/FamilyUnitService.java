@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.AddChildRequest;
 import uz.familyfinance.api.dto.request.AddParentsRequest;
 import uz.familyfinance.api.dto.request.AddPartnerRequest;
+import uz.familyfinance.api.dto.request.AddSpouseRequest;
 import uz.familyfinance.api.dto.request.CreateFamilyUnitRequest;
 import uz.familyfinance.api.dto.request.UpdateFamilyUnitRequest;
 import uz.familyfinance.api.dto.response.*;
@@ -23,6 +24,7 @@ import uz.familyfinance.api.repository.*;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -128,6 +130,64 @@ public class FamilyUnitService {
                 .scope(scopeContext.getActiveHousehold().orElse(null))
                 .build();
         return familyMemberRepository.save(parent);
+    }
+
+    /**
+     * Shaxsga turmush o'rtoq qo'shish. Agar shaxsda turmush o'rtoqsiz (yagona ota-ona)
+     * nikoh bo'lsa — turmush o'rtoq O'SHA nikohga qo'shiladi (yangi nikoh yaratilmaydi),
+     * shunda farzandlar bir nikohda qoladi va daraxtda to'g'ri ko'rinadi. Aks holda yangi nikoh.
+     */
+    @Transactional
+    public FamilyUnitResponse addSpouse(AddSpouseRequest request) {
+        FamilyMember person = findMember(request.getPersonId());
+
+        FamilyMember spouse;
+        if (request.getSpouseId() != null) {
+            spouse = findMember(request.getSpouseId());
+        } else {
+            spouse = familyMemberRepository.save(FamilyMember.builder()
+                    .firstName(request.getSpouseFirstName() != null ? request.getSpouseFirstName().trim() : null)
+                    .lastName(request.getSpouseLastName())
+                    .middleName(request.getSpouseMiddleName())
+                    .gender(request.getSpouseGender())
+                    .role(FamilyRole.OTHER)
+                    .birthDate(request.getSpouseBirthDate())
+                    .scope(scopeContext.getActiveHousehold().orElse(null))
+                    .build());
+        }
+
+        validationService.validateNotSelfPartnership(person.getId(), spouse.getId());
+        validationService.validateDuplicateMarriage(person.getId(), spouse.getId());
+
+        Optional<FamilyUnit> singleUnit = findSingleParentUnit(person.getId());
+        if (singleUnit.isPresent()) {
+            FamilyUnit unit = singleUnit.get();
+            if (request.getMarriageType() != null) {
+                unit.setMarriageType(request.getMarriageType());
+            }
+            if (request.getMarriageDate() != null) {
+                unit.setMarriageDate(request.getMarriageDate());
+            }
+            familyUnitRepository.save(unit);
+            familyPartnerRepository.save(FamilyPartner.builder()
+                    .familyUnit(unit).person(spouse).role(PartnerRole.PARTNER2).build());
+            return getById(unit.getId());
+        }
+
+        CreateFamilyUnitRequest createReq = new CreateFamilyUnitRequest();
+        createReq.setPartner1Id(person.getId());
+        createReq.setPartner2Id(spouse.getId());
+        createReq.setMarriageType(request.getMarriageType());
+        createReq.setMarriageDate(request.getMarriageDate());
+        return createFamilyUnit(createReq);
+    }
+
+    /** Shaxs partner bo'lgan, faqat bitta partnerli (turmush o'rtoqsiz) nikoh. */
+    private Optional<FamilyUnit> findSingleParentUnit(Long personId) {
+        return familyUnitRepository.findByPartnerIdWithRelations(personId).stream()
+                .filter(u -> u.getPartners().size() == 1
+                        && u.getPartners().iterator().next().getPerson().getId().equals(personId))
+                .findFirst();
     }
 
     @Transactional

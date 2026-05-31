@@ -5,7 +5,7 @@ import { TextInput } from '../../ui/TextInput';
 import { Select } from '../../ui/Select';
 import { PersonSelect } from '../../ui/PersonSelect';
 import { DateInput } from '../../ui/DateInput';
-import { useCreateFamilyUnit, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
+import { useAddSpouse, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
 import { MARRIAGE_TYPES, GENDERS } from '../../../config/constants';
 import type { MarriageType, Gender } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
@@ -41,7 +41,7 @@ export function AddSpouseModal({
   const [marriageType, setMarriageType] = useState<MarriageType>('MARRIED');
   const [marriageDate, setMarriageDate] = useState('');
 
-  const createFamilyUnit = useCreateFamilyUnit();
+  const addSpouse = useAddSpouse();
   const { data: activePersons = [] } = useActivePersonsQuery();
 
   const personOptions: SelectOption[] = activePersons
@@ -88,58 +88,28 @@ export function AddSpouseModal({
 
   const handleSubmit = async () => {
     if (!canSubmit()) return;
-
-    if (mode === 'existing') {
-      createFamilyUnit.mutate(
-        {
-          partner1Id: personId,
-          partner2Id: selectedPersonId as number,
-          marriageType,
-          marriageDate: marriageDate || undefined,
-        },
-        {
-          onSuccess: () => {
-            handleClose();
-            onSuccess();
-          },
-        }
-      );
-    } else {
-      // For new person mode, we need to create the person first, then create family unit
-      // Using the familyUnitApi directly for the two-step process
-      const { familyUnitApi } = await import('../../../api/family-unit.api');
-      try {
-        const res = await familyUnitApi.createPerson({
-          firstName: firstName.trim(),
-          lastName: lastName.trim() || undefined,
-          middleName: middleName.trim() || undefined,
-          gender: gender || undefined,
-          birthDate: birthDate || undefined,
-          role: 'OTHER',
-        });
-        const newPerson = (res.data as { data: { id: number } }).data;
-
-        createFamilyUnit.mutate(
-          {
-            partner1Id: personId,
-            partner2Id: newPerson.id,
-            marriageType,
-            marriageDate: marriageDate || undefined,
-          },
-          {
-            onSuccess: () => {
-              handleClose();
-              onSuccess();
-            },
-          }
-        );
-      } catch {
-        // Error is handled by the mutation's onError
-      }
+    try {
+      // Atomik: agar shaxsda turmush o'rtoqsiz (yagona ota-ona) nikoh bo'lsa,
+      // backend turmush o'rtoqni o'sha nikohga qo'shadi (yangi nikoh yaratmaydi).
+      await addSpouse.mutateAsync({
+        personId,
+        spouseId: mode === 'existing' ? (selectedPersonId as number) : undefined,
+        spouseFirstName: mode === 'new' ? firstName.trim() : undefined,
+        spouseLastName: mode === 'new' ? (lastName.trim() || undefined) : undefined,
+        spouseMiddleName: mode === 'new' ? (middleName.trim() || undefined) : undefined,
+        spouseGender: mode === 'new' ? (gender || undefined) : undefined,
+        spouseBirthDate: mode === 'new' ? (birthDate || undefined) : undefined,
+        marriageType,
+        marriageDate: marriageDate || undefined,
+      });
+      handleClose();
+      onSuccess();
+    } catch {
+      // Xatoliklar useAddSpouse onError'da ko'rsatiladi
     }
   };
 
-  const isSubmitting = createFamilyUnit.isPending;
+  const isSubmitting = addSpouse.isPending;
 
   return (
     <ModalPortal isOpen={isOpen} onClose={handleClose}>
