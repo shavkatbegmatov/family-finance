@@ -3,45 +3,9 @@ import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react';
 import { Calendar, MapPin, Network, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import type { PersonNodeData } from '../../../../types';
-import type { Gender } from '../../../../types';
+import { getGenderGradient, getGenderBorderColor, getAge, NODE_PLACEHOLDER } from './personCardUtils';
 import { useFamilyTreeStore } from '../../../../store/familyTreeStore';
 import { useAuthStore } from '../../../../store/authStore';
-
-const NODE_PLACEHOLDER = '-';
-
-const getGenderGradient = (gender?: Gender | null) => {
-  switch (gender) {
-    case 'MALE': return 'bg-gradient-to-br from-blue-400 to-blue-600';
-    case 'FEMALE': return 'bg-gradient-to-br from-pink-400 to-pink-600';
-    default: return 'bg-gradient-to-br from-amber-400 to-amber-600';
-  }
-};
-
-const getGenderBorderColor = (gender?: Gender | null, isRoot?: boolean) => {
-  if (isRoot) return 'border-primary ring-2 ring-primary/20';
-  switch (gender) {
-    case 'MALE': return 'border-blue-500/30';
-    case 'FEMALE': return 'border-pink-500/30';
-    default: return 'border-amber-500/30';
-  }
-};
-
-const getAge = (birthDate?: string, deathDate?: string): string => {
-  if (!birthDate) return NODE_PLACEHOLDER;
-  const birth = new Date(birthDate);
-  if (Number.isNaN(birth.getTime())) return NODE_PLACEHOLDER;
-
-  const end = deathDate ? new Date(deathDate) : new Date();
-  if (Number.isNaN(end.getTime())) return NODE_PLACEHOLDER;
-
-  let age = end.getFullYear() - birth.getFullYear();
-  const monthDiff = end.getMonth() - birth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && end.getDate() < birth.getDate())) {
-    age--;
-  }
-  if (deathDate) return `${age} yosh (vafot)`;
-  return `${age} yosh`;
-};
 
 const getNameLines = (firstName?: string, lastName?: string, middleName?: string) => {
   const normalizedFirstName = firstName?.trim();

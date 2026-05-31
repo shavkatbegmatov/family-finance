@@ -1,24 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Crown, Loader2, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { useScopeStore } from '../../store/scopeStore';
-import { useNotificationsStore } from '../../store/notificationsStore';
 import { scopesApi } from '../../api/scopes.api';
 import type { ApiResponse } from '../../types';
 import type { Scope, ScopeRole } from '../../types/scope.types';
 import { SCOPE_TYPE_META } from './scopeTypeMeta';
+import { useSwitchScope } from '../../hooks/useSwitchScope';
 
 /**
- * Scope o'zgartirishi haqida xabar berish uchun global event.
- * Pages that don't use React Query (legacy useState+useEffect pattern) can
- * subscribe to this event and re-fetch their data.
- *
- * @see useScopeChangeEffect hook (foydalanish uchun)
+ * SCOPE_CHANGED_EVENT endi {@link useSwitchScope} hook'ida e'lon qilingan — bu yerdan
+ * re-export (mavjud import qiluvchilar, masalan useScopeChangeEffect, buzilmasligi uchun).
  */
-export const SCOPE_CHANGED_EVENT = 'scope-changed';
+export { SCOPE_CHANGED_EVENT } from '../../hooks/useSwitchScope';
 
 // =============================================================================
 // Constants
@@ -58,11 +54,6 @@ interface ScopeSwitcherProps {
  */
 export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
   const accessToken = useAuthStore((s) => s.accessToken);
-  const refreshToken = useAuthStore((s) => s.refreshToken);
-  const user = useAuthStore((s) => s.user);
-  const permissions = useAuthStore((s) => s.permissions);
-  const roles = useAuthStore((s) => s.roles);
-  const setAuth = useAuthStore((s) => s.setAuth);
 
   const activeScope = useScopeStore((s) => s.activeScope);
   const myScopes = useScopeStore((s) => s.myScopes);
@@ -71,13 +62,10 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
   const setMyScopes = useScopeStore((s) => s.setMyScopes);
   const setLoading = useScopeStore((s) => s.setLoading);
 
-  // Professional approach uchun react-query va websocket bilan integratsiya
-  const queryClient = useQueryClient();
-  const connectWebSocket = useNotificationsStore((s) => s.connectWebSocket);
-  const disconnectWebSocket = useNotificationsStore((s) => s.disconnectWebSocket);
+  // Scope almashtirish mantig'i — useSwitchScope hook (HouseholdNode bilan baham, DRY)
+  const { switchScope, switchingId } = useSwitchScope();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [switchingId, setSwitchingId] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Login bo'lganidan keyin scope'larni yuklash.
@@ -150,84 +138,10 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
   // Scope'larni Clan bo'yicha guruhlash
   const grouped = useMemo(() => groupScopesByClan(myScopes), [myScopes]);
 
-  const handleSwitch = useCallback(
-    async (target: Scope) => {
-      if (!target || target.id === activeScope?.id || switchingId !== null) return;
-      if (!user || !accessToken || !refreshToken) return;
-
-      setSwitchingId(target.id);
-      try {
-        const res = await scopesApi.switchScope({
-          scopeId: target.id,
-          persistAsPrimary: false,
-        });
-        const data = (res.data as ApiResponse<{
-          accessToken: string;
-        }>).data;
-        if (!data?.accessToken) {
-          throw new Error('Yangi token kelmadi');
-        }
-
-        const newAccessToken = data.accessToken;
-
-        // 1) authStore'ni yangilash — yangi JWT bilan.
-        //    setAuth localStorage.accessToken'ni ham yangilaydi → axios darhol
-        //    yangi tokenni Authorization header'ga qo'shadi.
-        setAuth(
-          user,
-          newAccessToken,
-          refreshToken,
-          Array.from(permissions),
-          Array.from(roles),
-        );
-
-        // 2) scopeStore'da aktiv scope'ni yangilash
-        setActiveScope(target);
-
-        // 3) WebSocket'ni yangi token bilan qayta ulash — eski ulanish eski
-        //    JWT'da edi, server-side yangi scope context'ni bilmaydi.
-        disconnectWebSocket();
-        connectWebSocket(newAccessToken);
-
-        // 4) React Query cache'ini to'liq invalidate qilish — barcha
-        //    `useQuery` mavjud sahifalar yangi scope kontekstida ma'lumotni
-        //    avtomatik qayta yuklaydi. Reload kerak emas.
-        await queryClient.invalidateQueries();
-
-        // 5) Eski useState+useEffect pattern bilan ma'lumot olishadigan
-        //    sahifalarni xabardor qilish uchun custom event.
-        //    @see useScopeChangeEffect hook
-        window.dispatchEvent(
-          new CustomEvent(SCOPE_CHANGED_EVENT, {
-            detail: { scope: target, previousScopeId: activeScope?.id ?? null },
-          }),
-        );
-
-        toast.success(`"${target.name}" ga o'tildi`);
-        setIsOpen(false);
-      } catch (err) {
-        const msg = (err as { response?: { data?: { message?: string } } })
-          ?.response?.data?.message;
-        toast.error(msg ?? 'Scope almashtirishda xatolik');
-      } finally {
-        setSwitchingId(null);
-      }
-    },
-    [
-      activeScope?.id,
-      switchingId,
-      user,
-      accessToken,
-      refreshToken,
-      permissions,
-      roles,
-      setAuth,
-      setActiveScope,
-      queryClient,
-      connectWebSocket,
-      disconnectWebSocket,
-    ],
-  );
+  const handleSwitch = async (target: Scope) => {
+    await switchScope(target);
+    setIsOpen(false);
+  };
 
   // Render
   if (!accessToken) return null;

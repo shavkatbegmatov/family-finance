@@ -17,6 +17,7 @@ import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.ScopeMembershipRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
+import uz.familyfinance.api.util.HouseholdCodeGenerator;
 import uz.familyfinance.api.util.InviteCodeGenerator;
 
 import java.util.List;
@@ -41,6 +42,7 @@ public class ScopeService {
     private final ScopeMembershipRepository membershipRepository;
     private final ScopeContextService scopeContext;
     private final InviteCodeGenerator inviteCodeGenerator;
+    private final HouseholdCodeGenerator householdCodeGenerator;
 
     // ====================================================================
     // List & get
@@ -98,6 +100,7 @@ public class ScopeService {
                 .parentScope(parent)
                 .ownerUser(currentUser)
                 .uniqueCode(inviteCodeGenerator.generateForType(request.getType()))
+                .displayCode(request.getType() == ScopeType.HOUSEHOLD ? householdCodeGenerator.generate() : null)
                 .metadata(request.getMetadata())
                 .startsAt(request.getStartsAt())
                 .endsAt(request.getEndsAt())

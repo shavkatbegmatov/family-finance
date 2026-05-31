@@ -29,6 +29,9 @@ interface FamilyTreeState {
   viewerPersonId: number | null;
   depth: number;
 
+  // View mode — shaxs-markazli yoki xonadon-markazli
+  viewMode: 'person' | 'household';
+
   // Selection
   selectedPersonId: number | null;
   selectedFamilyUnitId: number | null;
@@ -58,6 +61,7 @@ interface FamilyTreeState {
   setFocusedPersonId: (id: number | null) => void;
   setViewerPersonId: (id: number | null) => void;
   setDepth: (depth: number) => void;
+  setViewMode: (mode: 'person' | 'household') => void;
   setSelectedPersonId: (id: number | null) => void;
   setSelectedFamilyUnitId: (id: number | null) => void;
   openContextMenu: (state: ContextMenuState) => void;
@@ -78,6 +82,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   focusedPersonId: null,
   viewerPersonId: null,
   depth: 5,
+  viewMode: 'person',
   selectedPersonId: null,
   selectedFamilyUnitId: null,
   contextMenu: null,
@@ -93,6 +98,7 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   setFocusedPersonId: (id) => set({ focusedPersonId: id }),
   setViewerPersonId: (id) => set({ viewerPersonId: id }),
   setDepth: (depth) => set({ depth }),
+  setViewMode: (mode) => set({ viewMode: mode }),
   setSelectedPersonId: (id) => set({ selectedPersonId: id }),
   setSelectedFamilyUnitId: (id) => set({ selectedFamilyUnitId: id }),
   openContextMenu: (state) => set({ contextMenu: state }),

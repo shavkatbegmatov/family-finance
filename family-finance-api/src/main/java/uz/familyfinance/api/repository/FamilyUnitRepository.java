@@ -40,4 +40,10 @@ public interface FamilyUnitRepository extends JpaRepository<FamilyUnit, Long> {
     @Query("SELECT DISTINCT fu FROM FamilyUnit fu " +
            "JOIN fu.children c WHERE c.person.id = :personId")
     List<FamilyUnit> findByChildId(@Param("personId") Long personId);
+
+    @Query("SELECT DISTINCT fu FROM FamilyUnit fu " +
+           "LEFT JOIN FETCH fu.partners p LEFT JOIN FETCH p.person " +
+           "LEFT JOIN FETCH fu.children c LEFT JOIN FETCH c.person " +
+           "WHERE fu.scope.id = :scopeId")
+    List<FamilyUnit> findByScopeIdWithRelations(@Param("scopeId") Long scopeId);
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, type RefObject } from 'react';
-import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize } from 'lucide-react';
+import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize, Users, Home } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
@@ -21,6 +21,8 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
   const setGenderFilter = useFamilyTreeStore((s) => s.setGenderFilter);
   const depth = useFamilyTreeStore((s) => s.depth);
   const setDepth = useFamilyTreeStore((s) => s.setDepth);
+  const viewMode = useFamilyTreeStore((s) => s.viewMode);
+  const setViewMode = useFamilyTreeStore((s) => s.setViewMode);
 
   const { data: activePersons } = useActivePersonsQuery();
   const reactFlow = useReactFlow();
@@ -104,56 +106,82 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 px-3 py-2 bg-base-200/50 rounded-lg">
-      <ComboBox
-        size="sm"
-        icon={<Eye className="h-3.5 w-3.5" />}
-        placeholder="Oila a'zosini tanlang"
-        searchPlaceholder="Ism bo'yicha qidirish..."
-        value={viewerPersonId ?? undefined}
-        onChange={handlePersonSelect}
-        options={personOptions}
-        allowClear
-      />
-
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs text-base-content/50">Chuqurlik:</span>
-        <input
-          type="range"
-          min={1}
-          max={10}
-          value={depth}
-          onChange={(e) => setDepth(Number(e.target.value))}
-          className="range range-xs range-primary w-20"
-        />
-        <span className="text-xs font-medium w-4">{depth}</span>
+      {/* Ko'rinish almashtirish: shaxs ⇄ xonadon */}
+      <div className="flex gap-0.5 bg-base-200 rounded-lg p-0.5">
+        <button
+          type="button"
+          className={`btn btn-xs gap-1 ${viewMode === 'person' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setViewMode('person')}
+          title="Shaxslar ko'rinishi"
+        >
+          <Users className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Shaxslar</span>
+        </button>
+        <button
+          type="button"
+          className={`btn btn-xs gap-1 ${viewMode === 'household' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setViewMode('household')}
+          title="Xonadonlar ko'rinishi"
+        >
+          <Home className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Xonadonlar</span>
+        </button>
       </div>
 
-      <div className="flex items-center gap-1">
-        <label className="label cursor-pointer gap-1 p-0">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-xs"
-            checked={showDeceased}
-            onChange={(e) => setShowDeceased(e.target.checked)}
+      {viewMode === 'person' && (
+        <>
+          <ComboBox
+            size="sm"
+            icon={<Eye className="h-3.5 w-3.5" />}
+            placeholder="Oila a'zosini tanlang"
+            searchPlaceholder="Ism bo'yicha qidirish..."
+            value={viewerPersonId ?? undefined}
+            onChange={handlePersonSelect}
+            options={personOptions}
+            allowClear
           />
-          <span className="text-xs">Vafot etganlar</span>
-        </label>
-      </div>
 
-      <select
-        className="select select-sm select-bordered select-xs"
-        value={genderFilter}
-        onChange={(e) => setGenderFilter(e.target.value as 'ALL' | 'MALE' | 'FEMALE')}
-      >
-        <option value="ALL">Barchasi</option>
-        <option value="MALE">Erkak</option>
-        <option value="FEMALE">Ayol</option>
-      </select>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-base-content/50">Chuqurlik:</span>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              value={depth}
+              onChange={(e) => setDepth(Number(e.target.value))}
+              className="range range-xs range-primary w-20"
+            />
+            <span className="text-xs font-medium w-4">{depth}</span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <label className="label cursor-pointer gap-1 p-0">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-xs"
+                checked={showDeceased}
+                onChange={(e) => setShowDeceased(e.target.checked)}
+              />
+              <span className="text-xs">Vafot etganlar</span>
+            </label>
+          </div>
+
+          <select
+            className="select select-sm select-bordered select-xs"
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value as 'ALL' | 'MALE' | 'FEMALE')}
+          >
+            <option value="ALL">Barchasi</option>
+            <option value="MALE">Erkak</option>
+            <option value="FEMALE">Ayol</option>
+          </select>
+        </>
+      )}
 
       <div className="flex-1" />
 
       <div className="flex items-center gap-1">
-        {currentUser?.familyMemberId && (
+        {viewMode === 'person' && currentUser?.familyMemberId && (
           <button
             className="btn btn-ghost btn-xs gap-1"
             onClick={handleFindMe}

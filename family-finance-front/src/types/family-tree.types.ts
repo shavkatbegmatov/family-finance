@@ -62,6 +62,32 @@ export interface TreeResponse {
   familyUnits: FamilyUnitDto[];
 }
 
+// ============ Household Tree (xonadon-markazli) ============
+export interface HouseholdNodeDto {
+  scopeId: number;
+  displayCode?: string;
+  name: string;
+  familyUnitIds: number[];
+  parents: PartnerDto[];
+  children: ChildDto[];
+}
+
+export interface HouseholdEdgeDto {
+  fromScopeId: number;
+  toScopeId: number;
+  viaChildPersonId: number;
+}
+
+export interface HouseholdTreeResponse {
+  households: HouseholdNodeDto[];
+  edges: HouseholdEdgeDto[];
+}
+
+// React Flow node data (xonadon tuguni)
+export interface HouseholdNodeData {
+  household: HouseholdNodeDto;
+}
+
 // ============ Relationship ============
 export interface RelationshipResult {
   viewerId: number;

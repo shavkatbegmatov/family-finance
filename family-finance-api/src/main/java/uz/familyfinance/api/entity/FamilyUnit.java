@@ -47,6 +47,11 @@ public class FamilyUnit extends BaseEntity implements Auditable {
     @Builder.Default
     private Set<FamilyChild> children = new LinkedHashSet<>();
 
+    /** Bu nikoh birligi tegishli HOUSEHOLD scope (ixtiyoriy — sof genealogik birliklar uchun NULL). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Override
     public String getEntityName() {
         return "FamilyUnit";
@@ -61,6 +66,7 @@ public class FamilyUnit extends BaseEntity implements Auditable {
         map.put("divorceDate", this.divorceDate);
         map.put("marriageType", this.marriageType);
         map.put("status", this.status);
+        map.put("scopeId", this.scope != null ? this.scope.getId() : null);
         return map;
     }
 

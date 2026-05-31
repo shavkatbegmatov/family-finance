@@ -27,6 +27,7 @@ public class ScopeResponse {
     private Long ownerUserId;
     private String ownerUserName;
     private String uniqueCode;
+    private String displayCode;
     private Map<String, Object> metadata;
     private LocalDateTime startsAt;
     private LocalDateTime endsAt;
@@ -49,6 +50,7 @@ public class ScopeResponse {
                 .ownerUserId(scope.getOwnerUser() != null ? scope.getOwnerUser().getId() : null)
                 .ownerUserName(scope.getOwnerUser() != null ? scope.getOwnerUser().getFullName() : null)
                 .uniqueCode(scope.getUniqueCode())
+                .displayCode(scope.getDisplayCode())
                 .metadata(scope.getMetadata())
                 .startsAt(scope.getStartsAt())
                 .endsAt(scope.getEndsAt())

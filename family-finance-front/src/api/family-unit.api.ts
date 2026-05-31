@@ -31,6 +31,15 @@ export const familyUnitApi = {
       params: { viewer: viewerId, target: targetId },
     }),
 
+  // ========== Household Tree (xonadon-markazli) ==========
+  getHouseholdTree: () =>
+    axiosInstance.get('/v1/family-tree/households'),
+
+  getHouseholdTreeFrom: (scopeId: number, depth = 5) =>
+    axiosInstance.get(`/v1/family-tree/households/${scopeId}`, {
+      params: { depth },
+    }),
+
   // ========== Family Units ==========
   createFamilyUnit: (data: CreateFamilyUnitRequest) =>
     axiosInstance.post('/v1/family-units', data),
