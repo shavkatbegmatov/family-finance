@@ -222,6 +222,7 @@ public class FamilyUnitService {
      */
     public List<PartnerResponse> mapPartners(FamilyUnit unit) {
         return unit.getPartners().stream()
+                .filter(p -> isActiveMember(p.getPerson()))
                 .sorted(Comparator
                         .comparing(FamilyPartner::getRole)
                         .thenComparing(p -> p.getPerson().getId()))
@@ -244,6 +245,7 @@ public class FamilyUnitService {
      */
     public List<ChildResponse> mapChildren(FamilyUnit unit) {
         return unit.getChildren().stream()
+                .filter(c -> isActiveMember(c.getPerson()))
                 .sorted(Comparator
                         .comparing(FamilyChild::getBirthOrder, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(c -> c.getPerson().getBirthDate(), Comparator.nullsLast(Comparator.naturalOrder()))
@@ -260,5 +262,10 @@ public class FamilyUnitService {
                     return cr;
                 })
                 .collect(Collectors.toList());
+    }
+
+    /** O'chirilgan (isActive=false) a'zolar FamilyUnit javobida ko'rsatilmaydi (daraxt bilan izchil). */
+    private boolean isActiveMember(FamilyMember member) {
+        return member != null && !Boolean.FALSE.equals(member.getIsActive());
     }
 }

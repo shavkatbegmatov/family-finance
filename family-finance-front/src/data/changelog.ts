@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.4.3',
+        date: '2026-06-01 03:18',
+        title: "O'chirilgan turmush o'rtoq izchil yashiriladi",
+        features: [],
+        fixes: [
+            "O'chirilgan (nofaol) turmush o'rtoq yoki farzand endi hech qaerda ko'rinmaydi — \"Oilani tanlang\" oynasi, xonadon va daraxt ko'rinishlari izchil bo'ldi (avval \"Oilani tanlang\"da o'chirilgan turmush o'rtoq ismi chiqardi).",
+            "Turmush o'rtoqsiz nikoh \"Oilani tanlang\"da \"Yagona ota-ona\" deb ko'rsatiladi."
+        ]
+    },
+    {
         version: '1.4.2',
         date: '2026-06-01 02:40',
         title: "Yagona ota-ona orqali farzand qo'shish tuzatildi",

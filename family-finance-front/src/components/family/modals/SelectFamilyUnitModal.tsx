@@ -150,7 +150,7 @@ export function SelectFamilyUnitModal({
                   >
                     <div className="flex-1">
                       <p className="font-medium">
-                        {otherPartner?.fullName || 'Partner'}
+                        {otherPartner?.fullName || 'Yagona ota-ona'}
                       </p>
                       <p className="text-xs text-base-content/50">
                         {MARRIAGE_TYPES[fu.marriageType]?.label || fu.marriageType}
