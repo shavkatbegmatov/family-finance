@@ -31,6 +31,7 @@ public class FamilyUnitService {
     private final FamilyChildRepository familyChildRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyTreeValidationService validationService;
+    private final ScopeContextService scopeContext;
 
     @Transactional
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
@@ -45,6 +46,7 @@ public class FamilyUnitService {
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
+                .scope(scopeContext.getActiveHousehold().orElse(null))
                 .build();
 
         FamilyUnit saved = familyUnitRepository.save(unit);

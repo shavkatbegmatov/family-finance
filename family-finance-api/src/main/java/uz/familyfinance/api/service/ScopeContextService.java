@@ -179,6 +179,27 @@ public class ScopeContextService {
         return Optional.ofNullable(clanScope.getLegacyFamilyGroup());
     }
 
+    /**
+     * Joriy aktiv HOUSEHOLD scope. Aktiv scope HOUSEHOLD bo'lsa — o'zi; CLAN bo'lsa —
+     * uning birinchi faol HOUSEHOLD'i. Yangi FamilyMember/FamilyUnit'ni xonadonga
+     * (byudjet-scope'ga) bog'lash uchun ishlatiladi.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Scope> getActiveHousehold() {
+        return getActiveScopeOptional().flatMap(this::resolveHousehold);
+    }
+
+    private Optional<Scope> resolveHousehold(Scope scope) {
+        if (scope.getType() == ScopeType.HOUSEHOLD) {
+            return Optional.of(scope);
+        }
+        if (scope.getType() == ScopeType.CLAN) {
+            return scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
+                    scope.getId(), ScopeType.HOUSEHOLD);
+        }
+        return Optional.empty();
+    }
+
     // ====================================================================
     // Visibility — qaysi scope'larni ko'ra oladi
     // ====================================================================
