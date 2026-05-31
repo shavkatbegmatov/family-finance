@@ -12,7 +12,7 @@ import { useHouseholdLayout } from '../../../hooks/useHouseholdLayout';
 import { nodeTypes, edgeTypes } from './nodeTypes';
 import { useScopeStore } from '../../../store/scopeStore';
 import { useSwitchScope } from '../../../hooks/useSwitchScope';
-import type { HouseholdTreeResponse } from '../../../types';
+import type { HouseholdTreeResponse, HouseholdNodeData } from '../../../types';
 
 export interface HouseholdFlowTreeProps {
   data: HouseholdTreeResponse;
@@ -28,8 +28,12 @@ export function HouseholdFlowTree({ data }: HouseholdFlowTreeProps) {
   // Xonadon qutisini bosish → o'sha xonadonning moliyaviy scope'iga o'tish.
   // (Ichidagi shaxs bosilsa, HouseholdNode stopPropagation qilib personDetail ochadi.)
   const handleNodeClick = useCallback<NodeMouseHandler>((_event, node) => {
-    if (!node.id.startsWith('household_')) return;
-    const scopeId = Number(node.id.replace('household_', ''));
+    if (!node.id.startsWith('unit_')) return;
+    const scopeId = (node.data as unknown as HouseholdNodeData)?.household?.scopeId;
+    if (!scopeId) {
+      toast("Bu oila byudjet-xonadonga bog'lanmagan", { icon: 'ℹ️' });
+      return;
+    }
     const target = myScopes.find((s) => s.id === scopeId);
     if (target) {
       void switchScope(target);

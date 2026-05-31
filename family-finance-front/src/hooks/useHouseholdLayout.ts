@@ -21,11 +21,12 @@ interface Position {
 const EMPTY: LayoutResult = { nodes: [], edges: [], isLayouting: false };
 
 /**
- * Xonadon-markazli generational (avlodli) layout.
+ * FamilyUnit-markazli generational (avlodli) layout.
  *
- * <p>relatives-tree shaxs-markazli va DAG'ni qo'llab-quvvatlamaydi (bir xonadon ikki
- * ota-xonadondan kelishi mumkin). Shuning uchun qo'lda: longest-path leveling
- * (level(to) = max(level(from)+1)) + har avlodni gorizontal markazlash.</p>
+ * <p>Har tugun — bitta nikoh (FamilyUnit). relatives-tree shaxs-markazli va DAG'ni
+ * qo'llab-quvvatlamaydi (bir oila ikki ota-oiladan keladi). Shuning uchun qo'lda:
+ * longest-path leveling (level(to) = max(level(from)+1)) + har avlodni gorizontal
+ * markazlash.</p>
  */
 export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutResult {
   return useMemo(() => {
@@ -34,28 +35,28 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
     }
 
     const { households, edges } = data;
-    const scopeIds = households.map((h) => h.scopeId);
-    const validIds = new Set(scopeIds);
+    const unitIds = households.map((h) => h.familyUnitId);
+    const validIds = new Set(unitIds);
     const validEdges = edges.filter(
-      (e) => validIds.has(e.fromScopeId) && validIds.has(e.toScopeId),
+      (e) => validIds.has(e.fromUnitId) && validIds.has(e.toUnitId),
     );
 
-    const level = computeLevels(scopeIds, validEdges);
-    const positions = computePositions(scopeIds, level);
+    const level = computeLevels(unitIds, validEdges);
+    const positions = computePositions(unitIds, level);
 
-    const householdById = new Map(households.map((h) => [h.scopeId, h]));
-    const nodes: ReactFlowNode[] = scopeIds.map((id) => ({
-      id: `household_${id}`,
+    const byId = new Map(households.map((h) => [h.familyUnitId, h]));
+    const nodes: ReactFlowNode[] = unitIds.map((id) => ({
+      id: `unit_${id}`,
       type: 'householdNode',
       position: positions.get(id) ?? { x: 0, y: 0 },
-      data: { household: householdById.get(id)! } satisfies HouseholdNodeData,
+      data: { household: byId.get(id)! } satisfies HouseholdNodeData,
     }));
 
     const rfEdges: ReactFlowEdge[] = validEdges.map((e, idx) => ({
       id: `hh_edge_${idx}`,
       type: 'smoothstep',
-      source: `household_${e.fromScopeId}`,
-      target: `household_${e.toScopeId}`,
+      source: `unit_${e.fromUnitId}`,
+      target: `unit_${e.toUnitId}`,
       markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
       style: { strokeWidth: 2, stroke: 'oklch(var(--bc) / 0.35)' },
     }));
@@ -65,16 +66,16 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
 }
 
 /** Longest-path leveling — DAG bo'lmasa ham N iteratsiyada to'xtaydi (sikl himoyasi). */
-function computeLevels(scopeIds: number[], edges: HouseholdEdgeDto[]): Map<number, number> {
+function computeLevels(unitIds: number[], edges: HouseholdEdgeDto[]): Map<number, number> {
   const level = new Map<number, number>();
-  scopeIds.forEach((id) => level.set(id, 0));
+  unitIds.forEach((id) => level.set(id, 0));
 
-  for (let i = 0; i < scopeIds.length; i++) {
+  for (let i = 0; i < unitIds.length; i++) {
     let changed = false;
     for (const e of edges) {
-      const candidate = (level.get(e.fromScopeId) ?? 0) + 1;
-      if (candidate > (level.get(e.toScopeId) ?? 0)) {
-        level.set(e.toScopeId, candidate);
+      const candidate = (level.get(e.fromUnitId) ?? 0) + 1;
+      if (candidate > (level.get(e.toUnitId) ?? 0)) {
+        level.set(e.toUnitId, candidate);
         changed = true;
       }
     }
@@ -84,9 +85,9 @@ function computeLevels(scopeIds: number[], edges: HouseholdEdgeDto[]): Map<numbe
 }
 
 /** Har avlodni alohida gorizontal qatorga, markazlashtirib joylaydi. */
-function computePositions(scopeIds: number[], level: Map<number, number>): Map<number, Position> {
+function computePositions(unitIds: number[], level: Map<number, number>): Map<number, Position> {
   const byLevel = new Map<number, number[]>();
-  scopeIds.forEach((id) => {
+  unitIds.forEach((id) => {
     const lvl = level.get(id) ?? 0;
     const row = byLevel.get(lvl) ?? [];
     row.push(id);
