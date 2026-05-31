@@ -36,6 +36,7 @@ export function FamilyTreeModals() {
         <AddChildModal
           isOpen
           familyUnitId={activeModal.familyUnitId}
+          singleParentPersonId={activeModal.singleParentPersonId}
           isSibling={activeModal.isSibling}
           onClose={closeModal}
           onSuccess={handleSuccess}

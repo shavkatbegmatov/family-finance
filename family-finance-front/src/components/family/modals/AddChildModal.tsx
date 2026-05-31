@@ -12,7 +12,10 @@ import type { SelectOption } from '../../ui/Select';
 
 interface AddChildModalProps {
   isOpen: boolean;
-  familyUnitId: number;
+  /** Mavjud nikoh birligi. Yagona ota-ona oqimida bo'lmaydi (singleParentPersonId beriladi). */
+  familyUnitId?: number;
+  /** Yagona ota-ona: nikoh birligi shu yerda (farzand bilan birga) yaratiladi. */
+  singleParentPersonId?: number;
   isSibling?: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -23,6 +26,7 @@ type ModalMode = 'new' | 'existing';
 export function AddChildModal({
   isOpen,
   familyUnitId,
+  singleParentPersonId,
   isSibling,
   onClose,
   onSuccess,
@@ -86,15 +90,46 @@ export function AddChildModal({
     return !!firstName.trim();
   };
 
+  /** Mavjud nikoh ID yoki yagona ota-ona uchun ayni shu yerda yangisini yaratadi. */
+  const resolveUnitId = async (): Promise<number | null> => {
+    if (familyUnitId) return familyUnitId;
+    if (!singleParentPersonId) return null;
+    const { familyUnitApi } = await import('../../../api/family-unit.api');
+    const res = await familyUnitApi.createFamilyUnit({ partner1Id: singleParentPersonId });
+    return (res.data as { data: { id: number } }).data.id;
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit()) return;
 
-    if (mode === 'existing') {
+    try {
+      // 1) Farzand shaxsini aniqlash (mavjud yoki yangi yaratish)
+      let childPersonId: number;
+      if (mode === 'existing') {
+        childPersonId = selectedPersonId as number;
+      } else {
+        const { familyUnitApi } = await import('../../../api/family-unit.api');
+        const res = await familyUnitApi.createPerson({
+          firstName: firstName.trim(),
+          lastName: lastName.trim() || undefined,
+          middleName: middleName.trim() || undefined,
+          gender: gender || undefined,
+          birthDate: birthDate || undefined,
+          role: 'CHILD',
+        });
+        childPersonId = (res.data as { data: { id: number } }).data.id;
+      }
+
+      // 2) Nikoh birligini aniqlash (mavjud yoki yagona ota-ona uchun ayni vaqtda yaratiladi)
+      const unitId = await resolveUnitId();
+      if (!unitId) return;
+
+      // 3) Farzandni biriktirish
       addChild.mutate(
         {
-          familyUnitId,
+          familyUnitId: unitId,
           data: {
-            personId: selectedPersonId as number,
+            personId: childPersonId,
             lineageType,
             birthOrder: birthOrder || undefined,
           },
@@ -106,38 +141,8 @@ export function AddChildModal({
           },
         }
       );
-    } else {
-      const { familyUnitApi } = await import('../../../api/family-unit.api');
-      try {
-        const res = await familyUnitApi.createPerson({
-          firstName: firstName.trim(),
-          lastName: lastName.trim() || undefined,
-          middleName: middleName.trim() || undefined,
-          gender: gender || undefined,
-          birthDate: birthDate || undefined,
-          role: 'CHILD',
-        });
-        const newPerson = (res.data as { data: { id: number } }).data;
-
-        addChild.mutate(
-          {
-            familyUnitId,
-            data: {
-              personId: newPerson.id,
-              lineageType,
-              birthOrder: birthOrder || undefined,
-            },
-          },
-          {
-            onSuccess: () => {
-              handleClose();
-              onSuccess();
-            },
-          }
-        );
-      } catch {
-        // Error handled by mutation
-      }
+    } catch {
+      // Error handled by mutation / toast
     }
   };
 

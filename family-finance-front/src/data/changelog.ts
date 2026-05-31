@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.4.2',
+        date: '2026-06-01 02:40',
+        title: "Yagona ota-ona orqali farzand qo'shish tuzatildi",
+        features: [],
+        fixes: [
+            "\"Yagona ota-ona\" tanlab farzand qo'shishda endi nikoh faqat farzand saqlanganda yaratiladi — ilgari farzand saqlanmasa ham bo'sh nikoh qolib, keyingi safar \"turmush o'rtoq / yagona ota-ona\" tanlovi o'tkazib yuborilardi."
+        ]
+    },
+    {
         version: '1.4.1',
         date: '2026-06-01 02:15',
         title: "Xonadon ko'rinishi: yangi a'zolar avtomatik bog'lanadi",

@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { X, HeartOff, HeartHandshake, User, ChevronRight } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useFamilyUnitsByPersonQuery } from '../../../hooks/useFamilyTreeQueries';
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
 import { MARRIAGE_TYPES } from '../../../config/constants';
-import toast from 'react-hot-toast';
 
 interface SelectFamilyUnitModalProps {
   isOpen: boolean;
@@ -19,7 +18,6 @@ export function SelectFamilyUnitModal({
 }: SelectFamilyUnitModalProps) {
   const { data: allFamilyUnits = [], isLoading } = useFamilyUnitsByPersonQuery(personId);
   const { openModal } = useFamilyTreeStore();
-  const [isCreatingUnit, setIsCreatingUnit] = useState(false);
 
   // Faqat partner sifatida bo'lgan unitlar (farzand qo'shish uchun)
   const familyUnits = useMemo(
@@ -38,19 +36,12 @@ export function SelectFamilyUnitModal({
     [onClose, openModal]
   );
 
-  const handleSingleParent = async () => {
-    if (isCreatingUnit) return;
-    setIsCreatingUnit(true);
-    try {
-      const { familyUnitApi } = await import('../../../api/family-unit.api');
-      const res = await familyUnitApi.createFamilyUnit({ partner1Id: personId });
-      const newUnit = (res.data as { data: { id: number } }).data;
-      onClose();
-      openModal({ type: 'addChild', familyUnitId: newUnit.id });
-    } catch {
-      toast.error("Oila birligini yaratishda xatolik");
-      setIsCreatingUnit(false);
-    }
+  const handleSingleParent = () => {
+    // FamilyUnit'ni darhol YARATMAYMIZ — AddChildModal uni farzand bilan birga (atomik)
+    // yaratadi. Aks holda farzand saqlanmasa ham bo'sh nikoh qolib ketib, keyingi safar
+    // "turmush o'rtoq / yagona ota-ona" tanlovi o'tkazib yuborilardi.
+    onClose();
+    openModal({ type: 'addChild', singleParentPersonId: personId });
   };
 
   // If person has only one family unit, auto-select it
@@ -80,8 +71,7 @@ export function SelectFamilyUnitModal({
             {/* Choice cards */}
             <div className="mt-5 space-y-2.5">
               <button
-                className="group w-full flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
-                disabled={isCreatingUnit}
+                className="group w-full flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:border-primary hover:bg-primary/5 transition-colors text-left"
                 onClick={() => {
                   onClose();
                   openModal({ type: 'addSpouse', personId });
@@ -98,16 +88,11 @@ export function SelectFamilyUnitModal({
               </button>
 
               <button
-                className="group w-full flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
-                disabled={isCreatingUnit}
+                className="group w-full flex items-center gap-3 p-3 rounded-xl border border-base-300 hover:border-primary hover:bg-primary/5 transition-colors text-left"
                 onClick={handleSingleParent}
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                  {isCreatingUnit ? (
-                    <span className="loading loading-spinner loading-sm" />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
+                  <User className="h-5 w-5" />
                 </span>
                 <div className="flex-1">
                   <p className="font-medium">Yagona ota-ona</p>
@@ -121,7 +106,6 @@ export function SelectFamilyUnitModal({
             <button
               className="btn btn-ghost btn-sm btn-block mt-3 text-base-content/60"
               onClick={onClose}
-              disabled={isCreatingUnit}
             >
               Bekor qilish
             </button>
