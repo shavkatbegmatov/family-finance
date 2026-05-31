@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.4.4',
+        date: '2026-06-01 03:42',
+        title: "Ota-ona qo'shish endi atomik",
+        features: [],
+        fixes: [
+            "\"Ota-ona qo'shish\" endi bitta amalda (atomik) bajariladi — farzandning biologik ota-onasi allaqachon bo'lsa yoki boshqa xato chiqsa, bo'sh nikoh yoki yetim shaxslar yaratilib qolmaydi (ilgari ota, ona, nikoh yaratilib, so'ng xato chiqib, ular osilib qolardi)."
+        ]
+    },
+    {
         version: '1.4.3',
         date: '2026-06-01 03:18',
         title: "O'chirilgan turmush o'rtoq izchil yashiriladi",

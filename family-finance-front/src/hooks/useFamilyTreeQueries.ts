@@ -10,6 +10,7 @@ import type {
   UpdateFamilyUnitRequest,
   AddPartnerRequest,
   AddChildRequest,
+  AddParentsRequest,
 } from '../types';
 import type { FamilyMember, FamilyMemberRequest, UpdateSelfRequest, ApiResponse } from '../types';
 import toast from 'react-hot-toast';
@@ -180,6 +181,21 @@ export function useAddChild() {
     onError: (error) => {
       const axiosErr = error as { response?: { data?: { message?: string } } };
       toast.error(axiosErr?.response?.data?.message || "Farzand qo'shishda xatolik");
+    },
+  });
+}
+
+export function useAddParents() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: AddParentsRequest) => familyUnitApi.addParents(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
+      toast.success("Ota-ona qo'shildi");
+    },
+    onError: (error) => {
+      const axiosErr = error as { response?: { data?: { message?: string } } };
+      toast.error(axiosErr?.response?.data?.message || "Ota-ona qo'shishda xatolik");
     },
   });
 }

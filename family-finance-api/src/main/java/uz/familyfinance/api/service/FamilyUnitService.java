@@ -5,18 +5,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.AddChildRequest;
+import uz.familyfinance.api.dto.request.AddParentsRequest;
 import uz.familyfinance.api.dto.request.AddPartnerRequest;
 import uz.familyfinance.api.dto.request.CreateFamilyUnitRequest;
 import uz.familyfinance.api.dto.request.UpdateFamilyUnitRequest;
 import uz.familyfinance.api.dto.response.*;
 import uz.familyfinance.api.entity.*;
+import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.FamilyUnitStatus;
+import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.enums.LineageType;
 import uz.familyfinance.api.enums.MarriageType;
 import uz.familyfinance.api.enums.PartnerRole;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.*;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -69,6 +73,61 @@ public class FamilyUnitService {
         }
 
         return getById(saved.getId());
+    }
+
+    /**
+     * Shaxsga ota-ona qo'shish — ota, ona, nikoh va farzand bog'lanishi ATOMIK yaratiladi.
+     * Biror bosqich xato bersa (masalan farzand allaqachon biologik ota-onaga ega),
+     * butun tranzaksiya rollback bo'ladi — bo'sh nikoh yoki yetim shaxs qolmaydi.
+     */
+    @Transactional
+    public FamilyUnitResponse addParents(AddParentsRequest request) {
+        FamilyMember child = findMember(request.getChildPersonId());
+
+        // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin)
+        validationService.validateBiologicalParentUnique(child.getId(), LineageType.BIOLOGICAL);
+
+        FamilyMember father = resolveOrCreateParent(request.getFatherId(), request.getFatherFirstName(),
+                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate());
+        FamilyMember mother = resolveOrCreateParent(request.getMotherId(), request.getMotherFirstName(),
+                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate());
+
+        validationService.validateNotSelfPartnership(father.getId(), mother.getId());
+        validationService.validateDuplicateMarriage(father.getId(), mother.getId());
+
+        FamilyUnit unit = FamilyUnit.builder()
+                .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
+                .marriageDate(request.getMarriageDate())
+                .status(FamilyUnitStatus.ACTIVE)
+                .scope(scopeContext.getActiveHousehold().orElse(null))
+                .build();
+        FamilyUnit saved = familyUnitRepository.save(unit);
+
+        familyPartnerRepository.save(FamilyPartner.builder()
+                .familyUnit(saved).person(father).role(PartnerRole.PARTNER1).build());
+        familyPartnerRepository.save(FamilyPartner.builder()
+                .familyUnit(saved).person(mother).role(PartnerRole.PARTNER2).build());
+
+        // Farzandni biriktirish — addChild logikasi (validatsiyalar bilan) qayta ishlatiladi
+        AddChildRequest childReq = new AddChildRequest();
+        childReq.setPersonId(child.getId());
+        childReq.setLineageType(LineageType.BIOLOGICAL);
+        return addChild(saved.getId(), childReq);
+    }
+
+    private FamilyMember resolveOrCreateParent(Long existingId, String firstName, Gender gender,
+                                               FamilyRole role, LocalDate birthDate) {
+        if (existingId != null) {
+            return findMember(existingId);
+        }
+        FamilyMember parent = FamilyMember.builder()
+                .firstName(firstName != null ? firstName.trim() : null)
+                .gender(gender)
+                .role(role)
+                .birthDate(birthDate)
+                .scope(scopeContext.getActiveHousehold().orElse(null))
+                .build();
+        return familyMemberRepository.save(parent);
     }
 
     @Transactional
