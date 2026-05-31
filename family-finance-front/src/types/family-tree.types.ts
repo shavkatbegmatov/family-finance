@@ -136,6 +136,18 @@ export interface AddParentsRequest {
   marriageDate?: string;
 }
 
+export interface AddSpouseRequest {
+  personId: number;
+  spouseId?: number;
+  spouseFirstName?: string;
+  spouseLastName?: string;
+  spouseMiddleName?: string;
+  spouseGender?: Gender;
+  spouseBirthDate?: string;
+  marriageType?: MarriageType;
+  marriageDate?: string;
+}
+
 // ============ React Flow Node/Edge Data ============
 export interface PersonNodeData {
   person: TreePerson;

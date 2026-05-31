@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.AddChildRequest;
 import uz.familyfinance.api.dto.request.AddParentsRequest;
 import uz.familyfinance.api.dto.request.AddPartnerRequest;
+import uz.familyfinance.api.dto.request.AddSpouseRequest;
 import uz.familyfinance.api.dto.request.CreateFamilyUnitRequest;
 import uz.familyfinance.api.dto.request.UpdateFamilyUnitRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
@@ -36,6 +37,13 @@ public class FamilyUnitController {
     public ResponseEntity<ApiResponse<FamilyUnitResponse>> addParents(
             @Valid @RequestBody AddParentsRequest request) {
         return ResponseEntity.ok(ApiResponse.success(familyUnitService.addParents(request)));
+    }
+
+    @PostMapping("/spouse")
+    @RequiresPermission(PermissionCode.FAMILY_CREATE)
+    public ResponseEntity<ApiResponse<FamilyUnitResponse>> addSpouse(
+            @Valid @RequestBody AddSpouseRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(familyUnitService.addSpouse(request)));
     }
 
     @GetMapping("/{id}")

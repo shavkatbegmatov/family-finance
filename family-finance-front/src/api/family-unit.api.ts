@@ -5,6 +5,7 @@ import type {
   AddPartnerRequest,
   AddChildRequest,
   AddParentsRequest,
+  AddSpouseRequest,
 } from '../types';
 import type { FamilyMemberRequest } from '../types';
 
@@ -65,6 +66,9 @@ export const familyUnitApi = {
 
   addParents: (data: AddParentsRequest) =>
     axiosInstance.post('/v1/family-units/parents', data),
+
+  addSpouse: (data: AddSpouseRequest) =>
+    axiosInstance.post('/v1/family-units/spouse', data),
 
   removeChild: (familyUnitId: number, personId: number) =>
     axiosInstance.delete(`/v1/family-units/${familyUnitId}/children/${personId}`),
