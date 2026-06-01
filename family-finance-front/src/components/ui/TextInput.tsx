@@ -95,6 +95,7 @@ export function TextInput({
             className="absolute right-2 inline-flex h-10 w-10 items-center justify-center rounded-full text-base-content/40 transition-colors hover:bg-base-200 hover:text-base-content lg:h-8 lg:w-8"
             onClick={handleClear}
             aria-label="Tozalash"
+            tabIndex={-1}
           >
             <X className="h-4 w-4" />
           </button>

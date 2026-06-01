@@ -111,6 +111,7 @@ export function PasswordInput({
               onClick={handleGenerate}
               title="Kuchli parol generatsiya qilish"
               aria-label="Kuchli parol generatsiya qilish"
+              tabIndex={-1}
             >
               <Sparkles className="h-4 w-4" />
             </button>
@@ -121,6 +122,7 @@ export function PasswordInput({
             onClick={() => setVisible((v) => !v)}
             title={visible ? 'Parolni yashirish' : "Parolni ko'rsatish"}
             aria-label={visible ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+            tabIndex={-1}
           >
             {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
