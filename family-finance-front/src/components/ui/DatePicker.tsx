@@ -142,6 +142,110 @@ export function DatePicker({
   const selectedDate = parseDate(value);
   const hasValue = value.length > 0;
 
+  const [focusedDate, setFocusedDate] = useState<Date>(() => {
+    const parsed = parseDate(value);
+    return parsed || parseDate(getTashkentToday()) || new Date();
+  });
+
+  // Sync focusedDate when value changes or dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      const parsed = parseDate(value);
+      setFocusedDate(parsed || parseDate(getTashkentToday()) || new Date());
+    }
+  }, [isOpen, value]);
+
+  // Automatically update visible month if focusedDate changes
+  useEffect(() => {
+    if (isOpen && focusedDate) {
+      setCurrentMonth(startOfMonth(focusedDate));
+    }
+  }, [focusedDate, isOpen]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return;
+
+    if (!isOpen) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        toggleDropdown();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          if (!isDateDisabled(focusedDate, min, max)) {
+            handleDayClick(focusedDate);
+          }
+        } else if (viewMode === 'months') {
+          handleMonthSelect(getMonth(currentMonth));
+        } else if (viewMode === 'years') {
+          handleYearSelect(getYear(currentMonth));
+        }
+        break;
+      case 'Space':
+      case ' ':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          if (!isDateDisabled(focusedDate, min, max)) {
+            handleDayClick(focusedDate);
+          }
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        closeDropdown();
+        triggerRef.current?.focus();
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() - 1);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() + 1);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() - 7);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() + 7);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'Tab':
+        closeDropdown();
+        break;
+    }
+  };
+
   // ==================== POSITIONING ====================
 
   const updateDropdownPosition = useCallback(() => {
@@ -316,6 +420,7 @@ export function DatePicker({
             const isToday = isSameDay(date, today);
             const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
             const isDisabled = isDateDisabled(date, min, max);
+            const isFocusedDay = isOpen && focusedDate ? isSameDay(date, focusedDate) : false;
 
             return (
               <button
@@ -326,10 +431,11 @@ export function DatePicker({
                 className={clsx(
                   'flex h-8 w-full items-center justify-center rounded-lg text-xs transition-all duration-150',
                   isDisabled && 'cursor-not-allowed opacity-30',
-                  !isDisabled && !isSelected && 'hover:bg-base-200',
-                  !isCurrentMonth && !isSelected && 'text-base-content/25',
-                  isCurrentMonth && !isSelected && !isToday && 'text-base-content',
-                  isToday && !isSelected && 'ring-1 ring-primary text-primary font-semibold',
+                  !isDisabled && !isSelected && !isFocusedDay && 'hover:bg-base-200',
+                  !isCurrentMonth && !isSelected && !isFocusedDay && 'text-base-content/25',
+                  isCurrentMonth && !isSelected && !isToday && !isFocusedDay && 'text-base-content',
+                  isToday && !isSelected && !isFocusedDay && 'ring-1 ring-primary text-primary font-semibold',
+                  isFocusedDay && !isSelected && 'ring-2 ring-primary/40 bg-base-200 text-primary font-semibold',
                   isSelected && 'bg-primary text-primary-content font-semibold shadow-sm',
                 )}
               >
@@ -477,6 +583,10 @@ export function DatePicker({
           disabled && 'opacity-50 pointer-events-none bg-base-200'
         )}
         onClick={toggleDropdown}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onKeyDown={handleKeyDown}
+        tabIndex={disabled ? -1 : 0}
       >
         <div className="absolute left-3 text-base-content/40">
           <Calendar className="h-5 w-5" />
