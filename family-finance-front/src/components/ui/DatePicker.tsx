@@ -147,6 +147,64 @@ export function DatePicker({
     return parsed || parseDate(getTashkentToday()) || new Date();
   });
 
+  const [inputValue, setInputValue] = useState(() => formatDisplay(value));
+
+  // Sync inputValue when value changes
+  useEffect(() => {
+    setInputValue(formatDisplay(value));
+  }, [value]);
+
+  const formatInputWithMask = (text: string): string => {
+    const clean = text.replace(/\D/g, '');
+    if (clean.length === 0) return '';
+    if (clean.length <= 2) return clean;
+    if (clean.length <= 4) return `${clean.slice(0, 2)}.${clean.slice(2)}`;
+    return `${clean.slice(0, 2)}.${clean.slice(2, 4)}.${clean.slice(4, 8)}`;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value;
+    const formatted = formatInputWithMask(rawVal);
+    setInputValue(formatted);
+
+    if (formatted.length === 10) {
+      const parts = formatted.split('.');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+
+      const parsedDate = new Date(year, month, day);
+      if (
+        isValid(parsedDate) &&
+        parsedDate.getFullYear() === year &&
+        parsedDate.getMonth() === month &&
+        parsedDate.getDate() === day
+      ) {
+        const dateStr = toDateString(parsedDate);
+        if (!isDateDisabled(parsedDate, min, max)) {
+          onChange(dateStr);
+        }
+      }
+    }
+  };
+
+  const handleInputFocus = () => {
+    setIsFocused(true);
+    if (!isOpen) {
+      setIsOpen(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      if (dropdownRef.current && dropdownRef.current.contains(document.activeElement)) {
+        return;
+      }
+      setInputValue(formatDisplay(value));
+      setIsFocused(false);
+    }, 150);
+  };
+
   // Sync focusedDate when value changes or dropdown opens
   useEffect(() => {
     if (isOpen) {
@@ -303,7 +361,6 @@ export function DatePicker({
     if (disabled) return;
     if (isOpen) {
       setIsOpen(false);
-      setIsFocused(false);
       return;
     }
     const parsed = parseDate(value);
@@ -312,12 +369,10 @@ export function DatePicker({
     }
     setViewMode('days');
     setIsOpen(true);
-    setIsFocused(true);
   }, [disabled, value, isOpen]);
 
   const closeDropdown = useCallback(() => {
     setIsOpen(false);
-    setIsFocused(false);
   }, []);
 
   // ==================== EFFECTS ====================
@@ -600,7 +655,7 @@ export function DatePicker({
       <div
         ref={triggerRef}
         className={clsx(
-          'relative flex items-center border bg-base-200/50 transition-all duration-200 h-12 cursor-pointer select-none',
+          'relative flex items-center border bg-base-200/50 transition-all duration-200 h-12 cursor-text',
           isFocused
             ? openUp
               ? 'rounded-b-xl rounded-t-none border-primary/30 ring-0'
@@ -611,23 +666,25 @@ export function DatePicker({
           disabled && 'opacity-50 pointer-events-none bg-base-200'
         )}
         onClick={toggleDropdown}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        onKeyDown={handleKeyDown}
-        tabIndex={disabled ? -1 : 0}
       >
-        <div className="absolute left-3 text-base-content/40">
+        <div className="absolute left-3 text-base-content/40 z-10 pointer-events-none">
           <Calendar className="h-5 w-5" />
         </div>
 
-        <div
+        <input
+          type="text"
           className={clsx(
-            'w-full py-3 pl-10 pr-20 text-sm font-medium',
-            hasValue ? 'text-base-content' : 'text-base-content/40'
+            'w-full bg-transparent border-none outline-none py-3 pl-10 pr-20 text-sm font-medium text-base-content placeholder:text-base-content/40',
+            disabled && 'pointer-events-none'
           )}
-        >
-          {hasValue ? formatDisplay(value) : placeholder}
-        </div>
+          placeholder={placeholder}
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        />
 
         <div className="absolute right-2 flex items-center gap-1 z-10">
           {showClear && hasValue && !disabled && (
