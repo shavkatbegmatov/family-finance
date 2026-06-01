@@ -240,6 +240,34 @@ export function DatePicker({
           }
         }
         break;
+      case 'PageUp':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          if (e.shiftKey) {
+            newDate.setFullYear(focusedDate.getFullYear() - 1);
+          } else {
+            newDate.setMonth(focusedDate.getMonth() - 1);
+          }
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          if (e.shiftKey) {
+            newDate.setFullYear(focusedDate.getFullYear() + 1);
+          } else {
+            newDate.setMonth(focusedDate.getMonth() + 1);
+          }
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
       case 'Tab':
         closeDropdown();
         break;
