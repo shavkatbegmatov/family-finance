@@ -298,34 +298,37 @@ export function Select({
               Ma'lumot topilmadi
             </div>
           ) : (
-            options.map((option) => (
-              <div
-                key={option.value}
-                data-selected={option.value === value}
-                className={clsx(
-                  'flex items-center gap-2 px-3 py-2.5 cursor-pointer transition-colors first:rounded-t-[10px] last:rounded-b-[10px]',
-                  option.value === value
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'hover:bg-base-200/80',
-                  option.disabled && 'opacity-50 cursor-not-allowed'
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!option.disabled) {
-                    handleSelect(option.value);
-                  }
-                }}
-                role="option"
-                aria-selected={option.value === value}
-                aria-disabled={option.disabled}
-              >
-                {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                <span className="flex-1 truncate">{option.label}</span>
-                {option.value === value && (
-                  <Check className="h-4 w-4 flex-shrink-0" />
-                )}
-              </div>
-            ))
+            options.map((option) => {
+              const isSelected = option.value === value || ((value === undefined || value === null) && option.value === '');
+              return (
+                <div
+                  key={option.value}
+                  data-selected={isSelected}
+                  className={clsx(
+                    'flex items-center gap-2 px-3 py-2.5 cursor-pointer transition-colors first:rounded-t-[10px] last:rounded-b-[10px]',
+                    isSelected
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-base-200/80',
+                    option.disabled && 'opacity-50 cursor-not-allowed'
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!option.disabled) {
+                      handleSelect(option.value);
+                    }
+                  }}
+                  role="option"
+                  aria-selected={isSelected}
+                  aria-disabled={option.disabled}
+                >
+                  {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                  <span className="flex-1 truncate">{option.label}</span>
+                  {isSelected && (
+                    <Check className="h-4 w-4 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })
           )}
         </div>,
         document.body
