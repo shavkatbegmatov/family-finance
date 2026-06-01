@@ -6,8 +6,6 @@ import {
   Key,
   Eye,
   EyeOff,
-  Check,
-  X,
   Loader2,
   UserCircle,
   Lock,
@@ -18,6 +16,8 @@ import {
 import toast from 'react-hot-toast';
 import clsx from 'clsx';
 import { authApi } from '../../api/auth.api';
+import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
+import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
 import { useAuthStore } from '../../store/authStore';
 import type { ChangePasswordRequest, User as UserType } from '../../types';
 import { SessionsTab } from './SessionsTab';
@@ -53,28 +53,6 @@ export function ProfilePage() {
   } = useForm<PasswordFormData>();
 
   const newPassword = watch('newPassword', '');
-
-  // Password strength indicators
-  const hasMinLength = newPassword.length >= 6;
-  const hasUppercase = /[A-Z]/.test(newPassword);
-  const hasLowercase = /[a-z]/.test(newPassword);
-  const hasNumber = /[0-9]/.test(newPassword);
-
-  const passwordStrength = [hasMinLength, hasUppercase, hasLowercase, hasNumber].filter(Boolean).length;
-
-  const getStrengthColor = () => {
-    if (passwordStrength <= 1) return 'bg-error';
-    if (passwordStrength === 2) return 'bg-warning';
-    if (passwordStrength === 3) return 'bg-info';
-    return 'bg-success';
-  };
-
-  const getStrengthLabel = () => {
-    if (passwordStrength <= 1) return 'Juda zaif';
-    if (passwordStrength === 2) return 'Zaif';
-    if (passwordStrength === 3) return 'Yaxshi';
-    return 'Kuchli';
-  };
 
   // Fetch user data
   useEffect(() => {
@@ -121,13 +99,6 @@ export function ProfilePage() {
       setChangingPassword(false);
     }
   };
-
-  const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
-    <div className={`flex items-center gap-2 text-sm ${met ? 'text-success' : 'text-base-content/50'}`}>
-      {met ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-      <span>{text}</span>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -280,7 +251,7 @@ export function ProfilePage() {
                     )}
                     {...register('newPassword', {
                       required: 'Yangi parol kiritilishi shart',
-                      minLength: { value: 6, message: 'Parol kamida 6 belgi' },
+                      minLength: { value: PASSWORD_MIN_LENGTH, message: `Parol kamida ${PASSWORD_MIN_LENGTH} belgi` },
                     })}
                   />
                   <button
@@ -298,24 +269,8 @@ export function ProfilePage() {
 
               {/* Password Strength Indicator */}
               {newPassword && (
-                <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 rounded-xl bg-base-200/50">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-base-300 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-300 ${getStrengthColor()}`}
-                        style={{ width: `${(passwordStrength / 4) * 100}%` }}
-                      />
-                    </div>
-                    <span className={`text-xs font-medium ${getStrengthColor().replace('bg-', 'text-')}`}>
-                      {getStrengthLabel()}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <PasswordRequirement met={hasMinLength} text="Kamida 6 belgi" />
-                    <PasswordRequirement met={hasUppercase} text="Katta harf" />
-                    <PasswordRequirement met={hasLowercase} text="Kichik harf" />
-                    <PasswordRequirement met={hasNumber} text="Raqam" />
-                  </div>
+                <div className="p-3 sm:p-4 rounded-xl bg-base-200/50">
+                  <PasswordStrengthMeter password={newPassword} showRequirements />
                 </div>
               )}
 
@@ -355,7 +310,7 @@ export function ProfilePage() {
                 <button
                   type="submit"
                   className="btn btn-primary w-full sm:w-auto"
-                  disabled={changingPassword || passwordStrength < 3}
+                  disabled={changingPassword || !isPasswordStrong(newPassword)}
                 >
                   {changingPassword ? (
                     <>

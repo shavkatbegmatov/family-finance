@@ -42,6 +42,8 @@ import {
 import { Trophy } from 'lucide-react';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
+import { PasswordInput } from '../../components/ui/PasswordInput';
+import { UsernameInput } from '../../components/ui/UsernameInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { formatPhoneDisplay } from '../../utils/phone';
 import { DateInput } from '../../components/ui/DateInput';
@@ -194,7 +196,8 @@ export function FamilyMembersPage() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const [showAccountPassword, setShowAccountPassword] = useState(false);
+  // Login (username) qo'lda kiritilganda band-emasligi holati — submit'ni boshqaradi
+  const [accountUsernameValid, setAccountUsernameValid] = useState(true);
 
   // Credentials modal
   const [credentialsInfo, setCredentialsInfo] = useState<CredentialsInfo | null>(null);
@@ -307,10 +310,11 @@ export function FamilyMembersPage() {
       avatar: member.avatar || '',
       userId: member.userId,
       createAccount: false,
+      accountUsername: '',
       accountPassword: '',
       accountRole: 'MEMBER',
     });
-    setShowAccountPassword(false);
+    setAccountUsernameValid(true);
     setShowModal(true);
   };
 
@@ -335,6 +339,7 @@ export function FamilyMembersPage() {
           birthDate: form.birthDate || undefined,
           deathDate: form.deathDate || undefined,
           avatar: form.avatar || undefined,
+          accountUsername: form.createAccount ? (form.accountUsername?.trim() || undefined) : undefined,
           accountPassword: form.createAccount && form.accountPassword ? form.accountPassword : undefined,
           accountRole: form.createAccount ? form.accountRole : undefined,
         };
@@ -1197,10 +1202,11 @@ export function FamilyMembersPage() {
                           setForm((prev) => ({
                             ...prev,
                             createAccount: e.target.checked,
+                            accountUsername: '',
                             accountPassword: '',
                             accountRole: 'MEMBER',
                           }));
-                          setShowAccountPassword(false);
+                          setAccountUsernameValid(true);
                         }}
                       />
                       <div>
@@ -1213,7 +1219,7 @@ export function FamilyMembersPage() {
                   </div>
 
                   {form.createAccount && (
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-4">
                       {/* Account Role */}
                       <div className="form-control">
                         <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
@@ -1244,38 +1250,33 @@ export function FamilyMembersPage() {
                         </div>
                       </div>
 
-                      {/* Custom Password */}
-                      <div className="form-control">
-                        <span className="label-text mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                          Parol
-                        </span>
-                        <div className="relative">
-                          <input
-                            type={showAccountPassword ? 'text' : 'password'}
-                            className="input input-bordered input-sm w-full pr-10"
-                            placeholder="Bo'sh qolsa avtomatik yaratiladi"
-                            value={form.accountPassword || ''}
-                            onChange={(e) => setForm((prev) => ({ ...prev, accountPassword: e.target.value }))}
-                            autoComplete="new-password"
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content transition-colors"
-                            onClick={() => setShowAccountPassword(!showAccountPassword)}
-                            aria-label={showAccountPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
-                          >
-                            {showAccountPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                        {form.accountPassword && form.accountPassword.length > 0 && form.accountPassword.length < 6 && (
-                          <span className="text-xs text-error mt-1">Kamida 6 belgi</span>
-                        )}
-                        <p className="text-xs text-base-content/40 mt-1">
-                          {form.accountPassword
-                            ? 'Kiritilgan parol ishlatiladi'
-                            : 'Vaqtinchalik parol avtomatik yaratiladi'}
-                        </p>
+                      {/* Login (qo'lda yoki avtomatik) + Parol */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <UsernameInput
+                          label="Login"
+                          value={form.accountUsername || ''}
+                          onChange={(val) => setForm((prev) => ({ ...prev, accountUsername: val }))}
+                          onValidityChange={setAccountUsernameValid}
+                        />
+                        <PasswordInput
+                          label="Parol"
+                          value={form.accountPassword || ''}
+                          onChange={(val) => setForm((prev) => ({ ...prev, accountPassword: val }))}
+                          placeholder="Bo'sh qolsa avtomatik"
+                          showStrength
+                          showGenerate
+                          error={
+                            form.accountPassword && form.accountPassword.length > 0 && form.accountPassword.length < 6
+                              ? 'Kamida 6 belgi'
+                              : undefined
+                          }
+                        />
                       </div>
+                      <p className="text-xs text-base-content/40">
+                        {form.accountPassword
+                          ? 'Kiritilgan parol ishlatiladi.'
+                          : "Login va parol bo'sh qolsa, ism asosida avtomatik yaratiladi."}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1295,7 +1296,7 @@ export function FamilyMembersPage() {
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6)}
+              disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6) || (form.createAccount && !accountUsernameValid)}
             >
               {submitting && <span className="loading loading-spinner loading-sm" />}
               Saqlash

@@ -197,6 +197,8 @@ export interface FamilyMemberRequest {
   avatar?: string;
   userId?: number;
   createAccount?: boolean;
+  /** Qo'lda kiritilgan login. Bo'sh bo'lsa ism asosida avtomatik yaratiladi. */
+  accountUsername?: string;
   accountPassword?: string;
   accountRole?: string;
 }

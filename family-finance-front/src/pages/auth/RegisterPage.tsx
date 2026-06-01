@@ -8,8 +8,6 @@ import {
   ShieldCheck,
   Gauge,
   Sparkles,
-  Check,
-  X,
   Home,
   Users,
 } from 'lucide-react';
@@ -18,6 +16,8 @@ import { authApi } from '../../api/auth.api';
 import { scopesApi } from '../../api/scopes.api';
 import { EmailInput } from '../../components/ui/EmailInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
+import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
+import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
 import type { RegisterRequest } from '../../types';
 
 export function RegisterPage() {
@@ -74,28 +74,6 @@ export function RegisterPage() {
     return () => clearTimeout(timer);
   }, [inviteCode]);
 
-  // Password strength indicators
-  const hasMinLength = password.length >= 6;
-  const hasUppercase = /[A-Z]/.test(password);
-  const hasLowercase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-
-  const passwordStrength = [hasMinLength, hasUppercase, hasLowercase, hasNumber].filter(Boolean).length;
-
-  const getStrengthColor = () => {
-    if (passwordStrength <= 1) return 'bg-error';
-    if (passwordStrength === 2) return 'bg-warning';
-    if (passwordStrength === 3) return 'bg-info';
-    return 'bg-success';
-  };
-
-  const getStrengthLabel = () => {
-    if (passwordStrength <= 1) return 'Juda zaif';
-    if (passwordStrength === 2) return 'Zaif';
-    if (passwordStrength === 3) return 'Yaxshi';
-    return 'Kuchli';
-  };
-
   const onSubmit = async (data: RegisterRequest) => {
     if (data.password !== data.confirmPassword) {
       toast.error('Parol va tasdiqlash mos kelmadi');
@@ -131,13 +109,6 @@ export function RegisterPage() {
       setLoading(false);
     }
   };
-
-  const PasswordRequirement = ({ met, text }: { met: boolean; text: string }) => (
-    <div className={`flex items-center gap-2 text-sm ${met ? 'text-success' : 'text-base-content/50'}`}>
-      {met ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
-      <span>{text}</span>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/15 via-base-100 to-secondary/15 p-4">
@@ -257,7 +228,7 @@ export function RegisterPage() {
                     className={`input input-bordered w-full pr-10 ${errors.password ? 'input-error' : ''}`}
                     {...register('password', {
                       required: 'Parol kiritilishi shart',
-                      minLength: { value: 6, message: 'Parol kamida 6 belgi' },
+                      minLength: { value: PASSWORD_MIN_LENGTH, message: `Parol kamida ${PASSWORD_MIN_LENGTH} belgi` },
                     })}
                   />
                   <button
@@ -275,27 +246,7 @@ export function RegisterPage() {
               </label>
 
               {/* Password Strength Indicator */}
-              {password && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-base-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-300 ${getStrengthColor()}`}
-                        style={{ width: `${(passwordStrength / 4) * 100}%` }}
-                      />
-                    </div>
-                    <span className={`text-xs font-medium ${getStrengthColor().replace('bg-', 'text-')}`}>
-                      {getStrengthLabel()}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <PasswordRequirement met={hasMinLength} text="Kamida 6 belgi" />
-                    <PasswordRequirement met={hasUppercase} text="Katta harf" />
-                    <PasswordRequirement met={hasLowercase} text="Kichik harf" />
-                    <PasswordRequirement met={hasNumber} text="Raqam" />
-                  </div>
-                </div>
-              )}
+              <PasswordStrengthMeter password={password} showRequirements />
 
               {/* Confirm Password */}
               <label className="form-control">
@@ -406,7 +357,7 @@ export function RegisterPage() {
               <button
                 type="submit"
                 className="btn btn-primary w-full"
-                disabled={loading || passwordStrength < 3}
+                disabled={loading || !isPasswordStrong(password)}
               >
                 {loading ? (
                   <span className="loading loading-spinner" />

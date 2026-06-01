@@ -57,7 +57,10 @@ public class PersonCreateRequest {
     private String nickname;
 
     // ===== Login maydonlari (ADULT_ACTIVE / ADMIN_ONLY uchun) =====
-    // Username avto-generatsiya qilinadi (UserService.generateUsername).
+
+    /** Qo'lda kiritilgan login. Bo'sh bo'lsa ism asosida avtomatik generatsiya qilinadi. */
+    @Size(max = 30, message = "Login 30 belgidan oshmasligi kerak")
+    private String username;
 
     @Size(min = 6, max = 100, message = "Parol 6-100 belgi orasida bo'lishi kerak")
     private String password;
