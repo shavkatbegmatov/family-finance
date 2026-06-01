@@ -168,10 +168,17 @@ export function Select({
         e.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
-        } else {
+        }
+        if (options.length > 0) {
           const currentIndex = options.findIndex((opt) => opt.value === value);
-          const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-          const nextOption = options[nextIndex];
+          let nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+          let nextOption = options[nextIndex];
+          const startIndex = nextIndex;
+          while (nextOption?.disabled) {
+            nextIndex = nextIndex < options.length - 1 ? nextIndex + 1 : 0;
+            if (nextIndex === startIndex) break;
+            nextOption = options[nextIndex];
+          }
           if (nextOption && !nextOption.disabled) {
             onChange(nextOption.value);
           }
@@ -179,10 +186,19 @@ export function Select({
         break;
       case 'ArrowUp':
         e.preventDefault();
-        if (isOpen) {
+        if (!isOpen) {
+          setIsOpen(true);
+        }
+        if (options.length > 0) {
           const currentIndex = options.findIndex((opt) => opt.value === value);
-          const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-          const prevOption = options[prevIndex];
+          let prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+          let prevOption = options[prevIndex];
+          const startIndex = prevIndex;
+          while (prevOption?.disabled) {
+            prevIndex = prevIndex > 0 ? prevIndex - 1 : options.length - 1;
+            if (prevIndex === startIndex) break;
+            prevOption = options[prevIndex];
+          }
           if (prevOption && !prevOption.disabled) {
             onChange(prevOption.value);
           }
