@@ -125,7 +125,11 @@ public class UserController {
 
     @GetMapping("/check-username")
     @Operation(summary = "Check username availability", description = "Username bandligini tekshirish")
-    @RequiresPermission(PermissionCode.USERS_VIEW)
+    // Login ochish huquqi bor har bir rol (foydalanuvchi yoki oila a'zosi orqali) tekshira olishi kerak
+    @RequiresPermission(value = {
+            PermissionCode.USERS_VIEW, PermissionCode.USERS_CREATE,
+            PermissionCode.FAMILY_CREATE, PermissionCode.FAMILY_UPDATE
+    }, requireAll = false)
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkUsernameAvailability(
             @RequestParam String username
     ) {

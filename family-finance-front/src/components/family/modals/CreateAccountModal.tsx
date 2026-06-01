@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { KeyRound, Copy, Check, Eye, EyeOff, ClipboardCopy, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { ModalPortal } from '../../common/Modal';
+import { PasswordInput } from '../../ui/PasswordInput';
+import { UsernameInput } from '../../ui/UsernameInput';
 import { familyMembersApi } from '../../../api/family-members.api';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CredentialsInfo, FamilyMember } from '../../../types';
@@ -25,6 +27,8 @@ export function CreateAccountModal({
 
   // Form state
   const [accountRole, setAccountRole] = useState<string>('MEMBER');
+  const [accountUsername, setAccountUsername] = useState<string>('');
+  const [usernameValid, setUsernameValid] = useState(true);
   const [accountPassword, setAccountPassword] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -65,6 +69,7 @@ export function CreateAccountModal({
         userId: person.userId,
         createAccount: true,
         accountRole,
+        accountUsername: accountUsername.trim() || undefined,
         accountPassword: accountPassword.trim() || undefined,
       });
 
@@ -134,20 +139,28 @@ export function CreateAccountModal({
                   </div>
                 </div>
 
+                {/* Login (qo'lda yoki avtomatik) */}
+                <UsernameInput
+                  label="Login"
+                  value={accountUsername}
+                  onChange={setAccountUsername}
+                  onValidityChange={setUsernameValid}
+                />
+
                 {/* Parol */}
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium">Parol</span>
-                    <span className="label-text-alt text-base-content/40">Ixtiyoriy</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="input input-bordered input-sm w-full"
-                    placeholder="Bo'sh qolsa avtomatik generatsiya"
-                    value={accountPassword}
-                    onChange={(e) => setAccountPassword(e.target.value)}
-                  />
-                </div>
+                <PasswordInput
+                  label="Parol"
+                  value={accountPassword}
+                  onChange={setAccountPassword}
+                  placeholder="Bo'sh qolsa avtomatik generatsiya"
+                  showStrength
+                  showGenerate
+                  error={
+                    accountPassword.length > 0 && accountPassword.length < 6
+                      ? 'Kamida 6 belgi'
+                      : undefined
+                  }
+                />
               </div>
 
               <div className="mt-6 flex justify-end gap-2">
@@ -157,7 +170,7 @@ export function CreateAccountModal({
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={handleCreate}
-                  disabled={isLoading}
+                  disabled={isLoading || !usernameValid || (accountPassword.length > 0 && accountPassword.length < 6)}
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

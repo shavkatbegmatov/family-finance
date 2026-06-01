@@ -6,8 +6,6 @@ import {
   Check,
   ChevronRight,
   Copy,
-  Eye,
-  EyeOff,
   KeyRound,
   Loader2,
   Sparkles,
@@ -18,6 +16,8 @@ import clsx from 'clsx';
 
 import { ModalPortal } from '../common/Modal';
 import { TextInput } from '../ui/TextInput';
+import { PasswordInput } from '../ui/PasswordInput';
+import { UsernameInput } from '../ui/UsernameInput';
 import { Select, type SelectOption } from '../ui/Select';
 import { DateInput } from '../ui/DateInput';
 import { usePermission } from '../../hooks/usePermission';
@@ -65,6 +65,7 @@ interface FormState {
   birthPlace: string;
   phone: string;
   nickname: string;
+  username: string;
   password: string;
   autoPassword: boolean;
 }
@@ -78,6 +79,7 @@ const EMPTY_FORM: FormState = {
   birthPlace: '',
   phone: '',
   nickname: '',
+  username: '',
   password: '',
   autoPassword: true,
 };
@@ -120,6 +122,7 @@ const buildRequest = (type: PersonType, form: FormState): PersonCreateRequest =>
   }
 
   if (type === 'ADULT_ACTIVE' || type === 'ADMIN_ONLY') {
+    base.username = trim(form.username);
     base.password = form.autoPassword ? undefined : trim(form.password);
   }
 
@@ -142,6 +145,7 @@ export function AddPersonWizard({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedType, setSelectedType] = useState<PersonType | null>(defaultType ?? null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [usernameValid, setUsernameValid] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<PersonCreateResponse | null>(null);
 
@@ -159,6 +163,7 @@ export function AddPersonWizard({
     if (!isOpen) return;
     setStep(1);
     setForm(EMPTY_FORM);
+    setUsernameValid(true);
     setSubmitting(false);
     setResult(null);
     setSelectedType(defaultType && availableTypes.includes(defaultType) ? defaultType : null);
@@ -173,12 +178,12 @@ export function AddPersonWizard({
     if (!selectedType) return false;
     if (form.firstName.trim().length === 0) return false;
 
-    const needsPassword =
-      (selectedType === 'ADULT_ACTIVE' || selectedType === 'ADMIN_ONLY') && !form.autoPassword;
-    if (needsPassword && form.password.length < MIN_PASSWORD_LENGTH) return false;
+    const needsAccount = selectedType === 'ADULT_ACTIVE' || selectedType === 'ADMIN_ONLY';
+    if (needsAccount && !usernameValid) return false;
+    if (needsAccount && !form.autoPassword && form.password.length < MIN_PASSWORD_LENGTH) return false;
 
     return true;
-  }, [selectedType, form]);
+  }, [selectedType, form, usernameValid]);
 
   const handleNext = useCallback(() => {
     if (step === 1 && canAdvanceFromStep1) {
@@ -240,7 +245,12 @@ export function AddPersonWizard({
             />
           )}
           {step === 2 && selectedType && (
-            <DetailsStep type={selectedType} form={form} updateForm={updateForm} />
+            <DetailsStep
+              type={selectedType}
+              form={form}
+              updateForm={updateForm}
+              onUsernameValidChange={setUsernameValid}
+            />
           )}
           {step === 3 && result && <SuccessStep result={result} />}
         </div>
@@ -435,10 +445,12 @@ function DetailsStep({
   type,
   form,
   updateForm,
+  onUsernameValidChange,
 }: {
   type: PersonType;
   form: FormState;
   updateForm: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  onUsernameValidChange: (valid: boolean) => void;
 }) {
   const showNickname = type === 'CHILD' || type === 'ADULT_ACTIVE';
   const showAccount = type === 'ADULT_ACTIVE' || type === 'ADMIN_ONLY';
@@ -519,11 +531,14 @@ function DetailsStep({
       {showAccount && (
         <FormSection
           title="Login akkaunti"
-          hint="Username avtomatik yaratiladi (masalan, a.karimov). Parol ham avto bo'lishi mumkin."
+          hint="Login bo'sh qolsa ism asosida avtomatik yaratiladi (masalan, a.karimov)."
         >
           <AccountSection
+            username={form.username}
             autoPassword={form.autoPassword}
             password={form.password}
+            onUsernameChange={(v) => updateForm('username', v)}
+            onUsernameValidChange={onUsernameValidChange}
             onToggleAuto={(v) => updateForm('autoPassword', v)}
             onPasswordChange={(v) => updateForm('password', v)}
           />
@@ -581,20 +596,31 @@ function FormSection({
 }
 
 function AccountSection({
+  username,
   autoPassword,
   password,
+  onUsernameChange,
+  onUsernameValidChange,
   onToggleAuto,
   onPasswordChange,
 }: {
+  username: string;
   autoPassword: boolean;
   password: string;
+  onUsernameChange: (v: string) => void;
+  onUsernameValidChange: (valid: boolean) => void;
   onToggleAuto: (v: boolean) => void;
   onPasswordChange: (v: string) => void;
 }) {
-  const [showPassword, setShowPassword] = useState(false);
-
   return (
     <div className="space-y-3">
+      <UsernameInput
+        label="Login"
+        value={username}
+        onChange={onUsernameChange}
+        onValidityChange={onUsernameValidChange}
+      />
+
       <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-base-300 bg-base-200/50 px-3 py-2.5">
         <div>
           <p className="text-sm font-medium">Parolni avtomatik yaratish</p>
@@ -611,31 +637,19 @@ function AccountSection({
       </label>
 
       {!autoPassword && (
-        <div className="relative">
-          <TextInput
-            label="Parol"
-            placeholder={`Kamida ${MIN_PASSWORD_LENGTH} belgi`}
-            value={password}
-            onChange={onPasswordChange}
-            type={showPassword ? 'text' : 'text'}
-            // showClear: false to give room for the eye button
-            showClear={false}
-            leadingIcon={<KeyRound className="h-4 w-4" />}
-            error={
-              password.length > 0 && password.length < MIN_PASSWORD_LENGTH
-                ? `Parol kamida ${MIN_PASSWORD_LENGTH} belgi bo'lishi kerak`
-                : undefined
-            }
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-2 top-9 grid h-9 w-9 place-items-center rounded-lg text-base-content/50 hover:bg-base-200 hover:text-base-content"
-            aria-label={showPassword ? "Parolni yashirish" : "Parolni ko'rsatish"}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
+        <PasswordInput
+          label="Parol"
+          placeholder={`Kamida ${MIN_PASSWORD_LENGTH} belgi`}
+          value={password}
+          onChange={onPasswordChange}
+          showStrength
+          showGenerate
+          error={
+            password.length > 0 && password.length < MIN_PASSWORD_LENGTH
+              ? `Parol kamida ${MIN_PASSWORD_LENGTH} belgi bo'lishi kerak`
+              : undefined
+          }
+        />
       )}
     </div>
   );

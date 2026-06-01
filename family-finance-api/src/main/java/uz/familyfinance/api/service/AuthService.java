@@ -52,6 +52,7 @@ public class AuthService {
     private final FamilyGroupRepository familyGroupRepository;
     private final ScopeRepository scopeRepository;
     private final ScopeMembershipRepository scopeMembershipRepository;
+    private final ScopeMembershipService scopeMembershipService;
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
     private final LoginAttemptService loginAttemptService;
@@ -180,9 +181,9 @@ public class AuthService {
         }
 
         // 1) CLAN'ga MEMBER bo'lib qo'shish (agar yo'q bo'lsa)
-        addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
+        scopeMembershipService.addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
         // 2) HOUSEHOLD'ga MEMBER bo'lib qo'shish
-        addMembershipIfAbsent(household, user, ScopeRole.MEMBER);
+        scopeMembershipService.addMembershipIfAbsent(household, user, ScopeRole.MEMBER);
 
         // 3) User'ni familyGroup va primaryScope ga bog'lash
         user.setFamilyGroup(familyGroup);
@@ -208,23 +209,6 @@ public class AuthService {
                 user.getUsername(), clan.getId(), household.getId());
     }
 
-    private void addMembershipIfAbsent(Scope scope, User user, ScopeRole role) {
-        scopeMembershipRepository.findByScopeIdAndUserId(scope.getId(), user.getId())
-                .ifPresentOrElse(existing -> {
-                    if (existing.getStatus() != MembershipStatus.ACTIVE) {
-                        existing.setStatus(MembershipStatus.ACTIVE);
-                        existing.setRole(role);
-                        scopeMembershipRepository.save(existing);
-                    }
-                }, () -> scopeMembershipRepository.save(ScopeMembership.builder()
-                        .scope(scope)
-                        .user(user)
-                        .role(role)
-                        .status(MembershipStatus.ACTIVE)
-                        .joinedAt(LocalDateTime.now())
-                        .build()));
-    }
-
     /**
      * Auto-provisioning eski user'lar uchun: login paytida agar user'da
      * familyGroup yoki primaryScope yo'q bo'lsa, avtomatik yaratadi.
@@ -239,8 +223,19 @@ public class AuthService {
         // xavfsiz kirish uchun managed entity'ni repository'dan qayta yuklaymiz.
         User user = userRepository.findById(userParam.getId()).orElse(null);
         if (user == null) return;
+
+        // Oila a'zosiga bog'langan user — uning aktiv scope'i HAR DOIM o'sha a'zo xonadoni
+        // bilan mos bo'lishi kerak. Bu, jumladan, eski bug tufayli (admin login ochganda
+        // primaryScope o'rnatilmagani sabab) noto'g'ri/bo'sh urug'ga tushib qolgan login'larni
+        // keyingi kirishda avtomatik tuzatadi (self-heal) — migratsiyasiz.
+        FamilyMember linkedMember = familyMemberRepository.findByUserId(user.getId()).orElse(null);
+        if (linkedMember != null && linkedMember.getScope() != null) {
+            reconcileUserScopeWithMember(user, linkedMember);
+            return;
+        }
+
         if (user.getFamilyGroup() != null && user.getPrimaryScope() != null) {
-            return; // hammasi joyida
+            return; // mustaqil user, scope to'liq
         }
         String displayName = user.getFullName() != null && !user.getFullName().isBlank()
                 ? user.getFullName().trim()
@@ -255,6 +250,43 @@ public class AuthService {
         }
         provisionScopeAndFamilyGroup(user, displayName, firstName, lastName);
         log.info("Auto-provisioned scope for legacy user: {}", user.getUsername());
+    }
+
+    /**
+     * User'ning scope/familyGroup'ini bog'langan oila a'zosi xonadoniga moslaydi va kerakli
+     * membership'larni ta'minlaydi. Mos bo'lsa — hech narsa o'zgartirmaydi (no-op).
+     */
+    private void reconcileUserScopeWithMember(User user, FamilyMember member) {
+        Scope memberScope = member.getScope();
+        Scope household = (memberScope.getType() == ScopeType.HOUSEHOLD)
+                ? memberScope
+                : scopeRepository
+                        .findFirstByParentScopeIdAndTypeAndIsActiveTrue(memberScope.getId(), ScopeType.HOUSEHOLD)
+                        .orElse(null);
+        if (household == null) {
+            return; // xonadon topilmadi — xavfsizlik uchun tegmaymiz
+        }
+
+        // Membership'lar (HOUSEHOLD + parent CLAN). Mavjud ACTIVE rol (masalan OWNER) saqlanadi.
+        scopeMembershipService.attachToHousehold(household, user, ScopeRole.MEMBER);
+
+        boolean changed = false;
+        Long currentPrimaryId = user.getPrimaryScope() != null ? user.getPrimaryScope().getId() : null;
+        if (!household.getId().equals(currentPrimaryId)) {
+            user.setPrimaryScope(household);
+            changed = true;
+        }
+        FamilyGroup memberFg = member.getFamilyGroup();
+        Long currentFgId = user.getFamilyGroup() != null ? user.getFamilyGroup().getId() : null;
+        if (memberFg != null && !memberFg.getId().equals(currentFgId)) {
+            user.setFamilyGroup(memberFg);
+            changed = true;
+        }
+        if (changed) {
+            userRepository.save(user);
+            log.info("User '{}' scope'i oila a'zosi xonadoniga moslandi (household={})",
+                    user.getUsername(), household.getId());
+        }
     }
 
     /**

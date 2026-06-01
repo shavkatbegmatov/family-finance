@@ -18,6 +18,8 @@ export interface PersonCreateRequest {
   phone?: string;
   /** CHILD / ADULT_ACTIVE uchun ixtiyoriy laqab. */
   nickname?: string;
+  /** ADULT_ACTIVE / ADMIN_ONLY uchun ixtiyoriy login (bo'sh bo'lsa ism asosida avto-generatsiya). */
+  username?: string;
   /** ADULT_ACTIVE / ADMIN_ONLY uchun ixtiyoriy parol (bo'sh bo'lsa avto-generatsiya). */
   password?: string;
   /** ADULT_ACTIVE / ADMIN_ONLY uchun rol kodi (default "MEMBER"). */

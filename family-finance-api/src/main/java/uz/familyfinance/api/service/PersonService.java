@@ -105,6 +105,7 @@ public class PersonService {
 
         if (type.needsUser()) {
             mr.setCreateAccount(true);
+            mr.setAccountUsername(emptyToNull(request.getUsername()));
             mr.setAccountPassword(emptyToNull(request.getPassword()));
             String role = emptyToNull(request.getAccountRole());
             mr.setAccountRole(role != null ? role : DEFAULT_ACCOUNT_ROLE);

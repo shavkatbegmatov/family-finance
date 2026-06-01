@@ -286,7 +286,7 @@ public class FamilyMemberService {
                     ? request.getAccountRole()
                     : "MEMBER";
             CredentialsInfo credentials = userService.createUserForFamilyMember(
-                    saved, roleCode, request.getAccountPassword());
+                    saved, roleCode, request.getAccountPassword(), request.getAccountUsername());
             // Yaratilgan user'ni member'ga biriktirish
             User createdUser = userRepository.findByUsername(credentials.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
@@ -402,7 +402,7 @@ public class FamilyMemberService {
                     ? request.getAccountRole()
                     : "MEMBER";
             CredentialsInfo credentials = userService.createUserForFamilyMember(
-                    saved, roleCode, request.getAccountPassword());
+                    saved, roleCode, request.getAccountPassword(), request.getAccountUsername());
             User createdUser = userRepository.findByUsername(credentials.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
             saved.setUser(createdUser);

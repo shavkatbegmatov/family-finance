@@ -16,13 +16,17 @@ import uz.familyfinance.api.dto.response.CredentialsInfo;
 import uz.familyfinance.api.dto.response.UserDetailResponse;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.RoleEntity;
+import uz.familyfinance.api.entity.Scope;
 import uz.familyfinance.api.entity.User;
 import uz.familyfinance.api.enums.Role;
+import uz.familyfinance.api.enums.ScopeRole;
+import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.PointParticipantRepository;
 import uz.familyfinance.api.repository.RoleRepository;
+import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.entity.PointParticipant;
 
@@ -35,6 +39,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -50,6 +55,9 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final PointParticipantRepository pointParticipantRepository;
+    private final ScopeRepository scopeRepository;
+    private final ScopeContextService scopeContext;
+    private final ScopeMembershipService scopeMembershipService;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final SessionService sessionService;
@@ -62,6 +70,12 @@ public class UserService {
             "support", "help", "info", "test", "null", "undefined",
             "api", "www", "mail", "ftp", "localhost"
     );
+
+    /** Qo'lda kiritilgan login formati: lotin harf/raqam/nuqta/pastki chiziq, 3-30 belgi. */
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9._]{3,30}$");
+
+    /** Parol minimal uzunligi — barcha joyda izchil (FamilyMemberRequest @Size bilan mos). */
+    private static final int MIN_PASSWORD_LENGTH = 6;
 
     private static final String PASSWORD_CHARS_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final String PASSWORD_CHARS_LOWER = "abcdefghjkmnpqrstuvwxyz";
@@ -78,16 +92,33 @@ public class UserService {
      */
     @Transactional
     public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode) {
-        return createUserForFamilyMember(member, roleCode, null);
+        return createUserForFamilyMember(member, roleCode, null, null);
     }
 
     @Transactional
     public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode, String customPassword) {
-        // Generate unique username
-        String username = generateUsername(member.getFullName());
+        return createUserForFamilyMember(member, roleCode, customPassword, null);
+    }
+
+    /**
+     * Oila a'zosiga login (User) ochadi.
+     *
+     * @param member         login ochiladigan oila a'zosi
+     * @param roleCode       tizim roli kodi ("ADMIN"/"MEMBER")
+     * @param customPassword qo'lda kiritilgan parol; null/bo'sh bo'lsa avto-generatsiya
+     * @param customUsername qo'lda kiritilgan login; null/bo'sh bo'lsa ism asosida avto-generatsiya
+     */
+    @Transactional
+    public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode,
+                                                     String customPassword, String customUsername) {
+        // Username: qo'lda kiritilgan bo'lsa tekshirib ishlatamiz, aks holda ism asosida avtomatik
+        String username = resolveUsername(customUsername, member.getFullName());
 
         // Use custom password or generate temporary
         boolean isCustomPassword = customPassword != null && !customPassword.isBlank();
+        if (isCustomPassword) {
+            validateMinPasswordLength(customPassword);
+        }
         String temporaryPassword = isCustomPassword ? customPassword : generateTemporaryPassword();
 
         // Find role
@@ -117,6 +148,12 @@ public class UserService {
         user.getRoles().add(role);
 
         userRepository.save(user);
+
+        // MUHIM: yangi user'ni oila a'zosi tegishli bo'lgan scope'larga (HOUSEHOLD + parent CLAN)
+        // a'zo qilamiz va primaryScope'ni o'rnatamiz. Aks holda u login qilganda
+        // AuthService.ensureUserHasScope() primaryScope yo'qligini ko'rib, YANGI bo'sh urug'/xonadon
+        // yaratadi va user'ni o'z oilasidan uzib qo'yadi — natijada oila a'zolari ko'rinmaydi.
+        linkUserToMemberScopes(user, member, roleCode);
 
         // Log the action
         Long creatorId = createdBy != null ? createdBy.getId() : null;
@@ -151,6 +188,84 @@ public class UserService {
             log.debug("Role code '{}' is not in legacy enum, using MEMBER for legacy field", roleCode);
             return Role.MEMBER;
         }
+    }
+
+    /**
+     * Login (username) ni aniqlaydi: qo'lda kiritilgan bo'lsa normallashtirib tekshiradi,
+     * aks holda ism asosida avtomatik generatsiya qiladi.
+     */
+    private String resolveUsername(String customUsername, String fullName) {
+        if (customUsername == null || customUsername.isBlank()) {
+            return generateUsername(fullName);
+        }
+        String normalized = customUsername.toLowerCase().trim();
+        if (!USERNAME_PATTERN.matcher(normalized).matches()) {
+            throw new BadRequestException(
+                    "Login faqat lotin harflari, raqamlar, nuqta va pastki chiziqdan iborat "
+                    + "bo'lishi va 3-30 belgi orasida bo'lishi kerak");
+        }
+        if (RESERVED_USERNAMES.contains(normalized)) {
+            throw new BadRequestException("Bu login tizim tomonidan band qilingan");
+        }
+        if (userRepository.existsByUsername(normalized)) {
+            throw new BadRequestException("Bu login allaqachon band: " + normalized);
+        }
+        return normalized;
+    }
+
+    /**
+     * Admin tomonidan qo'yilgan custom parol uchun minimal tekshiruv.
+     * "Muvozanatli" siyosat: admin oila a'zosiga oson parol bera olishi uchun faqat uzunlik
+     * majburiy; murakkablik (katta/kichik/raqam) faqat self-service uchun ({@link #validatePassword}).
+     */
+    private void validateMinPasswordLength(String password) {
+        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
+            throw new BadRequestException(
+                    "Parol kamida " + MIN_PASSWORD_LENGTH + " belgidan iborat bo'lishi kerak");
+        }
+    }
+
+    /**
+     * Yangi user'ni oila a'zosi tegishli bo'lgan HOUSEHOLD va parent CLAN scope'lariga a'zo qiladi
+     * hamda primaryScope'ni HOUSEHOLD'ga o'rnatadi. Bu login paytida noto'g'ri yangi scope
+     * provisioning qilinishining oldini oladi.
+     */
+    private void linkUserToMemberScopes(User user, FamilyMember member, String roleCode) {
+        Scope household = resolveHouseholdScope(member);
+        if (household == null) {
+            log.warn("Oila a'zosi {} uchun xonadon (HOUSEHOLD) scope topilmadi — "
+                    + "'{}' login qilganda o'z oilasini ko'rmasligi mumkin",
+                    member.getId(), user.getUsername());
+            return;
+        }
+        ScopeRole scopeRole = "ADMIN".equalsIgnoreCase(roleCode) ? ScopeRole.ADMIN : ScopeRole.MEMBER;
+        scopeMembershipService.attachToHousehold(household, user, scopeRole);
+        user.setPrimaryScope(household);
+        userRepository.save(user);
+    }
+
+    /**
+     * Oila a'zosiga mos HOUSEHOLD scope'ni topadi. Member scope'i HOUSEHOLD bo'lsa — o'zi;
+     * CLAN bo'lsa — uning birinchi faol HOUSEHOLD'i. Member scope'i bo'lmasa — login ochayotgan
+     * adminning aktiv xonadoniga fallback (xuddi shu xonadon a'zosiga login berilmoqda).
+     */
+    private Scope resolveHouseholdScope(FamilyMember member) {
+        Scope scope = member.getScope();
+        if (scope == null) {
+            scope = scopeContext.getActiveHousehold().orElse(null);
+        }
+        if (scope == null) {
+            return null;
+        }
+        if (scope.getType() == ScopeType.HOUSEHOLD) {
+            return scope;
+        }
+        if (scope.getType() == ScopeType.CLAN) {
+            return scopeRepository
+                    .findFirstByParentScopeIdAndTypeAndIsActiveTrue(scope.getId(), ScopeType.HOUSEHOLD)
+                    .orElse(null);
+        }
+        return null;
     }
 
     /**

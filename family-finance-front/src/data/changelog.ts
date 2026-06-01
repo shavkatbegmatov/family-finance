@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.5.0',
+        date: '2026-06-01 21:30',
+        title: "Login va parol boshqaruvi yaxshilandi",
+        features: [
+            "Oila a'zosiga login ochishda endi login (username) ni qo'lda kiritish mumkin — bo'sh qoldirilsa ism asosida avtomatik yaratiladi. Yozilganda login band emasligi darhol tekshiriladi.",
+            "Barcha parol maydonlari uchun yagona qulay komponent: parolni ko'rsatish/yashirish, bir bosishda kuchli parol generatsiya qilish va parol kuchi ko'rsatkichi.",
+        ],
+        fixes: [
+            "Oila a'zosiga login ochilgandan so'ng, u o'sha login bilan kirganda endi o'z oilasi a'zolarini ko'radi (ilgari yangi foydalanuvchiga alohida bo'sh \"urug'\" yaratilib qolib, oila a'zolari ko'rinmay qolardi).",
+            "Shu xato tufayli ilgari noto'g'ri scope'ga tushib qolgan loginlar keyingi kirishda avtomatik o'z oilasiga qayta ulanadi.",
+            "Parolga qo'yiladigan talablar butun ilovada bir xil bo'ldi (ilgari turli sahifalarda turlicha edi).",
+        ]
+    },
+    {
         version: '1.4.5',
         date: '2026-06-01 04:00',
         title: "Turmush o'rtoq mavjud oilaga qo'shiladi",
