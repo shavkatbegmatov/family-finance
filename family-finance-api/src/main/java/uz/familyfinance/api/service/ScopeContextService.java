@@ -200,6 +200,17 @@ public class ScopeContextService {
         return Optional.empty();
     }
 
+    /**
+     * Joriy aktiv scope tegishli bo'lgan CLAN (urug'). Aktiv scope CLAN bo'lsa — o'zi;
+     * HOUSEHOLD (yoki boshqa) bo'lsa — uning ota-scope'i (CLAN). Yangi HOUSEHOLD'larni shu
+     * CLAN ostiga joylashtirish uchun ishlatiladi.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Scope> getActiveClanOptional() {
+        return getActiveScopeOptional().map(scope ->
+                scope.getType() == ScopeType.CLAN ? scope : scope.getParentScope());
+    }
+
     // ====================================================================
     // Visibility — qaysi scope'larni ko'ra oladi
     // ====================================================================
