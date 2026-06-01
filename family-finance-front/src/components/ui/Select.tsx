@@ -58,7 +58,9 @@ export function Select({
   const triggerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = options.find(
+    (opt) => opt.value === value || ((value === undefined || value === null) && opt.value === '')
+  );
 
   // Calculate dropdown position
   const updateDropdownPosition = useCallback(() => {
@@ -170,7 +172,9 @@ export function Select({
           setIsOpen(true);
         }
         if (options.length > 0) {
-          const currentIndex = options.findIndex((opt) => opt.value === value);
+          const currentIndex = options.findIndex(
+            (opt) => opt.value === value || ((value === undefined || value === null) && opt.value === '')
+          );
           let nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
           let nextOption = options[nextIndex];
           const startIndex = nextIndex;
@@ -190,7 +194,9 @@ export function Select({
           setIsOpen(true);
         }
         if (options.length > 0) {
-          const currentIndex = options.findIndex((opt) => opt.value === value);
+          const currentIndex = options.findIndex(
+            (opt) => opt.value === value || ((value === undefined || value === null) && opt.value === '')
+          );
           let prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
           let prevOption = options[prevIndex];
           const startIndex = prevIndex;
