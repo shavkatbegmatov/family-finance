@@ -155,8 +155,41 @@ export function DatePicker({
   }, [value]);
 
   const formatInputWithMask = (text: string): string => {
-    const clean = text.replace(/\D/g, '');
+    let clean = text.replace(/\D/g, '');
     if (clean.length === 0) return '';
+
+    // 1. Validate Day (DD) - digits at index 0 and 1
+    if (clean.length >= 1) {
+      const d1 = parseInt(clean[0], 10);
+      if (d1 > 3) {
+        clean = '0' + clean;
+      }
+    }
+    if (clean.length >= 2) {
+      const day = parseInt(clean.slice(0, 2), 10);
+      if (day > 31) {
+        clean = '31' + clean.slice(2);
+      } else if (day === 0) {
+        clean = '01' + clean.slice(2);
+      }
+    }
+
+    // 2. Validate Month (MM) - digits at index 2 and 3
+    if (clean.length >= 3) {
+      const m1 = parseInt(clean[2], 10);
+      if (m1 > 1) {
+        clean = clean.slice(0, 2) + '0' + clean.slice(2);
+      }
+    }
+    if (clean.length >= 4) {
+      const month = parseInt(clean.slice(2, 4), 10);
+      if (month > 12) {
+        clean = clean.slice(0, 2) + '12' + clean.slice(4);
+      } else if (month === 0) {
+        clean = clean.slice(0, 2) + '01' + clean.slice(4);
+      }
+    }
+
     if (clean.length <= 2) return clean;
     if (clean.length <= 4) return `${clean.slice(0, 2)}.${clean.slice(2)}`;
     return `${clean.slice(0, 2)}.${clean.slice(2, 4)}.${clean.slice(4, 8)}`;
