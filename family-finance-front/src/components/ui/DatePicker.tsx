@@ -142,6 +142,229 @@ export function DatePicker({
   const selectedDate = parseDate(value);
   const hasValue = value.length > 0;
 
+  const [focusedDate, setFocusedDate] = useState<Date>(() => {
+    const parsed = parseDate(value);
+    return parsed || parseDate(getTashkentToday()) || new Date();
+  });
+
+  const [inputValue, setInputValue] = useState(() => formatDisplay(value));
+
+  // Sync inputValue when value changes
+  useEffect(() => {
+    setInputValue(formatDisplay(value));
+  }, [value]);
+
+  const formatInputWithMask = (text: string): string => {
+    let clean = text.replace(/\D/g, '');
+    if (clean.length === 0) return '';
+
+    // 1. Validate Day (DD) - digits at index 0 and 1
+    if (clean.length >= 1) {
+      const d1 = parseInt(clean[0], 10);
+      if (d1 > 3) {
+        clean = '0' + clean;
+      }
+    }
+    if (clean.length >= 2) {
+      const day = parseInt(clean.slice(0, 2), 10);
+      if (day > 31) {
+        clean = '31' + clean.slice(2);
+      } else if (day === 0) {
+        clean = '01' + clean.slice(2);
+      }
+    }
+
+    // 2. Validate Month (MM) - digits at index 2 and 3
+    if (clean.length >= 3) {
+      const m1 = parseInt(clean[2], 10);
+      if (m1 > 1) {
+        clean = clean.slice(0, 2) + '0' + clean.slice(2);
+      }
+    }
+    if (clean.length >= 4) {
+      const month = parseInt(clean.slice(2, 4), 10);
+      if (month > 12) {
+        clean = clean.slice(0, 2) + '12' + clean.slice(4);
+      } else if (month === 0) {
+        clean = clean.slice(0, 2) + '01' + clean.slice(4);
+      }
+    }
+
+    if (clean.length <= 2) return clean;
+    if (clean.length <= 4) return `${clean.slice(0, 2)}.${clean.slice(2)}`;
+    return `${clean.slice(0, 2)}.${clean.slice(2, 4)}.${clean.slice(4, 8)}`;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value;
+    const formatted = formatInputWithMask(rawVal);
+    setInputValue(formatted);
+
+    if (formatted.length === 10) {
+      const parts = formatted.split('.');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+
+      const parsedDate = new Date(year, month, day);
+      if (
+        isValid(parsedDate) &&
+        parsedDate.getFullYear() === year &&
+        parsedDate.getMonth() === month &&
+        parsedDate.getDate() === day
+      ) {
+        const dateStr = toDateString(parsedDate);
+        if (!isDateDisabled(parsedDate, min, max)) {
+          onChange(dateStr);
+        }
+      }
+    }
+  };
+
+  const handleInputFocus = () => {
+    setIsFocused(true);
+    if (!isOpen) {
+      setIsOpen(true);
+    }
+  };
+
+  const handleInputBlur = () => {
+    setTimeout(() => {
+      if (dropdownRef.current && dropdownRef.current.contains(document.activeElement)) {
+        return;
+      }
+      setInputValue(formatDisplay(value));
+      setIsFocused(false);
+    }, 150);
+  };
+
+  // Sync focusedDate when value changes or dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      const parsed = parseDate(value);
+      setFocusedDate(parsed || parseDate(getTashkentToday()) || new Date());
+    }
+  }, [isOpen, value]);
+
+  // Automatically update visible month if focusedDate changes
+  useEffect(() => {
+    if (isOpen && focusedDate) {
+      setCurrentMonth(startOfMonth(focusedDate));
+    }
+  }, [focusedDate, isOpen]);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return;
+
+    if (!isOpen) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        toggleDropdown();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'Enter':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          if (!isDateDisabled(focusedDate, min, max)) {
+            handleDayClick(focusedDate);
+          }
+        } else if (viewMode === 'months') {
+          handleMonthSelect(getMonth(currentMonth));
+        } else if (viewMode === 'years') {
+          handleYearSelect(getYear(currentMonth));
+        }
+        break;
+      case 'Space':
+      case ' ':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          if (!isDateDisabled(focusedDate, min, max)) {
+            handleDayClick(focusedDate);
+          }
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        closeDropdown();
+        triggerRef.current?.focus();
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() - 1);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() + 1);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() - 7);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          newDate.setDate(focusedDate.getDate() + 7);
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          if (e.shiftKey) {
+            newDate.setFullYear(focusedDate.getFullYear() - 1);
+          } else {
+            newDate.setMonth(focusedDate.getMonth() - 1);
+          }
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        if (viewMode === 'days') {
+          const newDate = new Date(focusedDate);
+          if (e.shiftKey) {
+            newDate.setFullYear(focusedDate.getFullYear() + 1);
+          } else {
+            newDate.setMonth(focusedDate.getMonth() + 1);
+          }
+          if (!isDateDisabled(newDate, min, max)) {
+            setFocusedDate(newDate);
+          }
+        }
+        break;
+      case 'Tab':
+        closeDropdown();
+        break;
+    }
+  };
+
   // ==================== POSITIONING ====================
 
   const updateDropdownPosition = useCallback(() => {
@@ -171,7 +394,6 @@ export function DatePicker({
     if (disabled) return;
     if (isOpen) {
       setIsOpen(false);
-      setIsFocused(false);
       return;
     }
     const parsed = parseDate(value);
@@ -180,12 +402,10 @@ export function DatePicker({
     }
     setViewMode('days');
     setIsOpen(true);
-    setIsFocused(true);
   }, [disabled, value, isOpen]);
 
   const closeDropdown = useCallback(() => {
     setIsOpen(false);
-    setIsFocused(false);
   }, []);
 
   // ==================== EFFECTS ====================
@@ -316,6 +536,7 @@ export function DatePicker({
             const isToday = isSameDay(date, today);
             const isSelected = selectedDate ? isSameDay(date, selectedDate) : false;
             const isDisabled = isDateDisabled(date, min, max);
+            const isFocusedDay = isOpen && focusedDate ? isSameDay(date, focusedDate) : false;
 
             return (
               <button
@@ -326,10 +547,11 @@ export function DatePicker({
                 className={clsx(
                   'flex h-8 w-full items-center justify-center rounded-lg text-xs transition-all duration-150',
                   isDisabled && 'cursor-not-allowed opacity-30',
-                  !isDisabled && !isSelected && 'hover:bg-base-200',
-                  !isCurrentMonth && !isSelected && 'text-base-content/25',
-                  isCurrentMonth && !isSelected && !isToday && 'text-base-content',
-                  isToday && !isSelected && 'ring-1 ring-primary text-primary font-semibold',
+                  !isDisabled && !isSelected && !isFocusedDay && 'hover:bg-base-200',
+                  !isCurrentMonth && !isSelected && !isFocusedDay && 'text-base-content/25',
+                  isCurrentMonth && !isSelected && !isToday && !isFocusedDay && 'text-base-content',
+                  isToday && !isSelected && !isFocusedDay && 'ring-1 ring-primary text-primary font-semibold',
+                  isFocusedDay && !isSelected && 'ring-2 ring-primary/40 bg-base-200 text-primary font-semibold',
                   isSelected && 'bg-primary text-primary-content font-semibold shadow-sm',
                 )}
               >
@@ -466,7 +688,7 @@ export function DatePicker({
       <div
         ref={triggerRef}
         className={clsx(
-          'relative flex items-center border bg-base-200/50 transition-all duration-200 h-12 cursor-pointer select-none',
+          'relative flex items-center border bg-base-200/50 transition-all duration-200 h-12 cursor-text',
           isFocused
             ? openUp
               ? 'rounded-b-xl rounded-t-none border-primary/30 ring-0'
@@ -478,18 +700,24 @@ export function DatePicker({
         )}
         onClick={toggleDropdown}
       >
-        <div className="absolute left-3 text-base-content/40">
+        <div className="absolute left-3 text-base-content/40 z-10 pointer-events-none">
           <Calendar className="h-5 w-5" />
         </div>
 
-        <div
+        <input
+          type="text"
           className={clsx(
-            'w-full py-3 pl-10 pr-20 text-sm font-medium',
-            hasValue ? 'text-base-content' : 'text-base-content/40'
+            'w-full bg-transparent border-none outline-none py-3 pl-10 pr-20 text-sm font-medium text-base-content placeholder:text-base-content/40',
+            disabled && 'pointer-events-none'
           )}
-        >
-          {hasValue ? formatDisplay(value) : placeholder}
-        </div>
+          placeholder={placeholder}
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        />
 
         <div className="absolute right-2 flex items-center gap-1 z-10">
           {showClear && hasValue && !disabled && (
@@ -501,6 +729,7 @@ export function DatePicker({
                 onChange('');
               }}
               aria-label="Tozalash"
+              tabIndex={-1}
             >
               <X className="h-4 w-4" />
             </button>

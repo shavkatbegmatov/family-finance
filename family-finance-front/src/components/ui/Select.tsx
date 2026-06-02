@@ -58,7 +58,9 @@ export function Select({
   const triggerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = options.find(
+    (opt) => opt.value === value || ((value === undefined || value === null) && opt.value === '')
+  );
 
   // Calculate dropdown position
   const updateDropdownPosition = useCallback(() => {
@@ -168,10 +170,19 @@ export function Select({
         e.preventDefault();
         if (!isOpen) {
           setIsOpen(true);
-        } else {
-          const currentIndex = options.findIndex((opt) => opt.value === value);
-          const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-          const nextOption = options[nextIndex];
+        }
+        if (options.length > 0) {
+          const currentIndex = options.findIndex(
+            (opt) => opt.value === value || ((value === undefined || value === null) && opt.value === '')
+          );
+          let nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+          let nextOption = options[nextIndex];
+          const startIndex = nextIndex;
+          while (nextOption?.disabled) {
+            nextIndex = nextIndex < options.length - 1 ? nextIndex + 1 : 0;
+            if (nextIndex === startIndex) break;
+            nextOption = options[nextIndex];
+          }
           if (nextOption && !nextOption.disabled) {
             onChange(nextOption.value);
           }
@@ -179,10 +190,21 @@ export function Select({
         break;
       case 'ArrowUp':
         e.preventDefault();
-        if (isOpen) {
-          const currentIndex = options.findIndex((opt) => opt.value === value);
-          const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-          const prevOption = options[prevIndex];
+        if (!isOpen) {
+          setIsOpen(true);
+        }
+        if (options.length > 0) {
+          const currentIndex = options.findIndex(
+            (opt) => opt.value === value || ((value === undefined || value === null) && opt.value === '')
+          );
+          let prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+          let prevOption = options[prevIndex];
+          const startIndex = prevIndex;
+          while (prevOption?.disabled) {
+            prevIndex = prevIndex > 0 ? prevIndex - 1 : options.length - 1;
+            if (prevIndex === startIndex) break;
+            prevOption = options[prevIndex];
+          }
           if (prevOption && !prevOption.disabled) {
             onChange(prevOption.value);
           }
@@ -276,34 +298,37 @@ export function Select({
               Ma'lumot topilmadi
             </div>
           ) : (
-            options.map((option) => (
-              <div
-                key={option.value}
-                data-selected={option.value === value}
-                className={clsx(
-                  'flex items-center gap-2 px-3 py-2.5 cursor-pointer transition-colors first:rounded-t-[10px] last:rounded-b-[10px]',
-                  option.value === value
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'hover:bg-base-200/80',
-                  option.disabled && 'opacity-50 cursor-not-allowed'
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!option.disabled) {
-                    handleSelect(option.value);
-                  }
-                }}
-                role="option"
-                aria-selected={option.value === value}
-                aria-disabled={option.disabled}
-              >
-                {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
-                <span className="flex-1 truncate">{option.label}</span>
-                {option.value === value && (
-                  <Check className="h-4 w-4 flex-shrink-0" />
-                )}
-              </div>
-            ))
+            options.map((option) => {
+              const isSelected = option.value === value || ((value === undefined || value === null) && option.value === '');
+              return (
+                <div
+                  key={option.value}
+                  data-selected={isSelected}
+                  className={clsx(
+                    'flex items-center gap-2 px-3 py-2.5 cursor-pointer transition-colors first:rounded-t-[10px] last:rounded-b-[10px]',
+                    isSelected
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-base-200/80',
+                    option.disabled && 'opacity-50 cursor-not-allowed'
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!option.disabled) {
+                      handleSelect(option.value);
+                    }
+                  }}
+                  role="option"
+                  aria-selected={isSelected}
+                  aria-disabled={option.disabled}
+                >
+                  {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                  <span className="flex-1 truncate">{option.label}</span>
+                  {isSelected && (
+                    <Check className="h-4 w-4 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })
           )}
         </div>,
         document.body
