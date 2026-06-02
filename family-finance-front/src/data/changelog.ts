@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.5.1',
+        date: '2026-06-01 22:30',
+        title: "Har bir oila alohida xonadon raqamiga ega bo'ldi",
+        features: [],
+        fixes: [
+            "Har bir oila (nikoh) endi o'zining alohida xonadon raqamiga ega bo'ladi — ilgari bir vaqtda yaratilgan bir nechta oila bir xil raqamni (masalan \"055-330\") baham ko'rardi.",
+            "Bir raqamga to'planib qolgan mavjud oilalar avtomatik ravishda alohida xonadonlarga ajratildi (har biri o'z raqamini oldi).",
+        ]
+    },
+    {
         version: '1.5.0',
         date: '2026-06-01 21:30',
         title: "Login va parol boshqaruvi yaxshilandi",

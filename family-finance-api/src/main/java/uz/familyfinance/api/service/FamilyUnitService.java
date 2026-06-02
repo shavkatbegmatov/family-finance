@@ -38,6 +38,7 @@ public class FamilyUnitService {
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyTreeValidationService validationService;
     private final ScopeContextService scopeContext;
+    private final HouseholdProvisioningService householdProvisioning;
 
     @Transactional
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
@@ -48,11 +49,14 @@ public class FamilyUnitService {
 
         FamilyMember partner1 = findMember(request.getPartner1Id());
 
+        // Har bir yangi oila o'zining alohida xonadoniga (displayCode) ega bo'ladi
+        Scope household = createHouseholdForUnit(partner1.getFullName());
+
         FamilyUnit unit = FamilyUnit.builder()
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
-                .scope(scopeContext.getActiveHousehold().orElse(null))
+                .scope(household)
                 .build();
 
         FamilyUnit saved = familyUnitRepository.save(unit);
@@ -89,10 +93,13 @@ public class FamilyUnitService {
         // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin)
         validationService.validateBiologicalParentUnique(child.getId(), LineageType.BIOLOGICAL);
 
+        // Ota-onaning oilasi uchun alohida xonadon (yangi yaratiladigan ota-ona ham shu xonadonga tegishli)
+        Scope household = createHouseholdForUnit(request.getFatherFirstName());
+
         FamilyMember father = resolveOrCreateParent(request.getFatherId(), request.getFatherFirstName(),
-                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate());
+                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate(), household);
         FamilyMember mother = resolveOrCreateParent(request.getMotherId(), request.getMotherFirstName(),
-                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate());
+                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate(), household);
 
         validationService.validateNotSelfPartnership(father.getId(), mother.getId());
         validationService.validateDuplicateMarriage(father.getId(), mother.getId());
@@ -101,7 +108,7 @@ public class FamilyUnitService {
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
-                .scope(scopeContext.getActiveHousehold().orElse(null))
+                .scope(household)
                 .build();
         FamilyUnit saved = familyUnitRepository.save(unit);
 
@@ -118,7 +125,7 @@ public class FamilyUnitService {
     }
 
     private FamilyMember resolveOrCreateParent(Long existingId, String firstName, Gender gender,
-                                               FamilyRole role, LocalDate birthDate) {
+                                               FamilyRole role, LocalDate birthDate, Scope household) {
         if (existingId != null) {
             return findMember(existingId);
         }
@@ -127,9 +134,20 @@ public class FamilyUnitService {
                 .gender(gender)
                 .role(role)
                 .birthDate(birthDate)
-                .scope(scopeContext.getActiveHousehold().orElse(null))
+                .scope(household)
                 .build();
         return familyMemberRepository.save(parent);
+    }
+
+    /**
+     * Yangi oila (FamilyUnit) uchun joriy aktiv urug' (CLAN) ostida alohida xonadon yaratadi.
+     * Shu tufayli har bir oila o'z xonadon raqamiga ({@code displayCode}) ega bo'ladi.
+     */
+    private Scope createHouseholdForUnit(String label) {
+        Scope clan = scopeContext.getActiveClanOptional().orElse(null);
+        User owner = scopeContext.getCurrentUser();
+        String name = (label != null && !label.isBlank() ? label.trim() : "Yangi oila") + " xonadoni";
+        return householdProvisioning.createHousehold(clan, name, owner);
     }
 
     /**
@@ -141,10 +159,17 @@ public class FamilyUnitService {
     public FamilyUnitResponse addSpouse(AddSpouseRequest request) {
         FamilyMember person = findMember(request.getPersonId());
 
+        // Mavjud yagona ota-onali nikoh bo'lsa — turmush o'rtoq O'SHA xonadonga qo'shiladi;
+        // aks holda yangi nikoh (va yangi xonadon) createFamilyUnit orqali yaratiladi.
+        Optional<FamilyUnit> singleUnit = findSingleParentUnit(person.getId());
+
         FamilyMember spouse;
         if (request.getSpouseId() != null) {
             spouse = findMember(request.getSpouseId());
         } else {
+            // Yangi turmush o'rtoq: mavjud nikoh xonadoniga moslab biriktiramiz (aks holda aktiv xonadon)
+            Scope spouseScope = singleUnit.map(FamilyUnit::getScope)
+                    .orElseGet(() -> scopeContext.getActiveHousehold().orElse(null));
             spouse = familyMemberRepository.save(FamilyMember.builder()
                     .firstName(request.getSpouseFirstName() != null ? request.getSpouseFirstName().trim() : null)
                     .lastName(request.getSpouseLastName())
@@ -152,14 +177,13 @@ public class FamilyUnitService {
                     .gender(request.getSpouseGender())
                     .role(FamilyRole.OTHER)
                     .birthDate(request.getSpouseBirthDate())
-                    .scope(scopeContext.getActiveHousehold().orElse(null))
+                    .scope(spouseScope)
                     .build());
         }
 
         validationService.validateNotSelfPartnership(person.getId(), spouse.getId());
         validationService.validateDuplicateMarriage(person.getId(), spouse.getId());
 
-        Optional<FamilyUnit> singleUnit = findSingleParentUnit(person.getId());
         if (singleUnit.isPresent()) {
             FamilyUnit unit = singleUnit.get();
             if (request.getMarriageType() != null) {
