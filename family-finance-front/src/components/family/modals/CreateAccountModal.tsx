@@ -6,6 +6,7 @@ import { PasswordInput } from '../../ui/PasswordInput';
 import { UsernameInput } from '../../ui/UsernameInput';
 import { familyMembersApi } from '../../../api/family-members.api';
 import { useQueryClient } from '@tanstack/react-query';
+import { PASSWORD_MIN_LENGTH } from '../../../utils/password';
 import type { CredentialsInfo, FamilyMember } from '../../../types';
 
 interface CreateAccountModalProps {
@@ -156,8 +157,8 @@ export function CreateAccountModal({
                   showStrength
                   showGenerate
                   error={
-                    accountPassword.length > 0 && accountPassword.length < 6
-                      ? 'Kamida 6 belgi'
+                    accountPassword.length > 0 && accountPassword.length < PASSWORD_MIN_LENGTH
+                      ? `Kamida ${PASSWORD_MIN_LENGTH} belgi`
                       : undefined
                   }
                 />
@@ -170,7 +171,7 @@ export function CreateAccountModal({
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={handleCreate}
-                  disabled={isLoading || !usernameValid || (accountPassword.length > 0 && accountPassword.length < 6)}
+                  disabled={isLoading || !usernameValid || (accountPassword.length > 0 && accountPassword.length < PASSWORD_MIN_LENGTH)}
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
