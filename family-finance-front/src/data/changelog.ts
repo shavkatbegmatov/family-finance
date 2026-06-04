@@ -9,12 +9,13 @@ export interface ChangelogEntry {
 export const changelogData: ChangelogEntry[] = [
     {
         version: '1.6.1',
-        date: '2026-06-04 22:51',
-        title: "Ota-onani o'chirib qayta kiritish tuzatildi",
+        date: '2026-06-05 00:30',
+        title: "Ota-ona qo'shish va o'chirish barqarorligi yaxshilandi",
         features: [],
         fixes: [
             "Shajara daraxtida farzandning ota-onasini o'chirgandan so'ng, o'sha farzandga qaytadan ota-ona qo'shish endi ishlaydi — ilgari \"Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan\" xatosi chiqib, qayta kiritishga to'sqinlik qilardi.",
             "Ota-onadan faqat bittasi o'chirilgan bo'lsa (masalan ota), \"Ota-ona qo'shish\" oynasi endi tirik qolgan ota yoki onani avtomatik ko'rsatadi va faqat yetishmayotganini so'raydi — u o'sha mavjud nikohga qo'shiladi, yangi nikoh yaratilmaydi.",
+            "Oila a'zosi o'chirilganda uning nikoh va farzandlik bog'lanishlari to'g'ri tozalanadi — ortda yetim (ko'rinmas) bog'lanish qolmaydi, shu sababli shajara daraxti va keyingi amallar izchil ishlaydi.",
         ],
     },
     {

@@ -59,6 +59,7 @@ public class FamilyMemberService {
     private final CategoryRepository categoryRepository;
     private final PointParticipantRepository pointParticipantRepository;
     private final ScopeContextService scopeContext;
+    private final FamilyUnitService familyUnitService;
 
     /**
      * Joriy aktiv scope'ga tegishli family_group_id ni qaytaradi.
@@ -459,6 +460,9 @@ public class FamilyMemberService {
                 && member.getUser().getId().equals(currentUserEntity.getId())) {
             throw new BadRequestException("O'zingizning profilingizni o'chirib bo'lmaydi");
         }
+
+        // Genealogik bog'lanishlarni uzamiz — yetim partner/farzand qolmasin, bo'sh nikoh tozalanadi
+        familyUnitService.detachMemberFromGenealogy(member.getId());
 
         member.setIsActive(false);
         familyMemberRepository.save(member);
