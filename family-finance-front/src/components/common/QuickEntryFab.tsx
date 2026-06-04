@@ -93,14 +93,15 @@ export function QuickEntryFab() {
 
   return (
     <>
+      {/* Suzuvchi tugma faqat desktopda — mobilda pastki navigatsiya markazidagi FAB ishlatiladi */}
       <button
         type="button"
         onClick={handleOpen}
         aria-label="Yangi tranzaksiya qo'shish"
         title="Yangi tranzaksiya (Ctrl+N)"
-        className="fixed bottom-20 right-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-content shadow-2xl transition-transform duration-200 hover:scale-105 hover:shadow-primary/30 active:scale-95 lg:bottom-6 lg:right-6"
+        className="brand-gradient fixed bottom-6 right-6 z-40 hidden h-14 w-14 place-items-center rounded-2xl text-white shadow-[var(--shadow-brand)] transition-transform duration-200 hover:scale-105 active:scale-95 lg:grid"
       >
-        <Plus className="h-6 w-6" />
+        <Plus className="h-6 w-6" strokeWidth={2.5} />
       </button>
 
       <TransactionFormModal

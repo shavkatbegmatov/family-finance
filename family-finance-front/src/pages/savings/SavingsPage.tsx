@@ -270,29 +270,31 @@ export function SavingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="section-title">Jamg'armalar</h1>
-          <p className="section-subtitle">Moliyaviy maqsadlaringizni kuzating</p>
+          <p className="section-subtitle truncate">
+            {goals.length === 0
+              ? 'Moliyaviy maqsadlaringizni kuzating'
+              : `${goals.length} ta maqsad${
+                  goals.filter((g) => g.isCompleted).length > 0
+                    ? ` · ${goals.filter((g) => g.isCompleted).length} bajarilgan`
+                    : ''
+                }`}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="pill">{goals.length} ta maqsad</span>
-          <span className="pill bg-success/10 text-success">
-            {goals.filter((g) => g.isCompleted).length} ta bajarilgan
-          </span>
-          <PermissionGate permission={PermissionCode.SAVINGS_CREATE}>
-            <button className="btn btn-primary btn-sm" onClick={handleOpenCreateGoal}>
-              <Plus className="h-4 w-4" />
-              Yangi maqsad
-            </button>
-          </PermissionGate>
-        </div>
+        <PermissionGate permission={PermissionCode.SAVINGS_CREATE}>
+          <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenCreateGoal}>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Yangi maqsad</span>
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Main content: goals grid + detail panel */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         {/* Goals grid */}
         <div className={clsx('space-y-4', selectedGoal ? 'lg:col-span-2' : 'lg:col-span-3')}>
           {goals.length === 0 ? (
@@ -311,7 +313,7 @@ export function SavingsPage() {
             </div>
           ) : (
             <div className={clsx(
-              'grid grid-cols-1 gap-4',
+              'grid grid-cols-1 gap-3 sm:gap-4',
               selectedGoal ? 'sm:grid-cols-1 xl:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-3'
             )}>
               {goals.map((goal) => {
@@ -322,7 +324,7 @@ export function SavingsPage() {
                   <div
                     key={goal.id}
                     className={clsx(
-                      'surface-card p-4 space-y-3 cursor-pointer transition hover:shadow-md',
+                      'card-native tap-sm cursor-pointer space-y-3 p-4 transition hover:shadow-md',
                       isSelected && 'ring-2 ring-primary',
                       goal.isCompleted && 'ring-1 ring-success/30'
                     )}

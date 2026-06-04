@@ -5,6 +5,9 @@ import {
   Plus,
   ArrowLeftRight,
   ArrowRightLeft,
+  ArrowDownLeft,
+  ArrowUpRight,
+  RotateCcw,
   TrendingUp,
   TrendingDown,
   Filter,
@@ -53,6 +56,17 @@ const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
   { id: 'EXPENSE', label: 'Xarajat', icon: TrendingDown },
   { id: 'TRANSFER', label: "O'tkazma", icon: ArrowRightLeft },
 ];
+
+// Mobil tranzaksiya qatori uchun tur metama'lumotlari (ikonka + ranglar)
+const TYPE_META: Record<
+  TransactionType,
+  { label: string; icon: React.ElementType; tile: string; color: string; sign: string }
+> = {
+  INCOME: { label: 'Daromad', icon: ArrowDownLeft, tile: 'bg-success/10 text-success', color: 'text-success', sign: '+' },
+  EXPENSE: { label: 'Xarajat', icon: ArrowUpRight, tile: 'bg-error/10 text-error', color: 'text-error', sign: '−' },
+  TRANSFER: { label: "O'tkazma", icon: ArrowRightLeft, tile: 'bg-info/10 text-info', color: 'text-info', sign: '' },
+  REVERSAL: { label: 'Storno', icon: RotateCcw, tile: 'bg-warning/10 text-warning', color: 'text-warning', sign: '' },
+};
 
 export function TransactionsPage() {
   const isMobile = useIsMobile();
@@ -514,21 +528,20 @@ export function TransactionsPage() {
     ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="section-title">Tranzaksiyalar</h1>
           <p className="section-subtitle">Barcha moliyaviy operatsiyalar</p>
         </div>
-        <div className="flex items-center gap-2">
-          <PermissionGate permission={PermissionCode.TRANSACTIONS_CREATE}>
-            <button className="btn btn-primary" onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4" />
-              Yangi tranzaksiya
-            </button>
-          </PermissionGate>
-        </div>
+        {/* Mobilda pastki navigatsiya markazidagi FAB yaratish uchun ishlatiladi */}
+        <PermissionGate permission={PermissionCode.TRANSACTIONS_CREATE}>
+          <button className="btn btn-primary hidden sm:inline-flex" onClick={handleOpenCreate}>
+            <Plus className="h-4 w-4" />
+            Yangi tranzaksiya
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Bulk actions toolbar */}
@@ -579,43 +592,45 @@ export function TransactionsPage() {
 
       {/* Tabs */}
       <div className="surface-card">
-        <div className="flex overflow-x-auto border-b border-base-200">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className={clsx(
-                  'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
-                  isActive
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/50'
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-2 border-b border-base-200 p-2">
+          <div className="scrollbar-hide flex flex-1 items-center gap-1 overflow-x-auto">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={clsx(
+                    'tap-sm flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-content shadow-sm'
+                      : 'text-base-content/60 hover:bg-base-200'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Filter toggle */}
-          <div className="ml-auto flex items-center px-3">
-            <button
-              className={clsx(
-                'btn btn-ghost btn-sm gap-1',
-                showFilters && 'btn-active'
-              )}
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-4 w-4" />
-              Filtr
-              {hasActiveFilters && (
-                <span className="badge badge-primary badge-xs ml-1">!</span>
-              )}
-            </button>
-          </div>
+          <button
+            className={clsx(
+              'tap-sm relative grid h-9 w-9 flex-none place-items-center rounded-xl border transition-colors',
+              showFilters || hasActiveFilters
+                ? 'border-primary/30 bg-primary/10 text-primary'
+                : 'border-base-200 text-base-content/60 hover:bg-base-200'
+            )}
+            onClick={() => setShowFilters(!showFilters)}
+            aria-label="Filtr"
+          >
+            <Filter className="h-4 w-4" />
+            {hasActiveFilters && (
+              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-base-100" />
+            )}
+          </button>
         </div>
 
         {/* Filters panel */}
@@ -742,67 +757,45 @@ export function TransactionsPage() {
           onRowClick={(t) => navigate(`/transactions/${t.id}`)}
           highlightId={highlightId}
           onHighlightComplete={clearHighlight}
-          renderMobileCard={(t) => (
-            <div className="surface-panel flex flex-col gap-3 rounded-xl p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  {renderTypeBadge(t.type)}
-                  <span className="text-sm text-base-content/60">
-                    {formatDate(t.transactionDate)}
-                  </span>
-                </div>
-                {renderAmount(t)}
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <div className="space-y-0.5">
-                  <div className="text-base-content/80">
-                    {t.accountName}
-                    {t.type === 'TRANSFER' && t.toAccountName && (
-                      <span className="text-base-content/50">
-                        {' '}<ArrowRightLeft className="inline h-3 w-3" />{' '}
-                        {t.toAccountName}
-                      </span>
-                    )}
+          renderMobileCard={(t) => {
+            const meta = TYPE_META[t.type];
+            const Icon = meta.icon;
+            const isReversed = t.status === 'REVERSED';
+            return (
+              <div
+                className={clsx(
+                  'flex items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-3',
+                  isReversed && 'opacity-60'
+                )}
+              >
+                <span className={clsx('grid h-11 w-11 flex-none place-items-center rounded-2xl', meta.tile)}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold">{t.categoryName || meta.label}</p>
+                    <span className={clsx('flex-none text-sm font-bold tabular-nums', meta.color)}>
+                      {meta.sign}{formatCurrency(t.amount)}
+                    </span>
                   </div>
-                  {t.categoryName && (
-                    <div className="text-xs text-base-content/60">{t.categoryName}</div>
+                  <div className="mt-0.5 flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-xs text-base-content/55">
+                      {t.accountName}
+                      {t.type === 'TRANSFER' && t.toAccountName ? ` → ${t.toAccountName}` : ''}
+                      {' · '}
+                      {formatDate(t.transactionDate)}
+                    </p>
+                    {isReversed && <span className="badge badge-warning badge-xs flex-none">Storno</span>}
+                  </div>
+                  {(t.description || t.familyMemberName) && (
+                    <p className="mt-0.5 truncate text-xs text-base-content/40">
+                      {[t.familyMemberName, t.description].filter(Boolean).join(' · ')}
+                    </p>
                   )}
-                  {t.familyMemberName && (
-                    <div className="text-xs text-base-content/60">{t.familyMemberName}</div>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <PermissionGate permission={PermissionCode.TRANSACTIONS_UPDATE}>
-                    <button
-                      className="btn btn-ghost btn-xs btn-square"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEdit(t);
-                      }}
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                  </PermissionGate>
-                  <PermissionGate permission={PermissionCode.TRANSACTIONS_DELETE}>
-                    <button
-                      className="btn btn-ghost btn-xs btn-square text-error"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenDelete(t);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </PermissionGate>
                 </div>
               </div>
-
-              {t.description && (
-                <p className="text-xs text-base-content/50 truncate">{t.description}</p>
-              )}
-            </div>
-          )}
+            );
+          }}
         />
       </div>
 

@@ -9,10 +9,17 @@ import {
   Target,
   HandMetal,
   ArrowLeftRight,
+  BarChart3,
+  Eye,
+  EyeOff,
+  ArrowDownLeft,
+  ArrowUpRight,
   X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
+import { useQuickEntryStore } from '../../store/quickEntryStore';
+import { usePermission, PermissionCode } from '../../hooks/usePermission';
 import {
   AreaChart,
   Area,
@@ -416,6 +423,133 @@ function generateInsights({
   return insights;
 }
 
+// ── Mobil: hero balans kartasi ichidagi statistik plitka ──
+function HeroStat({
+  label,
+  value,
+  hidden,
+  icon: Icon,
+}: {
+  label: string;
+  value: number;
+  hidden: boolean;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className="rounded-2xl bg-white/12 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-white/75">
+        <Icon className="h-3.5 w-3.5" />
+        <span className="text-[11px] font-medium">{label}</span>
+      </div>
+      <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-white">
+        {hidden ? '••••••' : formatCompactCurrency(value)}
+        {!hidden && <span className="ml-0.5 text-[11px] font-medium text-white/70">so'm</span>}
+      </p>
+    </div>
+  );
+}
+
+// ── Mobil: gradient hero balans kartasi (fintech uslubi) ──
+function MobileBalanceHero({
+  balance,
+  income,
+  expense,
+  hidden,
+  onToggleHidden,
+  monthLabel,
+}: {
+  balance: number;
+  income: number;
+  expense: number;
+  hidden: boolean;
+  onToggleHidden: () => void;
+  monthLabel: string;
+}) {
+  return (
+    <div className="hero-card rounded-3xl p-5">
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center gap-2 text-white/85">
+          <Wallet className="h-4 w-4" />
+          <span className="text-[13px] font-medium">Umumiy balans</span>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleHidden}
+          className="tap-sm grid h-8 w-8 place-items-center rounded-full bg-white/15 text-white"
+          aria-label={hidden ? "Balansni ko'rsatish" : 'Balansni yashirish'}
+        >
+          {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+
+      <p className="relative mt-2.5 font-display text-[30px] font-extrabold leading-none tracking-tight tabular-nums text-white">
+        {hidden ? '••• ••• •••' : formatCurrency(balance)}
+      </p>
+      <p className="relative mt-1.5 text-xs text-white/70">
+        {monthLabel ? `${monthLabel} · barcha hisoblar` : 'barcha hisoblar'}
+      </p>
+
+      <div className="relative mt-4 grid grid-cols-2 gap-2.5">
+        <HeroStat label="Bu oy daromad" value={income} hidden={hidden} icon={ArrowDownLeft} />
+        <HeroStat label="Bu oy xarajat" value={expense} hidden={hidden} icon={ArrowUpRight} />
+      </div>
+    </div>
+  );
+}
+
+// ── Mobil: tezkor amallar qatori ──
+interface QuickAction {
+  key: string;
+  label: string;
+  icon: React.ElementType;
+  tile: string;
+  to?: string;
+  onClick?: () => void;
+}
+
+function MobileQuickActions({ canCreate }: { canCreate: boolean }) {
+  const openQuickEntry = useQuickEntryStore((s) => s.open);
+
+  const actions: QuickAction[] = [
+    ...(canCreate
+      ? [
+          { key: 'exp', label: 'Xarajat', icon: TrendingDown, tile: 'bg-error/10 text-error', onClick: () => openQuickEntry('EXPENSE') },
+          { key: 'inc', label: 'Daromad', icon: TrendingUp, tile: 'bg-success/10 text-success', onClick: () => openQuickEntry('INCOME') },
+        ]
+      : []),
+    { key: 'acc', label: 'Hisoblar', icon: Wallet, tile: 'bg-primary/10 text-primary', to: '/accounts' },
+    { key: 'rep', label: 'Hisobot', icon: BarChart3, tile: 'bg-info/10 text-info', to: '/reports' },
+    { key: 'bud', label: 'Byudjet', icon: Target, tile: 'bg-secondary/10 text-secondary', to: '/budget' },
+    { key: 'sav', label: "Jamg'arma", icon: PiggyBank, tile: 'bg-success/10 text-success', to: '/savings' },
+  ].slice(0, 4);
+
+  return (
+    <div className="grid grid-cols-4 gap-2">
+      {actions.map((a) => {
+        const inner = (
+          <>
+            <span className={clsx('grid h-[52px] w-full place-items-center rounded-2xl', a.tile)}>
+              <a.icon className="h-[22px] w-[22px]" />
+            </span>
+            <span className="text-[11px] font-medium text-base-content/70">{a.label}</span>
+          </>
+        );
+        return a.to ? (
+          <Link key={a.key} to={a.to} className="tap-sm flex flex-col items-center gap-1.5">
+            {inner}
+          </Link>
+        ) : (
+          <button key={a.key} type="button" onClick={a.onClick} className="tap-sm flex flex-col items-center gap-1.5">
+            {inner}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const HIDE_BALANCE_KEY = 'ff-hide-balance';
+
 export function DashboardPage() {
   const [stats, setStats] = useState<FamilyDashboardStats | null>(null);
   const [charts, setCharts] = useState<FamilyChartData | null>(null);
@@ -424,7 +558,20 @@ export function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [chartRange, setChartRange] = useState<ChartRange>('6m');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [hideBalance, setHideBalance] = useState<boolean>(
+    () => typeof window !== 'undefined' && localStorage.getItem(HIDE_BALANCE_KEY) === '1'
+  );
   const { notifications } = useNotificationsStore();
+  const { hasPermission } = usePermission();
+  const canCreateTransaction = hasPermission(PermissionCode.TRANSACTIONS_CREATE);
+
+  const toggleHideBalance = useCallback(() => {
+    setHideBalance((prev) => {
+      const next = !prev;
+      localStorage.setItem(HIDE_BALANCE_KEY, next ? '1' : '0');
+      return next;
+    });
+  }, []);
 
   const loadData = useCallback(async (isInitial = false) => {
     try {
@@ -588,8 +735,21 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      {/* Mobil: gradient hero balans kartasi + tezkor amallar */}
+      <div className="space-y-4 lg:hidden">
+        <MobileBalanceHero
+          balance={stats?.totalBalance || 0}
+          income={stats?.totalIncome || 0}
+          expense={stats?.totalExpense || 0}
+          hidden={hideBalance}
+          onToggleHidden={toggleHideBalance}
+          monthLabel={currentMonthLabel}
+        />
+        <MobileQuickActions canCreate={canCreateTransaction} />
+      </div>
+
+      {/* Desktop sarlavha */}
+      <div className="hidden flex-col gap-4 lg:flex lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold lg:text-3xl">Bosh sahifa</h1>
           <p className="mt-1 text-base-content/60">
@@ -614,8 +774,8 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* KPI Cards — endi trend indicator bilan */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Cards (desktop) — endi trend indicator bilan. Mobilda hero karta o'rnini bosadi. */}
+      <div className="hidden gap-4 lg:grid lg:grid-cols-4">
         <KPICard
           title="Umumiy balans"
           value={formatCurrency(stats?.totalBalance || 0)}
@@ -1018,8 +1178,8 @@ export function DashboardPage() {
         )}
       </ChartCard>
 
-      {/* Quick Links */}
-      <div className="surface-card p-5">
+      {/* Quick Links (desktop) — mobilda yuqoridagi tezkor amallar o'rnini bosadi */}
+      <div className="hidden surface-card p-5 lg:block">
         <h3 className="mb-4 font-semibold">Tez havolalar</h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Link to="/transactions" className="btn btn-primary">

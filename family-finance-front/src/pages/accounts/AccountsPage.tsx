@@ -103,14 +103,14 @@ function KPICard({
       className="surface-card group relative overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
       style={style}
     >
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="p-4 lg:p-5">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-base-content/60">{title}</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight truncate">{value}</p>
+            <p className="text-xs font-medium text-base-content/60 lg:text-sm">{title}</p>
+            <p className="mt-1.5 truncate text-lg font-bold tracking-tight lg:mt-2 lg:text-2xl">{value}</p>
           </div>
-          <div className={clsx('grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl border', colorMap[color])}>
-            <Icon className="h-6 w-6" />
+          <div className={clsx('grid h-10 w-10 flex-shrink-0 place-items-center rounded-2xl border lg:h-12 lg:w-12', colorMap[color])}>
+            <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
           </div>
         </div>
       </div>
@@ -564,40 +564,41 @@ export function AccountsPage() {
   const renderMobileCard = (item: Account) => {
     const Icon = getAccountIcon(item.type);
     const color = item.color || '#6366f1';
+    const statusInfo = STATUS_CONFIG[item.status || 'ACTIVE'];
 
     return (
       <div
-        className="surface-card p-4 cursor-pointer relative overflow-hidden"
+        className="flex items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-3"
         onClick={() => navigate(`/accounts/${item.id}`)}
       >
-        <div className="absolute top-0 left-0 bottom-0 w-1 rounded-l-[inherit]" style={{ backgroundColor: color }} />
-        <div className="flex items-start justify-between pl-2">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-11 w-11 items-center justify-center rounded-xl border"
-              style={{ backgroundColor: `${color}12`, borderColor: `${color}25` }}
+        <span
+          className="grid h-11 w-11 flex-none place-items-center rounded-2xl border"
+          style={{ backgroundColor: `${color}14`, borderColor: `${color}28` }}
+        >
+          <Icon className="h-5 w-5" style={{ color }} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              {statusInfo && <span className={clsx('h-2 w-2 flex-none rounded-full', statusInfo.dot)} />}
+              <p className="truncate text-sm font-semibold">{item.name}</p>
+            </div>
+            <span
+              className={clsx(
+                'flex-none text-sm font-bold tabular-nums',
+                item.balance < 0 && 'text-error'
+              )}
             >
-              <Icon className="h-5 w-5" style={{ color }} />
-            </div>
-            <div>
-              <p className="font-semibold">{item.name}</p>
-              <p className="text-xs text-base-content/50">
-                {ACCOUNT_TYPES[item.type]?.label} {item.accCodeFormatted ? `\u00b7 ${item.accCodeFormatted}` : ''}
-              </p>
-            </div>
+              {formatCurrency(item.balance)}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            {getAccessRoleBadge(item.myAccessRole)}
-            {getStatusBadge(item.status)}
+          <div className="mt-0.5 flex items-center justify-between gap-2">
+            <p className="min-w-0 truncate text-xs text-base-content/55">
+              {ACCOUNT_TYPES[item.type]?.label ?? item.type}
+              {item.accCodeFormatted ? ` \u00b7 ${item.accCodeFormatted}` : ''}
+            </p>
+            <span className="flex-none">{getAccessRoleBadge(item.myAccessRole)}</span>
           </div>
-        </div>
-        <div className="mt-3 pl-2 text-right">
-          <p className={clsx(
-            'text-lg font-bold tabular-nums',
-            item.balance < 0 && 'text-error'
-          )}>
-            {formatCurrency(item.balance)}
-          </p>
         </div>
       </div>
     );
@@ -612,34 +613,35 @@ export function AccountsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold lg:text-3xl">Hisoblar</h1>
-          <p className="mt-1 text-base-content/60">
+          <p className="mt-0.5 truncate text-sm text-base-content/60 lg:mt-1 lg:text-base">
             Barcha moliyaviy hisoblarni boshqarish
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-none items-center gap-2">
           <button
-            className="btn btn-ghost btn-sm btn-square"
+            className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
             onClick={handleRefresh}
             title="Yangilash"
+            aria-label="Yangilash"
           >
             <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
           </button>
           <PermissionGate permission={PermissionCode.ACCOUNTS_CREATE}>
-            <button className="btn btn-primary btn-sm gap-2" onClick={openCreate}>
+            <button className="btn btn-primary btn-sm gap-1.5" onClick={openCreate}>
               <Plus className="h-4 w-4" />
-              Yangi hisob
+              <span className="hidden sm:inline">Yangi hisob</span>
             </button>
           </PermissionGate>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <KPICard
           title="Umumiy balans"
           value={kpiLoading ? '...' : formatCompactCurrency(totalBalance) + " so'm"}
@@ -833,9 +835,9 @@ export function AccountsPage() {
           </div>
         )}
 
-        {/* Content */}
-        <div className="p-5">
-          {viewMode === 'grid' ? (
+        {/* Content — mobilda doim kompakt ro'yxat (grid emas) */}
+        <div className="p-3 lg:p-5">
+          {viewMode === 'grid' && !isMobile ? (
             <>
               {loading ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

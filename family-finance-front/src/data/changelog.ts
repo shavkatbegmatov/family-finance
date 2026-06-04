@@ -8,6 +8,24 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.0',
+        date: '2026-06-04 12:30',
+        title: "Yangi mobil dizayn va rebrend",
+        features: [
+            "Butunlay yangilangan mobil interfeys — zamonaviy, ixcham va native ilova hissi. Telefonda foydalanish sezilarli darajada qulaylashdi.",
+            "Yangi brend belgisi (logotip) va yagona rang uslubi: barcha ekranlarda teal–emerald gradient.",
+            "Pastki navigatsiya markazida tezkor tranzaksiya qo'shish uchun katta '+' tugmasi; qolgan barcha bo'limlar ixcham \"Yana\" varag'ida.",
+            "Bosh sahifada gradient balans kartasi: umumiy balans, bu oygi daromad va xarajat hamda balansni bir bosishda yashirish imkoniyati.",
+            "Bosh sahifada tezkor amallar qatori: Xarajat, Daromad, Hisoblar va Hisobot.",
+            "Tranzaksiyalar, Hisoblar, Byudjet, Jamg'arma va Qarzlar sahifalari mobil uchun qayta ishlandi: ixcham bank-uslubidagi kartalar, \"pill\" ko'rinishidagi tablar va kamroq bo'sh joy.",
+            "Hisoblar mobilda endi ixcham ro'yxat ko'rinishida (avvalgi katta kartalar o'rniga).",
+            "Qarzlar mobilda: berilgan/olingan qisqacha summasi yuqorida, qarz tafsilotlari esa qulay pastki varaqda (modal) ochiladi.",
+            "Yangilangan kirish (login) ekrani — toza markazlashgan dizayn va demo hisoblarni bosib to'ldirish.",
+            "Telefon \"notch\" va pastki indikatori uchun xavfsiz hudud qo'llab-quvvatlashi (kelajakdagi APK uchun tayyor).",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.5.1',
         date: '2026-06-01 22:30',
         title: "Har bir oila alohida xonadon raqamiga ega bo'ldi",

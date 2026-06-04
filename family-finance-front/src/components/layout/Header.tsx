@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  Menu,
   LogOut,
   User as UserIcon,
   Bell,
@@ -29,6 +28,7 @@ import { clearIntendedPath } from '../../utils/sessionNavigation';
 import { SearchCommand } from '../common/SearchCommand';
 import { ScopeSwitcher } from '../scope';
 import { WhatsNewModal } from '../common/WhatsNewModal';
+import { BrandMark } from '../common/BrandLogo';
 import { LATEST_VERSION } from '../../data/changelog';
 
 const getNotificationIcon = (type: Notification['type']) => {
@@ -106,7 +106,7 @@ type RouteHandle = {
 
 export function Header() {
   const { user, logout } = useAuthStore();
-  const { toggleSidebar, themeMode, setThemeMode, isWhatsNewOpen, setWhatsNewOpen } = useUIStore();
+  const { themeMode, setThemeMode, isWhatsNewOpen, setWhatsNewOpen } = useUIStore();
   const { notifications, unreadCount, markAsRead, fetchNotifications, connectWebSocket, disconnectWebSocket } = useNotificationsStore();
   const navigate = useNavigate();
   const matches = useMatches();
@@ -228,22 +228,19 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-base-200/80 bg-base-100/95 backdrop-blur-md">
+    <header className="app-shell-blur safe-top sticky top-0 z-30 border-b border-base-200/80">
       <div className="flex h-16 w-full items-center gap-3 px-4 lg:px-6">
-        {/* Left section - Menu & Breadcrumb */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <button
-            className="btn btn-square btn-ghost btn-sm lg:hidden"
-            onClick={toggleSidebar}
-            aria-label="Menyu"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
+        {/* Left section - Brand (mobile) & Breadcrumb */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {/* Mobil: brend belgisi (bosh sahifaga) — bottom nav to'liq navigatsiyani beradi */}
+          <Link to="/" className="tap-sm flex-none lg:hidden" aria-label="Bosh sahifa">
+            <BrandMark size={34} />
+          </Link>
 
           {/* Multi-level breadcrumb navigation */}
           <div className="flex items-center gap-1.5 min-w-0">
             {/* On mobile: show only last crumb as title */}
-            <h1 className="text-base font-semibold text-base-content lg:text-lg sm:hidden truncate">
+            <h1 className="text-base font-bold text-base-content lg:text-lg sm:hidden truncate">
               {title}
             </h1>
             {/* On desktop: full breadcrumb chain */}
