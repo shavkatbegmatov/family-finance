@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FamilyUnitService {
 
+    /** Bir oila birligida (nikohda) maksimal partner soni. */
+    private static final int MAX_PARTNERS_PER_UNIT = 2;
+
     private final FamilyUnitRepository familyUnitRepository;
     private final FamilyPartnerRepository familyPartnerRepository;
     private final FamilyChildRepository familyChildRepository;
@@ -90,7 +93,15 @@ public class FamilyUnitService {
     public FamilyUnitResponse addParents(AddParentsRequest request) {
         FamilyMember child = findMember(request.getChildPersonId());
 
-        // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin)
+        // Farzandda allaqachon biologik nikoh bo'lsa va unda kamida bitta TIRIK ota-ona qolgan
+        // bo'lsa (bittasi o'chirilib, ikkinchisi tirik), yangi nikoh yaratmaymiz —
+        // yetishmayotgan ota-onani o'sha mavjud nikohga qo'shamiz.
+        Optional<FamilyUnit> reusable = findReusableBiologicalUnit(child.getId());
+        if (reusable.isPresent()) {
+            return attachMissingParents(reusable.get(), request);
+        }
+
+        // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin). Yetim bog'lanish bo'lsa tozalanadi.
         validationService.validateBiologicalParentUnique(child.getId(), LineageType.BIOLOGICAL);
 
         // Ota-onaning oilasi uchun alohida xonadon (yangi yaratiladigan ota-ona ham shu xonadonga tegishli)
@@ -137,6 +148,70 @@ public class FamilyUnitService {
                 .scope(household)
                 .build();
         return familyMemberRepository.save(parent);
+    }
+
+    /**
+     * Farzandning biologik nikohi — agar mavjud bo'lsa va unda kamida bitta TIRIK ota-ona
+     * qolgan bo'lsa (ya'ni ota-onadan biri o'chirilib, ikkinchisi tirik). Bunday nikoh
+     * yangidan yaratilmasdan, yetishmayotgan ota-ona unga qo'shiladi.
+     */
+    private Optional<FamilyUnit> findReusableBiologicalUnit(Long childId) {
+        return familyChildRepository.findByPersonIdAndLineageType(childId, LineageType.BIOLOGICAL)
+                .map(FamilyChild::getFamilyUnit)
+                .filter(unit -> familyPartnerRepository.findByFamilyUnitId(unit.getId()).stream()
+                        .anyMatch(this::isLivingPartner));
+    }
+
+    private boolean isLivingPartner(FamilyPartner partner) {
+        FamilyMember person = partner.getPerson();
+        return person != null && !Boolean.FALSE.equals(person.getIsActive());
+    }
+
+    /**
+     * Mavjud nikohga yetishmayotgan ota-onani qo'shadi. Avval o'chirilgan ota-onaning
+     * yetim partner bog'lanishi tozalanadi (joy bo'shaydi), so'ng modal yuborgan ota/ona
+     * (allaqachon partner bo'lmaganlari) qo'shiladi. Farzand allaqachon shu nikohda bo'lgani
+     * uchun qayta bog'lanmaydi.
+     */
+    private FamilyUnitResponse attachMissingParents(FamilyUnit unit, AddParentsRequest request) {
+        familyPartnerRepository.findByFamilyUnitId(unit.getId()).stream()
+                .filter(partner -> !isLivingPartner(partner))
+                .forEach(familyPartnerRepository::delete);
+
+        attachParentIfAbsent(unit, request.getFatherId(), request.getFatherFirstName(),
+                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate());
+        attachParentIfAbsent(unit, request.getMotherId(), request.getMotherFirstName(),
+                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate());
+
+        if (request.getMarriageType() != null) {
+            unit.setMarriageType(request.getMarriageType());
+        }
+        if (request.getMarriageDate() != null) {
+            unit.setMarriageDate(request.getMarriageDate());
+        }
+        familyUnitRepository.save(unit);
+        return getById(unit.getId());
+    }
+
+    /** Yetishmayotgan ota yoki onani nikohga partner sifatida qo'shadi (allaqachon bor bo'lsa o'tkazib yuboradi). */
+    private void attachParentIfAbsent(FamilyUnit unit, Long existingId, String firstName,
+                                      Gender gender, FamilyRole role, LocalDate birthDate) {
+        boolean hasInput = existingId != null || (firstName != null && !firstName.isBlank());
+        if (!hasInput) {
+            return;
+        }
+        if (existingId != null
+                && familyPartnerRepository.findByFamilyUnitIdAndPersonId(unit.getId(), existingId).isPresent()) {
+            return;
+        }
+        if (familyPartnerRepository.countByFamilyUnitId(unit.getId()) >= MAX_PARTNERS_PER_UNIT) {
+            return;
+        }
+        FamilyMember parent = resolveOrCreateParent(existingId, firstName, gender, role, birthDate, unit.getScope());
+        PartnerRole partnerRole = familyPartnerRepository.countByFamilyUnitId(unit.getId()) == 0
+                ? PartnerRole.PARTNER1 : PartnerRole.PARTNER2;
+        familyPartnerRepository.save(FamilyPartner.builder()
+                .familyUnit(unit).person(parent).role(partnerRole).build());
     }
 
     /**

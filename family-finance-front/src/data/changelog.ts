@@ -14,6 +14,7 @@ export const changelogData: ChangelogEntry[] = [
         features: [],
         fixes: [
             "Shajara daraxtida farzandning ota-onasini o'chirgandan so'ng, o'sha farzandga qaytadan ota-ona qo'shish endi ishlaydi — ilgari \"Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan\" xatosi chiqib, qayta kiritishga to'sqinlik qilardi.",
+            "Ota-onadan faqat bittasi o'chirilgan bo'lsa (masalan ota), \"Ota-ona qo'shish\" oynasi endi tirik qolgan ota yoki onani avtomatik ko'rsatadi va faqat yetishmayotganini so'raydi — u o'sha mavjud nikohga qo'shiladi, yangi nikoh yaratilmaydi.",
         ],
     },
     {
