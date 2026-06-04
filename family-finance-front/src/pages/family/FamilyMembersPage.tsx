@@ -542,18 +542,18 @@ export function FamilyMembersPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="pill">
+          <span className="pill hidden sm:inline-flex">
             {totalElements} ta a'zo
           </span>
           <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
             <button
               type="button"
-              className="btn btn-primary btn-sm gap-2"
+              className="btn btn-primary btn-sm gap-1.5"
               onClick={() => setShowWizard(true)}
               title="Yangi shaxs qo'shish (wizard)"
             >
               <Sparkles className="h-4 w-4" />
-              Yangi shaxs
+              <span className="hidden sm:inline">Yangi shaxs</span>
             </button>
           </PermissionGate>
           <PermissionGate permission={PermissionCode.FAMILY_EXPORT}>

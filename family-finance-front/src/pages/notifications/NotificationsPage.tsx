@@ -10,7 +10,6 @@ import {
   Target,
   CheckCheck,
   Trash2,
-  Filter,
   RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -108,30 +107,28 @@ export function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="section-title">Bildirishnomalar</h1>
-          <p className="section-subtitle">
+          <p className="section-subtitle truncate">
             {unreadCount > 0
               ? `${unreadCount} ta o'qilmagan xabar`
               : "Barcha xabarlar o'qilgan"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-none items-center gap-2">
           <button
-            className="btn btn-ghost btn-sm"
+            className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
             onClick={handleRefresh}
             disabled={loading}
+            aria-label="Yangilash"
           >
-            <RefreshCw className={clsx("h-4 w-4", loading && "animate-spin")} />
+            <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
           </button>
           {unreadCount > 0 && (
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => markAllAsRead()}
-            >
+            <button className="btn btn-ghost btn-sm gap-1.5" onClick={() => markAllAsRead()}>
               <CheckCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Barchasini o'qilgan qilish</span>
             </button>
@@ -139,34 +136,31 @@ export function NotificationsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Filter className="h-4 w-4 text-base-content/50" />
-        <div className="flex flex-wrap gap-1">
-          {[
-            { key: 'all', label: 'Barchasi' },
-            { key: 'unread', label: "O'qilmagan" },
-            { key: 'warning', label: 'Ogohlantirishlar' },
-            { key: 'transaction', label: 'Tranzaksiyalar' },
-            { key: 'budget', label: 'Byudjet' },
-            { key: 'debt', label: 'Qarzlar' },
-            { key: 'savings', label: "Jamg'armalar" },
-          ].map((item) => (
-            <button
-              key={item.key}
-              className={clsx(
-                'btn btn-xs',
-                filter === item.key ? 'btn-primary' : 'btn-ghost'
-              )}
-              onClick={() => setFilter(item.key as FilterType)}
-            >
-              {item.label}
-              {item.key === 'unread' && unreadCount > 0 && (
-                <span className="badge badge-error badge-xs ml-1">{unreadCount}</span>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Filters — gorizontal pill qatori */}
+      <div className="scrollbar-hide -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:px-0">
+        {[
+          { key: 'all', label: 'Barchasi' },
+          { key: 'unread', label: "O'qilmagan" },
+          { key: 'warning', label: 'Ogohlantirishlar' },
+          { key: 'transaction', label: 'Tranzaksiyalar' },
+          { key: 'budget', label: 'Byudjet' },
+          { key: 'debt', label: 'Qarzlar' },
+          { key: 'savings', label: "Jamg'armalar" },
+        ].map((item) => (
+          <button
+            key={item.key}
+            className={clsx(
+              'tap-sm flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors',
+              filter === item.key ? 'bg-primary text-primary-content' : 'bg-base-200 text-base-content/60'
+            )}
+            onClick={() => setFilter(item.key as FilterType)}
+          >
+            {item.label}
+            {item.key === 'unread' && unreadCount > 0 && (
+              <span className="badge badge-error badge-xs">{unreadCount}</span>
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Notifications List */}

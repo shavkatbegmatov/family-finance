@@ -87,29 +87,36 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div>
         <h1 className="section-title">Sozlamalar</h1>
         <p className="section-subtitle">Tizim sozlamalarini boshqarish</p>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs tabs-bordered">
-        <button
-          className={clsx('tab gap-2', activeTab === 'appearance' && 'tab-active')}
-          onClick={() => handleTabChange('appearance')}
-        >
-          <Palette className="h-4 w-4" />
-          Ko'rinish
-        </button>
-        <button
-          className={clsx('tab gap-2', activeTab === 'debts' && 'tab-active')}
-          onClick={() => handleTabChange('debts')}
-        >
-          <Clock className="h-4 w-4" />
-          Qarzlar
-        </button>
+      {/* Tabs — pill */}
+      <div className="flex items-center gap-1.5">
+        {([
+          { id: 'appearance' as Tab, label: "Ko'rinish", icon: Palette },
+          { id: 'debts' as Tab, label: 'Qarzlar', icon: Clock },
+        ]).map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              className={clsx(
+                'tap-sm flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition-colors',
+                activeTab === tab.id
+                  ? 'bg-primary text-primary-content shadow-sm'
+                  : 'bg-base-200 text-base-content/60'
+              )}
+              onClick={() => handleTabChange(tab.id)}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Appearance Tab */}
@@ -120,23 +127,23 @@ export function SettingsPage() {
             <p className="text-sm text-base-content/60 mb-6">
               Interfeys ranglarini tanlang. Tizim rejimi qurilmangiz sozlamalariga mos keladi.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               {/* Light Theme */}
               <button
                 className={clsx(
-                  'flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all',
+                  'flex flex-col items-center gap-2 rounded-2xl border-2 p-3 transition-all sm:gap-3 sm:p-6',
                   themeMode === 'light'
                     ? 'border-primary bg-primary/5 shadow-lg'
                     : 'border-base-300 hover:border-primary/50 hover:bg-base-200/50'
                 )}
                 onClick={() => setThemeMode('light')}
               >
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-amber-100 to-orange-200 flex items-center justify-center shadow-inner">
-                  <Sun className="h-8 w-8 text-amber-600" />
+                <div className="h-11 w-11 rounded-xl sm:h-16 sm:w-16 bg-gradient-to-br from-amber-100 to-orange-200 flex items-center justify-center shadow-inner">
+                  <Sun className="h-5 w-5 sm:h-8 sm:w-8 text-amber-600" />
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold">Yorug'</p>
-                  <p className="text-xs text-base-content/50">Kunduzgi rejim</p>
+                  <p className="text-sm font-semibold sm:text-base">Yorug'</p>
+                  <p className="hidden text-xs text-base-content/50 sm:block">Kunduzgi rejim</p>
                 </div>
                 {themeMode === 'light' && (
                   <span className="badge badge-primary badge-sm">Tanlangan</span>
@@ -146,19 +153,19 @@ export function SettingsPage() {
               {/* Dark Theme */}
               <button
                 className={clsx(
-                  'flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all',
+                  'flex flex-col items-center gap-2 rounded-2xl border-2 p-3 transition-all sm:gap-3 sm:p-6',
                   themeMode === 'dark'
                     ? 'border-primary bg-primary/5 shadow-lg'
                     : 'border-base-300 hover:border-primary/50 hover:bg-base-200/50'
                 )}
                 onClick={() => setThemeMode('dark')}
               >
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-inner">
-                  <Moon className="h-8 w-8 text-slate-300" />
+                <div className="h-11 w-11 rounded-xl sm:h-16 sm:w-16 bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-inner">
+                  <Moon className="h-5 w-5 sm:h-8 sm:w-8 text-slate-300" />
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold">Qorong'i</p>
-                  <p className="text-xs text-base-content/50">Tungi rejim</p>
+                  <p className="text-sm font-semibold sm:text-base">Qorong'i</p>
+                  <p className="hidden text-xs text-base-content/50 sm:block">Tungi rejim</p>
                 </div>
                 {themeMode === 'dark' && (
                   <span className="badge badge-primary badge-sm">Tanlangan</span>
@@ -168,19 +175,19 @@ export function SettingsPage() {
               {/* System Theme */}
               <button
                 className={clsx(
-                  'flex flex-col items-center gap-3 p-6 rounded-2xl border-2 transition-all',
+                  'flex flex-col items-center gap-2 rounded-2xl border-2 p-3 transition-all sm:gap-3 sm:p-6',
                   themeMode === 'system'
                     ? 'border-primary bg-primary/5 shadow-lg'
                     : 'border-base-300 hover:border-primary/50 hover:bg-base-200/50'
                 )}
                 onClick={() => setThemeMode('system')}
               >
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-100 to-purple-200 flex items-center justify-center shadow-inner">
-                  <Monitor className="h-8 w-8 text-blue-600" />
+                <div className="h-11 w-11 rounded-xl sm:h-16 sm:w-16 bg-gradient-to-br from-blue-100 to-purple-200 flex items-center justify-center shadow-inner">
+                  <Monitor className="h-5 w-5 sm:h-8 sm:w-8 text-blue-600" />
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold">Tizim</p>
-                  <p className="text-xs text-base-content/50">Avtomatik</p>
+                  <p className="text-sm font-semibold sm:text-base">Tizim</p>
+                  <p className="hidden text-xs text-base-content/50 sm:block">Avtomatik</p>
                 </div>
                 {themeMode === 'system' && (
                   <span className="badge badge-primary badge-sm">Tanlangan</span>

@@ -109,50 +109,39 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div>
         <h1 className="section-title">Profil</h1>
         <p className="section-subtitle">Shaxsiy ma'lumotlar va xavfsizlik sozlamalari</p>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs tabs-bordered overflow-x-auto scrollbar-hide">
-        <button
-          className={clsx('tab gap-2 text-xs sm:text-sm px-3 sm:px-4 min-h-[48px]', activeTab === 'profile' && 'tab-active')}
-          onClick={() => setActiveTab('profile')}
-        >
-          <UserCircle className="h-4 w-4" />
-          Ma'lumotlar
-        </button>
-        <button
-          className={clsx('tab gap-2 text-xs sm:text-sm px-3 sm:px-4 min-h-[48px]', activeTab === 'security' && 'tab-active')}
-          onClick={() => setActiveTab('security')}
-        >
-          <Lock className="h-4 w-4" />
-          Xavfsizlik
-        </button>
-        <button
-          className={clsx('tab gap-2 text-xs sm:text-sm px-3 sm:px-4 min-h-[48px]', activeTab === 'sessions' && 'tab-active')}
-          onClick={() => setActiveTab('sessions')}
-        >
-          <Monitor className="h-4 w-4" />
-          Sessiyalar
-        </button>
-        <button
-          className={clsx('tab gap-2 text-xs sm:text-sm px-3 sm:px-4 min-h-[48px]', activeTab === 'login-activity' && 'tab-active')}
-          onClick={() => setActiveTab('login-activity')}
-        >
-          <Shield className="h-4 w-4" />
-          Kirish tarixi
-        </button>
-        <button
-          className={clsx('tab gap-2 text-xs sm:text-sm px-3 sm:px-4 min-h-[48px]', activeTab === 'activity' && 'tab-active')}
-          onClick={() => setActiveTab('activity')}
-        >
-          <Activity className="h-4 w-4" />
-          Faoliyat tarixi
-        </button>
+      {/* Tabs — pill */}
+      <div className="scrollbar-hide -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+        {([
+          { id: 'profile', label: "Ma'lumotlar", icon: UserCircle },
+          { id: 'security', label: 'Xavfsizlik', icon: Lock },
+          { id: 'sessions', label: 'Sessiyalar', icon: Monitor },
+          { id: 'login-activity', label: 'Kirish tarixi', icon: Shield },
+          { id: 'activity', label: 'Faoliyat tarixi', icon: Activity },
+        ] as const).map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              className={clsx(
+                'tap-sm flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-colors',
+                activeTab === tab.id
+                  ? 'bg-primary text-primary-content shadow-sm'
+                  : 'bg-base-200 text-base-content/60'
+              )}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Profile Tab */}

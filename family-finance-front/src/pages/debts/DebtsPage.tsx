@@ -492,10 +492,11 @@ export function DebtsPage() {
 
   // ==================== DETAIL PANEL RENDER ====================
 
-  const renderDetailPanel = () => (
-    <div className="lg:col-span-1">
-      {selectedDebt ? (
-        <div className="surface-card p-4 space-y-4 sticky top-4">
+  // Detail panel ichki kontenti — desktop inline panel va mobil modal'da qayta ishlatiladi
+  const renderDebtDetailBody = () => {
+    if (!selectedDebt) return null;
+    return (
+        <>
           <div className="flex items-start justify-between">
             <div>
               <h3 className="font-semibold">{selectedDebt.personName}</h3>
@@ -619,7 +620,14 @@ export function DebtsPage() {
               </div>
             )}
           </div>
-        </div>
+        </>
+    );
+  };
+
+  const renderDetailPanel = () => (
+    <div className="lg:col-span-1">
+      {selectedDebt ? (
+        <div className="surface-card sticky top-4 space-y-4 p-4">{renderDebtDetailBody()}</div>
       ) : (
         <div className="surface-card p-8 text-center text-base-content/50">
           <HandMetal className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -630,32 +638,54 @@ export function DebtsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="section-title">Qarzlar</h1>
-          <p className="section-subtitle">Oilaviy qarzlar boshqaruvi</p>
+          <p className="section-subtitle truncate">Oilaviy qarzlar boshqaruvi</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="pill bg-info/10 text-info">
+        <div className="flex flex-none items-center gap-2">
+          <span className="pill hidden bg-info/10 text-info lg:inline-flex">
             Berilgan: {formatCurrency(summary.totalGiven)}
           </span>
-          <span className="pill bg-warning/10 text-warning">
+          <span className="pill hidden bg-warning/10 text-warning lg:inline-flex">
             Olingan: {formatCurrency(summary.totalTaken)}
           </span>
           <PermissionGate permission={PermissionCode.DEBTS_CREATE}>
-            <button className="btn btn-primary btn-sm" onClick={handleOpenAddModal}>
+            <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenAddModal}>
               <Plus className="h-4 w-4" />
-              Yangi qarz
+              <span className="hidden sm:inline">Yangi qarz</span>
             </button>
           </PermissionGate>
         </div>
       </div>
 
+      {/* Mobil: berilgan/olingan qisqacha summasi */}
+      <div className="grid grid-cols-2 gap-3 lg:hidden">
+        <div className="card-native flex items-center gap-2.5 p-3">
+          <span className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-info/10 text-info">
+            <ArrowUpCircle className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] text-base-content/55">Berilgan</p>
+            <p className="truncate text-sm font-bold text-info">{formatCurrency(summary.totalGiven)}</p>
+          </div>
+        </div>
+        <div className="card-native flex items-center gap-2.5 p-3">
+          <span className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-warning/10 text-warning">
+            <CreditCard className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] text-base-content/55">Olingan</p>
+            <p className="truncate text-sm font-bold text-warning">{formatCurrency(summary.totalTaken)}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="surface-card">
-        <div className="flex overflow-x-auto border-b border-base-200">
+        <div className="scrollbar-hide flex items-center gap-1 overflow-x-auto border-b border-base-200 p-2">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -667,10 +697,10 @@ export function DebtsPage() {
                   setPage(0);
                 }}
                 className={clsx(
-                  'flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
+                  'tap-sm whitespace-nowrap rounded-xl px-3.5 py-2 text-sm font-medium transition-colors',
                   isActive
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/50'
+                    ? 'bg-primary text-primary-content shadow-sm'
+                    : 'text-base-content/60 hover:bg-base-200'
                 )}
               >
                 {tab.label}
@@ -740,9 +770,9 @@ export function DebtsPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                 {/* Debts Table */}
-                <div className="lg:col-span-2 relative">
+                <div className="relative lg:col-span-2">
                   {refreshing && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-base-100/60 backdrop-blur-sm">
                       <div className="flex flex-col items-center gap-3">
@@ -775,50 +805,51 @@ export function DebtsPage() {
                     onLoadMore={handleLoadMore}
                     hasMore={page < totalPages - 1}
                     loadingMore={loadingMore}
-                    renderMobileCard={(debt) => (
-                      <div
-                        className={clsx(
-                          'surface-panel flex flex-col gap-3 rounded-xl p-4 cursor-pointer transition',
-                          debt.isOverdue && 'border-error/30',
-                          selectedDebt?.id === debt.id && 'ring-2 ring-primary'
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold">{debt.personName}</p>
-                            {debt.personPhone && (
-                              <p className="text-xs text-base-content/60">{debt.personPhone}</p>
+                    renderMobileCard={(debt) => {
+                      const overdue = debt.isOverdue;
+                      return (
+                        <div
+                          className={clsx(
+                            'flex items-center gap-3 rounded-2xl border bg-base-100 p-3',
+                            overdue ? 'border-error/30' : 'border-base-200',
+                            selectedDebt?.id === debt.id && 'ring-2 ring-primary'
+                          )}
+                        >
+                          <span
+                            className={clsx(
+                              'grid h-11 w-11 flex-none place-items-center rounded-2xl',
+                              debt.type === 'GIVEN' ? 'bg-info/10 text-info' : 'bg-warning/10 text-warning'
                             )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={clsx(
-                                'badge badge-sm',
-                                debt.type === 'GIVEN' ? 'badge-info' : 'badge-warning'
-                              )}
-                            >
-                              {FAMILY_DEBT_TYPES[debt.type]?.label}
-                            </span>
-                            <span className={clsx('badge badge-sm', FAMILY_DEBT_STATUSES[debt.status]?.color)}>
-                              {FAMILY_DEBT_STATUSES[debt.status]?.label}
-                            </span>
+                          >
+                            <User className="h-5 w-5" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="truncate text-sm font-semibold">{debt.personName}</p>
+                              <span className="flex-none text-sm font-bold tabular-nums text-error">
+                                {formatCurrency(debt.remainingAmount)}
+                              </span>
+                            </div>
+                            <div className="mt-0.5 flex items-center justify-between gap-2">
+                              <p className="min-w-0 truncate text-xs text-base-content/55">
+                                {FAMILY_DEBT_TYPES[debt.type]?.label} · {formatCurrency(debt.amount)}
+                              </p>
+                              <div className="flex flex-none items-center gap-1">
+                                {overdue && <span className="badge badge-error badge-xs">O'tgan</span>}
+                                <span className={clsx('badge badge-xs', FAMILY_DEBT_STATUSES[debt.status]?.color)}>
+                                  {FAMILY_DEBT_STATUSES[debt.status]?.label}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-base-content/70">
-                            Qoldiq: <span className="font-semibold text-error">{formatCurrency(debt.remainingAmount)}</span>
-                          </div>
-                          <div className="text-sm text-base-content/60">
-                            {formatCurrency(debt.amount)}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    }}
                   />
                 </div>
 
-                {/* Detail Panel */}
-                {renderDetailPanel()}
+                {/* Detail Panel — faqat desktop inline; mobilda pastki varaq (modal) */}
+                {!isMobile && renderDetailPanel()}
               </div>
             </div>
           )}
@@ -1001,6 +1032,15 @@ export function DebtsPage() {
           </div>
         )}
       </ModalPortal>
+
+      {/* Mobil: qarz tafsilotlari pastki varaq (modal) */}
+      {isMobile && (
+        <ModalPortal isOpen={!!selectedDebt} onClose={handleCloseDetail}>
+          <div className="w-full max-w-md rounded-2xl bg-base-100 shadow-2xl">
+            <div className="max-h-[85vh] space-y-4 overflow-y-auto p-4">{renderDebtDetailBody()}</div>
+          </div>
+        </ModalPortal>
+      )}
 
       {/* Delete Confirmation Modal */}
       <ModalPortal isOpen={!!deletingDebtId} onClose={() => setDeletingDebtId(null)}>

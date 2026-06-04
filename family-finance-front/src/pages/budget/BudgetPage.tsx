@@ -217,22 +217,21 @@ export function BudgetPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="section-title">Byudjet</h1>
-          <p className="section-subtitle">Oylik xarajat limitlarini boshqaring</p>
+          <p className="section-subtitle truncate">
+            Oylik xarajat limitlari{budgets.length > 0 && ` · ${budgets.length} ta`}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="pill">{budgets.length} ta byudjet</span>
-          <PermissionGate permission={PermissionCode.BUDGETS_CREATE}>
-            <button className="btn btn-primary btn-sm" onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4" />
-              Yangi byudjet
-            </button>
-          </PermissionGate>
-        </div>
+        <PermissionGate permission={PermissionCode.BUDGETS_CREATE}>
+          <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenCreate}>
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Yangi byudjet</span>
+          </button>
+        </PermissionGate>
       </div>
 
       {/* Budget Cards Grid */}
@@ -251,7 +250,7 @@ export function BudgetPage() {
           </PermissionGate>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
           {budgets.map((budget) => {
             const pct = Math.min(budget.percentage, 100);
             const isOverBudget = budget.percentage > 100;
@@ -260,7 +259,7 @@ export function BudgetPage() {
               <div
                 key={budget.id}
                 className={clsx(
-                  'surface-card p-4 space-y-3 transition hover:shadow-md',
+                  'card-native space-y-3 p-4 transition hover:shadow-md',
                   isOverBudget && 'ring-1 ring-error/30'
                 )}
               >

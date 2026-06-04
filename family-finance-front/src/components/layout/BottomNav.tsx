@@ -15,10 +15,12 @@ import {
   Settings,
   UserCircle,
   UserCog,
+  Plus,
   X,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { PermissionCode } from '../../hooks/usePermission';
+import { useQuickEntryStore } from '../../store/quickEntryStore';
 import clsx from 'clsx';
 
 interface NavItem {
@@ -28,59 +30,107 @@ interface NavItem {
   permission: string;
 }
 
-const primaryItems: NavItem[] = [
-  { path: '/', icon: LayoutDashboard, label: 'Bosh sahifa', permission: PermissionCode.DASHBOARD_VIEW },
-  { path: '/transactions', icon: ArrowLeftRight, label: 'Tranzaksiyalar', permission: PermissionCode.TRANSACTIONS_VIEW },
-  { path: '/accounts', icon: Wallet, label: 'Hisoblar', permission: PermissionCode.ACCOUNTS_VIEW },
-  { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW },
-];
+// Asosiy panel elementlari — markaziy FAB chap/o'ngga 2 tadan taqsimlaydi.
+const homeItem: NavItem = { path: '/', icon: LayoutDashboard, label: 'Bosh', permission: PermissionCode.DASHBOARD_VIEW };
+const txItem: NavItem = { path: '/transactions', icon: ArrowLeftRight, label: 'Amallar', permission: PermissionCode.TRANSACTIONS_VIEW };
+const accountsItem: NavItem = { path: '/accounts', icon: Wallet, label: 'Hisoblar', permission: PermissionCode.ACCOUNTS_VIEW };
+const reportsItem: NavItem = { path: '/reports', icon: BarChart3, label: 'Hisobot', permission: PermissionCode.REPORTS_VIEW };
 
 const moreItems: NavItem[] = [
-  { path: '/categories', icon: Tags, label: 'Kategoriyalar', permission: PermissionCode.CATEGORIES_VIEW },
+  { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW },
   { path: '/budget', icon: PieChart, label: 'Byudjet', permission: PermissionCode.BUDGETS_VIEW },
-  { path: '/savings', icon: Target, label: "Jamg'armalar", permission: PermissionCode.SAVINGS_VIEW },
+  { path: '/savings', icon: Target, label: "Jamg'arma", permission: PermissionCode.SAVINGS_VIEW },
   { path: '/debts', icon: HandMetal, label: 'Qarzlar', permission: PermissionCode.DEBTS_VIEW },
-  { path: '/family', icon: Users, label: "Oila a'zolari", permission: PermissionCode.FAMILY_VIEW },
-  { path: '/notifications', icon: Bell, label: 'Bildirishnomalar', permission: PermissionCode.NOTIFICATIONS_VIEW },
-  { path: '/users', icon: UserCog, label: 'Foydalanuvchilar', permission: PermissionCode.USERS_VIEW },
+  { path: '/categories', icon: Tags, label: 'Kategoriya', permission: PermissionCode.CATEGORIES_VIEW },
+  { path: '/family', icon: Users, label: "Oila", permission: PermissionCode.FAMILY_VIEW },
+  { path: '/notifications', icon: Bell, label: 'Bildirishnoma', permission: PermissionCode.NOTIFICATIONS_VIEW },
+  { path: '/users', icon: UserCog, label: 'Foydalanuvchi', permission: PermissionCode.USERS_VIEW },
   { path: '/settings', icon: Settings, label: 'Sozlamalar', permission: PermissionCode.SETTINGS_VIEW },
   { path: '/profile', icon: UserCircle, label: 'Profil', permission: '' },
 ];
 
+/** Bitta pastki navigatsiya tugmasi (ikonka + yorliq, aktiv holatda pill highlight). */
+function NavTab({ item }: { item: NavItem }) {
+  return (
+    <NavLink
+      to={item.path}
+      end={item.path === '/'}
+      className={({ isActive }) =>
+        clsx(
+          'group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 pt-1 tap-sm',
+          isActive ? 'text-primary' : 'text-base-content/50 active:text-base-content'
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <span
+            className={clsx(
+              'grid place-items-center rounded-full px-4 py-1 transition-colors duration-200',
+              isActive ? 'bg-primary/12' : 'bg-transparent'
+            )}
+          >
+            <item.icon className={clsx('h-[22px] w-[22px]', isActive && 'stroke-[2.4]')} />
+          </span>
+          <span className="w-full truncate text-center text-[10px] font-semibold leading-none">
+            {item.label}
+          </span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 export function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
   const permissions = useAuthStore((state) => state.permissions);
+  const openQuickEntry = useQuickEntryStore((s) => s.open);
   const location = useLocation();
 
-  const filteredPrimary = primaryItems.filter((item) => permissions.has(item.permission));
-  const filteredMore = moreItems.filter((item) => !item.permission || permissions.has(item.permission));
+  const has = (perm: string) => !perm || permissions.has(perm);
+  const canCreate = permissions.has(PermissionCode.TRANSACTIONS_CREATE);
 
-  // Check if current path is in the "more" menu
+  const filteredMore = moreItems.filter((item) => has(item.permission));
   const isMoreActive = filteredMore.some((item) => location.pathname === item.path);
+
+  const moreTab: NavItem = { path: '#more', icon: MoreHorizontal, label: 'Yana', permission: '' };
+
+  // Markaziy FAB bo'lganda: chapda 2, o'ngda 2 element. Aks holda 5 ta oddiy tugma.
+  const leftItems = [homeItem, txItem].filter((i) => has(i.permission));
+  const rightItems = canCreate
+    ? [accountsItem].filter((i) => has(i.permission))
+    : [accountsItem, reportsItem].filter((i) => has(i.permission));
 
   return (
     <>
-      {/* More menu overlay */}
+      {/* "Yana" menyusi — overlay + pastki varaq */}
       {moreOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-50 bg-base-300/40 backdrop-blur-sm lg:hidden"
           onClick={() => setMoreOpen(false)}
+          aria-hidden="true"
         />
       )}
 
-      {/* More menu sheet */}
       {moreOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl border-t border-base-200 bg-base-100 pb-20 shadow-2xl lg:hidden">
-          <div className="flex items-center justify-between border-b border-base-200 px-4 py-3">
-            <span className="text-sm font-semibold">Boshqa sahifalar</span>
+        <div className="animate-slide-up fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-base-200 bg-base-100 shadow-2xl lg:hidden">
+          <div className="flex flex-col items-center pt-2.5">
+            <span className="h-1.5 w-10 rounded-full bg-base-300" />
+          </div>
+          <div className="flex items-center justify-between px-5 pb-1 pt-3">
+            <span className="font-display text-base font-bold">Barcha bo'limlar</span>
             <button
-              className="btn btn-ghost btn-sm btn-circle"
+              className="grid h-9 w-9 place-items-center rounded-full bg-base-200 text-base-content/70 tap-sm"
               onClick={() => setMoreOpen(false)}
+              aria-label="Yopish"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="grid grid-cols-4 gap-1 p-3">
+          <div
+            className="grid grid-cols-4 gap-1.5 px-3 pt-2"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
+          >
             {filteredMore.map((item) => (
               <NavLink
                 key={item.path}
@@ -88,59 +138,75 @@ export function BottomNav() {
                 onClick={() => setMoreOpen(false)}
                 className={({ isActive }) =>
                   clsx(
-                    'flex flex-col items-center gap-1.5 rounded-xl px-2 py-3 text-center transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-base-content/60 active:bg-base-200'
+                    'flex flex-col items-center gap-2 rounded-2xl px-1 py-3.5 text-center tap-sm',
+                    isActive ? 'bg-primary/10 text-primary' : 'text-base-content/70 active:bg-base-200'
                   )
                 }
               >
-                <item.icon className="h-5 w-5" />
-                <span className="text-[11px] font-medium leading-tight">{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={clsx(
+                        'grid h-11 w-11 place-items-center rounded-2xl',
+                        isActive ? 'bg-primary/15 text-primary' : 'bg-base-200/80 text-base-content/60'
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </span>
+                    <span className="w-full truncate text-[11px] font-medium leading-tight">{item.label}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
         </div>
       )}
 
-      {/* Bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-base-200 bg-base-100/95 backdrop-blur safe-area-bottom lg:hidden">
-        <div className="flex items-stretch justify-around">
-          {filteredPrimary.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              className={({ isActive }) =>
-                clsx(
-                  'flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-base-content/50 active:text-base-content'
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <item.icon className={clsx('h-5 w-5', isActive && 'stroke-[2.5]')} />
-                  <span className="text-[10px] font-medium">{item.label}</span>
-                </>
-              )}
-            </NavLink>
+      {/* Pastki navigatsiya paneli */}
+      <nav
+        className="app-shell-blur fixed inset-x-0 bottom-0 z-40 border-t border-base-200/80 lg:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="flex h-[var(--bottom-nav-height)] items-stretch justify-around px-1.5">
+          {leftItems.map((item) => (
+            <NavTab key={item.path} item={item} />
           ))}
 
-          {/* More button */}
+          {/* Markaziy FAB — tezkor tranzaksiya qo'shish */}
+          {canCreate && (
+            <div className="flex w-16 flex-none items-start justify-center">
+              <button
+                type="button"
+                onClick={() => openQuickEntry('EXPENSE')}
+                aria-label="Yangi tranzaksiya"
+                className="brand-gradient -mt-5 grid h-14 w-14 place-items-center rounded-2xl text-white shadow-[var(--shadow-brand)] ring-4 ring-base-100 tap"
+              >
+                <Plus className="h-7 w-7" strokeWidth={2.5} />
+              </button>
+            </div>
+          )}
+
+          {rightItems.map((item) => (
+            <NavTab key={item.path} item={item} />
+          ))}
+
+          {/* "Yana" tugmasi */}
           <button
-            onClick={() => setMoreOpen(!moreOpen)}
+            onClick={() => setMoreOpen((v) => !v)}
             className={clsx(
-              'flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 transition-colors',
-              isMoreActive || moreOpen
-                ? 'text-primary'
-                : 'text-base-content/50 active:text-base-content'
+              'group flex min-w-0 flex-1 flex-col items-center justify-center gap-1 pt-1 tap-sm',
+              isMoreActive || moreOpen ? 'text-primary' : 'text-base-content/50 active:text-base-content'
             )}
           >
-            <MoreHorizontal className={clsx('h-5 w-5', (isMoreActive || moreOpen) && 'stroke-[2.5]')} />
-            <span className="text-[10px] font-medium">Yana</span>
+            <span
+              className={clsx(
+                'grid place-items-center rounded-full px-4 py-1 transition-colors duration-200',
+                isMoreActive || moreOpen ? 'bg-primary/12' : 'bg-transparent'
+              )}
+            >
+              <MoreHorizontal className={clsx('h-[22px] w-[22px]', (isMoreActive || moreOpen) && 'stroke-[2.4]')} />
+            </span>
+            <span className="text-[10px] font-semibold leading-none">{moreTab.label}</span>
           </button>
         </div>
       </nav>

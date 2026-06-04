@@ -127,7 +127,7 @@ export function MainLayout() {
       <div className={`flex min-w-0 flex-1 flex-col overflow-hidden ${isPinnedFamilyDetailOpen ? 'sm:pr-[360px]' : ''}`}>
         <Header />
         <OfflineIndicator />
-        <main className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden px-4 pb-20 pt-4 lg:px-8 lg:pb-6">
+        <main className="pb-safe-nav flex flex-1 flex-col overflow-y-auto overflow-x-hidden px-4 pt-3 lg:px-8 lg:pb-6 lg:pt-4">
           <Outlet />
         </main>
         <Footer />
