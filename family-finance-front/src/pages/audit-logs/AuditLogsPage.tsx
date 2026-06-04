@@ -215,15 +215,15 @@ export function AuditLogsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-7 w-7" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl lg:text-3xl">
+            <Shield className="h-6 w-6 flex-none sm:h-7 sm:w-7" />
             Audit Loglar
           </h1>
-          <p className="text-sm text-base-content/60 mt-1">
+          <p className="mt-0.5 truncate text-sm text-base-content/60">
             Tizimdagi barcha o'zgarishlar tarixi
           </p>
         </div>

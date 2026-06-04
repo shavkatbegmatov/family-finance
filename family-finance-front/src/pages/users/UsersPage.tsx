@@ -517,13 +517,72 @@ export function UsersPage() {
     !linkFamilyMemberMutation.isPending
   );
 
+  // Foydalanuvchi amal tugmalari — jadval va mobil kartada qayta ishlatiladi
+  const renderUserActions = (user: UserDetail) => (
+    <>
+      <PermissionGate permission={PermissionCode.USERS_VIEW}>
+        <button className="btn btn-ghost btn-xs" title="Ko'rish" onClick={() => openModal('view', user)}>
+          <Eye className="h-3.5 w-3.5" />
+        </button>
+      </PermissionGate>
+      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+        <button className="btn btn-ghost btn-xs" title="Tahrirlash" onClick={() => openModal('edit', user)}>
+          <Edit2 className="h-3.5 w-3.5" />
+        </button>
+      </PermissionGate>
+      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+        <button className="btn btn-ghost btn-xs" title="Oila a'zosini biriktirish" onClick={() => openModal('family-link', user)}>
+          <Link2 className="h-3.5 w-3.5" />
+        </button>
+      </PermissionGate>
+      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+        <button className="btn btn-ghost btn-xs" title="Username o'zgartirish" onClick={() => openModal('username', user)}>
+          <AtSign className="h-3.5 w-3.5" />
+        </button>
+      </PermissionGate>
+      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+        <button className="btn btn-ghost btn-xs" title="Parolni tiklash" onClick={() => openModal('password', user)}>
+          <Key className="h-3.5 w-3.5" />
+        </button>
+      </PermissionGate>
+      <PermissionGate permission={PermissionCode.USERS_CHANGE_ROLE}>
+        <button className="btn btn-ghost btn-xs" title="Rollar" onClick={() => openModal('roles', user)}>
+          <Shield className="h-3.5 w-3.5" />
+        </button>
+      </PermissionGate>
+      {user.active ? (
+        <PermissionGate permission={PermissionCode.USERS_DELETE}>
+          <button
+            className="btn btn-ghost btn-xs text-error"
+            title="O'chirish"
+            onClick={() => handleToggleActive(user)}
+            disabled={deactivateMutation.isPending}
+          >
+            <Power className="h-3.5 w-3.5" />
+          </button>
+        </PermissionGate>
+      ) : (
+        <PermissionGate permission={PermissionCode.USERS_UPDATE}>
+          <button
+            className="btn btn-ghost btn-xs text-success"
+            title="Faollashtirish"
+            onClick={() => handleToggleActive(user)}
+            disabled={activateMutation.isPending}
+          >
+            <Power className="h-3.5 w-3.5" />
+          </button>
+        </PermissionGate>
+      )}
+    </>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Foydalanuvchilar boshqaruvi</h1>
-          <p className="text-sm text-base-content/60">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold lg:text-2xl">Foydalanuvchilar</h1>
+          <p className="truncate text-sm text-base-content/60">
             Tizim foydalanuvchilarini ko'rish va boshqarish
           </p>
         </div>
@@ -583,7 +642,45 @@ export function UsersPage() {
           <p>Foydalanuvchilar topilmadi</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-base-200">
+        <>
+          {/* Mobil: foydalanuvchi kartalari */}
+          <div className="space-y-2 lg:hidden">
+            {usersPage.content.map((user) => (
+              <div key={user.id} className="card-native p-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 flex-none place-items-center rounded-full bg-primary/12 text-sm font-bold text-primary">
+                    {user.fullName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-semibold">{user.fullName}</p>
+                      {user.active ? (
+                        <span className="badge badge-success badge-sm flex-none">Faol</span>
+                      ) : (
+                        <span className="badge badge-error badge-sm flex-none">Nofaol</span>
+                      )}
+                    </div>
+                    <p className="truncate text-xs text-base-content/50">
+                      @{user.username}
+                      {user.linkedFamilyMemberName ? ` · ${user.linkedFamilyMemberName}` : ''}
+                    </p>
+                    <PersonBadges
+                      hasUser
+                      hasFamilyMember={!!user.linkedFamilyMemberId}
+                      hasParticipant={!!user.pointParticipantId}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="scrollbar-hide mt-2 flex items-center gap-0.5 overflow-x-auto border-t border-base-200 pt-2">
+                  {renderUserActions(user)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: jadval */}
+          <div className="hidden overflow-x-auto rounded-xl border border-base-200 lg:block">
           <table className="table table-zebra">
             <thead>
               <tr className="bg-base-200/50">
@@ -665,90 +762,15 @@ export function UsersPage() {
                   </td>
                   <td>
                     <div className="flex items-center justify-center gap-1">
-                      <PermissionGate permission={PermissionCode.USERS_VIEW}>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          title="Ko'rish"
-                          onClick={() => openModal('view', user)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          title="Tahrirlash"
-                          onClick={() => openModal('edit', user)}
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          title="Oila a'zosini biriktirish"
-                          onClick={() => openModal('family-link', user)}
-                        >
-                          <Link2 className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          title="Username o'zgartirish"
-                          onClick={() => openModal('username', user)}
-                        >
-                          <AtSign className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          title="Parolni tiklash"
-                          onClick={() => openModal('password', user)}
-                        >
-                          <Key className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={PermissionCode.USERS_CHANGE_ROLE}>
-                        <button
-                          className="btn btn-ghost btn-xs"
-                          title="Rollar"
-                          onClick={() => openModal('roles', user)}
-                        >
-                          <Shield className="h-3.5 w-3.5" />
-                        </button>
-                      </PermissionGate>
-                      {user.active ? (
-                        <PermissionGate permission={PermissionCode.USERS_DELETE}>
-                          <button
-                            className="btn btn-ghost btn-xs text-error"
-                            title="O'chirish"
-                            onClick={() => handleToggleActive(user)}
-                            disabled={deactivateMutation.isPending}
-                          >
-                            <Power className="h-3.5 w-3.5" />
-                          </button>
-                        </PermissionGate>
-                      ) : (
-                        <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-                          <button
-                            className="btn btn-ghost btn-xs text-success"
-                            title="Faollashtirish"
-                            onClick={() => handleToggleActive(user)}
-                            disabled={activateMutation.isPending}
-                          >
-                            <Power className="h-3.5 w-3.5" />
-                          </button>
-                        </PermissionGate>
-                      )}
+                      {renderUserActions(user)}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Pagination */}

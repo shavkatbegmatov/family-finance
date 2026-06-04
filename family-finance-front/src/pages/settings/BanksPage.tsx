@@ -60,19 +60,19 @@ export function BanksPage() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Building2 className="h-6 w-6 text-primary" />
-                        Banklar tizimi
+        <div className="space-y-4 lg:space-y-6">
+            <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                    <h1 className="flex items-center gap-2 text-xl font-bold lg:text-2xl">
+                        <Building2 className="h-5 w-5 flex-none text-primary lg:h-6 lg:w-6" />
+                        Banklar
                     </h1>
-                    <p className="text-sm text-base-content/60 mt-1">
-                        Platformadagi barcha rasmiy banklar ro'yxati va ularning BIN bog'lamalari
+                    <p className="mt-0.5 truncate text-sm text-base-content/60">
+                        Rasmiy banklar va ularning BIN bog'lamalari
                     </p>
                 </div>
-                <button onClick={handleAdd} className="btn btn-primary">
-                    <Plus className="h-4 w-4 mr-2" /> Yangi bank
+                <button onClick={handleAdd} className="btn btn-primary btn-sm gap-1.5">
+                    <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Yangi bank</span>
                 </button>
             </div>
 
@@ -105,7 +105,50 @@ export function BanksPage() {
                     <p>Hech narsa topilmadi</p>
                 </div>
             ) : (
-                <div className="overflow-x-auto">
+                <>
+                  {/* Mobil: bank kartalari */}
+                  <div className="space-y-2 lg:hidden">
+                    {banks.map(bank => (
+                      <div key={bank.id} className="card-native flex items-center gap-3 p-3">
+                        <div className="grid h-11 w-11 flex-none place-items-center overflow-hidden rounded-xl border border-base-200 bg-base-200 text-primary/40">
+                          {bank.logoUrl ? (
+                            <img src={bank.logoUrl} alt={bank.name} className="h-full w-full object-contain p-1" />
+                          ) : (
+                            <Building2 className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate text-sm font-semibold">{bank.name}</p>
+                            {bank.isActive ? (
+                              <span className="badge badge-success badge-sm flex-none gap-1 pl-1"><BadgeCheck className="h-3 w-3" />Faol</span>
+                            ) : (
+                              <span className="badge badge-error badge-sm flex-none gap-1 pl-1"><XCircle className="h-3 w-3" />Nofaol</span>
+                            )}
+                          </div>
+                          <p className="truncate text-xs text-base-content/50">
+                            MFO: {bank.mfo || "Yo'q"}
+                            {bank.binPrefixes && bank.binPrefixes.length > 0 ? ` · ${bank.binPrefixes.length} BIN` : ''}
+                          </p>
+                        </div>
+                        <div className="flex flex-none items-center gap-1">
+                          <button
+                            onClick={() => toggleStatusMutation.mutate(bank)}
+                            className="btn btn-ghost btn-xs btn-square"
+                            title={bank.isActive ? 'Nofaol qilish' : 'Faollashtirish'}
+                          >
+                            <Activity className={`h-4 w-4 ${bank.isActive ? 'text-error' : 'text-success'}`} />
+                          </button>
+                          <button onClick={() => handleEdit(bank)} className="btn btn-ghost btn-xs btn-square text-primary" title="Tahrirlash">
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop: jadval */}
+                  <div className="hidden overflow-x-auto lg:block">
                     <table className="table">
                         <thead>
                             <tr>
@@ -184,7 +227,8 @@ export function BanksPage() {
                             ))}
                         </tbody>
                     </table>
-                </div>
+                  </div>
+                </>
             )}
 
             <BankFormModal

@@ -265,16 +265,16 @@ export function RolesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Rollar boshqaruvi</h1>
-          <p className="text-sm text-base-content/60">
-            Foydalanuvchi rollari va huquqlarini boshqarish
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold lg:text-2xl">Rollar</h1>
+          <p className="truncate text-sm text-base-content/60">
+            Rollar va huquqlarni boshqarish
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-none items-center gap-2">
           <ExportButtons
             onExportExcel={() => handleExport('excel')}
             onExportPdf={() => handleExport('pdf')}
@@ -282,9 +282,9 @@ export function RolesPage() {
             loading={isLoading}
           />
           <PermissionGate permission={PermissionCode.ROLES_CREATE}>
-            <button className="btn btn-primary" onClick={() => openModal()}>
-              <Plus className="h-5 w-5" />
-              Yangi rol
+            <button className="btn btn-primary btn-sm gap-1.5" onClick={() => openModal()}>
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Yangi rol</span>
             </button>
           </PermissionGate>
         </div>
@@ -308,13 +308,13 @@ export function RolesPage() {
           <span className="loading loading-spinner loading-lg" />
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
           {roles?.content?.map((role) => (
             <div
               key={role.id}
-              className="card bg-base-100 border border-base-200 shadow-sm hover:shadow-md transition-shadow"
+              className="card-native transition-shadow hover:shadow-md"
             >
-              <div className="card-body p-5">
+              <div className="card-body p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`grid h-10 w-10 place-items-center rounded-lg ${
