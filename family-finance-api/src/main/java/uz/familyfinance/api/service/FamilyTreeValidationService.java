@@ -127,16 +127,46 @@ public class FamilyTreeValidationService {
     }
 
     /**
-     * Bitta farzandning faqat bitta biologik ota-onalar juftligi bo'lishi mumkin
+     * Bitta farzandning faqat bitta biologik ota-onalar juftligi bo'lishi mumkin.
+     * Agar mavjud bog'lanishning oilasida tirik ota-ona qolmagan bo'lsa (ota-onalar
+     * o'chirilgan), bu "yetim" bog'lanish tozalanadi va yangi ota-ona qo'shishga ruxsat beriladi —
+     * shu tufayli ota-onani o'chirib qayta kiritish mumkin bo'ladi.
      */
     public void validateBiologicalParentUnique(Long personId, LineageType lineageType) {
         if (lineageType != LineageType.BIOLOGICAL) return;
 
         familyChildRepository.findByPersonIdAndLineageType(personId, LineageType.BIOLOGICAL)
                 .ifPresent(existing -> {
-                    throw new IllegalArgumentException(
-                            "Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan");
+                    if (hasLivingParent(existing.getFamilyUnit())) {
+                        throw new IllegalArgumentException(
+                                "Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan");
+                    }
+                    pruneOrphanedChildLink(existing);
                 });
+    }
+
+    /** Oila birligida kamida bitta tirik (o'chirilmagan) ota-ona partner bor-yo'qligi. */
+    private boolean hasLivingParent(FamilyUnit unit) {
+        return familyPartnerRepository.findByFamilyUnitId(unit.getId()).stream()
+                .map(FamilyPartner::getPerson)
+                .anyMatch(person -> person != null && !Boolean.FALSE.equals(person.getIsActive()));
+    }
+
+    /**
+     * Ota-onalari o'chirilgan yetim farzand bog'lanishini uzadi. Agar oila birligida
+     * boshqa farzand ham, tirik partner ham qolmasa — bo'sh nikoh birligi cascade orqali
+     * (partner va farzand bog'lanishlari bilan) butunlay o'chiriladi.
+     */
+    private void pruneOrphanedChildLink(FamilyChild orphan) {
+        FamilyUnit unit = orphan.getFamilyUnit();
+        boolean hasOtherChildren = familyChildRepository.findByFamilyUnitId(unit.getId()).stream()
+                .anyMatch(child -> !child.getId().equals(orphan.getId()));
+
+        if (hasOtherChildren || hasLivingParent(unit)) {
+            familyChildRepository.delete(orphan);
+        } else {
+            familyUnitRepository.delete(unit);
+        }
     }
 
     /**

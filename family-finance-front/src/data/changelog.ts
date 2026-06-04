@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.1',
+        date: '2026-06-04 22:51',
+        title: "Ota-onani o'chirib qayta kiritish tuzatildi",
+        features: [],
+        fixes: [
+            "Shajara daraxtida farzandning ota-onasini o'chirgandan so'ng, o'sha farzandga qaytadan ota-ona qo'shish endi ishlaydi — ilgari \"Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan\" xatosi chiqib, qayta kiritishga to'sqinlik qilardi.",
+        ],
+    },
+    {
         version: '1.6.0',
         date: '2026-06-04 12:30',
         title: "Yangi mobil dizayn va rebrend",
