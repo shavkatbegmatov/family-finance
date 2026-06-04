@@ -41,6 +41,15 @@ const formatCompactCurrency = (value: number): string => {
   return value.toString();
 };
 
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  CASH: 'Naqd',
+  BANK: 'Bank',
+  CARD: 'Karta',
+  SAVINGS: "Jamg'arma",
+  CREDIT: 'Kredit',
+  INVESTMENT: 'Investitsiya',
+};
+
 export function HouseholdPage() {
   const [data, setData] = useState<HouseholdDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,32 +147,33 @@ export function HouseholdPage() {
   const totalBalance = data.familyAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-3 text-2xl font-bold lg:text-3xl">
-            <Home className="h-7 w-7 text-primary" />
-            {data.groupName}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
+            <Home className="h-6 w-6 flex-none text-primary lg:h-7 lg:w-7" />
+            <span className="truncate">{data.groupName}</span>
           </h1>
-          <p className="mt-1 text-base-content/60">Oilaviy xo'jalik boshqaruvi</p>
+          <p className="mt-0.5 text-sm text-base-content/60 lg:mt-1 lg:text-base">Oilaviy xo'jalik boshqaruvi</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setIsJoinModalOpen(true)} className="btn btn-outline btn-sm gap-2">
+        <div className="flex flex-none gap-2">
+          <button onClick={() => setIsJoinModalOpen(true)} className="btn btn-outline btn-sm gap-1.5">
             <UserPlus className="h-4 w-4" />
-            Boshqa oilaga qo'shilish
+            <span className="hidden sm:inline">Boshqa oilaga qo'shilish</span>
+            <span className="sm:hidden">Qo'shilish</span>
           </button>
           {data.admin && (
-            <Link to="/my-family/settings" className="btn btn-outline btn-sm gap-2">
+            <Link to="/my-family/settings" className="btn btn-outline btn-sm gap-1.5">
               <Settings className="h-4 w-4" />
-              Guruh sozlamalari
+              <span className="hidden sm:inline">Sozlamalar</span>
             </Link>
           )}
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatCard
           title="Jami balans"
           value={formatCurrency(totalBalance)}
@@ -238,7 +248,29 @@ export function HouseholdPage() {
               Oilaviy hisoblar
             </h3>
           </div>
-          <div className="overflow-x-auto">
+          {/* Mobil: kartalar */}
+          <div className="space-y-2 p-3 lg:hidden">
+            {data.familyAccounts.map((account) => (
+              <div key={account.id} className="flex items-center justify-between gap-3 rounded-xl border border-base-200 p-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{account.name}</p>
+                  <p className="truncate text-xs text-base-content/55">
+                    {ACCOUNT_TYPE_LABELS[account.accountType] || account.accountType}
+                    {account.ownerName ? ` · ${account.ownerName}` : ''}
+                  </p>
+                </div>
+                <div className="flex-none text-right">
+                  <p className="text-sm font-bold tabular-nums">{formatCurrency(account.balance)}</p>
+                  {account.currency && account.currency !== 'UZS' && (
+                    <p className="text-[11px] text-base-content/50">{account.currency}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: jadval */}
+          <div className="hidden overflow-x-auto lg:block">
             <table className="table w-full">
               <thead className="bg-base-200/50">
                 <tr>
@@ -317,14 +349,14 @@ function StatCard({
       className="surface-card group relative overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
       style={style}
     >
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-base-content/60">{title}</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight lg:text-3xl">{value}</p>
+      <div className="p-4 lg:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-base-content/60 lg:text-sm">{title}</p>
+            <p className="mt-1.5 truncate text-lg font-bold tracking-tight lg:mt-2 lg:text-2xl">{value}</p>
           </div>
-          <div className={clsx('grid h-12 w-12 place-items-center rounded-2xl border', colorMap[color])}>
-            <Icon className="h-6 w-6" />
+          <div className={clsx('grid h-10 w-10 flex-none place-items-center rounded-2xl border lg:h-12 lg:w-12', colorMap[color])}>
+            <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
           </div>
         </div>
       </div>
@@ -421,21 +453,12 @@ function MemberCard({
 }
 
 function AccountRow({ account }: { account: HouseholdAccountSummary }) {
-  const accountTypeLabels: Record<string, string> = {
-    CASH: 'Naqd',
-    BANK: 'Bank',
-    CARD: 'Karta',
-    SAVINGS: "Jamg'arma",
-    CREDIT: 'Kredit',
-    INVESTMENT: 'Investitsiya',
-  };
-
   return (
     <tr className="hover">
       <td className="font-medium">{account.name}</td>
       <td>
         <span className="badge badge-outline badge-sm">
-          {accountTypeLabels[account.accountType] || account.accountType}
+          {ACCOUNT_TYPE_LABELS[account.accountType] || account.accountType}
         </span>
       </td>
       <td className="text-right font-semibold">{formatCurrency(account.balance)}</td>
