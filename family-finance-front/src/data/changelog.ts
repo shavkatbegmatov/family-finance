@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.2',
+        date: '2026-06-05 02:25',
+        title: "Oila daraxti oynalari va xatoliklari izchilligi",
+        features: [],
+        fixes: [
+            "Oila daraxti amallarida (tahrirlash, o'chirish, partner qo'shish) xatolik yuz bersa, endi aniq sabab ko'rsatiladi — ilgari ba'zi amallarda umumiy \"xatolik\" xabari chiqardi.",
+            "Turmush o'rtoq, farzand va ota-ona qo'shish oynalaridagi \"yangi yoki mavjud shaxs\" tanlash yagona, izchil ko'rinishga keltirildi.",
+            "Nikoh ma'lumotlarini tahrirlashda ajrashgan sana nikoh sanasidan oldin bo'lsa, ogohlantirish chiqadi.",
+        ],
+    },
+    {
         version: '1.6.1',
         date: '2026-06-05 00:30',
         title: "Ota-ona qo'shish va o'chirish barqarorligi yaxshilandi",

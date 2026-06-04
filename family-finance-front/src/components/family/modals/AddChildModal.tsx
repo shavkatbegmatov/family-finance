@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { X, User, Users } from 'lucide-react';
+import { X } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { TextInput } from '../../ui/TextInput';
 import { Select } from '../../ui/Select';
-import { PersonSelect } from '../../ui/PersonSelect';
-import { DateInput } from '../../ui/DateInput';
 import { useAddChild, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
-import { LINEAGE_TYPES, GENDERS } from '../../../config/constants';
-import type { LineageType, Gender } from '../../../types';
+import { PersonPicker, emptyPersonDraft, isPersonDraftValid } from './shared/PersonPicker';
+import type { PersonDraft } from './shared/PersonPicker';
+import { LINEAGE_TYPES } from '../../../config/constants';
+import type { LineageType } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
 
 interface AddChildModalProps {
@@ -21,8 +21,6 @@ interface AddChildModalProps {
   onSuccess: () => void;
 }
 
-type ModalMode = 'new' | 'existing';
-
 export function AddChildModal({
   isOpen,
   familyUnitId,
@@ -31,19 +29,7 @@ export function AddChildModal({
   onClose,
   onSuccess,
 }: AddChildModalProps) {
-  const [mode, setMode] = useState<ModalMode>('new');
-
-  // Existing person selection
-  const [selectedPersonId, setSelectedPersonId] = useState<number | ''>('');
-
-  // New person form
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [middleName, setMiddleName] = useState('');
-  const [gender, setGender] = useState<Gender | ''>('');
-  const [birthDate, setBirthDate] = useState('');
-
-  // Child info
+  const [person, setPerson] = useState<PersonDraft>(emptyPersonDraft);
   const [lineageType, setLineageType] = useState<LineageType>('BIOLOGICAL');
   const [birthOrder, setBirthOrder] = useState<number | ''>('');
 
@@ -59,19 +45,8 @@ export function AddChildModal({
     ([key, { label }]) => ({ value: key, label })
   );
 
-  const genderOptions: SelectOption[] = [
-    { value: '', label: 'Tanlanmagan' },
-    ...Object.entries(GENDERS).map(([key, { label }]) => ({ value: key, label })),
-  ];
-
   const resetForm = () => {
-    setMode('new');
-    setSelectedPersonId('');
-    setFirstName('');
-    setLastName('');
-    setMiddleName('');
-    setGender('');
-    setBirthDate('');
+    setPerson(emptyPersonDraft);
     setLineageType('BIOLOGICAL');
     setBirthOrder('');
   };
@@ -85,11 +60,6 @@ export function AddChildModal({
     onClose();
   };
 
-  const canSubmit = () => {
-    if (mode === 'existing') return !!selectedPersonId;
-    return !!firstName.trim();
-  };
-
   /** Mavjud nikoh ID yoki yagona ota-ona uchun ayni shu yerda yangisini yaratadi. */
   const resolveUnitId = async (): Promise<number | null> => {
     if (familyUnitId) return familyUnitId;
@@ -100,21 +70,21 @@ export function AddChildModal({
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit()) return;
+    if (!isPersonDraftValid(person)) return;
 
     try {
       // 1) Farzand shaxsini aniqlash (mavjud yoki yangi yaratish)
       let childPersonId: number;
-      if (mode === 'existing') {
-        childPersonId = selectedPersonId as number;
+      if (person.mode === 'existing') {
+        childPersonId = person.personId as number;
       } else {
         const { familyUnitApi } = await import('../../../api/family-unit.api');
         const res = await familyUnitApi.createPerson({
-          firstName: firstName.trim(),
-          lastName: lastName.trim() || undefined,
-          middleName: middleName.trim() || undefined,
-          gender: gender || undefined,
-          birthDate: birthDate || undefined,
+          firstName: person.firstName.trim(),
+          lastName: person.lastName.trim() || undefined,
+          middleName: person.middleName.trim() || undefined,
+          gender: person.gender || undefined,
+          birthDate: person.birthDate || undefined,
           role: 'CHILD',
         });
         childPersonId = (res.data as { data: { id: number } }).data.id;
@@ -156,10 +126,10 @@ export function AddChildModal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="text-xl font-semibold">
-                {isSibling ? 'Aka-uka qo\u0027shish' : 'Farzand qo\u0027shish'}
+                {isSibling ? "Aka-uka qo'shish" : "Farzand qo'shish"}
               </h3>
               <p className="text-sm text-base-content/60 mt-1">
-                {isSibling ? 'Aka-uka ma\u0027lumotlarini kiriting' : 'Farzand ma\u0027lumotlarini kiriting'}
+                {isSibling ? "Aka-uka ma'lumotlarini kiriting" : "Farzand ma'lumotlarini kiriting"}
               </p>
             </div>
             <button className="btn btn-ghost btn-sm btn-square" onClick={handleClose}>
@@ -167,73 +137,8 @@ export function AddChildModal({
             </button>
           </div>
 
-          {/* Mode tabs */}
-          <div className="flex gap-1 bg-base-200 rounded-lg p-1 mt-4">
-            <button
-              className={`btn btn-sm flex-1 gap-1 ${mode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setMode('new')}
-            >
-              <User className="h-4 w-4" />
-              Yangi shaxs
-            </button>
-            <button
-              className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setMode('existing')}
-            >
-              <Users className="h-4 w-4" />
-              Mavjud shaxs
-            </button>
-          </div>
-
           <div className="mt-4 space-y-4">
-            {mode === 'new' ? (
-              <>
-                <TextInput
-                  label="Ism"
-                  required
-                  value={firstName}
-                  onChange={setFirstName}
-                  placeholder="Ism"
-                  leadingIcon={<User className="h-5 w-5" />}
-                />
-                <TextInput
-                  label="Familiya"
-                  value={lastName}
-                  onChange={setLastName}
-                  placeholder="Familiya"
-                />
-                <TextInput
-                  label="Otasining ismi"
-                  value={middleName}
-                  onChange={setMiddleName}
-                  placeholder="Otasining ismi"
-                />
-                <Select
-                  label="Jinsi"
-                  value={gender || undefined}
-                  onChange={(val) => setGender(val as Gender)}
-                  options={genderOptions}
-                  placeholder="Tanlang..."
-                />
-                <DateInput
-                  label="Tug'ilgan sana"
-                  value={birthDate}
-                  onChange={setBirthDate}
-                  max={new Date().toISOString().slice(0, 10)}
-                />
-              </>
-            ) : (
-              <PersonSelect
-                label="Shaxsni tanlang"
-                required
-                value={selectedPersonId || undefined}
-                onChange={(val: string | number | undefined) =>
-                  setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
-                }
-                options={personOptions}
-                placeholder="Shaxsni qidiring..."
-              />
-            )}
+            <PersonPicker value={person} onChange={setPerson} personOptions={personOptions} />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
@@ -243,7 +148,6 @@ export function AddChildModal({
                 onChange={(val) => setLineageType(val as LineageType)}
                 options={lineageOptions}
               />
-
               <TextInput
                 label="Tug'ilish tartibi"
                 value={birthOrder ? String(birthOrder) : ''}
@@ -264,7 +168,7 @@ export function AddChildModal({
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting || !canSubmit()}
+              disabled={isSubmitting || !isPersonDraftValid(person)}
             >
               {isSubmitting && <span className="loading loading-spinner loading-sm" />}
               Qo&apos;shish

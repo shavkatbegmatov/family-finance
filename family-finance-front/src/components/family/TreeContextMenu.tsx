@@ -180,40 +180,46 @@ export function TreeContextMenu() {
 
       {isFamilyUnitMenu && (
         <>
-          {/* Edit family unit */}
-          {menuItem(
-            <Settings2 className="h-4 w-4 text-base-content/60" />,
-            'Nikoh ma\'lumotlari',
-            () =>
-              openModal({
-                type: 'editFamilyUnit',
-                familyUnitId: contextMenu.familyUnitId!,
-              })
-          )}
+          {/* Edit family unit — canUpdateFamily */}
+          {canUpdateFamily &&
+            menuItem(
+              <Settings2 className="h-4 w-4 text-base-content/60" />,
+              'Nikoh ma\'lumotlari',
+              () =>
+                openModal({
+                  type: 'editFamilyUnit',
+                  familyUnitId: contextMenu.familyUnitId!,
+                })
+            )}
 
-          {/* Add child to this family unit */}
-          {menuItem(
-            <Baby className="h-4 w-4 text-base-content/60" />,
-            "Farzand qo'shish",
-            () =>
-              openModal({
-                type: 'addChild',
-                familyUnitId: contextMenu.familyUnitId!,
-              })
-          )}
+          {/* Add child to this family unit — canCreateFamily */}
+          {canCreateFamily &&
+            menuItem(
+              <Baby className="h-4 w-4 text-base-content/60" />,
+              "Farzand qo'shish",
+              () =>
+                openModal({
+                  type: 'addChild',
+                  familyUnitId: contextMenu.familyUnitId!,
+                })
+            )}
 
-          <div className="my-1.5 border-t border-base-200" />
+          {/* Delete family unit — canDeleteFamily */}
+          {canDeleteFamily && (
+            <>
+              <div className="my-1.5 border-t border-base-200" />
 
-          {/* Delete family unit */}
-          {menuItem(
-            <Trash2 className="h-4 w-4" />,
-            "Nikohni o'chirish",
-            () =>
-              openModal({
-                type: 'deleteFamilyUnit',
-                familyUnitId: contextMenu.familyUnitId!,
-              }),
-            true
+              {menuItem(
+                <Trash2 className="h-4 w-4" />,
+                "Nikohni o'chirish",
+                () =>
+                  openModal({
+                    type: 'deleteFamilyUnit',
+                    familyUnitId: contextMenu.familyUnitId!,
+                  }),
+                true
+              )}
+            </>
           )}
         </>
       )}

@@ -61,7 +61,14 @@ export function EditFamilyUnitModal({
     onClose();
   };
 
+  // Ajrashgan sana nikoh sanasidan oldin bo'lishi mantiqan noto'g'ri
+  const dateError =
+    marriageDate && divorceDate && divorceDate < marriageDate
+      ? "Ajrashgan sana nikoh sanasidan oldin bo'la olmaydi"
+      : '';
+
   const handleSubmit = () => {
+    if (dateError) return;
     updateFamilyUnit.mutate(
       {
         id: familyUnitId,
@@ -133,6 +140,7 @@ export function EditFamilyUnitModal({
                 value={divorceDate}
                 onChange={setDivorceDate}
               />
+              {dateError && <p className="text-xs text-error">{dateError}</p>}
             </div>
           )}
 
@@ -144,7 +152,7 @@ export function EditFamilyUnitModal({
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting || loading}
+              disabled={isSubmitting || loading || !!dateError}
             >
               {isSubmitting && <span className="loading loading-spinner loading-sm" />}
               Saqlash
