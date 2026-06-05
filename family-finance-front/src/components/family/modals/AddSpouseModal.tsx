@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
-import { X, User, Users } from 'lucide-react';
+import { X } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
-import { TextInput } from '../../ui/TextInput';
-import { Select } from '../../ui/Select';
-import { PersonSelect } from '../../ui/PersonSelect';
-import { DateInput } from '../../ui/DateInput';
 import { useAddSpouse, useActivePersonsQuery } from '../../../hooks/useFamilyTreeQueries';
-import { MARRIAGE_TYPES, GENDERS } from '../../../config/constants';
-import type { MarriageType, Gender } from '../../../types';
+import { PersonPicker, emptyPersonDraft, isPersonDraftValid } from './shared/PersonPicker';
+import type { PersonDraft } from './shared/PersonPicker';
+import { MarriageFields } from './shared/MarriageFields';
+import type { MarriageType } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
 
 interface AddSpouseModalProps {
@@ -17,27 +15,13 @@ interface AddSpouseModalProps {
   onSuccess: () => void;
 }
 
-type ModalMode = 'new' | 'existing';
-
 export function AddSpouseModal({
   isOpen,
   personId,
   onClose,
   onSuccess,
 }: AddSpouseModalProps) {
-  const [mode, setMode] = useState<ModalMode>('new');
-
-  // Existing person selection
-  const [selectedPersonId, setSelectedPersonId] = useState<number | ''>('');
-
-  // New person form
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [middleName, setMiddleName] = useState('');
-  const [gender, setGender] = useState<Gender | ''>('');
-  const [birthDate, setBirthDate] = useState('');
-
-  // Marriage info
+  const [person, setPerson] = useState<PersonDraft>(emptyPersonDraft);
   const [marriageType, setMarriageType] = useState<MarriageType>('MARRIED');
   const [marriageDate, setMarriageDate] = useState('');
 
@@ -46,28 +30,10 @@ export function AddSpouseModal({
 
   const personOptions: SelectOption[] = activePersons
     .filter((p) => p.id !== personId)
-    .map((p) => ({
-      value: p.id,
-      label: p.fullName,
-    }));
-
-  const marriageTypeOptions: SelectOption[] = Object.entries(MARRIAGE_TYPES).map(
-    ([key, { label }]) => ({ value: key, label })
-  );
-
-  const genderOptions: SelectOption[] = [
-    { value: '', label: 'Tanlanmagan' },
-    ...Object.entries(GENDERS).map(([key, { label }]) => ({ value: key, label })),
-  ];
+    .map((p) => ({ value: p.id, label: p.fullName }));
 
   const resetForm = () => {
-    setMode('new');
-    setSelectedPersonId('');
-    setFirstName('');
-    setLastName('');
-    setMiddleName('');
-    setGender('');
-    setBirthDate('');
+    setPerson(emptyPersonDraft);
     setMarriageType('MARRIED');
     setMarriageDate('');
   };
@@ -81,24 +47,20 @@ export function AddSpouseModal({
     onClose();
   };
 
-  const canSubmit = () => {
-    if (mode === 'existing') return !!selectedPersonId;
-    return !!firstName.trim();
-  };
-
   const handleSubmit = async () => {
-    if (!canSubmit()) return;
+    if (!isPersonDraftValid(person)) return;
+    const isNew = person.mode === 'new';
     try {
       // Atomik: agar shaxsda turmush o'rtoqsiz (yagona ota-ona) nikoh bo'lsa,
       // backend turmush o'rtoqni o'sha nikohga qo'shadi (yangi nikoh yaratmaydi).
       await addSpouse.mutateAsync({
         personId,
-        spouseId: mode === 'existing' ? (selectedPersonId as number) : undefined,
-        spouseFirstName: mode === 'new' ? firstName.trim() : undefined,
-        spouseLastName: mode === 'new' ? (lastName.trim() || undefined) : undefined,
-        spouseMiddleName: mode === 'new' ? (middleName.trim() || undefined) : undefined,
-        spouseGender: mode === 'new' ? (gender || undefined) : undefined,
-        spouseBirthDate: mode === 'new' ? (birthDate || undefined) : undefined,
+        spouseId: isNew ? undefined : (person.personId as number),
+        spouseFirstName: isNew ? person.firstName.trim() : undefined,
+        spouseLastName: isNew ? (person.lastName.trim() || undefined) : undefined,
+        spouseMiddleName: isNew ? (person.middleName.trim() || undefined) : undefined,
+        spouseGender: isNew ? (person.gender || undefined) : undefined,
+        spouseBirthDate: isNew ? (person.birthDate || undefined) : undefined,
         marriageType,
         marriageDate: marriageDate || undefined,
       });
@@ -128,89 +90,15 @@ export function AddSpouseModal({
             </button>
           </div>
 
-          {/* Mode tabs */}
-          <div className="flex gap-1 bg-base-200 rounded-lg p-1 mt-4">
-            <button
-              className={`btn btn-sm flex-1 gap-1 ${mode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setMode('new')}
-            >
-              <User className="h-4 w-4" />
-              Yangi shaxs
-            </button>
-            <button
-              className={`btn btn-sm flex-1 gap-1 ${mode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setMode('existing')}
-            >
-              <Users className="h-4 w-4" />
-              Mavjud shaxs
-            </button>
-          </div>
-
           <div className="mt-4 space-y-4">
-            {mode === 'new' ? (
-              <>
-                <TextInput
-                  label="Ism"
-                  required
-                  value={firstName}
-                  onChange={setFirstName}
-                  placeholder="Ism"
-                  leadingIcon={<User className="h-5 w-5" />}
-                />
-                <TextInput
-                  label="Familiya"
-                  value={lastName}
-                  onChange={setLastName}
-                  placeholder="Familiya"
-                />
-                <TextInput
-                  label="Otasining ismi"
-                  value={middleName}
-                  onChange={setMiddleName}
-                  placeholder="Otasining ismi"
-                />
-                <Select
-                  label="Jinsi"
-                  value={gender || undefined}
-                  onChange={(val) => setGender(val as Gender)}
-                  options={genderOptions}
-                  placeholder="Tanlang..."
-                />
-                <DateInput
-                  label="Tug'ilgan sana"
-                  value={birthDate}
-                  onChange={setBirthDate}
-                  max={new Date().toISOString().slice(0, 10)}
-                />
-              </>
-            ) : (
-              <PersonSelect
-                label="Shaxsni tanlang"
-                required
-                value={selectedPersonId || undefined}
-                onChange={(val: string | number | undefined) =>
-                  setSelectedPersonId(typeof val === 'number' ? val : Number(val) || '')
-                }
-                options={personOptions}
-                placeholder="Shaxsni qidiring..."
-              />
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Select
-                label="Nikoh turi"
-                required
-                value={marriageType}
-                onChange={(val) => setMarriageType(val as MarriageType)}
-                options={marriageTypeOptions}
-              />
-
-              <DateInput
-                label="Nikoh sanasi"
-                value={marriageDate}
-                onChange={setMarriageDate}
-              />
-            </div>
+            <PersonPicker value={person} onChange={setPerson} personOptions={personOptions} />
+            <MarriageFields
+              marriageType={marriageType}
+              onMarriageTypeChange={setMarriageType}
+              marriageDate={marriageDate}
+              onMarriageDateChange={setMarriageDate}
+              inline
+            />
           </div>
 
           {/* Actions */}
@@ -221,7 +109,7 @@ export function AddSpouseModal({
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting || !canSubmit()}
+              disabled={isSubmitting || !isPersonDraftValid(person)}
             >
               {isSubmitting && <span className="loading loading-spinner loading-sm" />}
               Qo&apos;shish

@@ -8,6 +8,28 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.2',
+        date: '2026-06-05 02:25',
+        title: "Oila daraxti oynalari va xatoliklari izchilligi",
+        features: [],
+        fixes: [
+            "Oila daraxti amallarida (tahrirlash, o'chirish, partner qo'shish) xatolik yuz bersa, endi aniq sabab ko'rsatiladi — ilgari ba'zi amallarda umumiy \"xatolik\" xabari chiqardi.",
+            "Turmush o'rtoq, farzand va ota-ona qo'shish oynalaridagi \"yangi yoki mavjud shaxs\" tanlash yagona, izchil ko'rinishga keltirildi.",
+            "Nikoh ma'lumotlarini tahrirlashda ajrashgan sana nikoh sanasidan oldin bo'lsa, ogohlantirish chiqadi.",
+        ],
+    },
+    {
+        version: '1.6.1',
+        date: '2026-06-05 00:30',
+        title: "Ota-ona qo'shish va o'chirish barqarorligi yaxshilandi",
+        features: [],
+        fixes: [
+            "Shajara daraxtida farzandning ota-onasini o'chirgandan so'ng, o'sha farzandga qaytadan ota-ona qo'shish endi ishlaydi — ilgari \"Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan\" xatosi chiqib, qayta kiritishga to'sqinlik qilardi.",
+            "Ota-onadan faqat bittasi o'chirilgan bo'lsa (masalan ota), \"Ota-ona qo'shish\" oynasi endi tirik qolgan ota yoki onani avtomatik ko'rsatadi va faqat yetishmayotganini so'raydi — u o'sha mavjud nikohga qo'shiladi, yangi nikoh yaratilmaydi.",
+            "Oila a'zosi o'chirilganda uning nikoh va farzandlik bog'lanishlari to'g'ri tozalanadi — ortda yetim (ko'rinmas) bog'lanish qolmaydi, shu sababli shajara daraxti va keyingi amallar izchil ishlaydi.",
+        ],
+    },
+    {
         version: '1.6.0',
         date: '2026-06-04 12:30',
         title: "Yangi mobil dizayn va rebrend",
