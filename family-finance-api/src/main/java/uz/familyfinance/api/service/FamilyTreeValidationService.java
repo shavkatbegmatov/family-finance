@@ -7,6 +7,8 @@ import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.FamilyPartner;
 import uz.familyfinance.api.entity.FamilyUnit;
 import uz.familyfinance.api.enums.LineageType;
+import uz.familyfinance.api.exception.BadRequestException;
+import uz.familyfinance.api.exception.ConflictException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyChildRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
@@ -18,6 +20,9 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class FamilyTreeValidationService {
+
+    /** Bir oila birligida (nikohda) maksimal partner soni. Oila amallari bo'ylab yagona manba. */
+    public static final int MAX_PARTNERS_PER_UNIT = 2;
 
     private final FamilyUnitRepository familyUnitRepository;
     private final FamilyPartnerRepository familyPartnerRepository;
@@ -45,7 +50,7 @@ public class FamilyTreeValidationService {
 
         for (Long parentId : parentIds) {
             if (descendants.contains(parentId)) {
-                throw new IllegalArgumentException(
+                throw new BadRequestException(
                         "Tsiklik munosabat: shaxs o'z ajdodiga farzand sifatida qo'shilmoqda");
             }
         }
@@ -61,7 +66,7 @@ public class FamilyTreeValidationService {
                 Set<Long> childAncestors = new HashSet<>();
                 collectAncestors(parentId, childAncestors);
                 if (childAncestors.contains(childPersonId)) {
-                    throw new IllegalArgumentException(
+                    throw new BadRequestException(
                             "Tsiklik munosabat: shaxs o'z avlodining ota-onasiga farzand sifatida qo'shilmoqda");
                 }
             }
@@ -97,12 +102,22 @@ public class FamilyTreeValidationService {
     }
 
     /**
+     * Ikki shaxsni partner sifatida bog'lash mumkinligini bir joyda tekshiradi:
+     * o'zi bilan emas va ular orasida allaqachon nikoh yo'q. DRY — barcha partner
+     * qo'shish amallari (createFamilyUnit, addParents, addSpouse, addPartner) shuni chaqiradi.
+     */
+    public void validatePartnerPair(Long person1Id, Long person2Id) {
+        validateNotSelfPartnership(person1Id, person2Id);
+        validateDuplicateMarriage(person1Id, person2Id);
+    }
+
+    /**
      * Ikki shaxs orasida allaqachon nikoh (FamilyUnit) mavjudligini tekshirish
      */
     public void validateDuplicateMarriage(Long person1Id, Long person2Id) {
         List<FamilyUnit> existing = familyUnitRepository.findByPartnerPair(person1Id, person2Id);
         if (!existing.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new ConflictException(
                     "Bu ikki shaxs orasida allaqachon nikoh mavjud (oila birligi #" + existing.get(0).getId() + ")");
         }
     }
@@ -112,31 +127,62 @@ public class FamilyTreeValidationService {
      */
     public void validateNotSelfPartnership(Long person1Id, Long person2Id) {
         if (person1Id.equals(person2Id)) {
-            throw new IllegalArgumentException("Shaxs o'zi bilan nikoh qila olmaydi");
+            throw new BadRequestException("Shaxs o'zi bilan nikoh qila olmaydi");
         }
     }
 
     /**
-     * Bir FamilyUnit da max 2 ta partner
+     * Bir FamilyUnit da {@link #MAX_PARTNERS_PER_UNIT} tadan ortiq partner bo'lmasligi
      */
     public void validateMaxPartners(Long familyUnitId) {
         long count = familyPartnerRepository.countByFamilyUnitId(familyUnitId);
-        if (count >= 2) {
-            throw new IllegalArgumentException("Oila birligida 2 dan ortiq partner bo'la olmaydi");
+        if (count >= MAX_PARTNERS_PER_UNIT) {
+            throw new BadRequestException(
+                    "Oila birligida " + MAX_PARTNERS_PER_UNIT + " tadan ortiq partner bo'la olmaydi");
         }
     }
 
     /**
-     * Bitta farzandning faqat bitta biologik ota-onalar juftligi bo'lishi mumkin
+     * Bitta farzandning faqat bitta biologik ota-onalar juftligi bo'lishi mumkin.
+     * Agar mavjud bog'lanishning oilasida tirik ota-ona qolmagan bo'lsa (ota-onalar
+     * o'chirilgan), bu "yetim" bog'lanish tozalanadi va yangi ota-ona qo'shishga ruxsat beriladi —
+     * shu tufayli ota-onani o'chirib qayta kiritish mumkin bo'ladi.
      */
     public void validateBiologicalParentUnique(Long personId, LineageType lineageType) {
         if (lineageType != LineageType.BIOLOGICAL) return;
 
         familyChildRepository.findByPersonIdAndLineageType(personId, LineageType.BIOLOGICAL)
                 .ifPresent(existing -> {
-                    throw new IllegalArgumentException(
-                            "Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan");
+                    if (hasLivingParent(existing.getFamilyUnit())) {
+                        throw new ConflictException(
+                                "Bu shaxs allaqachon biologik farzand sifatida boshqa oila birligiga biriktirilgan");
+                    }
+                    pruneOrphanedChildLink(existing);
                 });
+    }
+
+    /** Oila birligida kamida bitta tirik (o'chirilmagan) ota-ona partner bor-yo'qligi. */
+    private boolean hasLivingParent(FamilyUnit unit) {
+        return familyPartnerRepository.findByFamilyUnitId(unit.getId()).stream()
+                .map(FamilyPartner::getPerson)
+                .anyMatch(person -> person != null && !Boolean.FALSE.equals(person.getIsActive()));
+    }
+
+    /**
+     * Ota-onalari o'chirilgan yetim farzand bog'lanishini uzadi. Agar oila birligida
+     * boshqa farzand ham, tirik partner ham qolmasa — bo'sh nikoh birligi cascade orqali
+     * (partner va farzand bog'lanishlari bilan) butunlay o'chiriladi.
+     */
+    private void pruneOrphanedChildLink(FamilyChild orphan) {
+        FamilyUnit unit = orphan.getFamilyUnit();
+        boolean hasOtherChildren = familyChildRepository.findByFamilyUnitId(unit.getId()).stream()
+                .anyMatch(child -> !child.getId().equals(orphan.getId()));
+
+        if (hasOtherChildren || hasLivingParent(unit)) {
+            familyChildRepository.delete(orphan);
+        } else {
+            familyUnitRepository.delete(unit);
+        }
     }
 
     /**

@@ -18,13 +18,17 @@ import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.enums.LineageType;
 import uz.familyfinance.api.enums.MarriageType;
 import uz.familyfinance.api.enums.PartnerRole;
+import uz.familyfinance.api.exception.BadRequestException;
+import uz.familyfinance.api.exception.ConflictException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.*;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,8 +47,7 @@ public class FamilyUnitService {
     @Transactional
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
         if (request.getPartner2Id() != null) {
-            validationService.validateNotSelfPartnership(request.getPartner1Id(), request.getPartner2Id());
-            validationService.validateDuplicateMarriage(request.getPartner1Id(), request.getPartner2Id());
+            validationService.validatePartnerPair(request.getPartner1Id(), request.getPartner2Id());
         }
 
         FamilyMember partner1 = findMember(request.getPartner1Id());
@@ -52,30 +55,16 @@ public class FamilyUnitService {
         // Har bir yangi oila o'zining alohida xonadoniga (displayCode) ega bo'ladi
         Scope household = createHouseholdForUnit(partner1.getFullName());
 
-        FamilyUnit unit = FamilyUnit.builder()
+        FamilyUnit saved = familyUnitRepository.save(FamilyUnit.builder()
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
                 .scope(household)
-                .build();
+                .build());
 
-        FamilyUnit saved = familyUnitRepository.save(unit);
-
-        FamilyPartner fp1 = FamilyPartner.builder()
-                .familyUnit(saved)
-                .person(partner1)
-                .role(PartnerRole.PARTNER1)
-                .build();
-        familyPartnerRepository.save(fp1);
-
+        attachPartner(saved, partner1);
         if (request.getPartner2Id() != null) {
-            FamilyMember partner2 = findMember(request.getPartner2Id());
-            FamilyPartner fp2 = FamilyPartner.builder()
-                    .familyUnit(saved)
-                    .person(partner2)
-                    .role(PartnerRole.PARTNER2)
-                    .build();
-            familyPartnerRepository.save(fp2);
+            attachPartner(saved, findMember(request.getPartner2Id()));
         }
 
         return getById(saved.getId());
@@ -90,7 +79,15 @@ public class FamilyUnitService {
     public FamilyUnitResponse addParents(AddParentsRequest request) {
         FamilyMember child = findMember(request.getChildPersonId());
 
-        // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin)
+        // Farzandda allaqachon biologik nikoh bo'lsa va unda kamida bitta TIRIK ota-ona qolgan
+        // bo'lsa (bittasi o'chirilib, ikkinchisi tirik), yangi nikoh yaratmaymiz —
+        // yetishmayotgan ota-onani o'sha mavjud nikohga qo'shamiz.
+        Optional<FamilyUnit> reusable = findReusableBiologicalUnit(child.getId());
+        if (reusable.isPresent()) {
+            return attachMissingParents(reusable.get(), request);
+        }
+
+        // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin). Yetim bog'lanish bo'lsa tozalanadi.
         validationService.validateBiologicalParentUnique(child.getId(), LineageType.BIOLOGICAL);
 
         // Ota-onaning oilasi uchun alohida xonadon (yangi yaratiladigan ota-ona ham shu xonadonga tegishli)
@@ -101,23 +98,19 @@ public class FamilyUnitService {
         FamilyMember mother = resolveOrCreateParent(request.getMotherId(), request.getMotherFirstName(),
                 Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate(), household);
 
-        validationService.validateNotSelfPartnership(father.getId(), mother.getId());
-        validationService.validateDuplicateMarriage(father.getId(), mother.getId());
+        validationService.validatePartnerPair(father.getId(), mother.getId());
 
-        FamilyUnit unit = FamilyUnit.builder()
+        FamilyUnit saved = familyUnitRepository.save(FamilyUnit.builder()
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
                 .scope(household)
-                .build();
-        FamilyUnit saved = familyUnitRepository.save(unit);
+                .build());
 
-        familyPartnerRepository.save(FamilyPartner.builder()
-                .familyUnit(saved).person(father).role(PartnerRole.PARTNER1).build());
-        familyPartnerRepository.save(FamilyPartner.builder()
-                .familyUnit(saved).person(mother).role(PartnerRole.PARTNER2).build());
+        attachPartner(saved, father);
+        attachPartner(saved, mother);
 
-        // Farzandni biriktirish — addChild logikasi (validatsiyalar bilan) qayta ishlatiladi
+        // Farzandni biriktirish — addChild logikasi (cycle/duplikat/biologik validatsiyalar bilan) qayta ishlatiladi
         AddChildRequest childReq = new AddChildRequest();
         childReq.setPersonId(child.getId());
         childReq.setLineageType(LineageType.BIOLOGICAL);
@@ -137,6 +130,135 @@ public class FamilyUnitService {
                 .scope(household)
                 .build();
         return familyMemberRepository.save(parent);
+    }
+
+    /**
+     * Farzandning biologik nikohi — agar mavjud bo'lsa va unda kamida bitta TIRIK ota-ona
+     * qolgan bo'lsa (ya'ni ota-onadan biri o'chirilib, ikkinchisi tirik). Bunday nikoh
+     * yangidan yaratilmasdan, yetishmayotgan ota-ona unga qo'shiladi.
+     */
+    private Optional<FamilyUnit> findReusableBiologicalUnit(Long childId) {
+        return familyChildRepository.findByPersonIdAndLineageType(childId, LineageType.BIOLOGICAL)
+                .map(FamilyChild::getFamilyUnit)
+                .filter(unit -> familyPartnerRepository.findByFamilyUnitId(unit.getId()).stream()
+                        .anyMatch(this::isLivingPartner));
+    }
+
+    private boolean isLivingPartner(FamilyPartner partner) {
+        FamilyMember person = partner.getPerson();
+        return person != null && !Boolean.FALSE.equals(person.getIsActive());
+    }
+
+    /**
+     * Mavjud nikohga yetishmayotgan ota-onani qo'shadi. Avval o'chirilgan ota-onaning
+     * yetim partner bog'lanishi tozalanadi (joy bo'shaydi), so'ng modal yuborgan ota/ona
+     * (allaqachon partner bo'lmaganlari) qo'shiladi. Farzand allaqachon shu nikohda bo'lgani
+     * uchun qayta bog'lanmaydi.
+     */
+    private FamilyUnitResponse attachMissingParents(FamilyUnit unit, AddParentsRequest request) {
+        familyPartnerRepository.findByFamilyUnitId(unit.getId()).stream()
+                .filter(partner -> !isLivingPartner(partner))
+                .forEach(familyPartnerRepository::delete);
+
+        attachParentIfAbsent(unit, request.getFatherId(), request.getFatherFirstName(),
+                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate());
+        attachParentIfAbsent(unit, request.getMotherId(), request.getMotherFirstName(),
+                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate());
+
+        if (request.getMarriageType() != null) {
+            unit.setMarriageType(request.getMarriageType());
+        }
+        if (request.getMarriageDate() != null) {
+            unit.setMarriageDate(request.getMarriageDate());
+        }
+        familyUnitRepository.save(unit);
+        return getById(unit.getId());
+    }
+
+    /** Yetishmayotgan ota yoki onani nikohga partner sifatida qo'shadi (allaqachon bor bo'lsa o'tkazib yuboradi). */
+    private void attachParentIfAbsent(FamilyUnit unit, Long existingId, String firstName,
+                                      Gender gender, FamilyRole role, LocalDate birthDate) {
+        boolean hasInput = existingId != null || (firstName != null && !firstName.isBlank());
+        if (!hasInput) {
+            return;
+        }
+        if (existingId != null
+                && familyPartnerRepository.findByFamilyUnitIdAndPersonId(unit.getId(), existingId).isPresent()) {
+            return;
+        }
+        // Joy qolmagan bo'lsa jim o'tkazib yuboramiz (yetishmayotganini qo'shish — best-effort)
+        if (familyPartnerRepository.countByFamilyUnitId(unit.getId()) >= FamilyTreeValidationService.MAX_PARTNERS_PER_UNIT) {
+            return;
+        }
+        FamilyMember parent = resolveOrCreateParent(existingId, firstName, gender, role, birthDate, unit.getScope());
+        attachPartner(unit, parent);
+    }
+
+    /**
+     * Shaxsni oila birligiga partner sifatida qo'shadi — rol (PARTNER1/PARTNER2) bo'sh o'ringa
+     * qarab avtomatik tanlanadi, birlik to'lgan bo'lsa xato beradi. DRY — barcha partner qo'shish
+     * amallari (createFamilyUnit, addParents, addSpouse, addPartner) shu yagona yo'ldan o'tadi.
+     */
+    private FamilyPartner attachPartner(FamilyUnit unit, FamilyMember person) {
+        long count = familyPartnerRepository.countByFamilyUnitId(unit.getId());
+        if (count >= FamilyTreeValidationService.MAX_PARTNERS_PER_UNIT) {
+            throw new BadRequestException("Oila birligida "
+                    + FamilyTreeValidationService.MAX_PARTNERS_PER_UNIT + " tadan ortiq partner bo'la olmaydi");
+        }
+        PartnerRole role = count == 0 ? PartnerRole.PARTNER1 : PartnerRole.PARTNER2;
+        return familyPartnerRepository.save(FamilyPartner.builder()
+                .familyUnit(unit).person(person).role(role).build());
+    }
+
+    /** Shaxs allaqachon shu oila birligida partner bo'lsa konflikt xatosi beradi. */
+    private void ensureNotAlreadyPartner(Long familyUnitId, Long personId) {
+        familyPartnerRepository.findByFamilyUnitIdAndPersonId(familyUnitId, personId)
+                .ifPresent(existing -> {
+                    throw new ConflictException("Bu shaxs allaqachon oila birligida partner");
+                });
+    }
+
+    /** Shaxs allaqachon shu oila birligida farzand bo'lsa konflikt xatosi beradi. */
+    private void ensureNotAlreadyChild(Long familyUnitId, Long personId) {
+        familyChildRepository.findByFamilyUnitIdAndPersonId(familyUnitId, personId)
+                .ifPresent(existing -> {
+                    throw new ConflictException("Bu shaxs allaqachon oila birligida farzand");
+                });
+    }
+
+    /**
+     * Oila a'zosini genealogik bog'lanishlardan butunlay uzadi — a'zo o'chirilganda (soft-delete)
+     * {@link FamilyMemberService#delete} tomonidan chaqiriladi. A'zoning barcha partner va farzand
+     * bog'lanishlari o'chiriladi; so'ng tirik partner ham, farzand ham qolmagan oila birliklari
+     * cascade bilan o'chadi. Shu tufayli yetim (ota-onasiz) bog'lanishlar umuman qolmaydi.
+     */
+    @Transactional
+    public void detachMemberFromGenealogy(Long memberId) {
+        Set<Long> affectedUnitIds = new LinkedHashSet<>();
+
+        List<FamilyChild> childLinks = familyChildRepository.findByPersonId(memberId);
+        childLinks.forEach(link -> affectedUnitIds.add(link.getFamilyUnit().getId()));
+        familyChildRepository.deleteAll(childLinks);
+
+        List<FamilyPartner> partnerLinks = familyPartnerRepository.findByPersonId(memberId);
+        partnerLinks.forEach(link -> affectedUnitIds.add(link.getFamilyUnit().getId()));
+        familyPartnerRepository.deleteAll(partnerLinks);
+
+        // O'chirilgan bog'lanishlar quyidagi bo'shliq tekshiruvida ko'rinmasligi uchun darhol flush
+        familyChildRepository.flush();
+        familyPartnerRepository.flush();
+
+        affectedUnitIds.forEach(this::deleteUnitIfEmpty);
+    }
+
+    /** Oila birligida tirik partner ham, farzand ham qolmagan bo'lsa — uni (cascade bilan) o'chiradi. */
+    private void deleteUnitIfEmpty(Long unitId) {
+        boolean hasLivingPartner = familyPartnerRepository.findByFamilyUnitId(unitId).stream()
+                .anyMatch(this::isLivingPartner);
+        boolean hasChild = !familyChildRepository.findByFamilyUnitId(unitId).isEmpty();
+        if (!hasLivingPartner && !hasChild) {
+            familyUnitRepository.findById(unitId).ifPresent(familyUnitRepository::delete);
+        }
     }
 
     /**
@@ -181,8 +303,7 @@ public class FamilyUnitService {
                     .build());
         }
 
-        validationService.validateNotSelfPartnership(person.getId(), spouse.getId());
-        validationService.validateDuplicateMarriage(person.getId(), spouse.getId());
+        validationService.validatePartnerPair(person.getId(), spouse.getId());
 
         if (singleUnit.isPresent()) {
             FamilyUnit unit = singleUnit.get();
@@ -193,8 +314,7 @@ public class FamilyUnitService {
                 unit.setMarriageDate(request.getMarriageDate());
             }
             familyUnitRepository.save(unit);
-            familyPartnerRepository.save(FamilyPartner.builder()
-                    .familyUnit(unit).person(spouse).role(PartnerRole.PARTNER2).build());
+            attachPartner(unit, spouse);
             return getById(unit.getId());
         }
 
@@ -251,28 +371,14 @@ public class FamilyUnitService {
                 .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + familyUnitId));
         FamilyMember person = findMember(request.getPersonId());
 
-        // Allaqachon bu unit da partner emasligini tekshirish
-        familyPartnerRepository.findByFamilyUnitIdAndPersonId(familyUnitId, request.getPersonId())
-                .ifPresent(existing -> {
-                    throw new IllegalArgumentException("Bu shaxs allaqachon oila birligida partner");
-                });
+        ensureNotAlreadyPartner(familyUnitId, request.getPersonId());
 
-        // Mavjud partnerlar bilan dublikat nikoh tekshirish
+        // Mavjud har bir partner bilan o'zi-bilan/dublikat nikoh tekshiruvi
         for (FamilyPartner existingPartner : unit.getPartners()) {
-            validationService.validateNotSelfPartnership(existingPartner.getPerson().getId(), request.getPersonId());
-            validationService.validateDuplicateMarriage(existingPartner.getPerson().getId(), request.getPersonId());
+            validationService.validatePartnerPair(existingPartner.getPerson().getId(), request.getPersonId());
         }
 
-        long count = familyPartnerRepository.countByFamilyUnitId(familyUnitId);
-        PartnerRole role = count == 0 ? PartnerRole.PARTNER1 : PartnerRole.PARTNER2;
-
-        FamilyPartner partner = FamilyPartner.builder()
-                .familyUnit(unit)
-                .person(person)
-                .role(role)
-                .build();
-
-        familyPartnerRepository.save(partner);
+        attachPartner(unit, person);
         return getById(familyUnitId);
     }
 
@@ -292,11 +398,7 @@ public class FamilyUnitService {
                 .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + familyUnitId));
         FamilyMember person = findMember(request.getPersonId());
 
-        // Allaqachon bu unit da farzand emasligini tekshirish
-        familyChildRepository.findByFamilyUnitIdAndPersonId(familyUnitId, request.getPersonId())
-                .ifPresent(existing -> {
-                    throw new IllegalArgumentException("Bu shaxs allaqachon oila birligida farzand");
-                });
+        ensureNotAlreadyChild(familyUnitId, request.getPersonId());
 
         validationService.validateChildBirthDate(familyUnitId, request.getPersonId());
 

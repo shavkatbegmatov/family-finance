@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { X, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { X, User, CheckCircle2 } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { TextInput } from '../../ui/TextInput';
 import { Select } from '../../ui/Select';
@@ -8,9 +8,10 @@ import { DateInput } from '../../ui/DateInput';
 import {
   useActivePersonsQuery,
   useAddParents,
+  useFamilyUnitsByPersonQuery,
 } from '../../../hooks/useFamilyTreeQueries';
 import { MARRIAGE_TYPES } from '../../../config/constants';
-import type { MarriageType } from '../../../types';
+import type { MarriageType, PartnerDto } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
 
 interface AddParentsModalProps {
@@ -38,6 +39,11 @@ export function AddParentsModal({
   const [motherName, setMotherName] = useState('');
   const [motherBirthDate, setMotherBirthDate] = useState('');
 
+  // Farzandda allaqachon mavjud (tirik) ota/ona — bo'lsa, o'sha rol qulflanadi va
+  // foydalanuvchi faqat yetishmayotgan ota-onani kiritadi.
+  const [existingFather, setExistingFather] = useState<PartnerDto | null>(null);
+  const [existingMother, setExistingMother] = useState<PartnerDto | null>(null);
+
   // Marriage
   const [marriageType, setMarriageType] = useState<MarriageType>('MARRIED');
   const [marriageDate, setMarriageDate] = useState('');
@@ -45,7 +51,9 @@ export function AddParentsModal({
   const [submitting, setSubmitting] = useState(false);
 
   const { data: activePersons = [] } = useActivePersonsQuery();
+  const { data: childUnits = [] } = useFamilyUnitsByPersonQuery(personId);
   const addParents = useAddParents();
+  const prefilled = useRef(false);
 
   const personOptions: SelectOption[] = activePersons
     .filter((p) => p.id !== personId)
@@ -64,13 +72,45 @@ export function AddParentsModal({
     setMotherId('');
     setMotherName('');
     setMotherBirthDate('');
+    setExistingFather(null);
+    setExistingMother(null);
     setMarriageType('MARRIED');
     setMarriageDate('');
   };
 
   useEffect(() => {
-    if (isOpen) resetForm();
+    if (isOpen) {
+      resetForm();
+      prefilled.current = false;
+    }
   }, [isOpen]);
+
+  // Farzandning biologik nikohida tirik ota yoki ona qolgan bo'lsa (bittasi o'chirilib,
+  // ikkinchisi qolgan), o'sha rolni avtomatik to'ldiramiz va qulflaymiz.
+  useEffect(() => {
+    if (!isOpen || prefilled.current || childUnits.length === 0) return;
+
+    const bioUnit = childUnits.find((u) =>
+      u.children.some(
+        (c) => c.personId === personId && c.lineageType === 'BIOLOGICAL'
+      )
+    );
+    prefilled.current = true;
+    if (!bioUnit) return;
+
+    const father = bioUnit.partners.find((p) => p.gender === 'MALE');
+    const mother = bioUnit.partners.find((p) => p.gender === 'FEMALE');
+    if (father) {
+      setExistingFather(father);
+      setFatherMode('existing');
+      setFatherId(father.personId);
+    }
+    if (mother) {
+      setExistingMother(mother);
+      setMotherMode('existing');
+      setMotherId(mother.personId);
+    }
+  }, [isOpen, childUnits, personId]);
 
   const handleClose = () => {
     resetForm();
@@ -79,9 +119,11 @@ export function AddParentsModal({
 
   const canSubmit = () => {
     const hasFather =
-      fatherMode === 'existing' ? !!fatherId : !!fatherName.trim();
+      existingFather !== null ||
+      (fatherMode === 'existing' ? !!fatherId : !!fatherName.trim());
     const hasMother =
-      motherMode === 'existing' ? !!motherId : !!motherName.trim();
+      existingMother !== null ||
+      (motherMode === 'existing' ? !!motherId : !!motherName.trim());
     return hasFather && hasMother;
   };
 
@@ -91,7 +133,8 @@ export function AddParentsModal({
 
     try {
       // Atomik: ota, ona, nikoh va farzand bog'lanishi bitta so'rovda yaratiladi.
-      // Xato bo'lsa (masalan farzand allaqachon biologik ota-onaga ega) — hech narsa qolmaydi.
+      // Farzandda allaqachon bitta tirik ota-ona bo'lsa, backend yangi nikoh yaratmasdan
+      // yetishmayotgan ota-onani o'sha nikohga qo'shadi (mavjud ota/ona o'tkazib yuboriladi).
       await addParents.mutateAsync({
         childPersonId: personId,
         fatherId: fatherMode === 'existing' ? (fatherId as number) : undefined,
@@ -113,6 +156,8 @@ export function AddParentsModal({
     }
   };
 
+  const hasExistingParent = existingFather !== null || existingMother !== null;
+
   return (
     <ModalPortal isOpen={isOpen} onClose={handleClose}>
       <div className="w-full max-w-lg bg-base-100 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -122,7 +167,9 @@ export function AddParentsModal({
             <div>
               <h3 className="text-xl font-semibold">Ota-ona qo&apos;shish</h3>
               <p className="text-sm text-base-content/60 mt-1">
-                Ota va ona ma&apos;lumotlarini kiriting
+                {hasExistingParent
+                  ? 'Yetishmayotgan ota-onani kiriting'
+                  : "Ota va ona ma'lumotlarini kiriting"}
               </p>
             </div>
             <button className="btn btn-ghost btn-sm btn-square" onClick={handleClose}>
@@ -130,27 +177,38 @@ export function AddParentsModal({
             </button>
           </div>
 
+          {hasExistingParent && (
+            <div className="mt-3 text-xs text-base-content/60 bg-base-200/50 rounded-lg px-3 py-2">
+              Bu farzandda bir ota-ona allaqachon mavjud. Faqat yetishmayotganini
+              kiriting — u o&apos;sha nikohga qo&apos;shiladi.
+            </div>
+          )}
+
           <div className="mt-4 space-y-4">
             {/* Father */}
             <div className="p-3 rounded-lg border border-base-300">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-blue-500">Ota</span>
-                <div className="flex gap-1">
-                  <button
-                    className={`btn btn-xs ${fatherMode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setFatherMode('new')}
-                  >
-                    Yangi
-                  </button>
-                  <button
-                    className={`btn btn-xs ${fatherMode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setFatherMode('existing')}
-                  >
-                    Mavjud
-                  </button>
-                </div>
+                {!existingFather && (
+                  <div className="flex gap-1">
+                    <button
+                      className={`btn btn-xs ${fatherMode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setFatherMode('new')}
+                    >
+                      Yangi
+                    </button>
+                    <button
+                      className={`btn btn-xs ${fatherMode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setFatherMode('existing')}
+                    >
+                      Mavjud
+                    </button>
+                  </div>
+                )}
               </div>
-              {fatherMode === 'existing' ? (
+              {existingFather ? (
+                <ExistingParentCard name={existingFather.fullName} />
+              ) : fatherMode === 'existing' ? (
                 <PersonSelect
                   label="Shaxsni tanlang"
                   required
@@ -185,22 +243,26 @@ export function AddParentsModal({
             <div className="p-3 rounded-lg border border-base-300">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-pink-500">Ona</span>
-                <div className="flex gap-1">
-                  <button
-                    className={`btn btn-xs ${motherMode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setMotherMode('new')}
-                  >
-                    Yangi
-                  </button>
-                  <button
-                    className={`btn btn-xs ${motherMode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
-                    onClick={() => setMotherMode('existing')}
-                  >
-                    Mavjud
-                  </button>
-                </div>
+                {!existingMother && (
+                  <div className="flex gap-1">
+                    <button
+                      className={`btn btn-xs ${motherMode === 'new' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setMotherMode('new')}
+                    >
+                      Yangi
+                    </button>
+                    <button
+                      className={`btn btn-xs ${motherMode === 'existing' ? 'btn-primary' : 'btn-ghost'}`}
+                      onClick={() => setMotherMode('existing')}
+                    >
+                      Mavjud
+                    </button>
+                  </div>
+                )}
               </div>
-              {motherMode === 'existing' ? (
+              {existingMother ? (
+                <ExistingParentCard name={existingMother.fullName} />
+              ) : motherMode === 'existing' ? (
                 <PersonSelect
                   label="Shaxsni tanlang"
                   required
@@ -263,5 +325,19 @@ export function AddParentsModal({
         </div>
       </div>
     </ModalPortal>
+  );
+}
+
+/** Farzandda allaqachon mavjud (tirik) ota yoki ona — qulflangan, o'zgartirib bo'lmaydi. */
+function ExistingParentCard({ name }: { name: string }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-base-200/60 border border-base-300">
+      <User className="h-5 w-5 text-base-content/50" />
+      <span className="text-sm font-medium">{name}</span>
+      <span className="ml-auto flex items-center gap-1 text-xs text-success">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Mavjud
+      </span>
+    </div>
   );
 }
