@@ -173,11 +173,14 @@ export function ActivityHistoryTab() {
               setCurrentPage(0);
             }}
             options={[
-              { value: 'Product', label: 'Mahsulotlar' },
-              { value: 'Sale', label: 'Sotuvlar' },
-              { value: 'Customer', label: 'Mijozlar' },
-              { value: 'PurchaseOrder', label: 'Xaridlar' },
-              { value: 'Payment', label: "To'lovlar" },
+              { value: 'Transaction', label: 'Tranzaksiyalar' },
+              { value: 'Account', label: 'Hisoblar' },
+              { value: 'Budget', label: 'Byudjet' },
+              { value: 'Debt', label: 'Qarzlar' },
+              { value: 'SavingsGoal', label: "Jamg'armalar" },
+              { value: 'Category', label: 'Kategoriyalar' },
+              { value: 'Card', label: 'Kartalar' },
+              { value: 'FamilyMember', label: "Oila a'zolari" },
               { value: 'User', label: 'Foydalanuvchilar' },
             ]}
           />
