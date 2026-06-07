@@ -164,25 +164,15 @@ export function LoginPage() {
 
           {/* Demo kirish — bosib to'ldirish */}
           <div className="mt-5 rounded-2xl border border-base-200 bg-base-200/40 p-3.5">
-            <p className="mb-2 text-xs font-semibold text-base-content/70">Demo hisoblar (bosing)</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillDemo('admin', 'admin123')}
-                className="tap-sm rounded-xl border border-base-200 bg-base-100 px-3 py-2 text-left"
-              >
-                <span className="block text-xs font-semibold">Administrator</span>
-                <span className="block text-[11px] text-base-content/50">admin / admin123</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('seller', 'seller123')}
-                className="tap-sm rounded-xl border border-base-200 bg-base-100 px-3 py-2 text-left"
-              >
-                <span className="block text-xs font-semibold">Sotuvchi</span>
-                <span className="block text-[11px] text-base-content/50">seller / seller123</span>
-              </button>
-            </div>
+            <p className="mb-2 text-xs font-semibold text-base-content/70">Demo hisob (bosing)</p>
+            <button
+              type="button"
+              onClick={() => fillDemo('admin', 'admin123')}
+              className="tap-sm block w-full rounded-xl border border-base-200 bg-base-100 px-3 py-2 text-left"
+            >
+              <span className="block text-xs font-semibold">Administrator</span>
+              <span className="block text-[11px] text-base-content/50">admin / admin123</span>
+            </button>
           </div>
         </div>
 

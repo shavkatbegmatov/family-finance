@@ -8,7 +8,9 @@ import java.util.Map;
 
 /**
  * Service for mapping database field names to Uzbek labels
- * and determining field types for proper formatting
+ * and determining field types for proper formatting.
+ *
+ * Faqat audit qilinadigan (Auditable) Family Finance entity'lari qamrab olinadi.
  */
 @Service
 public class FieldLabelService {
@@ -50,96 +52,117 @@ public class FieldLabelService {
     }
 
     private void initializeLabels() {
-        // Product labels
-        Map<String, String> productLabels = new HashMap<>();
-        productLabels.put("name", "Nomi");
-        productLabels.put("sku", "SKU");
-        productLabels.put("purchasePrice", "Xarid narxi");
-        productLabels.put("sellingPrice", "Sotuv narxi");
-        productLabels.put("quantity", "Miqdor");
-        productLabels.put("minStockLevel", "Minimal zaxira");
-        productLabels.put("season", "Mavsum");
-        productLabels.put("brandName", "Brend");
-        productLabels.put("categoryName", "Kategoriya");
-        productLabels.put("sizeString", "O'lcham");
-        productLabels.put("loadIndex", "Yuk indeksi");
-        productLabels.put("speedRating", "Tezlik reytingi");
-        productLabels.put("active", "Faol");
-        productLabels.put("description", "Tavsif");
-        entityFieldLabels.put("Product", productLabels);
+        // Transaction (Tranzaksiya) labels
+        Map<String, String> transactionLabels = new HashMap<>();
+        transactionLabels.put("type", "Turi");
+        transactionLabels.put("amount", "Summa");
+        transactionLabels.put("status", "Holat");
+        transactionLabels.put("transactionDate", "Sana");
+        transactionLabels.put("description", "Izoh");
+        transactionLabels.put("isRecurring", "Takroriy");
+        transactionLabels.put("recurringPattern", "Takrorlanish davri");
+        transactionLabels.put("tags", "Teglar");
+        transactionLabels.put("accountId", "Hisob");
+        transactionLabels.put("toAccountId", "Qabul qiluvchi hisob");
+        transactionLabels.put("debitAccountId", "Debet hisob");
+        transactionLabels.put("creditAccountId", "Kredit hisob");
+        transactionLabels.put("categoryId", "Kategoriya");
+        transactionLabels.put("familyMemberId", "Oila a'zosi");
+        transactionLabels.put("originalTransactionId", "Asl tranzaksiya");
+        entityFieldLabels.put("Transaction", transactionLabels);
 
-        // Customer labels
-        Map<String, String> customerLabels = new HashMap<>();
-        customerLabels.put("firstName", "Ism");
-        customerLabels.put("lastName", "Familiya");
-        customerLabels.put("phone", "Telefon");
-        customerLabels.put("email", "Email");
-        customerLabels.put("address", "Manzil");
-        customerLabels.put("birthDate", "Tug'ilgan sana");
-        customerLabels.put("notes", "Izohlar");
-        entityFieldLabels.put("Customer", customerLabels);
+        // Account (Hisob) labels
+        Map<String, String> accountLabels = new HashMap<>();
+        accountLabels.put("name", "Nomi");
+        accountLabels.put("type", "Turi");
+        accountLabels.put("currency", "Valyuta");
+        accountLabels.put("balance", "Balans");
+        accountLabels.put("openingBalance", "Boshlang'ich balans");
+        accountLabels.put("accCode", "Hisob kodi");
+        accountLabels.put("balanceAccountCode", "Balans hisob kodi");
+        accountLabels.put("currencyCode", "Valyuta kodi");
+        accountLabels.put("color", "Rang");
+        accountLabels.put("icon", "Belgi");
+        accountLabels.put("isActive", "Faol");
+        accountLabels.put("status", "Holat");
+        accountLabels.put("scope", "Ko'rinish doirasi");
+        accountLabels.put("bankName", "Bank nomi");
+        accountLabels.put("ownerId", "Egasi");
+        accountLabels.put("familyGroupId", "Oila guruhi");
+        accountLabels.put("bankId", "Bank");
+        entityFieldLabels.put("Account", accountLabels);
 
-        // Employee labels
-        Map<String, String> employeeLabels = new HashMap<>();
-        employeeLabels.put("firstName", "Ism");
-        employeeLabels.put("lastName", "Familiya");
-        employeeLabels.put("position", "Lavozim");
-        employeeLabels.put("salary", "Maosh");
-        employeeLabels.put("phone", "Telefon");
-        employeeLabels.put("email", "Email");
-        employeeLabels.put("passportNumber", "Pasport raqami");
-        employeeLabels.put("bankAccount", "Hisob raqami");
-        employeeLabels.put("hireDate", "Ishga qabul qilingan sana");
-        employeeLabels.put("active", "Faol");
-        entityFieldLabels.put("Employee", employeeLabels);
+        // Budget (Byudjet) labels
+        Map<String, String> budgetLabels = new HashMap<>();
+        budgetLabels.put("amount", "Summa");
+        budgetLabels.put("period", "Davr");
+        budgetLabels.put("startDate", "Boshlanish sanasi");
+        budgetLabels.put("endDate", "Tugash sanasi");
+        budgetLabels.put("isActive", "Faol");
+        budgetLabels.put("categoryId", "Kategoriya");
+        entityFieldLabels.put("Budget", budgetLabels);
 
-        // Supplier labels
-        Map<String, String> supplierLabels = new HashMap<>();
-        supplierLabels.put("name", "Nomi");
-        supplierLabels.put("contactPerson", "Kontakt shaxs");
-        supplierLabels.put("phone", "Telefon");
-        supplierLabels.put("email", "Email");
-        supplierLabels.put("address", "Manzil");
-        supplierLabels.put("inn", "INN");
-        supplierLabels.put("bankAccount", "Hisob raqami");
-        supplierLabels.put("paymentTerms", "To'lov shartlari");
-        entityFieldLabels.put("Supplier", supplierLabels);
+        // Debt (Qarz) labels
+        Map<String, String> debtLabels = new HashMap<>();
+        debtLabels.put("type", "Turi");
+        debtLabels.put("personName", "Shaxs ismi");
+        debtLabels.put("personPhone", "Telefon");
+        debtLabels.put("amount", "Summa");
+        debtLabels.put("remainingAmount", "Qolgan summa");
+        debtLabels.put("dueDate", "Muddat");
+        debtLabels.put("status", "Holat");
+        debtLabels.put("description", "Izoh");
+        entityFieldLabels.put("Debt", debtLabels);
 
-        // Brand labels
-        Map<String, String> brandLabels = new HashMap<>();
-        brandLabels.put("name", "Nomi");
-        brandLabels.put("country", "Mamlakat");
-        brandLabels.put("active", "Faol");
-        entityFieldLabels.put("Brand", brandLabels);
+        // DebtPayment (Qarz to'lovi) labels
+        Map<String, String> debtPaymentLabels = new HashMap<>();
+        debtPaymentLabels.put("amount", "Summa");
+        debtPaymentLabels.put("paymentDate", "To'lov sanasi");
+        debtPaymentLabels.put("note", "Izoh");
+        debtPaymentLabels.put("debtId", "Qarz");
+        entityFieldLabels.put("DebtPayment", debtPaymentLabels);
 
-        // Category labels
+        // SavingsGoal (Jamg'arma maqsadi) labels
+        Map<String, String> savingsGoalLabels = new HashMap<>();
+        savingsGoalLabels.put("name", "Nomi");
+        savingsGoalLabels.put("targetAmount", "Maqsad summa");
+        savingsGoalLabels.put("currentAmount", "Joriy summa");
+        savingsGoalLabels.put("deadline", "Muddat");
+        savingsGoalLabels.put("icon", "Belgi");
+        savingsGoalLabels.put("color", "Rang");
+        savingsGoalLabels.put("isCompleted", "Yakunlangan");
+        savingsGoalLabels.put("accountId", "Hisob");
+        entityFieldLabels.put("SavingsGoal", savingsGoalLabels);
+
+        // SavingsContribution (Jamg'arma hissasi) labels
+        Map<String, String> savingsContributionLabels = new HashMap<>();
+        savingsContributionLabels.put("amount", "Summa");
+        savingsContributionLabels.put("contributionDate", "Hissa sanasi");
+        savingsContributionLabels.put("note", "Izoh");
+        savingsContributionLabels.put("savingsGoalId", "Jamg'arma");
+        entityFieldLabels.put("SavingsContribution", savingsContributionLabels);
+
+        // Card (Karta) labels
+        Map<String, String> cardLabels = new HashMap<>();
+        cardLabels.put("cardType", "Karta turi");
+        cardLabels.put("cardBin", "BIN");
+        cardLabels.put("cardLastFour", "Oxirgi 4 raqam");
+        cardLabels.put("cardHolderName", "Karta egasi");
+        cardLabels.put("expiryDate", "Amal qilish muddati");
+        cardLabels.put("isActive", "Faol");
+        cardLabels.put("accountId", "Hisob");
+        entityFieldLabels.put("Card", cardLabels);
+
+        // Category (Kategoriya) labels
         Map<String, String> categoryLabels = new HashMap<>();
         categoryLabels.put("name", "Nomi");
-        categoryLabels.put("description", "Tavsif");
+        categoryLabels.put("type", "Turi");
+        categoryLabels.put("icon", "Belgi");
+        categoryLabels.put("color", "Rang");
+        categoryLabels.put("isSystem", "Tizimli");
+        categoryLabels.put("isActive", "Faol");
+        categoryLabels.put("parentId", "Asosiy kategoriya");
         entityFieldLabels.put("Category", categoryLabels);
-
-        // Sale labels
-        Map<String, String> saleLabels = new HashMap<>();
-        saleLabels.put("saleDate", "Sotuv sanasi");
-        saleLabels.put("totalAmount", "Umumiy summa");
-        saleLabels.put("discount", "Chegirma");
-        saleLabels.put("finalAmount", "Yakuniy summa");
-        saleLabels.put("customerName", "Mijoz");
-        saleLabels.put("employeeName", "Xodim");
-        saleLabels.put("paymentMethod", "To'lov usuli");
-        saleLabels.put("status", "Holat");
-        entityFieldLabels.put("Sale", saleLabels);
-
-        // PurchaseOrder labels
-        Map<String, String> purchaseLabels = new HashMap<>();
-        purchaseLabels.put("orderDate", "Buyurtma sanasi");
-        purchaseLabels.put("expectedDeliveryDate", "Kutilayotgan yetkazib berish sanasi");
-        purchaseLabels.put("actualDeliveryDate", "Haqiqiy yetkazib berish sanasi");
-        purchaseLabels.put("totalAmount", "Umumiy summa");
-        purchaseLabels.put("supplierName", "Yetkazib beruvchi");
-        purchaseLabels.put("status", "Holat");
-        purchaseLabels.put("notes", "Izohlar");
-        entityFieldLabels.put("PurchaseOrder", purchaseLabels);
 
         // FamilyMember labels
         Map<String, String> familyMemberLabels = new HashMap<>();
@@ -184,51 +207,78 @@ public class FieldLabelService {
     }
 
     private void initializeFieldTypes() {
-        // Product field types
-        Map<String, AuditLogDetailResponse.FieldType> productTypes = new HashMap<>();
-        productTypes.put("purchasePrice", AuditLogDetailResponse.FieldType.CURRENCY);
-        productTypes.put("sellingPrice", AuditLogDetailResponse.FieldType.CURRENCY);
-        productTypes.put("quantity", AuditLogDetailResponse.FieldType.NUMBER);
-        productTypes.put("minStockLevel", AuditLogDetailResponse.FieldType.NUMBER);
-        productTypes.put("season", AuditLogDetailResponse.FieldType.ENUM);
-        productTypes.put("active", AuditLogDetailResponse.FieldType.BOOLEAN);
-        entityFieldTypes.put("Product", productTypes);
+        // Transaction field types
+        Map<String, AuditLogDetailResponse.FieldType> transactionTypes = new HashMap<>();
+        transactionTypes.put("amount", AuditLogDetailResponse.FieldType.CURRENCY);
+        transactionTypes.put("type", AuditLogDetailResponse.FieldType.ENUM);
+        transactionTypes.put("status", AuditLogDetailResponse.FieldType.ENUM);
+        transactionTypes.put("transactionDate", AuditLogDetailResponse.FieldType.DATETIME);
+        transactionTypes.put("isRecurring", AuditLogDetailResponse.FieldType.BOOLEAN);
+        transactionTypes.put("accountId", AuditLogDetailResponse.FieldType.NUMBER);
+        transactionTypes.put("toAccountId", AuditLogDetailResponse.FieldType.NUMBER);
+        transactionTypes.put("categoryId", AuditLogDetailResponse.FieldType.NUMBER);
+        transactionTypes.put("familyMemberId", AuditLogDetailResponse.FieldType.NUMBER);
+        entityFieldTypes.put("Transaction", transactionTypes);
 
-        // Customer field types
-        Map<String, AuditLogDetailResponse.FieldType> customerTypes = new HashMap<>();
-        customerTypes.put("birthDate", AuditLogDetailResponse.FieldType.DATE);
-        entityFieldTypes.put("Customer", customerTypes);
+        // Account field types
+        Map<String, AuditLogDetailResponse.FieldType> accountTypes = new HashMap<>();
+        accountTypes.put("balance", AuditLogDetailResponse.FieldType.CURRENCY);
+        accountTypes.put("openingBalance", AuditLogDetailResponse.FieldType.CURRENCY);
+        accountTypes.put("type", AuditLogDetailResponse.FieldType.ENUM);
+        accountTypes.put("status", AuditLogDetailResponse.FieldType.ENUM);
+        accountTypes.put("isActive", AuditLogDetailResponse.FieldType.BOOLEAN);
+        entityFieldTypes.put("Account", accountTypes);
 
-        // Employee field types
-        Map<String, AuditLogDetailResponse.FieldType> employeeTypes = new HashMap<>();
-        employeeTypes.put("salary", AuditLogDetailResponse.FieldType.CURRENCY);
-        employeeTypes.put("hireDate", AuditLogDetailResponse.FieldType.DATE);
-        employeeTypes.put("active", AuditLogDetailResponse.FieldType.BOOLEAN);
-        entityFieldTypes.put("Employee", employeeTypes);
+        // Budget field types
+        Map<String, AuditLogDetailResponse.FieldType> budgetTypes = new HashMap<>();
+        budgetTypes.put("amount", AuditLogDetailResponse.FieldType.CURRENCY);
+        budgetTypes.put("period", AuditLogDetailResponse.FieldType.ENUM);
+        budgetTypes.put("startDate", AuditLogDetailResponse.FieldType.DATE);
+        budgetTypes.put("endDate", AuditLogDetailResponse.FieldType.DATE);
+        budgetTypes.put("isActive", AuditLogDetailResponse.FieldType.BOOLEAN);
+        entityFieldTypes.put("Budget", budgetTypes);
 
-        // Sale field types
-        Map<String, AuditLogDetailResponse.FieldType> saleTypes = new HashMap<>();
-        saleTypes.put("saleDate", AuditLogDetailResponse.FieldType.DATETIME);
-        saleTypes.put("totalAmount", AuditLogDetailResponse.FieldType.CURRENCY);
-        saleTypes.put("discount", AuditLogDetailResponse.FieldType.CURRENCY);
-        saleTypes.put("finalAmount", AuditLogDetailResponse.FieldType.CURRENCY);
-        saleTypes.put("paymentMethod", AuditLogDetailResponse.FieldType.ENUM);
-        saleTypes.put("status", AuditLogDetailResponse.FieldType.ENUM);
-        entityFieldTypes.put("Sale", saleTypes);
+        // Debt field types
+        Map<String, AuditLogDetailResponse.FieldType> debtTypes = new HashMap<>();
+        debtTypes.put("amount", AuditLogDetailResponse.FieldType.CURRENCY);
+        debtTypes.put("remainingAmount", AuditLogDetailResponse.FieldType.CURRENCY);
+        debtTypes.put("type", AuditLogDetailResponse.FieldType.ENUM);
+        debtTypes.put("status", AuditLogDetailResponse.FieldType.ENUM);
+        debtTypes.put("dueDate", AuditLogDetailResponse.FieldType.DATE);
+        entityFieldTypes.put("Debt", debtTypes);
 
-        // PurchaseOrder field types
-        Map<String, AuditLogDetailResponse.FieldType> purchaseTypes = new HashMap<>();
-        purchaseTypes.put("orderDate", AuditLogDetailResponse.FieldType.DATE);
-        purchaseTypes.put("expectedDeliveryDate", AuditLogDetailResponse.FieldType.DATE);
-        purchaseTypes.put("actualDeliveryDate", AuditLogDetailResponse.FieldType.DATE);
-        purchaseTypes.put("totalAmount", AuditLogDetailResponse.FieldType.CURRENCY);
-        purchaseTypes.put("status", AuditLogDetailResponse.FieldType.ENUM);
-        entityFieldTypes.put("PurchaseOrder", purchaseTypes);
+        // DebtPayment field types
+        Map<String, AuditLogDetailResponse.FieldType> debtPaymentTypes = new HashMap<>();
+        debtPaymentTypes.put("amount", AuditLogDetailResponse.FieldType.CURRENCY);
+        debtPaymentTypes.put("paymentDate", AuditLogDetailResponse.FieldType.DATE);
+        entityFieldTypes.put("DebtPayment", debtPaymentTypes);
 
-        // Brand field types
-        Map<String, AuditLogDetailResponse.FieldType> brandTypes = new HashMap<>();
-        brandTypes.put("active", AuditLogDetailResponse.FieldType.BOOLEAN);
-        entityFieldTypes.put("Brand", brandTypes);
+        // SavingsGoal field types
+        Map<String, AuditLogDetailResponse.FieldType> savingsGoalTypes = new HashMap<>();
+        savingsGoalTypes.put("targetAmount", AuditLogDetailResponse.FieldType.CURRENCY);
+        savingsGoalTypes.put("currentAmount", AuditLogDetailResponse.FieldType.CURRENCY);
+        savingsGoalTypes.put("deadline", AuditLogDetailResponse.FieldType.DATE);
+        savingsGoalTypes.put("isCompleted", AuditLogDetailResponse.FieldType.BOOLEAN);
+        entityFieldTypes.put("SavingsGoal", savingsGoalTypes);
+
+        // SavingsContribution field types
+        Map<String, AuditLogDetailResponse.FieldType> savingsContributionTypes = new HashMap<>();
+        savingsContributionTypes.put("amount", AuditLogDetailResponse.FieldType.CURRENCY);
+        savingsContributionTypes.put("contributionDate", AuditLogDetailResponse.FieldType.DATE);
+        entityFieldTypes.put("SavingsContribution", savingsContributionTypes);
+
+        // Card field types
+        Map<String, AuditLogDetailResponse.FieldType> cardTypes = new HashMap<>();
+        cardTypes.put("cardType", AuditLogDetailResponse.FieldType.ENUM);
+        cardTypes.put("isActive", AuditLogDetailResponse.FieldType.BOOLEAN);
+        entityFieldTypes.put("Card", cardTypes);
+
+        // Category field types
+        Map<String, AuditLogDetailResponse.FieldType> categoryTypes = new HashMap<>();
+        categoryTypes.put("type", AuditLogDetailResponse.FieldType.ENUM);
+        categoryTypes.put("isSystem", AuditLogDetailResponse.FieldType.BOOLEAN);
+        categoryTypes.put("isActive", AuditLogDetailResponse.FieldType.BOOLEAN);
+        entityFieldTypes.put("Category", categoryTypes);
 
         // FamilyMember field types
         Map<String, AuditLogDetailResponse.FieldType> familyMemberTypes = new HashMap<>();

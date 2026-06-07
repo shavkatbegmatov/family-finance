@@ -139,15 +139,6 @@ public class JwtTokenProvider {
         return builder.signWith(key).compact();
     }
 
-    // Customer portal uchun token generatsiya
-    public String generateCustomerToken(String phone, Long customerId) {
-        return generateToken(phone, "CUSTOMER", customerId);
-    }
-
-    public String generateCustomerRefreshToken(String phone, Long customerId) {
-        return generateRefreshToken(phone, "CUSTOMER", customerId);
-    }
-
     // Staff uchun token generatsiya (userId bilan)
     public String generateStaffToken(String username, Long userId) {
         return generateToken(username, "STAFF", userId);
@@ -171,10 +162,6 @@ public class JwtTokenProvider {
         Claims claims = getClaims(token);
         String type = claims.get("type", String.class);
         return type != null ? type : "STAFF"; // Default STAFF for old tokens
-    }
-
-    public boolean isCustomerToken(String token) {
-        return "CUSTOMER".equals(getTokenType(token));
     }
 
     @SuppressWarnings("unchecked")
