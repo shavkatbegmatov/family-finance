@@ -17,6 +17,7 @@ import java.util.Set;
 @Table(name = "sessions", indexes = {
     @Index(name = "idx_sessions_user", columnList = "user_id"),
     @Index(name = "idx_sessions_token_hash", columnList = "token_hash", unique = true),
+    @Index(name = "idx_sessions_refresh_token_hash", columnList = "refresh_token_hash", unique = true),
     @Index(name = "idx_sessions_expires_at", columnList = "expires_at"),
     @Index(name = "idx_sessions_is_active", columnList = "is_active"),
     @Index(name = "idx_sessions_last_activity", columnList = "last_activity_at"),
@@ -36,7 +37,10 @@ public class Session extends BaseEntity implements Auditable {
     private User user;
 
     @Column(name = "token_hash", nullable = false, unique = true, length = 64)
-    private String tokenHash; // SHA-256 hash of JWT token
+    private String tokenHash; // SHA-256 hash of JWT access token
+
+    @Column(name = "refresh_token_hash", unique = true, length = 64)
+    private String refreshTokenHash; // SHA-256 hash of refresh token — rotation uchun
 
     @Column(name = "ip_address", length = 50)
     private String ipAddress;
@@ -90,6 +94,7 @@ public class Session extends BaseEntity implements Auditable {
         Map<String, Object> map = new HashMap<>();
         map.put("id", getId());
         map.put("tokenHash", this.tokenHash); // Will be masked
+        map.put("refreshTokenHash", this.refreshTokenHash); // Will be masked
         map.put("ipAddress", this.ipAddress);
         map.put("userAgent", this.userAgent);
         map.put("deviceType", this.deviceType);
@@ -113,6 +118,6 @@ public class Session extends BaseEntity implements Auditable {
 
     @Override
     public Set<String> getSensitiveFields() {
-        return Set.of("tokenHash"); // Mask token hash
+        return Set.of("tokenHash", "refreshTokenHash"); // Mask token hashes
     }
 }

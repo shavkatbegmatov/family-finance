@@ -16,6 +16,8 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     Optional<Session> findByTokenHash(String tokenHash);
 
+    Optional<Session> findByRefreshTokenHash(String refreshTokenHash);
+
     @Query("SELECT s FROM Session s WHERE s.user.id = :userId AND s.isActive = true ORDER BY s.lastActivityAt DESC")
     List<Session> findActiveSessionsByUserId(@Param("userId") Long userId);
 
