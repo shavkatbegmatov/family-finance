@@ -37,6 +37,7 @@ import uz.familyfinance.api.security.JwtTokenProvider;
 import uz.familyfinance.api.util.HouseholdCodeGenerator;
 import uz.familyfinance.api.util.InviteCodeGenerator;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -60,8 +61,8 @@ public class AuthService {
     private final InviteCodeGenerator inviteCodeGenerator;
     private final HouseholdCodeGenerator householdCodeGenerator;
 
-    @Value("${jwt.expiration}")
-    private long jwtExpiration;
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration;
 
     @Transactional
     public UserResponse register(RegisterRequest request) {
@@ -449,11 +450,14 @@ public class AuthService {
             );
             String refreshToken = tokenProvider.generateStaffRefreshToken(userDetails.getUsername(), userId);
 
-            // Create session in database
-            LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(jwtExpiration / 1000);
+            // Create session in database. Session umri refresh token bilan teng (24 soat),
+            // access token (1 soat) bilan emas — aks holda session refresh tokendan oldin o'lib,
+            // keyingi refresh paytida "revoked" deb hisoblanib refresh loop'iga sabab bo'lardi.
+            LocalDateTime expiresAt = LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration));
             Session session = sessionService.createSession(
                 userDetails.getUser(),
                 accessToken,
+                refreshToken,
                 ipAddress,
                 userAgent,
                 expiresAt
@@ -510,7 +514,7 @@ public class AuthService {
         }
     }
 
-    public JwtResponse refreshToken(String refreshToken) {
+    public JwtResponse refreshToken(String refreshToken, String ipAddress, String userAgent) {
         if (tokenProvider.validateToken(refreshToken)) {
             String username = tokenProvider.getUsernameFromToken(refreshToken);
             User user = userRepository.findByUsernameWithRolesAndPermissions(username)
@@ -525,6 +529,13 @@ public class AuthService {
                     userDetails.getPermissions()
             );
             String newRefreshToken = tokenProvider.generateStaffRefreshToken(username, user.getId());
+
+            // Sessionni rotatsiya qilamiz: yangi access token amaldagi sessionga bog'lanadi.
+            // Aks holda JwtAuthenticationFilter yangi tokenni "revoked session" deb hisoblab
+            // 401 qaytaradi va frontend cheksiz refresh loop'iga tushadi.
+            LocalDateTime expiresAt = LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration));
+            sessionService.rotateSession(refreshToken, newAccessToken, newRefreshToken,
+                    user, ipAddress, userAgent, expiresAt);
 
             Long familyMemberId = familyMemberRepository.findByUserId(user.getId())
                     .map(FamilyMember::getId)

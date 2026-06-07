@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.websocket.SessionUpdateMessage;
 import uz.familyfinance.api.entity.Session;
 import uz.familyfinance.api.entity.User;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.SessionRepository;
 import uz.familyfinance.api.util.UserAgentParser;
@@ -40,16 +41,27 @@ public class SessionService {
     }
 
     /**
-     * Create a new session when user logs in
+     * Create a new session (access token only — refresh token hash NULL bo'lib qoladi).
+     * Refresh token bog'lamaydigan oqimlar (masalan, scope switch) uchun.
      */
     @Transactional
     public Session createSession(User user, String token, String ipAddress, String userAgent, LocalDateTime expiresAt) {
-        String tokenHash = hashToken(token);
+        return createSession(user, token, null, ipAddress, userAgent, expiresAt);
+    }
+
+    /**
+     * Create a new session when user logs in. Refresh token hash ham saqlanadi —
+     * keyinchalik {@link #rotateSession} shu hash bo'yicha sessionni topib yangilaydi.
+     */
+    @Transactional
+    public Session createSession(User user, String accessToken, String refreshToken,
+                                 String ipAddress, String userAgent, LocalDateTime expiresAt) {
         UserAgentParser.DeviceInfo deviceInfo = userAgentParser.parse(userAgent);
 
         Session session = Session.builder()
                 .user(user)
-                .tokenHash(tokenHash)
+                .tokenHash(hashToken(accessToken))
+                .refreshTokenHash(refreshToken != null ? hashToken(refreshToken) : null)
                 .ipAddress(ipAddress)
                 .userAgent(userAgent)
                 .deviceType(deviceInfo.getDeviceType())
@@ -73,6 +85,42 @@ public class SessionService {
         log.info("Session {} created for user {} from {}", savedSession.getId(), user.getId(), ipAddress);
 
         return savedSession;
+    }
+
+    /**
+     * Refresh paytida sessionni rotatsiya qiladi: mavjud session refresh token hash
+     * bo'yicha topiladi va yangi access/refresh token hash'lari bilan yangilanadi
+     * (bitta qurilma = bitta session). Bu yangi access token uchun amaldagi sessionni
+     * ta'minlaydi va refresh loop'ining oldini oladi.
+     *
+     * <ul>
+     *   <li>Session topilmasa (V44'dan oldingi NULL hash yoki yo'qolgan) — fallback sifatida
+     *       yangi session yaratiladi.</li>
+     *   <li>Session bekor qilingan bo'lsa — refresh rad etiladi (xavfsizlik).</li>
+     * </ul>
+     */
+    @Transactional
+    public void rotateSession(String oldRefreshToken, String newAccessToken, String newRefreshToken,
+                              User user, String ipAddress, String userAgent, LocalDateTime expiresAt) {
+        Optional<Session> existing = sessionRepository.findByRefreshTokenHash(hashToken(oldRefreshToken));
+
+        if (existing.isEmpty()) {
+            createSession(user, newAccessToken, newRefreshToken, ipAddress, userAgent, expiresAt);
+            return;
+        }
+
+        Session session = existing.get();
+        if (Boolean.FALSE.equals(session.getIsActive())) {
+            throw new BadRequestException("Sessiya bekor qilingan, qaytadan kiring");
+        }
+
+        session.setTokenHash(hashToken(newAccessToken));
+        session.setRefreshTokenHash(hashToken(newRefreshToken));
+        session.setExpiresAt(expiresAt);
+        session.setLastActivityAt(LocalDateTime.now());
+        sessionRepository.save(session);
+
+        log.debug("Session {} rotated for user {}", session.getId(), user.getId());
     }
 
     /**

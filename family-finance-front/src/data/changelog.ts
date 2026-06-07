@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.3',
+        date: '2026-06-06 23:09',
+        title: "Uzoq tanaffusdan keyin tizimga qayta kirish muammosi tuzatildi",
+        features: [],
+        fixes: [
+            "Ilovani tizimga kirgan holda yopib, bir muncha vaqtdan keyin (taxminan bir soatdan oshiq) qaytadan ochganda bosh sahifa yuklanmay, \"Ma'lumotlarni yuklashda xatolik\" va \"Avtorizatsiya talab qilinadi\" xabarlari takror chiqib qolardi — endi tizim sessiyani avtomatik yangilab, normal ishlashda davom etadi.",
+        ],
+    },
+    {
         version: '1.6.2',
         date: '2026-06-05 02:25',
         title: "Oila daraxti oynalari va xatoliklari izchilligi",
