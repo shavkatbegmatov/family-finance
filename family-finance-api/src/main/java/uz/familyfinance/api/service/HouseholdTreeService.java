@@ -9,10 +9,12 @@ import uz.familyfinance.api.dto.response.HouseholdEdgeDto;
 import uz.familyfinance.api.dto.response.HouseholdNodeDto;
 import uz.familyfinance.api.dto.response.HouseholdTreeResponse;
 import uz.familyfinance.api.entity.FamilyChild;
+import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.FamilyPartner;
 import uz.familyfinance.api.entity.FamilyUnit;
 import uz.familyfinance.api.entity.Scope;
 import uz.familyfinance.api.enums.ScopeType;
+import uz.familyfinance.api.repository.FamilyMemberRepository;
 import uz.familyfinance.api.repository.FamilyUnitRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
 
@@ -47,15 +49,41 @@ import java.util.stream.Collectors;
 @Slf4j
 public class HouseholdTreeService {
 
+    /** Genealogik traversal chuqurligi — amalda butun bog'langan shajarani qamrab oladi. */
+    private static final int DEFAULT_GENEALOGY_DEPTH = 25;
+
     private final ScopeRepository scopeRepository;
     private final FamilyUnitRepository familyUnitRepository;
+    private final FamilyMemberRepository familyMemberRepository;
     private final FamilyUnitService familyUnitService;
     private final ScopeContextService scopeContext;
+    private final TreeTraversalService treeTraversal;
 
-    /** Joriy user ko'ra oladigan barcha oilalar (FamilyUnit) grafi. */
+    /**
+     * Joriy user ko'rishi mumkin bo'lgan xonadonlar grafi.
+     *
+     * <p>Oddiy (oila a'zosiga bog'langan) user uchun graf "Shaxslar" daraxti bilan
+     * IZCHIL quriladi: joriy a'zo bilan genealogik bog'langan barcha oilalar — ota-ona,
+     * bobo-buvi, aka-uka va farzand xonadonlari — ko'rsatiladi (boshqa CLAN'da bo'lsa ham).
+     * SUPER_ADMIN yoki hali oila a'zosiga bog'lanmagan user uchun esa scope-membership
+     * asosidagi eski ko'rinishga qaytamiz.</p>
+     */
     @Transactional(readOnly = true)
     public HouseholdTreeResponse getHouseholdTree() {
-        return buildResponse(resolveVisibleHouseholds());
+        Long rootMemberId = scopeContext.isSuperAdmin() ? null : currentMemberIdOrNull();
+        if (rootMemberId == null) {
+            return buildResponse(resolveVisibleHouseholds());
+        }
+        return buildResponseFromUnits(treeTraversal.collectConnectedUnits(rootMemberId, DEFAULT_GENEALOGY_DEPTH));
+    }
+
+    /** Joriy user'ning oila a'zosi ID'si, yoki bog'lanmagan bo'lsa {@code null}. */
+    private Long currentMemberIdOrNull() {
+        Long userId = scopeContext.getCurrentUserId();
+        if (userId == null) {
+            return null;
+        }
+        return familyMemberRepository.findByUserId(userId).map(FamilyMember::getId).orElse(null);
     }
 
     /** Bitta xonadondan boshlab {@code depth} darajagacha kengayuvchi graf. */
@@ -93,6 +121,11 @@ public class HouseholdTreeService {
         for (Scope household : households) {
             units.addAll(familyUnitRepository.findByScopeIdWithRelations(household.getId()));
         }
+        return buildResponseFromUnits(units);
+    }
+
+    /** Berilgan FamilyUnit to'plamidan tugun va qirralarni quradi (qirralar shu to'plam ichida). */
+    private HouseholdTreeResponse buildResponseFromUnits(List<FamilyUnit> units) {
         Set<Long> nodeUnitIds = units.stream().map(FamilyUnit::getId).collect(Collectors.toSet());
 
         List<HouseholdNodeDto> nodes = units.stream().map(this::buildNode).collect(Collectors.toList());

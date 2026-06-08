@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.4',
+        date: '2026-06-08 05:02',
+        title: "Xonadonlar ko'rinishida endi butun shajara ko'rinadi",
+        features: [],
+        fixes: [
+            "\"Oila a'zolari\" sahifasidagi \"Xonadonlar\" ko'rinishi endi butun oila shajarasini ko'rsatadi — ota-ona, bobo-buvi, aka-uka va farzandlarning xonadonlari, ular boshqa urug'da bo'lsa ham. Ilgari faqat o'zingiz a'zo bo'lgan urug'dagi xonadonlar ko'rinardi, shu sababli, masalan, ota-onangizning oilasi \"Xonadonlar\" ko'rinishida chiqmas edi (\"Shaxslar\" daraxtida esa ko'rinardi). Endi ikkala ko'rinish bir xil oilani ko'rsatadi.",
+        ],
+    },
+    {
         version: '1.6.3',
         date: '2026-06-06 23:09',
         title: "Uzoq tanaffusdan keyin tizimga qayta kirish muammosi tuzatildi",
