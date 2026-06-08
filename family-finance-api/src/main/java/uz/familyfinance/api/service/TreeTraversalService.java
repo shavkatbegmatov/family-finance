@@ -30,18 +30,58 @@ public class TreeTraversalService {
      */
     @Transactional(readOnly = true)
     public FamilyTreeV2Response getTree(Long personId, int maxDepth) {
+        Long effectiveRootId = resolveRoot(personId);
+        TraversalResult result = traverseBidirectional(effectiveRootId, maxDepth);
+
+        FamilyTreeV2Response response = new FamilyTreeV2Response();
+        response.setRootPersonId(effectiveRootId);
+        response.setPersons(result.persons().stream()
+                .sorted(Comparator.comparing(FamilyMember::getId))
+                .map(this::toMemberDto)
+                .collect(Collectors.toList()));
+        response.setFamilyUnits(result.units().stream()
+                .sorted(Comparator.comparing(FamilyUnit::getId))
+                .map(familyUnitService::toResponse)
+                .collect(Collectors.toList()));
+
+        return response;
+    }
+
+    /**
+     * Joriy user (yoki berilgan shaxs) bilan genealogik bog'langan barcha nikoh
+     * birliklari (FamilyUnit) — {@link #getTree} BFS bilan AYNAN bir xil traversal
+     * (yuqori + quyi), scope/visibility filtrisiz. Xonadon-markazli ko'rinish shu
+     * to'plamdan quriladi, shu sababli "Shaxslar" va "Xonadonlar" ko'rinishlari doim
+     * bir xil oilani ko'rsatadi.
+     */
+    @Transactional(readOnly = true)
+    public List<FamilyUnit> collectConnectedUnits(Long personId, int maxDepth) {
+        return traverseBidirectional(resolveRoot(personId), maxDepth).units();
+    }
+
+    /**
+     * Ildiz shaxsni aniqlaydi: berilgan {@code personId} (faol bo'lsa) yoki joriy
+     * foydalanuvchining oila a'zosi (fallback). Berilgan shaxs faol bo'lmasa fallback'ga o'tadi.
+     */
+    private Long resolveRoot(Long personId) {
         Long fallbackRootId = resolveFamilyMemberId();
         Long effectiveRootId = personId != null ? personId : fallbackRootId;
 
-        FamilyMember root = findMemberOrThrow(effectiveRootId);
-        if (!isMemberActive(root)) {
+        if (!isMemberActive(findMemberOrThrow(effectiveRootId))) {
             effectiveRootId = fallbackRootId;
-            root = findMemberOrThrow(effectiveRootId);
-            if (!isMemberActive(root)) {
+            if (!isMemberActive(findMemberOrThrow(effectiveRootId))) {
                 throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + effectiveRootId);
             }
         }
+        return effectiveRootId;
+    }
 
+    /**
+     * Ikki tomonlama BFS: ildiz shaxsdan yuqoriga (ota-ona, ajdodlar) va pastga
+     * (turmush o'rtoq, farzand, avlodlar) {@code maxDepth} chuqurlikgacha. Yo'lda
+     * uchragan barcha faol shaxs va nikoh birligini to'playdi.
+     */
+    private TraversalResult traverseBidirectional(Long rootId, int maxDepth) {
         Set<Long> visitedPersons = new HashSet<>();
         Set<Long> visitedUnits = new HashSet<>();
         List<FamilyMember> allPersons = new ArrayList<>();
@@ -49,8 +89,8 @@ public class TreeTraversalService {
 
         // BFS queue: [personId, currentDepth]
         Queue<long[]> queue = new LinkedList<>();
-        queue.add(new long[]{effectiveRootId, 0});
-        visitedPersons.add(effectiveRootId);
+        queue.add(new long[]{rootId, 0});
+        visitedPersons.add(rootId);
 
         while (!queue.isEmpty()) {
             long[] current = queue.poll();
@@ -59,74 +99,47 @@ public class TreeTraversalService {
 
             FamilyMember person = familyMemberRepository.findById(currentPersonId).orElse(null);
             if (person == null || !isMemberActive(person)) continue;
-            if (!allPersons.stream().anyMatch(p -> p.getId().equals(currentPersonId))) {
+            if (allPersons.stream().noneMatch(p -> p.getId().equals(currentPersonId))) {
                 allPersons.add(person);
             }
 
             if (currentDepth >= maxDepth) continue;
 
-            // 1. Person partner bo'lgan FamilyUnit lar (pastga ??? farzandlar)
-            List<FamilyUnit> partnerUnits = familyUnitRepository.findByPartnerIdWithRelations(currentPersonId);
-            for (FamilyUnit unit : partnerUnits) {
-                if (visitedUnits.add(unit.getId())) {
-                    allUnits.add(unit);
-                }
-                // Boshqa partnerni qo'shish
-                for (FamilyPartner partner : unit.getPartners()) {
-                    if (!isMemberActive(partner.getPerson())) continue;
-                    Long pid = partner.getPerson().getId();
-                    if (visitedPersons.add(pid)) {
-                        queue.add(new long[]{pid, currentDepth + 1});
-                    }
-                }
-                // Farzandlarni qo'shish
-                for (FamilyChild child : unit.getChildren()) {
-                    if (!isMemberActive(child.getPerson())) continue;
-                    Long cid = child.getPerson().getId();
-                    if (visitedPersons.add(cid)) {
-                        queue.add(new long[]{cid, currentDepth + 1});
-                    }
-                }
-            }
-
-            // 2. Person farzand bo'lgan FamilyUnit lar (yuqoriga ??? ota-onalar)
-            List<FamilyUnit> childUnits = familyUnitRepository.findByChildIdWithRelations(currentPersonId);
-            for (FamilyUnit unit : childUnits) {
-                if (visitedUnits.add(unit.getId())) {
-                    allUnits.add(unit);
-                }
-                // Ota-onalarni (partnerlarni) qo'shish
-                for (FamilyPartner partner : unit.getPartners()) {
-                    if (!isMemberActive(partner.getPerson())) continue;
-                    Long pid = partner.getPerson().getId();
-                    if (visitedPersons.add(pid)) {
-                        queue.add(new long[]{pid, currentDepth + 1});
-                    }
-                }
-                // Aka-ukalarni qo'shish (boshqa farzandlar)
-                for (FamilyChild sibling : unit.getChildren()) {
-                    if (!isMemberActive(sibling.getPerson())) continue;
-                    Long sid = sibling.getPerson().getId();
-                    if (visitedPersons.add(sid)) {
-                        queue.add(new long[]{sid, currentDepth + 1});
-                    }
-                }
-            }
+            // Person partner bo'lgan birliklar (pastga — turmush o'rtoq + farzandlar) va
+            // farzand bo'lgan birliklar (yuqoriga — ota-ona + aka-uka): ikkalasida ham
+            // o'sha birlikning barcha partner va farzandlari navbatga qo'shiladi.
+            collectUnits(familyUnitRepository.findByPartnerIdWithRelations(currentPersonId),
+                    visitedUnits, allUnits, visitedPersons, queue, currentDepth);
+            collectUnits(familyUnitRepository.findByChildIdWithRelations(currentPersonId),
+                    visitedUnits, allUnits, visitedPersons, queue, currentDepth);
         }
 
-        FamilyTreeV2Response response = new FamilyTreeV2Response();
-        response.setRootPersonId(effectiveRootId);
-        response.setPersons(allPersons.stream()
-                .sorted(Comparator.comparing(FamilyMember::getId))
-                .map(this::toMemberDto)
-                .collect(Collectors.toList()));
-        response.setFamilyUnits(allUnits.stream()
-                .sorted(Comparator.comparing(FamilyUnit::getId))
-                .map(familyUnitService::toResponse)
-                .collect(Collectors.toList()));
-
-        return response;
+        return new TraversalResult(allPersons, allUnits);
     }
+
+    /** Topilgan birliklarni natijaga, ulardagi yangi (faol) shaxslarni esa BFS navbatiga qo'shadi. */
+    private void collectUnits(List<FamilyUnit> units, Set<Long> visitedUnits, List<FamilyUnit> allUnits,
+                              Set<Long> visitedPersons, Queue<long[]> queue, int currentDepth) {
+        for (FamilyUnit unit : units) {
+            if (visitedUnits.add(unit.getId())) {
+                allUnits.add(unit);
+            }
+            unit.getPartners().forEach(p -> enqueueIfNew(p.getPerson(), visitedPersons, queue, currentDepth));
+            unit.getChildren().forEach(c -> enqueueIfNew(c.getPerson(), visitedPersons, queue, currentDepth));
+        }
+    }
+
+    /** Shaxs faol va hali ko'rilmagan bo'lsa BFS navbatiga (chuqurlik+1 bilan) qo'shadi. */
+    private void enqueueIfNew(FamilyMember person, Set<Long> visitedPersons,
+                             Queue<long[]> queue, int currentDepth) {
+        if (!isMemberActive(person)) return;
+        if (visitedPersons.add(person.getId())) {
+            queue.add(new long[]{person.getId(), currentDepth + 1});
+        }
+    }
+
+    /** {@link #traverseBidirectional} natijasi — to'plangan shaxs va nikoh birliklari. */
+    private record TraversalResult(List<FamilyMember> persons, List<FamilyUnit> units) {}
 
     @Transactional(readOnly = true)
     public FamilyTreeV2Response getAncestors(Long personId) {
