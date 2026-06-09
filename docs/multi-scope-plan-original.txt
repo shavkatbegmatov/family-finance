@@ -1,0 +1,355 @@
+# Multi-level Scope Architecture: Clan + Household + Multi-scope (To'liq MVP)
+
+## Kontekst
+
+Hozirgi tizim **bitta darajali** ierarxiya bilan ishlaydi: `User (1) → FamilyGroup (1)`. Bu real oilaviy strukturani modellashtirmaydi:
+- Bitta oilada ham bir nechta xonadon bo'lishi mumkin (ota-onam alohida, men alohida)
+- Bitta odam ikkala oilaga tegishli bo'lishi mumkin (kelin — ham eri oilasi, ham ota-onasi oilasiga)
+- Vaqtinchalik umumiy maqsadlar bo'ladi (to'y, hajj — `EVENT` scope)
+- Oilaviy biznes va investitsiyalar (`PROJECT`, `FUND`, `PROPERTY` scope)
+
+Bundan tashqari, `Budget`, `Debt`, `Category` kabi muhim entity'lar **umuman scope'ga bog'lanmagan** — bu xavfli bug.
+
+Maqsad: barcha ushbu kemchiliklarni **bitta universal "Scope + Membership" pattern** bilan hal qilish.
+
+## Sizning tasdiqlangan tanlovlaringiz
+
+| Savol | Tanlov |
+|-------|--------|
+| Boshlash hajmi | **Phase 1+2+3 to'liq MVP** (~5-7 hafta) |
+| Multi-clan a'zolik | **To'liq multi-clan** (bir user bir nechta clan'da to'liq a'zo) |
+| Migratsiya | **Avtomatik:** har bir FamilyGroup → 1 Clan + 1 default Household |
+| Boshqa scope turlari | **Barchasini hozir:** CLAN, HOUSEHOLD, PROJECT, EVENT, FUND, TRUSTEE, PROPERTY |
+
+## Arxitektura
+
+### Yadro: Generic Scope + Membership
+
+```
+Scope {
+  id, type (CLAN | HOUSEHOLD | PROJECT | EVENT | FUND | TRUSTEE | PROPERTY),
+  name, parent_scope_id?, owner_user_id, unique_code,
+  metadata: JSONB (type-specific config),
+  starts_at?, ends_at? (EVENT uchun),
+  is_active, created_at, updated_at
+}
+
+ScopeMembership {
+  id, scope_id, user_id,
+  role (OWNER | ADMIN | MEMBER | VIEWER | GUEST),
+  joined_at, invited_by_user_id?, status,
+  UNIQUE(scope_id, user_id)
+}
+
+User (mavjud) — qo'shilishi kerak:
+  + is_super_admin: Boolean (default false)
+  + primary_scope_id: Long? (default "ishlayotgan" xonadon)
+  - family_group_id: deprecated, Phase 2 oxiriga olib tashlanadi
+```
+
+### Ierarxiya qoidalari
+
+```
+CLAN (parent=null)                          ← Katta oila / urug'
+  ├── HOUSEHOLD (parent=CLAN)               ← Xonadon (ota-onam)
+  │     └── (membership orqali user'lar)
+  ├── HOUSEHOLD (parent=CLAN)               ← Xonadon (men)
+  ├── PROJECT (parent=CLAN)                 ← Oilaviy biznes
+  │     └── (CLAN ichida ham bo'lishi mumkin yoki HOUSEHOLD ichida)
+  ├── EVENT (parent=CLAN, ends_at=2026-12)  ← To'y, hajj
+  ├── FUND (parent=CLAN)                    ← Bolalar ta'lim fondi
+  ├── TRUSTEE (parent=CLAN)                 ← Yosh bola hisobi
+  └── PROPERTY (parent=CLAN)                ← Birgalikda sotib olingan mulk
+```
+
+**Multi-clan a'zolik:** Foydalanuvchi turli clan'larda turli scope membership'larga ega bo'lishi mumkin (sizning tanlovingiz). Misol:
+- Aziza: ota-onasi clan'ida MEMBER + eri clan'ida MEMBER (kelin bo'lib kelganida)
+- Karim: o'z clan'ida OWNER + hamkasbi PROJECT scope'ida MEMBER
+
+### Rol modeli (per-membership)
+
+| Rol | Tavsifi | Vakolatlar |
+|-----|---------|------------|
+| `OWNER` | Scope yaratuvchisi/asosiy egasi | Hammasi + scope'ni o'chirish + boshqa OWNER qo'shish |
+| `ADMIN` | Operativ boshqaruvchi | A'zolarni qo'shish/o'chirish, ma'lumotlarni boshqarish, scope'ni o'chira olmaydi |
+| `MEMBER` | Aktiv ishtirokchi | CRUD operatsiyalar (transactions, budgets), faqat o'zining yaratganini o'chiradi |
+| `VIEWER` | Faqat ko'rish | Ma'lumotlarni ko'radi, hech narsa o'zgartira olmaydi |
+| `GUEST` | Vaqtinchalik / cheklangan | Faqat o'ziga tegishli kichik qism (Event mehmoni — faqat o'z xarajatlari) |
+
+**Cross-clan misol:** Aziza eri clan'ida OWNER, ota-onasi clan'ida VIEWER bo'lishi mumkin — ScopeMembership ikkita yozuv.
+
+### SUPER_ADMIN
+
+- `User.is_super_admin = true` — boolean flag
+- Boshlanishi: **faqat siz** (`fstudioadm@gmail.com`) — V33 migration'da hardcoded
+- SUPER_ADMIN har qanday scope ichida (membership bo'lmasa ham) ma'lumot ko'ra oladi
+- Har bir SUPER_ADMIN amali **audit log**'ga yozadi (cross-scope kirish auditable bo'lishi kerak)
+- Phase 3 da: `/super-admin` sahifasi orqali boshqa SUPER_ADMIN qo'shish mumkin (lekin majburiy emas)
+
+### Scoping mexanizmi (markazlashtirilgan)
+
+Hozirgi 31+ ta `getCurrentFamilyGroupId()` chaqiruvi `ScopeContextService` ga o'tadi:
+
+```java
+@Service
+public class ScopeContextService {
+    /** Joriy aktiv scope (JWT'dan keladi yoki default = User.primary_scope_id) */
+    public Scope getActiveScope() { ... }
+
+    /** Joriy user ko'ra oladigan barcha scope ID'lari (cross-clan + parent CLAN) */
+    public Set<Long> getVisibleScopeIds() { ... }
+
+    /** "Bu user shu scope'da shu permission'ga egami?" */
+    public boolean canPerform(Long scopeId, PermissionCode perm) { ... }
+
+    /** SUPER_ADMIN bypass — ma'lum permission'lar uchun */
+    public boolean isSuperAdmin() { ... }
+}
+```
+
+### Moliyaviy ma'lumotlar scoping'i
+
+Har bir entity'ga `scope_id` (NOT NULL) qo'shiladi. Mavjud `family_group_id` Phase 2 da deprecated, Phase 3 oxirida olib tashlanadi.
+
+| Entity | Hozir | Yangi `scope_id` ga ko'chadi |
+|--------|-------|------------------------------|
+| `Account` | `family_group_id` | `scope_id` — Household yoki Clan |
+| `Transaction` | (Account orqali) | (Account orqali — saqlanadi) |
+| `Budget` | **YO'Q (bug!)** | `scope_id` (NOT NULL — bug fix) |
+| `Debt` | **YO'Q (bug!)** | `scope_id` (NOT NULL — kritik bug fix) |
+| `SavingsGoal` | **YO'Q (bug!)** | `scope_id` (NOT NULL) |
+| `Category` | (global) | (global qoladi, ixtiyoriy `scope_id` Phase 4+ uchun) |
+| `PointConfig`, `PointParticipant`, `PointBalance`, `PointSavingsAccount` | `family_group_id` | `scope_id` (faqat HOUSEHOLD type) |
+| `FamilyMember` | `family_group_id` | `clan_scope_id` (CLAN type) — genealogiya clan darajasida saqlanadi |
+
+**Account scope level (yangi enum):**
+- `PERSONAL` — faqat owner ko'radi
+- `SCOPE` — scope_id qaysi turdaligiga qarab: HOUSEHOLD ichida hammasi, CLAN ichida xonadonlar, h.k.
+
+## Bosqichli amalga oshirish (5-7 hafta)
+
+### Phase 1: Foundation (1.5 hafta) — Backend schema + migratsiya
+
+**Maqsad:** Yangi sxema, dual-write, hech kim ko'rmaydi.
+
+**Backend yangi yaratiladi:**
+- Entity: `Scope`, `ScopeMembership`
+- Enum: `ScopeType` (7 ta qiymat), `ScopeRole` (5 ta), `MembershipStatus` (3 ta)
+- Repository: `ScopeRepository`, `ScopeMembershipRepository`
+- Service: `ScopeContextService` (markaziy), `ScopeService` (CRUD)
+- Migration: `V33__multi_scope_schema.sql`, `V34__migrate_familygroups_to_clans_and_households.sql`
+- Migration mantig'i:
+  - Har `family_groups` yozuvi uchun `scopes` ga 2 ta yozuv: 1 CLAN + 1 HOUSEHOLD (parent=CLAN)
+  - Har `users.family_group_id` uchun `scope_memberships`: HOUSEHOLD'ga OWNER yoki MEMBER + CLAN'ga MEMBER
+  - User'da `is_super_admin` ustun, sizga TRUE
+  - User'da `primary_scope_id` — default household
+- API endpoint: `GET/POST /v1/scopes`, `POST /v1/scopes/{id}/memberships` (faqat SUPER_ADMIN va scope OWNER uchun)
+
+**Backend o'zgartirmaydi:** Mavjud sahifalar oldingidek `family_group_id` orqali ishlaydi.
+
+**Test:** Database'da `scopes` va `scope_memberships` to'g'ri to'lgan; har user o'z household'ida; regressiya yo'q.
+
+### Phase 2: Backend re-scoping (2-2.5 hafta) — Eski scoping'ni yangisiga ko'chirish
+
+**Maqsad:** Backend to'liq scope'ga o'tadi. UI saqlanadi (eski endpoint'lar saqlanadi).
+
+**Schema o'zgarishlari:**
+- `V35__add_scope_id_columns.sql`: Account, Budget, FamilyDebt, SavingsGoal, PointConfig/Participant/Balance/SavingsAccount + FamilyMember ga `scope_id` (nullable)
+- `V36__backfill_scope_ids.sql`: Eski ma'lumotlarni Household scope'iga bog'lash
+- `V37__scope_id_not_null.sql`: Kritik entity'larda NOT NULL qilish + indexlar
+
+**Servis darajasidagi o'zgarishlar:**
+- `PointConfigService.getCurrentFamilyGroup()` → `ScopeContextService.getActiveScope()`
+- 31+ chaqiruvi avtomatik mappinglashtiriladi (pattern bir xil)
+- AccountRepository, BudgetRepository, va h.k. — barcha `WHERE family_group_id = ?` query'lar `WHERE scope_id IN (:visibleScopeIds)` ga o'tadi
+- `ScopeContextService.getVisibleScopeIds()` joriy user uchun barcha kirish mumkin bo'lgan scope ID'larini qaytaradi:
+  - O'z membership'lari (ACTIVE)
+  - Membership'lar parent'lari (HOUSEHOLD ichida bo'lsa, parent CLAN ham ko'rinadi visibility uchun)
+  - SUPER_ADMIN bo'lsa — hammasi
+
+**Yangi DTO va endpoint'lar:**
+- `ScopeResponse`, `ScopeCreateRequest`, `MembershipInviteRequest`, `ScopeRoleUpdateRequest`
+- `GET /v1/scopes/my` — user kirish mumkin bo'lgan barcha scope'lar
+- `GET /v1/scopes/{id}` — scope detali
+- `POST /v1/scopes` — yangi scope yaratish (CLAN admin yoki SUPER_ADMIN)
+- `POST /v1/scopes/{id}/memberships` — a'zo qo'shish
+- `PUT /v1/scopes/{id}/memberships/{userId}` — rol o'zgartirish
+- `DELETE /v1/scopes/{id}/memberships/{userId}` — a'zoni chiqarish
+- `POST /v1/auth/switch-scope` — JWT'da `active_scope_id` ni o'zgartirish (yangi token chiqaradi)
+
+**JWT o'zgarishi:**
+- Yangi claim: `active_scope_id`
+- `JwtTokenProvider.generateStaffTokenWithPermissions(...)` ga parametr qo'shish
+- Login paytida default `User.primary_scope_id` o'rnatiladi
+
+**Test:**
+- Bir household user boshqa household ma'lumotini ko'ra olmaydi (integration test)
+- Budget/Debt endi scope'ga bog'langan (bug fixed)
+- Multi-clan user ikkala clan ma'lumotini ko'ra oladi (membership orqali)
+- SUPER_ADMIN istalgan scope'ga kira oladi
+- Audit log'da scope context yozilyapti
+
+### Phase 3: Frontend MVP (1.5-2 hafta) — UX
+
+**Maqsad:** Foydalanuvchi multi-scope tuzilmani his qiladi.
+
+**Yangi komponentlar:**
+- `src/types/scope.types.ts` — ScopeType, ScopeRole, Scope, Membership turlari
+- `src/api/scopes.api.ts`, `memberships.api.ts`
+- `src/store/scopeStore.ts` (Zustand) — joriy aktiv scope
+- `src/components/scope/ScopeSwitcher.tsx` — Header'da dropdown:
+  ```
+  🌳 Begmatovlar urug'i (Clan)
+    🏠 Mening xonadonim ★ (Active, OWNER)
+    🏡 Ota-onamning xonadoni (VIEWER)
+    💼 Begmatov tikuv (PROJECT, ADMIN)
+  🌳 Karimovlar urug'i (Aziza onasi tomonidan)
+    🏡 Karimov xonadoni (MEMBER)
+  ⚙ Scope boshqaruvi
+  ```
+- `src/pages/scope/ScopeManagementPage.tsx` — scope CRUD
+- `src/pages/scope/MembershipsPage.tsx` — a'zolarni boshqarish
+- `src/pages/scope/CreateScopeWizard.tsx` — yangi scope yaratish wizard'i (7 ta type tanlash)
+- `src/pages/super-admin/SuperAdminPage.tsx` — SUPER_ADMIN dashboard (faqat is_super_admin=true uchun)
+
+**Mavjud komponentlar yangilanadi:**
+- `src/store/authStore.ts` — JWT'dan `activeScopeId` o'qish
+- `src/components/layout/Header.tsx` — ScopeSwitcher qo'shish
+- `src/components/layout/Sidebar.tsx` — yangi bo'limlar:
+  - "Mening xonadonim" (joriy scope)
+  - "Urug'" (parent CLAN ma'lumotlari)
+  - "Scope'lar" (boshqaruv)
+- `src/api/axios.ts` — har bir so'rovga `X-Active-Scope-Id` header yoki query param qo'shish
+- Mavjud sahifalar (`/accounts`, `/transactions`, `/budgets`) — scope o'zgartirilganda avtomatik refresh
+
+**Type-specific create wizard'lar** (7 ta scope turi uchun):
+- CLAN: name, address, admin (User picker)
+- HOUSEHOLD: name, parent CLAN (avto), admin
+- PROJECT: name, parent (CLAN yoki HOUSEHOLD), starts_at, business_type metadata
+- EVENT: name, parent CLAN, starts_at, ends_at, expected_budget metadata
+- FUND: name, parent CLAN, target_amount, beneficiary (FamilyMember picker)
+- TRUSTEE: name, parent CLAN, beneficiary (FamilyMember — vasiylik ostidagi), trustees (Users)
+- PROPERTY: name, parent CLAN, property_type metadata (kvartira/yer/avtomobil), shareholders (Users with %)
+
+**Test scenario (end-to-end manual):**
+1. Login → default xonadon ko'rinadi
+2. ScopeSwitcher → ota-onamning xonadoniga o'tish (VIEWER) → tahrirlash tugmalari yo'q
+3. ScopeSwitcher → Clan view → barcha xonadonlar ma'lumotlari aggregat ko'rinadi
+4. Yangi EVENT scope yaratish: "Aka to'yi 2026" → a'zolar qo'shish → byudjet rejalashtirish
+5. Aziza (ikki clan'da a'zo) — ikkala clan'dan ham ma'lumot ko'radi
+6. SUPER_ADMIN sifatida boshqa clan'ga kirish → audit log'da yoziladi
+
+## Boshqa scope turlari — qisqacha xulq
+
+| Tur | Asosiy maydonlar | Maxsus mantiq |
+|-----|-------------------|----------------|
+| **CLAN** | name, address | Eng yuqori daraja, parent=null |
+| **HOUSEHOLD** | name, address, parent=CLAN | Asosiy moliyaviy scope, har user'da 1+ ta bo'lishi mumkin |
+| **PROJECT** | name, parent, starts_at, business_type | Alohida P&L, "Project complete" tugmasi bilan arxivlanadi |
+| **EVENT** | name, parent=CLAN, starts_at, ends_at | `ends_at` o'tganda avtomatik arxivlanadi; GUEST role mavjud |
+| **FUND** | name, parent=CLAN, target_amount, beneficiary | Maqsadli to'plash, target'ga yetganda notification |
+| **TRUSTEE** | name, parent=CLAN, beneficiary, trustees[] | Vasiy nomidan boshqaruv; beneficiary'ning 18 yoshi to'lganda avtomatik HOUSEHOLD'ga ko'chiriladi |
+| **PROPERTY** | name, parent=CLAN, property_type, shareholders[]+%lar | Ulushli mulk; daromad/xarajat foiz bo'yicha taqsimlanadi |
+
+## Risklar va mitigation
+
+| Risk | Ehtimollik | Mitigation |
+|------|------------|------------|
+| Migratsiya paytida ma'lumot yo'qolishi | O'rta | Dual-write Phase 1-2; mavjud `family_group_id` Phase 3 oxiriga saqlash; staging'da to'liq smoke test |
+| Permission model murakkablashishi | Yuqori | Aniq matritsa: kim qaysi scope'da qaysi amalni qila oladi; UI'da "preview as user" funksiyasi |
+| 31+ servisni qayta yozish — regressiya | Yuqori | Phase 2'da har bir servis uchun integratsiya test; canary deploy avval staging'da |
+| Multi-clan UX chalkashish | O'rta | ScopeSwitcher'da aniq icon'lar + rol indikatorlari; onboarding tutorial |
+| SUPER_ADMIN suiiste'mol | Past (faqat siz) | Har SUPER_ADMIN amali audit log'da, hatto o'qish ham yoziladi |
+| 7 scope turi over-engineering | O'rta | Hammasini bitta `Scope` table'da, faqat `metadata` JSONB farqlanadi; type-specific UI lazy load |
+
+## Kritik fayllar (yangi yaratiladigan)
+
+### Backend
+- `entity/Scope.java`, `entity/ScopeMembership.java`
+- `enums/ScopeType.java`, `enums/ScopeRole.java`, `enums/MembershipStatus.java`
+- `repository/ScopeRepository.java`, `repository/ScopeMembershipRepository.java`
+- `service/ScopeContextService.java`, `service/ScopeService.java`, `service/MembershipService.java`
+- `service/SuperAdminService.java` (SUPER_ADMIN-only operatsiyalar)
+- `controller/ScopeController.java`, `controller/SuperAdminController.java`
+- `dto/request/{ScopeCreateRequest, MembershipInviteRequest, ScopeRoleUpdateRequest, SwitchScopeRequest}.java`
+- `dto/response/{ScopeResponse, MembershipResponse, ScopeTreeResponse}.java`
+- `security/RequiresSuperAdmin.java` (yangi annotation)
+
+### Migration fayllari
+- `V33__multi_scope_schema.sql` — yangi jadvallar
+- `V34__migrate_familygroups_to_clans_and_households.sql`
+- `V35__add_scope_id_columns.sql`
+- `V36__backfill_scope_ids.sql`
+- `V37__scope_id_not_null_constraints.sql`
+
+### Frontend
+- `src/types/scope.types.ts`
+- `src/api/scopes.api.ts`, `src/api/memberships.api.ts`, `src/api/super-admin.api.ts`
+- `src/store/scopeStore.ts`
+- `src/components/scope/ScopeSwitcher.tsx`
+- `src/components/scope/CreateScopeWizard.tsx` — 7 type uchun
+- `src/components/scope/MembershipsTable.tsx`
+- `src/pages/scope/ScopeManagementPage.tsx`
+- `src/pages/scope/{ProjectPage, EventPage, FundPage, TrusteePage, PropertyPage}.tsx`
+- `src/pages/super-admin/SuperAdminPage.tsx`
+- `src/router/index.tsx` — yangi route'lar
+
+### Mavjud fayllar (o'zgartiriladi — pattern bir xil)
+- `entity/Account.java`, `Budget.java`, `FamilyDebt.java`, `SavingsGoal.java`, `Point*.java`, `FamilyMember.java` (+ `scope_id` FK)
+- `service/PointConfigService.java` (`getCurrentFamilyGroup` → `ScopeContextService`)
+- Barcha repository'lar (`WHERE family_group_id = ?` → `WHERE scope_id IN (:visibleScopeIds)`)
+- `entity/User.java` (+ `is_super_admin`, `primary_scope_id`)
+- `security/JwtTokenProvider.java` (+ `active_scope_id` claim)
+- `security/CustomUserDetails.java` (+ `getActiveScopeId()`)
+- `controller/AuthController.java` (+ `/v1/auth/switch-scope` endpoint)
+- Frontend: `src/store/authStore.ts`, `src/components/layout/{Header, Sidebar}.tsx`, `src/api/axios.ts`
+
+### Mavjud komponentlar — qayta foydalaniladi (DRY)
+- `PersonBadges` → Membership ro'yxatida ham (capability: OWNER/ADMIN/MEMBER/VIEWER)
+- `SuggestionsBanner` → "X xonadon admin'siz qoldi", "Y EVENT scope tugagan, arxivlash kerak"
+- `CapabilityFilterChips` → Scope ro'yxatida turlar bo'yicha filter
+- `AddPersonWizard` → `CreateScopeWizard` namuna sifatida ishlatiladi (3-step pattern bir xil)
+- `ModalPortal` — mobil-first modal'lar uchun
+
+## Verifikatsiya (har Phase oxirida)
+
+### Phase 1
+- [ ] `scopes` va `scope_memberships` jadvallari mavjud va to'g'ri sxemaga ega
+- [ ] Har bir mavjud FamilyGroup uchun 1 CLAN + 1 HOUSEHOLD yaratilgan
+- [ ] Har bir user o'z household'ida (OWNER yoki MEMBER) va clan'ida (MEMBER)
+- [ ] `fstudioadm@gmail.com` da `is_super_admin = true`
+- [ ] Mavjud sahifalar oldingidek ishlaydi (regression yo'q)
+
+### Phase 2
+- [ ] Barcha moliyaviy entity'larda `scope_id` to'lgan
+- [ ] Bir household user boshqa household ma'lumotini ko'ra olmaydi (integration test)
+- [ ] Budget va Debt endi scope'ga bog'langan (bug fix tasdiqlandi)
+- [ ] Multi-clan user ikkala clan ma'lumotini ko'ra oladi
+- [ ] SUPER_ADMIN cross-scope kirish ishlaydi va audit log'ga yoziladi
+- [ ] JWT'da `active_scope_id` claim mavjud
+- [ ] `POST /v1/auth/switch-scope` endpoint ishlaydi
+
+### Phase 3
+- [ ] ScopeSwitcher ishlaydi: scope tanlash → barcha sahifalar yangilanadi
+- [ ] 7 scope turi uchun CreateScopeWizard ishlaydi
+- [ ] Aziza ssenariysi: ikkala clan'da turli rollar, ikkalasini ham ko'radi
+- [ ] EVENT scope: `ends_at` o'tganda avtomatik arxivlanadi
+- [ ] PROPERTY scope: ulushli mulk uchun foiz bo'yicha taqsimot to'g'ri ishlaydi
+- [ ] SUPER_ADMIN paneli: barcha clan'lar, user'lar, scope'lar overview
+- [ ] Onboarding: yangi user birinchi login'da "Sizning xonadoningiz Begmatovlar urug'i ichida yaratildi" tushuntirish
+
+## Phase'lar orasidagi commit/PR strategiyasi
+
+Har bir Phase **alohida PR**:
+- PR #64: Phase 1 (Foundation) — ~1500 LoC, faqat backend
+- PR #65: Phase 2 (Re-scoping) — ~3500 LoC, backend + migration
+- PR #66: Phase 3 (Frontend MVP) — ~4000 LoC, frontend + barcha 7 scope wizard'lar
+
+Har PR mustaqil deploy qilinadi, oldingisi production'da staqror bo'lgandan keyin keyingisi boshlanadi.
+
+## Open savollar (Phase 3 davomida hal qilinadi)
+
+1. **Default scope tanlash UX:** Yangi user ro'yxatdan o'tganida — Clan + Household avtomatik yaratiladi (sizning tanlovingiz), lekin **CLAN nomi** sifatida nima o'rnatiladi? "Familiya'lar urug'i" defaultmi yoki user'dan so'raymizmi?
+2. **Cross-clan invite UX:** Aziza eri clan'iga taklif qilinganida — bu invite UX qanday bo'ladi? Eski clan'dan chiqib ketadimi yoki ikkalasida bir vaqtda qoladimi?
+3. **Migratsiya paytida edge case:** Hozir 0 user'li FamilyGroup'lar bormi? Yoki orphan FamilyMember'lar?
+4. **Permission matritsa hujjati:** Har bir scope turi × rol uchun aniq nima qila olishi/qila olmasligi hujjat sifatida yoziladimi (RECOMMENDED), yoki kod'da implicit qolarmi?
