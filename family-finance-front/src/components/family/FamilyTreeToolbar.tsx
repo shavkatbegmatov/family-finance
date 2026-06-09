@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, type RefObject } from 'react';
-import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize, Users, Home } from 'lucide-react';
+import { Eye, ZoomIn, ZoomOut, Maximize2, Locate, Fullscreen, Minimize, Users, Home, Boxes, Network } from 'lucide-react';
 import { useReactFlow } from '@xyflow/react';
 import { useFamilyTreeStore } from '../../store/familyTreeStore';
 import { useAuthStore } from '../../store/authStore';
@@ -23,6 +23,8 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
   const setDepth = useFamilyTreeStore((s) => s.setDepth);
   const viewMode = useFamilyTreeStore((s) => s.viewMode);
   const setViewMode = useFamilyTreeStore((s) => s.setViewMode);
+  const visualMode = useFamilyTreeStore((s) => s.visualMode);
+  const setVisualMode = useFamilyTreeStore((s) => s.setVisualMode);
 
   const { data: activePersons } = useActivePersonsQuery();
   const reactFlow = useReactFlow();
@@ -128,6 +130,28 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
         </button>
       </div>
 
+      {/* Vizual rejim: 2D daraxt ⇄ 3D graf */}
+      <div className="flex gap-0.5 bg-base-200 rounded-lg p-0.5">
+        <button
+          type="button"
+          className={`btn btn-xs gap-1 ${visualMode === '2d' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setVisualMode('2d')}
+          title="2D daraxt ko'rinishi"
+        >
+          <Network className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">2D</span>
+        </button>
+        <button
+          type="button"
+          className={`btn btn-xs gap-1 ${visualMode === '3d' ? 'btn-primary' : 'btn-ghost'}`}
+          onClick={() => setVisualMode('3d')}
+          title="3D graf ko'rinishi"
+        >
+          <Boxes className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">3D</span>
+        </button>
+      </div>
+
       {viewMode === 'person' && (
         <>
           <ComboBox
@@ -181,7 +205,7 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
       <div className="flex-1" />
 
       <div className="flex items-center gap-1">
-        {viewMode === 'person' && currentUser?.familyMemberId && (
+        {viewMode === 'person' && visualMode === '2d' && currentUser?.familyMemberId && (
           <button
             className="btn btn-ghost btn-xs gap-1"
             onClick={handleFindMe}
@@ -191,35 +215,40 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
             <span className="text-xs hidden sm:inline">Meni top</span>
           </button>
         )}
-        <button
-          className="btn btn-ghost btn-xs btn-square"
-          onClick={() => reactFlow.zoomOut({ duration: 200 })}
-          title="Kichraytirish"
-        >
-          <ZoomOut className="h-3.5 w-3.5" />
-        </button>
-        <button
-          className="btn btn-ghost btn-xs btn-square"
-          onClick={() => reactFlow.zoomIn({ duration: 200 })}
-          title="Kattalashtirish"
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </button>
-        <div className="w-px h-4 bg-base-content/15" />
-        <button
-          className="btn btn-ghost btn-xs font-mono"
-          onClick={() => reactFlow.zoomTo(1, { duration: 200 })}
-          title="1:1 masshtab (100%)"
-        >
-          1:1
-        </button>
-        <button
-          className="btn btn-ghost btn-xs btn-square"
-          onClick={() => reactFlow.fitView({ duration: 300, padding: 0.2 })}
-          title="Hammasi ko'rinsin"
-        >
-          <Maximize2 className="h-3.5 w-3.5" />
-        </button>
+        {/* RF zoom boshqaruvi faqat 2D'da — 3D o'z overlay-boshqaruviga ega */}
+        {visualMode === '2d' && (
+          <>
+            <button
+              className="btn btn-ghost btn-xs btn-square"
+              onClick={() => reactFlow.zoomOut({ duration: 200 })}
+              title="Kichraytirish"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <button
+              className="btn btn-ghost btn-xs btn-square"
+              onClick={() => reactFlow.zoomIn({ duration: 200 })}
+              title="Kattalashtirish"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+            <div className="w-px h-4 bg-base-content/15" />
+            <button
+              className="btn btn-ghost btn-xs font-mono"
+              onClick={() => reactFlow.zoomTo(1, { duration: 200 })}
+              title="1:1 masshtab (100%)"
+            >
+              1:1
+            </button>
+            <button
+              className="btn btn-ghost btn-xs btn-square"
+              onClick={() => reactFlow.fitView({ duration: 300, padding: 0.2 })}
+              title="Hammasi ko'rinsin"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          </>
+        )}
         {fullscreenRef && (
           <button
             className="btn btn-ghost btn-xs btn-square"

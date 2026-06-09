@@ -68,6 +68,8 @@ export default defineConfig({
           'vendor-export': ['jspdf', 'jspdf-autotable', 'html2canvas'],
           // WebSocket
           'vendor-websocket': ['sockjs-client', '@stomp/stompjs'],
+          // 3D force-graph (heavy — faqat 3D ko'rinish ochilganda lazy yuklanadi)
+          'vendor-graph3d': ['react-force-graph-3d', 'three', 'three-spritetext'],
         },
       },
     },
