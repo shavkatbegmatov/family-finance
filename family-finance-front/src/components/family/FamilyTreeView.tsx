@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Users, Plus, AlertTriangle, RefreshCw, UserPlus } from 'lucide-react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { FamilyFlowTree } from './flow/FamilyFlowTree';
 import { HouseholdFlowTree } from './flow/HouseholdFlowTree';
+
+// 3D ko'rinish — three.js og'ir bo'lgani uchun faqat kerak bo'lganda lazy yuklanadi.
+const Graph3DView = lazy(() => import('./graph3d/Graph3DView'));
 import { FamilyTreeToolbar } from './FamilyTreeToolbar';
 import { TreeContextMenu } from './TreeContextMenu';
 import { FamilyTreeModals } from './modals/FamilyTreeModals';
@@ -23,6 +26,7 @@ export function FamilyTreeView() {
     isSidebarPinned,
     closeModal,
     viewMode,
+    visualMode,
   } = useFamilyTreeStore();
 
   // Use labeled tree if viewer is selected, otherwise use normal tree
@@ -153,7 +157,22 @@ export function FamilyTreeView() {
         <div className="bg-base-200/30 flex-1 min-h-0">
           {/* React Flow container */}
           <div className="h-full">
-            {viewMode === 'household' ? (
+            {visualMode === '3d' ? (
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center">
+                    <span className="loading loading-spinner loading-lg text-primary" />
+                  </div>
+                }
+              >
+                <Graph3DView
+                  viewMode={viewMode}
+                  treeData={treeData}
+                  householdData={householdQuery.data}
+                  isLoading={viewMode === 'household' ? householdQuery.isLoading : false}
+                />
+              </Suspense>
+            ) : viewMode === 'household' ? (
               householdQuery.isLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <span className="loading loading-spinner loading-lg text-primary" />
