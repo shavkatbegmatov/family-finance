@@ -111,6 +111,17 @@
 }
 
 @layer components {
+  /* 3D shajara "galaktika" — deep-space chuqurlik qatlami.
+     Nozik teal/indigo nebula tumanliklari + chetlarni qoraytiruvchi vignette;
+     markaz shaffof, shu sabab markazdagi node'lar to'liq ko'rinadi, chetdagilar
+     yumshoq xiralashib fokus/chuqurlik hissi beradi. */
+  .graph3d-depth {
+    background:
+      radial-gradient(120% 95% at 28% 16%, rgba(45, 212, 191, 0.08), transparent 55%),
+      radial-gradient(120% 95% at 75% 84%, rgba(99, 102, 241, 0.07), transparent 55%),
+      radial-gradient(100% 100% at 50% 50%, transparent 56%, rgba(2, 4, 10, 0.55) 100%);
+  }
+
   .surface-card {
     @apply bg-base-100/90 border border-base-200 shadow-[var(--shadow-soft)] backdrop-blur;
   }

@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.5',
+        date: '2026-06-09 22:10',
+        title: "3D shajara ko'rinishi professional fonga ega bo'ldi",
+        features: [],
+        fixes: [
+            "3D shajara ko'rinishi (\"Oila a'zolari\" → \"Daraxti\" → \"3D\") fonidagi yorqin ko'k rang muammosi tuzatildi — bunda shaxslar, oilaviy bog'lanishlar va ism yorliqlari fonda ko'rinmay qolardi. Endi shajara chuqur kosmik (deep-space) fonda ko'rsatiladi: shaxslar yorqin porlab ajraladi, ulanishlar va ismlar aniq o'qiladi. Qo'shimcha nozik chuqurlik effekti (vignette) markazni fokuslab, professional ko'rinish beradi.",
+        ],
+    },
+    {
         version: '1.6.4',
         date: '2026-06-08 05:02',
         title: "Xonadonlar ko'rinishida endi butun shajara ko'rinadi",
