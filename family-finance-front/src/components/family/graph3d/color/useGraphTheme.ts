@@ -1,69 +1,39 @@
-import { useEffect, useState } from 'react';
 import type { GraphTheme } from '../types';
+
+/**
+ * 3D "galaktika" ko'rinishi uchun professional deep-space palitra.
+ *
+ * Ranglar DOIMO chuqur kosmik fonda ishlaydi va daisyUI mavzusidan MUSTAQIL.
+ * Sabablari:
+ *  1) Force-graf node glow, particle va depth (chuqurlik) effektlari faqat to'q
+ *     fonda professional ko'rinadi — Obsidian Graph / Neo4j Bloom uslubi.
+ *  2) daisyUI v4 ranglarni `oklch(...)` formatda saqlaydi. Mavzu rangini DOM
+ *     orqali o'qish (getComputedStyle → oklch) WebGL uchun mo'rt edi: oklch
+ *     hue qiymati (≈265) ko'k kanaliga aylanib, butun fon yorqin ko'k (#0000ff)
+ *     bo'lib ketardi. Qattiq kodlangan hex palitra bu sinfdagi xatolarni
+ *     butunlay yo'q qiladi (WebGL faqat aniq sRGB hex tushunadi).
+ */
 
 // Jins ranglari 2D daraxt bilan izchil (personCardUtils.getGenderGradient).
 const GENDER = { male: '#3b82f6', female: '#ec4899', unknown: '#f59e0b' } as const;
 
-function rgbToHex(rgb: string): string | null {
-  const m = rgb.match(/\d+(\.\d+)?/g);
-  if (!m || m.length < 3) return null;
-  const [r, g, b] = m.slice(0, 3).map((v) => Math.max(0, Math.min(255, Math.round(parseFloat(v)))));
-  return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
-}
+const GALAXY_THEME: GraphTheme = {
+  background: '#0a0e1a', // chuqur kosmik navy — node ranglari porlab ajraladi
+  nodeDefault: '#2dd4bf', // teal (primary), to'q fonda yorqin
+  root: '#2dd4bf',
+  link: '#7c8aa8', // slate-blue — nozik, lekin ko'rinadigan ulanish chiziqlari
+  label: '#e8edf7', // deyarli oq — ism yorliqlari aniq o'qiladi
+  male: GENDER.male,
+  female: GENDER.female,
+  unknown: GENDER.unknown,
+  isDark: true, // 3D galaktika ko'rinishi doimo to'q estetikada
+};
 
 /**
- * daisyUI rangini DOM orqali yechadi: berilgan utility-klassli yashirin element
- * yaratib, brauzer hisoblagan rang(rgb)ini o'qiydi. Bu hsl/oklch formatidan
- * qat'i nazar ishlaydi (brauzerning o'zi yechadi).
+ * 3D graf mavzusi — galaktika estetikasi (barqaror, mavzudan mustaqil).
+ * Konstanta obyekt qaytaradi: referensi barqaror, shu sabab quyi `useMemo`'lar
+ * behuda qayta hisoblanmaydi.
  */
-function readClassColor(
-  className: string,
-  prop: 'color' | 'backgroundColor',
-  fallback: string,
-): string {
-  if (typeof document === 'undefined') return fallback;
-  const probe = document.createElement('div');
-  probe.className = className;
-  probe.style.position = 'absolute';
-  probe.style.visibility = 'hidden';
-  probe.style.pointerEvents = 'none';
-  document.body.appendChild(probe);
-  const resolved = getComputedStyle(probe)[prop];
-  probe.remove();
-  return (resolved && rgbToHex(resolved)) || fallback;
-}
-
-function readTheme(): GraphTheme {
-  const isDark =
-    typeof document !== 'undefined' &&
-    document.documentElement.getAttribute('data-theme') === 'family-dark';
-  return {
-    background: readClassColor('bg-base-100', 'backgroundColor', isDark ? '#0b1220' : '#f8fafc'),
-    nodeDefault: readClassColor('text-primary', 'color', '#14b8a6'),
-    root: readClassColor('text-primary', 'color', '#14b8a6'),
-    link: readClassColor('text-base-content', 'color', isDark ? '#94a3b8' : '#475569'),
-    label: readClassColor('text-base-content', 'color', isDark ? '#e2e8f0' : '#1e293b'),
-    male: GENDER.male,
-    female: GENDER.female,
-    unknown: GENDER.unknown,
-    isDark,
-  };
-}
-
-/** Joriy daisyUI mavzusidan GraphTheme; light/dark almashganda jonli yangilanadi. */
 export function useGraphTheme(): GraphTheme {
-  const [theme, setTheme] = useState<GraphTheme>(() => readTheme());
-
-  useEffect(() => {
-    // Mount'dan keyin qayta o'qish (SSR/birinchi paint farqi uchun).
-    setTheme(readTheme());
-    const observer = new MutationObserver(() => setTheme(readTheme()));
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return theme;
+  return GALAXY_THEME;
 }

@@ -112,32 +112,37 @@ export function ForceGraph3DCanvas({
   return (
     <div ref={containerRef} className="absolute inset-0 cursor-grab">
       {size.width > 0 && size.height > 0 && (
-        <ForceGraph3D
-          ref={fgRef as never}
-          width={size.width}
-          height={size.height}
-          graphData={graphData}
-          backgroundColor={theme.background}
-          showNavInfo={false}
-          nodeRelSize={4}
-          nodeId="id"
-          nodeLabel={nodeLabelFn}
-          nodeColor={nodeColorFn}
-          nodeThreeObjectExtend={renderer.extend}
-          nodeThreeObject={nodeThreeObject}
-          onNodeClick={handleClick}
-          onNodeHover={handleHover}
-          linkColor={linkColorFn}
-          linkOpacity={theme.isDark ? 0.35 : 0.25}
-          linkWidth={0.5}
-          linkDirectionalParticles={linkParticlesFn}
-          linkDirectionalParticleSpeed={0.006}
-          linkDirectionalParticleWidth={1.1}
-          warmupTicks={Math.min(60, n)}
-          cooldownTicks={n > PERF_LARGE ? 0 : undefined}
-          cooldownTime={15000}
-          enableNodeDrag={false}
-        />
+        <>
+          <ForceGraph3D
+            ref={fgRef as never}
+            width={size.width}
+            height={size.height}
+            graphData={graphData}
+            backgroundColor={theme.background}
+            showNavInfo={false}
+            nodeRelSize={4}
+            nodeId="id"
+            nodeLabel={nodeLabelFn}
+            nodeColor={nodeColorFn}
+            nodeThreeObjectExtend={renderer.extend}
+            nodeThreeObject={nodeThreeObject}
+            onNodeClick={handleClick}
+            onNodeHover={handleHover}
+            linkColor={linkColorFn}
+            linkOpacity={0.4}
+            linkWidth={0.5}
+            linkDirectionalParticles={linkParticlesFn}
+            linkDirectionalParticleSpeed={0.006}
+            linkDirectionalParticleWidth={1.1}
+            warmupTicks={Math.min(60, n)}
+            cooldownTicks={n > PERF_LARGE ? 0 : undefined}
+            cooldownTime={15000}
+            enableNodeDrag={false}
+          />
+          {/* Deep-space chuqurlik: nozik teal/indigo nebula + chetlarni qoraytiruvchi
+              vignette. Canvas ustida, lekin pointer-events YO'Q — klik/drag o'tadi. */}
+          <div className="graph3d-depth pointer-events-none absolute inset-0" />
+        </>
       )}
     </div>
   );
