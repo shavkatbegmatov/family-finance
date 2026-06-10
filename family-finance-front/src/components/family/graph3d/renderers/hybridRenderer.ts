@@ -3,6 +3,7 @@ import SpriteText from 'three-spritetext';
 import type { GraphNode } from '../types';
 import type { NodeRenderer, RenderCtx } from './NodeRenderer';
 import { avatarsRenderer } from './avatarsRenderer';
+import { shortLabel } from './labelUtils';
 
 // "Hibrid": THREE.LOD — kamera masofasiga qarab 3 daraja avtomatik almashinadi.
 //   NEAR  → avatar (boy, lekin og'ir)
@@ -26,7 +27,7 @@ function makeSphere(node: GraphNode, ctx: RenderCtx, radius: number): THREE.Mesh
 }
 
 function makeLabel(node: GraphNode, ctx: RenderCtx): SpriteText {
-  const label = new SpriteText(node.label, 4, ctx.theme.label);
+  const label = new SpriteText(shortLabel(node.label), 2.2, ctx.theme.label);
   // To'q kontur — bloom ostida ham aniq o'qiladi.
   label.strokeWidth = 5;
   label.strokeColor = '#05070d';
