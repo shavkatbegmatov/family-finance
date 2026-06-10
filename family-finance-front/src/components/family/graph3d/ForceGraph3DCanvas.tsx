@@ -21,10 +21,15 @@ export interface ForceGraph3DCanvasProps {
 const PERF_LARGE = 600;
 
 // Bloom (Neo4j Bloom / Obsidian uslubidagi node porlashi) parametrlari.
-// Juda yumshoq glow — node'lar nozik porlaydi, yorliqlar/avatarlar oqarib ketmaydi.
-const BLOOM_STRENGTH = 0.35;
+// Bloom faqat "Galaktika" rejimida (sharlar porlaydi). Avatar/hibrid rejimida
+// o'chiq — rasmlar/yorliqlar oqarib ketmasligi uchun (selective glow).
 const BLOOM_RADIUS = 0.4;
 const BLOOM_THRESHOLD = 0.5;
+const BLOOM_STRENGTH_BY_MODE: Record<RendererKind, number> = {
+  galaxy: 0.35,
+  avatars: 0,
+  hybrid: 0,
+};
 
 // Label LOD: shuncha tugundan ko'p bo'lsa, faqat "hub" (ko'p bog'langan) tugunlar yorliqlanadi.
 const LABEL_ALL_MAX = 30;
@@ -124,23 +129,25 @@ export function ForceGraph3DCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rendererKind, theme, colorOf]);
 
-  // Bloom/glow — composer'ga UnrealBloomPass qo'shadi yoki oladi (o'lchamga sinxron)
+  // Bloom/glow — faqat galaxy rejimida porlaydi; avatar/hibrid'da o'chiq.
   useEffect(() => {
     const fg = fgRef.current;
     if (!fg || size.width === 0 || size.height === 0) return;
     const composer = fg.postProcessingComposer?.();
     if (!composer) return;
-    if (glow) {
+    const strength = glow ? BLOOM_STRENGTH_BY_MODE[rendererKind] : 0;
+    if (strength > 0) {
       if (!bloomRef.current) {
         const pass = new UnrealBloomPass(
           new Vector2(size.width, size.height),
-          BLOOM_STRENGTH,
+          strength,
           BLOOM_RADIUS,
           BLOOM_THRESHOLD,
         );
         composer.addPass(pass);
         bloomRef.current = pass;
       } else {
+        bloomRef.current.strength = strength;
         bloomRef.current.setSize(size.width, size.height);
       }
     } else if (bloomRef.current) {
@@ -149,7 +156,7 @@ export function ForceGraph3DCanvas({
       bloomRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [glow, size.width, size.height]);
+  }, [glow, rendererKind, size.width, size.height]);
 
   // Unmount — three GPU resurslarini va teksturalarni tozalash
   useEffect(() => {
