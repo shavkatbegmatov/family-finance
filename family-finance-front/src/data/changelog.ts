@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.6',
+        date: '2026-06-10 09:30',
+        title: "3D shajara ko'rinishi yanada jonli va silliq",
+        features: [
+            "3D shajara grafida shaxslar endi yumshoq porlaydi (glow) — chuqur kosmik fonda professional \"galaktika\" ko'rinishi. Porlashni yuqori-o'ng burchakdagi tugma orqali yoqib yoki o'chirib qo'yish mumkin.",
+            "Ko'proq bog'langan (markaziy) shaxslar kattaroq ko'rsatiladi — oilaning asosiy a'zolari darhol ko'zga tashlanadi.",
+            "Katta oilada faqat asosiy shaxslarning ismlari yorliqlanadi (qolganlari tugun ustiga borilganda chiqadi) — bu tartibsizlikni kamaytiradi.",
+            "\"Avatarlar\" ko'rinishida rasmlar endi doiraviy bo'lib, silliqroq yuklanadi: rasm kelguncha bosh harf ko'rinadi, rasm bo'lmaganda ham chiroyli chiqadi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.6.5',
         date: '2026-06-09 22:10',
         title: "3D shajara ko'rinishi professional fonga ega bo'ldi",

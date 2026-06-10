@@ -10,6 +10,8 @@ export interface RenderCtx {
   theme: GraphTheme;
   colorOf: (node: GraphNode) => string;
   textures: TextureCache;
+  /** Bu tugun ism yorlig'ini ko'rsatsinmi (katta grafda faqat markaziy tugunlar). */
+  showLabel: (node: GraphNode) => boolean;
 }
 
 /** Almashtiriladigan tugun-render moduli uchun umumiy interfeys. */
