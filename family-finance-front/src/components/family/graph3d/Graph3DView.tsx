@@ -43,7 +43,6 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
   const genderFilter = useFamilyTreeStore((s) => s.genderFilter);
   const node3dRenderer = useFamilyTreeStore((s) => s.node3dRenderer);
   const colorBy = useFamilyTreeStore((s) => s.colorBy);
-  const glow = useFamilyTreeStore((s) => s.glow);
   const openModal = useFamilyTreeStore((s) => s.openModal);
   const setViewMode = useFamilyTreeStore((s) => s.setViewMode);
 
@@ -120,7 +119,6 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
         theme={theme}
         colorOf={scale.colorOf}
         rendererKind={node3dRenderer}
-        glow={glow}
         fgRef={fgRef}
         onNodeClick={handleNodeClick}
       />

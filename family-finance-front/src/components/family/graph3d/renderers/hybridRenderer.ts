@@ -11,8 +11,8 @@ import { shortLabel } from './labelUtils';
 //   FAR   → faqat kichik shar (eng yengil)
 // HYSTERESIS chegarada miltillashni (flicker) kamaytiradi.
 const NEAR = 0;
-const MID = 60;
-const FAR = 140;
+const MID = 120;
+const FAR = 220;
 const HYSTERESIS = 0.12;
 
 function makeSphere(node: GraphNode, ctx: RenderCtx, radius: number): THREE.Mesh {
