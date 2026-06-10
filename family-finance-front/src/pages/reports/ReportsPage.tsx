@@ -4,6 +4,7 @@ import { familyReportsApi, type ExportFormat } from '../../api/family-reports.ap
 import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
 import { resolvePreset } from '../../utils/dateRangePresets';
 import { ExportButtons } from '../../components/common/ExportButtons';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { downloadBlob, extractFileName } from '../../utils/downloadFile';
 import type {
   IncomeExpenseReport,
@@ -194,22 +195,21 @@ export function ReportsPage() {
   // ------ Render ------
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="section-title">Hisobotlar</h1>
-          <p className="section-subtitle">Oilaviy moliyaviy hisobotlar va tahlillar</p>
-        </div>
-        <div className="flex items-center gap-2">
+    <div className="space-y-4 lg:space-y-6">
+      {/* Header — eksport amali mobilda ham kerak (FAB qoplamaydi) */}
+      <PageHeader
+        title="Hisobotlar"
+        subtitle="Oilaviy moliyaviy hisobotlar va tahlillar"
+        mobileVisible
+        actions={
           <ExportButtons
             onExportExcel={() => handleExport('excel')}
             onExportPdf={() => handleExport('pdf')}
             disabled={isLoading || exporting}
             loading={exporting}
           />
-        </div>
-      </div>
+        }
+      />
 
       {/* Date Range Picker */}
       <div className="surface-card p-4">
@@ -274,13 +274,13 @@ export function ReportsPage() {
 
         {/* ====== Tab 1: Income / Expense ====== */}
         {activeTab === 'income-expense' && (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             {incomeExpense && (
               <>
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {/* Total Income */}
-                  <div className="surface-card p-6">
+                  <div className="surface-card p-4 lg:p-5">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-base-content/60">Jami daromad</p>
@@ -295,7 +295,7 @@ export function ReportsPage() {
                   </div>
 
                   {/* Total Expense */}
-                  <div className="surface-card p-6">
+                  <div className="surface-card p-4 lg:p-5">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-base-content/60">Jami xarajat</p>
@@ -310,7 +310,7 @@ export function ReportsPage() {
                   </div>
 
                   {/* Difference */}
-                  <div className="surface-card p-6">
+                  <div className="surface-card p-4 lg:p-5">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-base-content/60">Farq (Daromad - Xarajat)</p>
@@ -339,7 +339,7 @@ export function ReportsPage() {
                 </div>
 
                 {/* Bar Chart */}
-                <div className="surface-card p-6">
+                <div className="surface-card p-4 lg:p-5">
                   <h2 className="mb-4 text-lg font-semibold">Daromad va Xarajat taqqoslash</h2>
                   {barChartData.length > 0 ? (
                     <div className="h-80">
@@ -390,7 +390,7 @@ export function ReportsPage() {
 
         {/* ====== Tab 2: Category Report ====== */}
         {activeTab === 'category' && (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             {/* Toggle: INCOME / EXPENSE */}
             <div className="flex items-center gap-2">
               <button
@@ -416,7 +416,7 @@ export function ReportsPage() {
             {sortedCategories.length > 0 ? (
               <>
                 {/* Pie Chart */}
-                <div className="surface-card p-6">
+                <div className="surface-card p-4 lg:p-5">
                   <h2 className="mb-4 text-lg font-semibold">
                     {categoryType === 'INCOME' ? 'Daromad' : 'Xarajat'} kategoriyalari
                   </h2>
@@ -458,7 +458,7 @@ export function ReportsPage() {
                 </div>
 
                 {/* Category Table */}
-                <div className="surface-card p-6">
+                <div className="surface-card p-4 lg:p-5">
                   <h2 className="mb-4 text-lg font-semibold">Kategoriya bo'yicha tafsilot</h2>
 
                   {/* Desktop table */}
@@ -534,11 +534,11 @@ export function ReportsPage() {
 
         {/* ====== Tab 3: Member Report ====== */}
         {activeTab === 'member' && (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             {members.length > 0 ? (
               <>
                 {/* Bar Chart */}
-                <div className="surface-card p-6">
+                <div className="surface-card p-4 lg:p-5">
                   <h2 className="mb-4 text-lg font-semibold">Oila a'zolari xarajatlari</h2>
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
@@ -574,7 +574,7 @@ export function ReportsPage() {
                 </div>
 
                 {/* Member Table */}
-                <div className="surface-card p-6">
+                <div className="surface-card p-4 lg:p-5">
                   <h2 className="mb-4 text-lg font-semibold">Oila a'zolari bo'yicha tafsilot</h2>
 
                   {/* Desktop table */}

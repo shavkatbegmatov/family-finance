@@ -16,6 +16,7 @@ import clsx from 'clsx';
 import { useNotificationsStore, type Notification } from '../../store/notificationsStore';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 
 type NotificationType = Notification['type'];
 
@@ -108,33 +109,34 @@ export function NotificationsPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="section-title">Bildirishnomalar</h1>
-          <p className="section-subtitle truncate">
-            {unreadCount > 0
-              ? `${unreadCount} ta o'qilmagan xabar`
-              : "Barcha xabarlar o'qilgan"}
-          </p>
-        </div>
-        <div className="flex flex-none items-center gap-2">
-          <button
-            className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
-            onClick={handleRefresh}
-            disabled={loading}
-            aria-label="Yangilash"
-          >
-            <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
-          </button>
-          {unreadCount > 0 && (
-            <button className="btn btn-ghost btn-sm gap-1.5" onClick={() => markAllAsRead()}>
-              <CheckCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">Barchasini o'qilgan qilish</span>
+      {/* Header — yangilash va "o'qilgan qilish" amallari mobilda ham kerak */}
+      <PageHeader
+        title="Bildirishnomalar"
+        subtitle={
+          unreadCount > 0
+            ? `${unreadCount} ta o'qilmagan xabar`
+            : "Barcha xabarlar o'qilgan"
+        }
+        mobileVisible
+        actions={
+          <>
+            <button
+              className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
+              onClick={handleRefresh}
+              disabled={loading}
+              aria-label="Yangilash"
+            >
+              <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
             </button>
-          )}
-        </div>
-      </div>
+            {unreadCount > 0 && (
+              <button className="btn btn-ghost btn-sm gap-1.5" onClick={() => markAllAsRead()}>
+                <CheckCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Barchasini o'qilgan qilish</span>
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* Filters — gorizontal pill qatori */}
       <div className="scrollbar-hide -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 lg:mx-0 lg:flex-wrap lg:px-0">
@@ -223,7 +225,7 @@ export function NotificationsPage() {
                       <PermissionGate permission={PermissionCode.NOTIFICATIONS_MANAGE}>
                         {!notification.isRead && (
                           <button
-                            className="btn btn-ghost btn-xs"
+                            className="btn btn-ghost btn-sm"
                             onClick={() => markAsRead(notification.id)}
                             title="O'qilgan qilish"
                           >
@@ -233,7 +235,7 @@ export function NotificationsPage() {
                       </PermissionGate>
                       <PermissionGate permission={PermissionCode.NOTIFICATIONS_MANAGE}>
                         <button
-                          className="btn btn-ghost btn-xs text-error"
+                          className="btn btn-ghost btn-sm text-error"
                           onClick={() => deleteNotification(notification.id)}
                           title="O'chirish"
                         >

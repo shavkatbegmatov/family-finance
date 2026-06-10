@@ -285,7 +285,7 @@ export function AccountDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-4 lg:space-y-6 animate-pulse">
         <div className="h-10 w-48 rounded-lg bg-base-300" />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-24 rounded-xl bg-base-300" />)}
@@ -311,7 +311,7 @@ export function AccountDetailPage() {
   const status = account.status || 'ACTIVE';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -388,7 +388,7 @@ export function AccountDetailPage() {
       {/* Info grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Account info */}
-        <div className="surface-card p-5">
+        <div className="surface-card p-4 lg:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
             Hisob ma'lumotlari
           </h3>
@@ -420,7 +420,7 @@ export function AccountDetailPage() {
         </div>
 
         {/* Access list */}
-        <div className="surface-card p-5">
+        <div className="surface-card p-4 lg:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
             Foydalanuvchilar ({account.accessList?.length || 0})
           </h3>
@@ -463,7 +463,7 @@ export function AccountDetailPage() {
       </div>
 
       {/* Transactions */}
-      <div className="surface-card p-5">
+      <div className="surface-card p-4 lg:p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
             Tranzaksiyalar tarixi ({txTotalElements})
@@ -500,10 +500,10 @@ export function AccountDetailPage() {
       {/* Cancel reason modal */}
       <ModalPortal isOpen={cancelModal.open} onClose={() => setCancelModal({ open: false, txId: null })}>
         <div className="surface-card w-full max-w-sm">
-          <div className="p-5 border-b border-base-200">
+          <div className="p-4 sm:p-5 border-b border-base-200">
             <h3 className="text-lg font-semibold">Tranzaksiyani bekor qilish</h3>
           </div>
-          <div className="p-5 space-y-3">
+          <div className="p-4 sm:p-5 space-y-3">
             <p className="text-sm text-base-content/60">
               Bekor qilish sababini kiriting:
             </p>
@@ -516,7 +516,7 @@ export function AccountDetailPage() {
               autoFocus
             />
           </div>
-          <div className="flex justify-end gap-2 p-5 border-t border-base-200">
+          <div className="flex justify-end gap-2 p-4 sm:p-5 border-t border-base-200">
             <button className="btn btn-ghost btn-sm" onClick={() => setCancelModal({ open: false, txId: null })}>
               Yopish
             </button>

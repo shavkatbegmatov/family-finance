@@ -7,6 +7,7 @@ import { familyGroupApi } from '../../api/family-group.api';
 import type { FamilyGroupMemberDto, FamilyGroupResponse } from '../../api/family-group.api';
 import { useAuthStore } from '../../store/authStore';
 import { ModalPortal } from '../../components/common/Modal';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
 import type { ApiResponse } from '../../types';
 import { formatPhoneDisplay } from '../../utils/phone';
@@ -117,7 +118,7 @@ export function FamilyGroupSettings() {
     const isAdmin = groupData.adminId === currentUser?.id;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             <div className="flex items-center gap-3">
                 <button
                     className="btn btn-square btn-sm btn-ghost"
@@ -126,10 +127,10 @@ export function FamilyGroupSettings() {
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
-                <h1 className="text-xl font-bold">Guruh sozlamalari</h1>
+                <PageHeader title="Guruh sozlamalari" className="min-w-0 flex-1" />
             </div>
 
-            <div className="surface-card p-6 border-l-4 border-l-primary flex flex-col gap-4">
+            <div className="surface-card p-4 lg:p-5 border-l-4 border-l-primary flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-xl font-bold flex flex-wrap items-center gap-2">
@@ -255,7 +256,7 @@ export function FamilyGroupSettings() {
 
             {/* Update Address Modal */}
             <ModalPortal isOpen={isAddressModalOpen} onClose={() => setIsAddressModalOpen(false)}>
-                <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl p-6">
+                <div className="w-full max-w-md bg-base-100 rounded-2xl shadow-2xl p-4 sm:p-6">
                     <h3 className="font-bold text-lg mb-2">Manzilni yangilash</h3>
                     <p className="text-sm text-base-content/60 mb-6">
                         Yangi uy manzilini kiritishingiz mumkin. Oldingi manzillar manzillar tarixida saqlanib qoladi.
@@ -328,7 +329,7 @@ export function FamilyGroupSettings() {
 
             {/* Address History Modal */}
             <ModalPortal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)}>
-                <div className="w-full max-w-xl bg-base-100 rounded-2xl shadow-2xl p-6">
+                <div className="w-full max-w-xl bg-base-100 rounded-2xl shadow-2xl p-4 sm:p-6">
                     <h3 className="font-bold text-lg mb-6 text-center">Xo'jalik manzillari tarixi</h3>
 
                     {isLoadingHistory ? (

@@ -26,6 +26,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { pointParticipantApi } from '../../api/points.api';
 import type { CredentialsInfo, Role, FamilyMember } from '../../types';
 import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../../api/users.api';
@@ -521,39 +522,39 @@ export function UsersPage() {
   const renderUserActions = (user: UserDetail) => (
     <>
       <PermissionGate permission={PermissionCode.USERS_VIEW}>
-        <button className="btn btn-ghost btn-xs" title="Ko'rish" onClick={() => openModal('view', user)}>
+        <button className="btn btn-ghost btn-sm" title="Ko'rish" onClick={() => openModal('view', user)}>
           <Eye className="h-3.5 w-3.5" />
         </button>
       </PermissionGate>
       <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-xs" title="Tahrirlash" onClick={() => openModal('edit', user)}>
+        <button className="btn btn-ghost btn-sm" title="Tahrirlash" onClick={() => openModal('edit', user)}>
           <Edit2 className="h-3.5 w-3.5" />
         </button>
       </PermissionGate>
       <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-xs" title="Oila a'zosini biriktirish" onClick={() => openModal('family-link', user)}>
+        <button className="btn btn-ghost btn-sm" title="Oila a'zosini biriktirish" onClick={() => openModal('family-link', user)}>
           <Link2 className="h-3.5 w-3.5" />
         </button>
       </PermissionGate>
       <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-xs" title="Username o'zgartirish" onClick={() => openModal('username', user)}>
+        <button className="btn btn-ghost btn-sm" title="Username o'zgartirish" onClick={() => openModal('username', user)}>
           <AtSign className="h-3.5 w-3.5" />
         </button>
       </PermissionGate>
       <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-xs" title="Parolni tiklash" onClick={() => openModal('password', user)}>
+        <button className="btn btn-ghost btn-sm" title="Parolni tiklash" onClick={() => openModal('password', user)}>
           <Key className="h-3.5 w-3.5" />
         </button>
       </PermissionGate>
       <PermissionGate permission={PermissionCode.USERS_CHANGE_ROLE}>
-        <button className="btn btn-ghost btn-xs" title="Rollar" onClick={() => openModal('roles', user)}>
+        <button className="btn btn-ghost btn-sm" title="Rollar" onClick={() => openModal('roles', user)}>
           <Shield className="h-3.5 w-3.5" />
         </button>
       </PermissionGate>
       {user.active ? (
         <PermissionGate permission={PermissionCode.USERS_DELETE}>
           <button
-            className="btn btn-ghost btn-xs text-error"
+            className="btn btn-ghost btn-sm text-error"
             title="O'chirish"
             onClick={() => handleToggleActive(user)}
             disabled={deactivateMutation.isPending}
@@ -564,7 +565,7 @@ export function UsersPage() {
       ) : (
         <PermissionGate permission={PermissionCode.USERS_UPDATE}>
           <button
-            className="btn btn-ghost btn-xs text-success"
+            className="btn btn-ghost btn-sm text-success"
             title="Faollashtirish"
             onClick={() => handleToggleActive(user)}
             disabled={activateMutation.isPending}
@@ -578,24 +579,19 @@ export function UsersPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold lg:text-2xl">Foydalanuvchilar</h1>
-          <p className="truncate text-sm text-base-content/60">
-            Tizim foydalanuvchilarini ko'rish va boshqarish
-          </p>
-        </div>
-        <PermissionGate permission={PermissionCode.REPORTS_EXPORT}>
-          <div className="flex gap-2">
+      <PageHeader
+        title="Foydalanuvchilar"
+        subtitle="Tizim foydalanuvchilarini ko'rish va boshqarish"
+        actions={
+          <PermissionGate permission={PermissionCode.REPORTS_EXPORT}>
             <ExportButtons
               onExportExcel={() => handleExport('excel')}
               onExportPdf={() => handleExport('pdf')}
               disabled={!usersPage?.content?.length}
             />
-          </div>
-        </PermissionGate>
-      </div>
+          </PermissionGate>
+        }
+      />
 
       {/* Search & Filters */}
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -824,7 +820,7 @@ export function UsersPage() {
       {/* ======================== */}
       <ModalPortal isOpen={modalType === 'view'} onClose={closeModal}>
         <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box max-w-lg p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
               <X className="h-4 w-4" />
             </button>
@@ -929,7 +925,7 @@ export function UsersPage() {
       <ModalPortal isOpen={modalType === 'edit'} onClose={closeModal}>
         <div className="modal modal-open" onClick={closeModal}>
           <div
-            className={`modal-box transition-all duration-300 ${showEditPreview ? '!max-w-2xl' : 'max-w-md'}`}
+            className={`modal-box p-4 transition-all duration-300 sm:p-6 ${showEditPreview ? '!max-w-2xl' : 'max-w-md'}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
@@ -1085,7 +1081,7 @@ export function UsersPage() {
       {/* ======================== */}
       <ModalPortal isOpen={modalType === 'family-link'} onClose={closeModal}>
         <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box max-w-2xl p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
               <X className="h-4 w-4" />
             </button>
@@ -1254,7 +1250,7 @@ export function UsersPage() {
       {/* ======================== */}
       <ModalPortal isOpen={modalType === 'password'} onClose={closeModal}>
         <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box max-w-md p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
               <X className="h-4 w-4" />
             </button>
@@ -1275,7 +1271,7 @@ export function UsersPage() {
                       <p className="font-mono font-bold">{credentials.username}</p>
                     </div>
                     <button
-                      className="btn btn-ghost btn-xs"
+                      className="btn btn-ghost btn-sm"
                       onClick={() => copyToClipboard(credentials.username)}
                     >
                       <Copy className="h-3.5 w-3.5" />
@@ -1289,7 +1285,7 @@ export function UsersPage() {
                       </p>
                     </div>
                     <button
-                      className="btn btn-ghost btn-xs"
+                      className="btn btn-ghost btn-sm"
                       onClick={() => copyToClipboard(credentials.temporaryPassword)}
                     >
                       <Copy className="h-3.5 w-3.5" />
@@ -1344,7 +1340,7 @@ export function UsersPage() {
       {/* ======================== */}
       <ModalPortal isOpen={modalType === 'roles'} onClose={closeModal}>
         <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box max-w-md p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
               <X className="h-4 w-4" />
             </button>
@@ -1440,7 +1436,7 @@ export function UsersPage() {
       {/* ======================== */}
       <ModalPortal isOpen={modalType === 'username'} onClose={closeModal}>
         <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-box max-w-md p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
               <X className="h-4 w-4" />
             </button>

@@ -103,7 +103,7 @@ export function SuggestionsBanner({
               {s.actionLabel && s.onAction && (
                 <button
                   type="button"
-                  className={clsx('btn btn-xs mt-2', tone.button)}
+                  className={clsx('btn btn-sm mt-2', tone.button)}
                   onClick={s.onAction}
                 >
                   {s.actionLabel}
@@ -114,7 +114,7 @@ export function SuggestionsBanner({
             {dismissible && (
               <button
                 type="button"
-                className="btn btn-ghost btn-xs btn-square shrink-0"
+                className="btn btn-ghost btn-sm btn-square shrink-0"
                 onClick={() =>
                   setDismissed((prev) => {
                     const next = new Set(prev);

@@ -18,6 +18,7 @@ import { LoadingOverlay } from '../../components/common/LoadingOverlay';
 import { AuditLogExpandableRow } from '../../components/audit-logs/AuditLogExpandableRow';
 import { AuditLogMobileCard } from '../../components/audit-logs/AuditLogMobileCard';
 import { AuditLogGroupCard, AuditLogGroupRow } from '../../components/audit-logs/AuditLogGroupCard';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Select } from '../../components/ui/Select';
 
 type ViewMode = 'grouped' | 'simple';
@@ -216,58 +217,51 @@ export function AuditLogsPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-xl font-bold sm:text-2xl lg:text-3xl">
-            <Shield className="h-6 w-6 flex-none sm:h-7 sm:w-7" />
-            Audit Loglar
-          </h1>
-          <p className="mt-0.5 truncate text-sm text-base-content/60">
-            Tizimdagi barcha o'zgarishlar tarixi
-          </p>
-        </div>
+      <PageHeader
+        title="Audit Loglar"
+        subtitle="Tizimdagi barcha o'zgarishlar tarixi"
+        mobileVisible
+        actions={
+          <>
+            {/* View mode toggle */}
+            <div className="join">
+              <button
+                className={`join-item btn btn-sm min-h-[36px] gap-1.5 ${
+                  viewMode === 'grouped' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() => handleViewModeChange('grouped')}
+                title="Guruhlangan ko'rinish"
+              >
+                <Layers className="h-4 w-4" />
+                <span className="hidden sm:inline">Guruhlangan</span>
+              </button>
+              <button
+                className={`join-item btn btn-sm min-h-[36px] gap-1.5 ${
+                  viewMode === 'simple' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() => handleViewModeChange('simple')}
+                title="Oddiy ko'rinish"
+              >
+                <List className="h-4 w-4" />
+                <span className="hidden sm:inline">Oddiy</span>
+              </button>
+            </div>
 
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {/* View mode toggle */}
-          <div className="join">
-            <button
-              className={`join-item btn btn-sm min-h-[36px] gap-1.5 ${
-                viewMode === 'grouped' ? 'btn-primary' : 'btn-ghost'
-              }`}
-              onClick={() => handleViewModeChange('grouped')}
-              title="Guruhlangan ko'rinish"
-            >
-              <Layers className="h-4 w-4" />
-              <span className="hidden sm:inline">Guruhlangan</span>
-            </button>
-            <button
-              className={`join-item btn btn-sm min-h-[36px] gap-1.5 ${
-                viewMode === 'simple' ? 'btn-primary' : 'btn-ghost'
-              }`}
-              onClick={() => handleViewModeChange('simple')}
-              title="Oddiy ko'rinish"
-            >
-              <List className="h-4 w-4" />
-              <span className="hidden sm:inline">Oddiy</span>
-            </button>
-          </div>
-
-          <RefreshButton
-            onClick={() => loadData(true)}
-            loading={refreshing}
-            success={refreshSuccess}
-            disabled={initialLoading}
-            className="flex-1 sm:flex-none"
-          />
-          <ExportButtons
-            onExportExcel={() => handleExport('excel')}
-            onExportPdf={() => handleExport('pdf')}
-            disabled={viewMode === 'grouped' ? auditLogGroups.length === 0 : auditLogs.length === 0}
-            loading={refreshing}
-          />
-        </div>
-      </div>
+            <RefreshButton
+              onClick={() => loadData(true)}
+              loading={refreshing}
+              success={refreshSuccess}
+              disabled={initialLoading}
+            />
+            <ExportButtons
+              onExportExcel={() => handleExport('excel')}
+              onExportPdf={() => handleExport('pdf')}
+              disabled={viewMode === 'grouped' ? auditLogGroups.length === 0 : auditLogs.length === 0}
+              loading={refreshing}
+            />
+          </>
+        }
+      />
 
       {/* Search and Filters */}
       <div className="surface-card p-4 space-y-4">

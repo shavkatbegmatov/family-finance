@@ -10,6 +10,7 @@ import { DateInput } from '../../components/ui/DateInput';
 import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode } from '../../hooks/usePermission';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { getCategoryIcon } from '../../utils/icons';
@@ -219,20 +220,18 @@ export function BudgetPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="section-title">Byudjet</h1>
-          <p className="section-subtitle truncate">
-            Oylik xarajat limitlari{budgets.length > 0 && ` · ${budgets.length} ta`}
-          </p>
-        </div>
-        <PermissionGate permission={PermissionCode.BUDGETS_CREATE}>
-          <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenCreate}>
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Yangi byudjet</span>
-          </button>
-        </PermissionGate>
-      </div>
+      <PageHeader
+        title="Byudjet"
+        subtitle={<>Oylik xarajat limitlari{budgets.length > 0 && ` · ${budgets.length} ta`}</>}
+        actions={
+          <PermissionGate permission={PermissionCode.BUDGETS_CREATE}>
+            <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenCreate}>
+              <Plus className="h-4 w-4" />
+              Yangi byudjet
+            </button>
+          </PermissionGate>
+        }
+      />
 
       {/* Budget Cards Grid */}
       {budgets.length === 0 ? (
@@ -330,7 +329,7 @@ export function BudgetPage() {
                 <div className="flex items-center justify-end gap-1 pt-1 border-t border-base-200">
                   <PermissionGate permission={PermissionCode.BUDGETS_UPDATE}>
                     <button
-                      className="btn btn-ghost btn-xs"
+                      className="btn btn-ghost btn-sm"
                       onClick={() => handleOpenEdit(budget)}
                     >
                       <Edit2 className="h-3.5 w-3.5" />
@@ -339,7 +338,7 @@ export function BudgetPage() {
                   </PermissionGate>
                   <PermissionGate permission={PermissionCode.BUDGETS_DELETE}>
                     <button
-                      className="btn btn-ghost btn-xs text-error"
+                      className="btn btn-ghost btn-sm text-error"
                       onClick={() => handleDeleteClick(budget.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -456,7 +455,7 @@ export function BudgetPage() {
 
       {/* Delete Confirmation Modal */}
       <ModalPortal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
-        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl p-6">
+        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl p-4 sm:p-6">
           <div className="flex flex-col items-center text-center">
             <div className="h-14 w-14 rounded-full bg-error/10 flex items-center justify-center mb-4">
               <AlertTriangle className="h-7 w-7 text-error" />

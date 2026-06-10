@@ -190,7 +190,7 @@ export function MemberDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-pulse">
+      <div className="space-y-4 lg:space-y-6 animate-pulse">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-base-300" />
           <div className="h-7 w-48 rounded-lg bg-base-300" />
@@ -218,7 +218,7 @@ export function MemberDetailPage() {
   const age = getAge(profile.birthDate);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* ===== Header ===== */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -301,11 +301,11 @@ function OverviewTab({ data }: { data: MemberFinancialSummary }) {
   const age = getAge(profile.birthDate);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Profile + KPI */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Card */}
-        <div className="surface-card p-5 lg:col-span-1">
+        <div className="surface-card p-4 lg:p-5 lg:col-span-1">
           <div className="flex items-center gap-4 mb-4">
             <div
               className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getGenderGradient(profile.gender)} text-white text-2xl font-bold shadow-lg`}
@@ -531,7 +531,7 @@ function TransactionsTab({
         <span className="text-sm text-base-content/50">Jami: {totalElements}</span>
       </div>
 
-      <div className="surface-card p-5">
+      <div className="surface-card p-4 lg:p-5">
         <DataTable<Transaction>
           data={data}
           columns={txColumns}
@@ -575,7 +575,7 @@ function AccountsTab({ accounts }: { accounts: MemberAccountSummary[] }) {
         const typeInfo = (ACCOUNT_TYPES as Record<string, { label: string }>)[acc.type];
 
         return (
-          <div key={acc.id} className="surface-card p-5 transition hover:shadow-md hover:-translate-y-0.5">
+          <div key={acc.id} className="surface-card p-4 lg:p-5 transition hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
@@ -622,9 +622,9 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
   const hasIncomeData = data.incomeByCategory.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Monthly Trend */}
-      <div className="surface-card p-5">
+      <div className="surface-card p-4 lg:p-5">
         <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
           6 oylik trend
         </h3>
@@ -652,7 +652,7 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
       {/* Pie Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Expense by Category */}
-        <div className="surface-card p-5">
+        <div className="surface-card p-4 lg:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
             Xarajat kategoriya bo'yicha
           </h3>
@@ -683,7 +683,7 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
         </div>
 
         {/* Income by Category */}
-        <div className="surface-card p-5">
+        <div className="surface-card p-4 lg:p-5">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
             Daromad kategoriya bo'yicha
           </h3>
@@ -755,7 +755,7 @@ function StatCard({
       className="surface-card group relative overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
       style={style}
     >
-      <div className="p-5">
+      <div className="p-4 lg:p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <p className="text-sm font-medium text-base-content/60">{title}</p>

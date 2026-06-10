@@ -15,6 +15,7 @@ import { ExportButtons } from '../../components/common/ExportButtons';
 import { useUIStore } from '../../store/uiStore';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 
 type Tab = 'appearance' | 'debts';
 
@@ -89,10 +90,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="section-title">Sozlamalar</h1>
-        <p className="section-subtitle">Tizim sozlamalarini boshqarish</p>
-      </div>
+      <PageHeader title="Sozlamalar" subtitle="Tizim sozlamalarini boshqarish" />
 
       {/* Tabs — pill */}
       <div className="flex items-center gap-1.5">
@@ -122,7 +120,7 @@ export function SettingsPage() {
       {/* Appearance Tab */}
       {activeTab === 'appearance' && (
         <div className="space-y-6">
-          <div className="surface-card p-6">
+          <div className="surface-card p-4 lg:p-5">
             <h2 className="text-lg font-semibold mb-4">Mavzu</h2>
             <p className="text-sm text-base-content/60 mb-6">
               Interfeys ranglarini tanlang. Tizim rejimi qurilmangiz sozlamalariga mos keladi.
@@ -201,7 +199,7 @@ export function SettingsPage() {
       {/* Debts Tab */}
       {activeTab === 'debts' && (
         <div className="space-y-4">
-          <div className="surface-card p-6">
+          <div className="surface-card p-4 lg:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Qarz sozlamalari</h2>

@@ -250,7 +250,7 @@ export function TransactionDetailPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 lg:space-y-6">
         <div className="surface-card animate-pulse p-6">
           <div className="mb-4 h-8 w-1/3 rounded bg-base-200" />
           <div className="h-12 w-1/2 rounded bg-base-200" />
@@ -279,7 +279,7 @@ export function TransactionDetailPage() {
   const TypeIcon = typeMeta.icon;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-6">
       {/* ===== Header ===== */}
       <div className="surface-card flex items-center justify-between gap-3 p-3 sm:p-4">
         <div className="flex items-center gap-3 min-w-0">

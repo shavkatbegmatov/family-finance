@@ -34,6 +34,7 @@ import { useIsMobile } from '../../hooks/useMediaQuery';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import type {
   FamilyDebt,
@@ -447,7 +448,7 @@ export function DebtsPage() {
   const renderStats = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="surface-soft rounded-xl p-5">
+        <div className="surface-soft rounded-xl p-4 lg:p-5">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center">
               <ArrowUpCircle className="h-5 w-5 text-info" />
@@ -460,7 +461,7 @@ export function DebtsPage() {
             </div>
           </div>
         </div>
-        <div className="surface-soft rounded-xl p-5">
+        <div className="surface-soft rounded-xl p-4 lg:p-5">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
               <CreditCard className="h-5 w-5 text-warning" />
@@ -473,7 +474,7 @@ export function DebtsPage() {
             </div>
           </div>
         </div>
-        <div className="surface-soft rounded-xl p-5">
+        <div className="surface-soft rounded-xl p-4 lg:p-5">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-lg bg-error/10 flex items-center justify-center">
               <HandMetal className="h-5 w-5 text-error" />
@@ -640,26 +641,26 @@ export function DebtsPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="section-title">Qarzlar</h1>
-          <p className="section-subtitle truncate">Oilaviy qarzlar boshqaruvi</p>
-        </div>
-        <div className="flex flex-none items-center gap-2">
-          <span className="pill hidden bg-info/10 text-info lg:inline-flex">
-            Berilgan: {formatCurrency(summary.totalGiven)}
-          </span>
-          <span className="pill hidden bg-warning/10 text-warning lg:inline-flex">
-            Olingan: {formatCurrency(summary.totalTaken)}
-          </span>
-          <PermissionGate permission={PermissionCode.DEBTS_CREATE}>
-            <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenAddModal}>
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Yangi qarz</span>
-            </button>
-          </PermissionGate>
-        </div>
-      </div>
+      <PageHeader
+        title="Qarzlar"
+        subtitle="Oilaviy qarzlar boshqaruvi"
+        actions={
+          <>
+            <span className="pill bg-info/10 text-info">
+              Berilgan: {formatCurrency(summary.totalGiven)}
+            </span>
+            <span className="pill bg-warning/10 text-warning">
+              Olingan: {formatCurrency(summary.totalTaken)}
+            </span>
+            <PermissionGate permission={PermissionCode.DEBTS_CREATE}>
+              <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenAddModal}>
+                <Plus className="h-4 w-4" />
+                Yangi qarz
+              </button>
+            </PermissionGate>
+          </>
+        }
+      />
 
       {/* Mobil: berilgan/olingan qisqacha summasi */}
       <div className="grid grid-cols-2 gap-3 lg:hidden">

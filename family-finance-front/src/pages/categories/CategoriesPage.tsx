@@ -15,6 +15,7 @@ import { CATEGORY_TYPES, CATEGORY_COLORS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { getCategoryIcon } from '../../utils/icons';
 import type {
@@ -225,7 +226,7 @@ export function CategoriesPage() {
       <div className="flex items-center gap-1 shrink-0">
         <PermissionGate permission={PermissionCode.CATEGORIES_UPDATE}>
           <button
-            className="btn btn-ghost btn-xs"
+            className="btn btn-ghost btn-sm"
             onClick={() => openEditModal(category)}
             disabled={category.isSystem}
             title="Tahrirlash"
@@ -235,7 +236,7 @@ export function CategoriesPage() {
         </PermissionGate>
         <PermissionGate permission={PermissionCode.CATEGORIES_DELETE}>
           <button
-            className="btn btn-ghost btn-xs text-error"
+            className="btn btn-ghost btn-sm text-error"
             onClick={() => handleDelete(category)}
             disabled={category.isSystem}
             title="O'chirish"
@@ -261,7 +262,7 @@ export function CategoriesPage() {
 
     return (
       <div className="card bg-base-100 border border-base-200 shadow-sm">
-        <div className="card-body p-5">
+        <div className="card-body p-4 lg:p-5">
           {/* Column header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -320,22 +321,19 @@ export function CategoriesPage() {
   // Main render
   // ----------------------------------------------------------------
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Kategoriyalar</h1>
-          <p className="text-sm text-base-content/60">
-            Daromad va xarajat kategoriyalarini boshqarish
-          </p>
-        </div>
-        <PermissionGate permission={PermissionCode.CATEGORIES_CREATE}>
-          <button className="btn btn-primary" onClick={() => openCreateModal()}>
-            <Plus className="h-5 w-5" />
-            Yangi kategoriya
-          </button>
-        </PermissionGate>
-      </div>
+    <div className="space-y-4 lg:space-y-6">
+      <PageHeader
+        title="Kategoriyalar"
+        subtitle="Daromad va xarajat kategoriyalarini boshqarish"
+        actions={
+          <PermissionGate permission={PermissionCode.CATEGORIES_CREATE}>
+            <button className="btn btn-primary btn-sm gap-1.5" onClick={() => openCreateModal()}>
+              <Plus className="h-4 w-4" />
+              Yangi kategoriya
+            </button>
+          </PermissionGate>
+        }
+      />
 
       {/* Content */}
       {loading ? (

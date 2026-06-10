@@ -23,6 +23,7 @@ import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { Select } from '../../components/ui/Select';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { AccountFormModal } from './AccountFormModal';
 
 // ---------------------------------------------------------------------------
@@ -219,7 +220,7 @@ function AccountGridCard({
 
 function AccountsSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header skeleton */}
       <div className="flex items-center justify-between">
         <div>
@@ -615,30 +616,28 @@ export function AccountsPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold lg:text-3xl">Hisoblar</h1>
-          <p className="mt-0.5 truncate text-sm text-base-content/60 lg:mt-1 lg:text-base">
-            Barcha moliyaviy hisoblarni boshqarish
-          </p>
-        </div>
-        <div className="flex flex-none items-center gap-2">
-          <button
-            className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
-            onClick={handleRefresh}
-            title="Yangilash"
-            aria-label="Yangilash"
-          >
-            <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
-          </button>
-          <PermissionGate permission={PermissionCode.ACCOUNTS_CREATE}>
-            <button className="btn btn-primary btn-sm gap-1.5" onClick={openCreate}>
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Yangi hisob</span>
+      <PageHeader
+        title="Hisoblar"
+        subtitle="Barcha moliyaviy hisoblarni boshqarish"
+        actions={
+          <>
+            <button
+              className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
+              onClick={handleRefresh}
+              title="Yangilash"
+              aria-label="Yangilash"
+            >
+              <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
             </button>
-          </PermissionGate>
-        </div>
-      </div>
+            <PermissionGate permission={PermissionCode.ACCOUNTS_CREATE}>
+              <button className="btn btn-primary btn-sm gap-1.5" onClick={openCreate}>
+                <Plus className="h-4 w-4" />
+                Yangi hisob
+              </button>
+            </PermissionGate>
+          </>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
@@ -808,24 +807,24 @@ export function AccountsPage() {
             {search && (
               <span className="badge badge-sm badge-outline gap-1">
                 "{search}"
-                <button onClick={() => { setSearchInput(''); setSearch(''); }}>
-                  <X className="h-3 w-3" />
+                <button className="-m-1 p-1" onClick={() => { setSearchInput(''); setSearch(''); }}>
+                  <X className="h-4 w-4" />
                 </button>
               </span>
             )}
             {filterType && (
               <span className="badge badge-sm badge-outline gap-1">
                 {ACCOUNT_TYPES[filterType]?.label}
-                <button onClick={() => setFilterType(undefined)}>
-                  <X className="h-3 w-3" />
+                <button className="-m-1 p-1" onClick={() => setFilterType(undefined)}>
+                  <X className="h-4 w-4" />
                 </button>
               </span>
             )}
             {filterStatus && (
               <span className="badge badge-sm badge-outline gap-1">
                 {ACCOUNT_STATUSES[filterStatus]?.label}
-                <button onClick={() => setFilterStatus(undefined)}>
-                  <X className="h-3 w-3" />
+                <button className="-m-1 p-1" onClick={() => setFilterStatus(undefined)}>
+                  <X className="h-4 w-4" />
                 </button>
               </span>
             )}
