@@ -16,6 +16,9 @@ export const galaxyRenderer: NodeRenderer = {
     const label = new SpriteText(node.label, LABEL_HEIGHT, ctx.theme.label);
     label.fontFace = 'Manrope, sans-serif';
     label.fontWeight = '600';
+    // To'q kontur — bloom (glow) ostida ham ism aniq o'qiladi.
+    label.strokeWidth = 5;
+    label.strokeColor = '#05070d';
     label.material.depthWrite = false;
     label.material.transparent = true;
     label.material.opacity = node.deceased ? 0.5 : 0.92;

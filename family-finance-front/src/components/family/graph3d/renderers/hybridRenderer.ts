@@ -27,6 +27,9 @@ function makeSphere(node: GraphNode, ctx: RenderCtx, radius: number): THREE.Mesh
 
 function makeLabel(node: GraphNode, ctx: RenderCtx): SpriteText {
   const label = new SpriteText(node.label, 4, ctx.theme.label);
+  // To'q kontur — bloom ostida ham aniq o'qiladi.
+  label.strokeWidth = 5;
+  label.strokeColor = '#05070d';
   label.material.depthWrite = false;
   label.material.transparent = true;
   label.position.set(0, 7, 0);
