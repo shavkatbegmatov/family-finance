@@ -82,9 +82,11 @@ export function ForceGraph3DCanvas({
   );
   const nodeLabelFn = useCallback((node: NodeObject) => (node as GraphNode).label, []);
   const linkColorFn = useCallback(() => theme.link, [theme.link]);
+  // Juda katta grafda oqim zarralarini o'chiramiz (perf degrader).
+  const heavyGraph = graphData.nodes.length > 800;
   const linkParticlesFn = useCallback(
-    (link: LinkObject) => ((link as GraphLink).rel !== 'spouse' ? 2 : 0),
-    [],
+    (link: LinkObject) => (heavyGraph || (link as GraphLink).rel === 'spouse' ? 0 : 2),
+    [heavyGraph],
   );
   const handleHover = useCallback((node: NodeObject | null) => {
     const el = containerRef.current;
@@ -109,9 +111,20 @@ export function ForceGraph3DCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // Renderer/mavzu/rang o'zgarsa — tugun obyektlarini qayta qurish
+  // Renderer/mavzu/rang o'zgarsa — eski tugun obyektlarini yig'ib, grafni qayta
+  // quramiz; keyingi kadrda eski obyektlarning GPU resurslarini bo'shatamiz
+  // (renderer almashganda leak bo'lmasligi uchun — to'liq dispose).
   useEffect(() => {
-    fgRef.current?.refresh();
+    const fg = fgRef.current;
+    if (!fg) return;
+    const stale: Object3D[] = [];
+    graphData.nodes.forEach((node) => {
+      const obj = (node as { __threeObj?: Object3D }).__threeObj;
+      if (obj) stale.push(obj);
+    });
+    fg.refresh();
+    const raf = requestAnimationFrame(() => stale.forEach(disposeObject));
+    return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rendererKind, theme, colorOf]);
 
