@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import type { ForceGraphMethods, LinkObject, NodeObject } from 'react-force-graph-3d';
+import { Vector2 } from 'three';
 import type { Material, Mesh, Object3D } from 'three';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { GraphData, GraphLink, GraphNode, GraphTheme, RendererKind } from './types';
 import { RENDERERS, type RenderCtx } from './renderers/NodeRenderer';
 import { createTextureCache } from './renderers/textureCache';
@@ -11,11 +13,17 @@ export interface ForceGraph3DCanvasProps {
   theme: GraphTheme;
   colorOf: (node: GraphNode) => string;
   rendererKind: RendererKind;
+  glow: boolean;
   fgRef: React.MutableRefObject<ForceGraphMethods<GraphNode, GraphLink> | undefined>;
   onNodeClick: (node: GraphNode) => void;
 }
 
 const PERF_LARGE = 600;
+
+// Bloom (Neo4j Bloom / Obsidian uslubidagi node porlashi) parametrlari.
+const BLOOM_STRENGTH = 1.6;
+const BLOOM_RADIUS = 0.7;
+const BLOOM_THRESHOLD = 0.12;
 
 function disposeObject(obj: Object3D): void {
   obj.traverse((o) => {
@@ -32,12 +40,14 @@ export function ForceGraph3DCanvas({
   theme,
   colorOf,
   rendererKind,
+  glow,
   fgRef,
   onNodeClick,
 }: ForceGraph3DCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const texturesRef = useRef<ReturnType<typeof createTextureCache> | null>(null);
   if (!texturesRef.current) texturesRef.current = createTextureCache();
+  const bloomRef = useRef<UnrealBloomPass | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   const renderer = RENDERERS[rendererKind];
@@ -88,6 +98,33 @@ export function ForceGraph3DCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rendererKind, theme, colorOf]);
 
+  // Bloom/glow — composer'ga UnrealBloomPass qo'shadi yoki oladi (o'lchamga sinxron)
+  useEffect(() => {
+    const fg = fgRef.current;
+    if (!fg || size.width === 0 || size.height === 0) return;
+    const composer = fg.postProcessingComposer?.();
+    if (!composer) return;
+    if (glow) {
+      if (!bloomRef.current) {
+        const pass = new UnrealBloomPass(
+          new Vector2(size.width, size.height),
+          BLOOM_STRENGTH,
+          BLOOM_RADIUS,
+          BLOOM_THRESHOLD,
+        );
+        composer.addPass(pass);
+        bloomRef.current = pass;
+      } else {
+        bloomRef.current.setSize(size.width, size.height);
+      }
+    } else if (bloomRef.current) {
+      composer.removePass(bloomRef.current);
+      bloomRef.current.dispose();
+      bloomRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [glow, size.width, size.height]);
+
   // Unmount — three GPU resurslarini va teksturalarni tozalash
   useEffect(() => {
     const textures = texturesRef.current;
@@ -102,6 +139,8 @@ export function ForceGraph3DCanvas({
         /* noop */
       }
       fg?.scene?.()?.traverse((o) => disposeObject(o));
+      bloomRef.current?.dispose();
+      bloomRef.current = null;
       textures?.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
