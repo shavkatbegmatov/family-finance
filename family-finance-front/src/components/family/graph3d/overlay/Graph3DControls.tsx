@@ -1,4 +1,4 @@
-import { Boxes, Image as ImageIcon, Layers, Maximize2, Sparkles } from 'lucide-react';
+import { Boxes, Image as ImageIcon, Layers, Maximize2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { ForceGraphMethods } from 'react-force-graph-3d';
 import type { ColorBy, GraphLink, GraphNode, RendererKind } from '../types';
@@ -21,8 +21,6 @@ export function Graph3DControls({ fgRef, viewMode }: Props) {
   const setNode3dRenderer = useFamilyTreeStore((s) => s.setNode3dRenderer);
   const colorBy = useFamilyTreeStore((s) => s.colorBy);
   const setColorBy = useFamilyTreeStore((s) => s.setColorBy);
-  const glow = useFamilyTreeStore((s) => s.glow);
-  const setGlow = useFamilyTreeStore((s) => s.setGlow);
 
   return (
     <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
@@ -55,14 +53,6 @@ export function Graph3DControls({ fgRef, viewMode }: Props) {
             Xonadon
           </option>
         </select>
-        <button
-          type="button"
-          className={`btn btn-xs btn-square ${glow ? 'btn-primary' : 'btn-ghost'}`}
-          title={glow ? "Porlashni o'chirish" : 'Porlash (glow)'}
-          onClick={() => setGlow(!glow)}
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-        </button>
         <button
           type="button"
           className="btn btn-ghost btn-xs btn-square"

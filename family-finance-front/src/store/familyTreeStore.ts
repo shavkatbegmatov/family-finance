@@ -43,7 +43,6 @@ interface FamilyTreeState {
   visualMode: VisualMode;
   node3dRenderer: RendererKind;
   colorBy: ColorBy;
-  glow: boolean;
 
   // Selection
   selectedPersonId: number | null;
@@ -78,7 +77,6 @@ interface FamilyTreeState {
   setVisualMode: (mode: VisualMode) => void;
   setNode3dRenderer: (renderer: RendererKind) => void;
   setColorBy: (colorBy: ColorBy) => void;
-  setGlow: (on: boolean) => void;
   setSelectedPersonId: (id: number | null) => void;
   setSelectedFamilyUnitId: (id: number | null) => void;
   openContextMenu: (state: ContextMenuState) => void;
@@ -103,7 +101,6 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   visualMode: '2d',
   node3dRenderer: 'galaxy',
   colorBy: 'gender',
-  glow: true,
   selectedPersonId: null,
   selectedFamilyUnitId: null,
   contextMenu: null,
@@ -123,7 +120,6 @@ export const useFamilyTreeStore = create<FamilyTreeState>((set) => ({
   setVisualMode: (mode) => set({ visualMode: mode }),
   setNode3dRenderer: (renderer) => set({ node3dRenderer: renderer }),
   setColorBy: (colorBy) => set({ colorBy }),
-  setGlow: (on) => set({ glow: on }),
   setSelectedPersonId: (id) => set({ selectedPersonId: id }),
   setSelectedFamilyUnitId: (id) => set({ selectedFamilyUnitId: id }),
   openContextMenu: (state) => set({ contextMenu: state }),
