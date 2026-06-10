@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.6.7',
+        date: '2026-06-10 10:40',
+        title: "3D shajara: porlash yumshatildi, ismlar o'qishli bo'ldi",
+        features: [],
+        fixes: [
+            "3D \"galaktika\" ko'rinishidagi porlash (glow) effekti juda kuchli bo'lib, ism yorliqlari ko'rinmay qolardi — endi porlash ancha yumshoq, va ismlar atrofidagi nozik to'q kontur tufayli porlash ostida ham aniq o'qiladi.",
+        ],
+    },
+    {
         version: '1.6.6',
         date: '2026-06-10 09:30',
         title: "3D shajara ko'rinishi yanada jonli va silliq",

@@ -21,9 +21,10 @@ export interface ForceGraph3DCanvasProps {
 const PERF_LARGE = 600;
 
 // Bloom (Neo4j Bloom / Obsidian uslubidagi node porlashi) parametrlari.
-const BLOOM_STRENGTH = 1.6;
-const BLOOM_RADIUS = 0.7;
-const BLOOM_THRESHOLD = 0.12;
+// Yumshoq glow — node'lar nozik porlaydi, ism yorliqlari o'qilmay qolmaydi.
+const BLOOM_STRENGTH = 0.8;
+const BLOOM_RADIUS = 0.5;
+const BLOOM_THRESHOLD = 0.25;
 
 // Label LOD: shuncha tugundan ko'p bo'lsa, faqat "hub" (ko'p bog'langan) tugunlar yorliqlanadi.
 const LABEL_ALL_MAX = 60;
