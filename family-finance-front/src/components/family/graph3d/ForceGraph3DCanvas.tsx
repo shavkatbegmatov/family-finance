@@ -32,7 +32,10 @@ const HUB_DEGREE = 3;
 function disposeObject(obj: Object3D): void {
   obj.traverse((o) => {
     const mesh = o as Mesh;
-    mesh.geometry?.dispose?.();
+    // Geometriyani FAQAT Mesh uchun dispose qilamiz. Sprite/SpriteText butun ilova
+    // bo'ylab YAGONA modul-darajali geometriyani ulashadi — uni dispose qilish
+    // boshqa jonli sprite'larni buzadi (shared-geometry corruption).
+    if (mesh.isMesh) mesh.geometry?.dispose?.();
     const mat = mesh.material as Material | Material[] | undefined;
     if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
     else mat?.dispose?.();
@@ -111,20 +114,12 @@ export function ForceGraph3DCanvas({
     return () => ro.disconnect();
   }, []);
 
-  // Renderer/mavzu/rang o'zgarsa — eski tugun obyektlarini yig'ib, grafni qayta
-  // quramiz; keyingi kadrda eski obyektlarning GPU resurslarini bo'shatamiz
-  // (renderer almashganda leak bo'lmasligi uchun — to'liq dispose).
+  // Renderer/mavzu/rang o'zgarsa — grafni qayta quramiz. Eski tugun obyektlarini
+  // QO'LDA dispose QILMAYMIZ: 3d-force-graph refresh() ichida o'zi _deallocate
+  // qiladi; qo'lda dispose ortiqcha bo'lib, sprite'larning umumiy geometriyasini
+  // jonli sprite'lar ostidan tortib olar edi.
   useEffect(() => {
-    const fg = fgRef.current;
-    if (!fg) return;
-    const stale: Object3D[] = [];
-    graphData.nodes.forEach((node) => {
-      const obj = (node as { __threeObj?: Object3D }).__threeObj;
-      if (obj) stale.push(obj);
-    });
-    fg.refresh();
-    const raf = requestAnimationFrame(() => stale.forEach(disposeObject));
-    return () => cancelAnimationFrame(raf);
+    fgRef.current?.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rendererKind, theme, colorOf]);
 
