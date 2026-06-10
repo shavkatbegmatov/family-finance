@@ -25,6 +25,10 @@ const BLOOM_STRENGTH = 1.6;
 const BLOOM_RADIUS = 0.7;
 const BLOOM_THRESHOLD = 0.12;
 
+// Label LOD: shuncha tugundan ko'p bo'lsa, faqat "hub" (ko'p bog'langan) tugunlar yorliqlanadi.
+const LABEL_ALL_MAX = 60;
+const HUB_DEGREE = 3;
+
 function disposeObject(obj: Object3D): void {
   obj.traverse((o) => {
     const mesh = o as Mesh;
@@ -51,9 +55,17 @@ export function ForceGraph3DCanvas({
   const [size, setSize] = useState({ width: 0, height: 0 });
 
   const renderer = RENDERERS[rendererKind];
+
+  // Label LOD — kichik grafda barcha yorliqlar, katta grafda faqat markaziy (hub) tugunlar.
+  const labelAll = graphData.nodes.length <= LABEL_ALL_MAX;
+  const showLabel = useCallback(
+    (node: GraphNode) => labelAll || (node.degree ?? 0) >= HUB_DEGREE,
+    [labelAll],
+  );
+
   const ctx = useMemo<RenderCtx>(
-    () => ({ theme, colorOf, textures: texturesRef.current! }),
-    [theme, colorOf],
+    () => ({ theme, colorOf, textures: texturesRef.current!, showLabel }),
+    [theme, colorOf, showLabel],
   );
 
   // Accessor'larni barqarorlashtiramiz — aks holda har render'da (masalan o'lcham
@@ -63,6 +75,11 @@ export function ForceGraph3DCanvas({
     [renderer, ctx],
   );
   const nodeColorFn = useCallback((node: NodeObject) => colorOf(node as GraphNode), [colorOf]);
+  // Node o'lchami bog'lanishlar soniga qarab — markaziy shaxslar kattaroq ko'rinadi.
+  const nodeValFn = useCallback(
+    (node: NodeObject) => 1 + Math.min((node as GraphNode).degree ?? 0, 12) * 0.5,
+    [],
+  );
   const nodeLabelFn = useCallback((node: NodeObject) => (node as GraphNode).label, []);
   const linkColorFn = useCallback(() => theme.link, [theme.link]);
   const linkParticlesFn = useCallback(
@@ -160,6 +177,7 @@ export function ForceGraph3DCanvas({
             backgroundColor={theme.background}
             showNavInfo={false}
             nodeRelSize={4}
+            nodeVal={nodeValFn}
             nodeId="id"
             nodeLabel={nodeLabelFn}
             nodeColor={nodeColorFn}

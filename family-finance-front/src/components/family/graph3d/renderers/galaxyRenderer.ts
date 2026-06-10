@@ -1,4 +1,5 @@
 import SpriteText from 'three-spritetext';
+import { Group } from 'three';
 import type { Object3D } from 'three';
 import type { GraphNode } from '../types';
 import type { NodeRenderer, RenderCtx } from './NodeRenderer';
@@ -10,6 +11,8 @@ export const galaxyRenderer: NodeRenderer = {
   kind: 'galaxy',
   extend: true, // default shar saqlanadi
   build(node: GraphNode, ctx: RenderCtx): Object3D {
+    // Katta grafda faqat markaziy (hub) tugunlar yorliqlanadi — label LOD.
+    if (!ctx.showLabel(node)) return new Group();
     const label = new SpriteText(node.label, LABEL_HEIGHT, ctx.theme.label);
     label.fontFace = 'Manrope, sans-serif';
     label.fontWeight = '600';

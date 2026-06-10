@@ -28,11 +28,13 @@ export const hybridRenderer: NodeRenderer = {
       }),
     );
     far.add(sphere);
-    const label = new SpriteText(node.label, 4, ctx.theme.label);
-    label.material.depthWrite = false;
-    label.material.transparent = true;
-    label.position.set(0, 7, 0);
-    far.add(label);
+    if (ctx.showLabel(node)) {
+      const label = new SpriteText(node.label, 4, ctx.theme.label);
+      label.material.depthWrite = false;
+      label.material.transparent = true;
+      label.position.set(0, 7, 0);
+      far.add(label);
+    }
     lod.addLevel(far, FAR_THRESHOLD);
 
     return lod;

@@ -19,6 +19,7 @@ export interface GraphNode {
   lastName?: string;
   scopeId?: number;
   generation: number; // ildizdan BFS chuqurlik (rang uchun)
+  degree?: number; // bog'lanishlar soni (node o'lchami / label LOD uchun)
   avatar?: string;
   deceased?: boolean;
   // force-engine tomonidan in-place qo'shiladi:
