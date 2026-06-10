@@ -3,9 +3,10 @@ import { Group } from 'three';
 import type { Object3D } from 'three';
 import type { GraphNode } from '../types';
 import type { NodeRenderer, RenderCtx } from './NodeRenderer';
+import { shortLabel } from './labelUtils';
 
 // "Galaktika": kutubxona default shari (rangi `nodeColor` orqali) + ustida ism yorlig'i.
-const LABEL_HEIGHT = 4;
+const LABEL_HEIGHT = 2.2;
 
 export const galaxyRenderer: NodeRenderer = {
   kind: 'galaxy',
@@ -13,7 +14,7 @@ export const galaxyRenderer: NodeRenderer = {
   build(node: GraphNode, ctx: RenderCtx): Object3D {
     // Katta grafda faqat markaziy (hub) tugunlar yorliqlanadi — label LOD.
     if (!ctx.showLabel(node)) return new Group();
-    const label = new SpriteText(node.label, LABEL_HEIGHT, ctx.theme.label);
+    const label = new SpriteText(shortLabel(node.label), LABEL_HEIGHT, ctx.theme.label);
     label.fontFace = 'Manrope, sans-serif';
     label.fontWeight = '600';
     // To'q kontur — bloom (glow) ostida ham ism aniq o'qiladi.
