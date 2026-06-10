@@ -34,10 +34,12 @@ export const avatarsRenderer: NodeRenderer = {
     ring.position.z = -0.5;
     group.add(ring);
 
-    // Avatar yoki initsial
-    const tex = node.avatar
-      ? ctx.textures.loadAvatar(node.avatar)
-      : ctx.textures.initialsTexture(getInitial(node.label), genderColor(node, ctx));
+    // Doiraviy avatar (rasm async yuklanadi, dastlab initsial ko'rinadi)
+    const tex = ctx.textures.avatar({
+      url: node.avatar,
+      initial: getInitial(node.label),
+      bg: genderColor(node, ctx),
+    });
     const mat = new THREE.SpriteMaterial({
       map: tex,
       transparent: true,
