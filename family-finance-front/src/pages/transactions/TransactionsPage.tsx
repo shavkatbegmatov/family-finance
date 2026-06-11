@@ -788,7 +788,7 @@ export function TransactionsPage() {
                     {isReversed && <span className="badge badge-warning badge-xs flex-none">Storno</span>}
                   </div>
                   {(t.description || t.familyMemberName) && (
-                    <p className="mt-0.5 truncate text-xs text-base-content/40">
+                    <p className="mt-0.5 truncate text-xs text-base-content/60">
                       {[t.familyMemberName, t.description].filter(Boolean).join(' · ')}
                     </p>
                   )}

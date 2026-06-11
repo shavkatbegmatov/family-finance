@@ -164,7 +164,7 @@ export function FamilyGroupSettings() {
                         <div>
                             <span className="text-sm font-semibold opacity-60 uppercase tracking-wider block mb-1">Joriy Manzil</span>
                             <div className="text-lg font-medium text-base-content">
-                                {groupData.currentAddress || <span className="text-base-content/40 italic">Manzil kiritilmagan</span>}
+                                {groupData.currentAddress || <span className="text-base-content/60 italic">Manzil kiritilmagan</span>}
                             </div>
                         </div>
                         <div className="flex gap-2">

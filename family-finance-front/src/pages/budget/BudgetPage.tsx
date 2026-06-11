@@ -287,15 +287,15 @@ export function BudgetPage() {
                 {/* Amounts */}
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="surface-soft rounded-lg p-2">
-                    <p className="text-[10px] text-base-content/50 uppercase tracking-wider">Byudjet</p>
+                    <p className="text-xs leading-tight text-base-content/50 uppercase tracking-wide">Byudjet</p>
                     <p className="text-sm font-semibold">{formatCurrency(budget.amount)}</p>
                   </div>
                   <div className="surface-soft rounded-lg p-2">
-                    <p className="text-[10px] text-base-content/50 uppercase tracking-wider">Sarflangan</p>
+                    <p className="text-xs leading-tight text-base-content/50 uppercase tracking-wide">Sarflangan</p>
                     <p className="text-sm font-semibold text-error">{formatCurrency(budget.spentAmount)}</p>
                   </div>
                   <div className="surface-soft rounded-lg p-2">
-                    <p className="text-[10px] text-base-content/50 uppercase tracking-wider">Qoldiq</p>
+                    <p className="text-xs leading-tight text-base-content/50 uppercase tracking-wide">Qoldiq</p>
                     <p className={clsx('text-sm font-semibold', budget.remainingAmount >= 0 ? 'text-success' : 'text-error')}>
                       {formatCurrency(Math.abs(budget.remainingAmount))}
                     </p>
@@ -309,7 +309,7 @@ export function BudgetPage() {
                       {budget.percentage.toFixed(1)}%
                     </span>
                     {isOverBudget && (
-                      <span className="text-[10px] text-error font-medium">
+                      <span className="text-xs text-error font-medium">
                         {formatCurrency(budget.spentAmount - budget.amount)} ortiqcha
                       </span>
                     )}

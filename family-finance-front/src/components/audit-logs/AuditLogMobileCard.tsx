@@ -219,7 +219,7 @@ function MobileFieldChangeRow({ change }: { change: FieldChange }) {
         >
           <span className="text-base-content/60 text-xs">Eski: </span>
           {change.isSensitive ? (
-            <span className="text-base-content/40">****** (Maxfiy)</span>
+            <span className="text-base-content/60">****** (Maxfiy)</span>
           ) : (
             <code className="bg-base-200 px-2 py-0.5 rounded text-xs break-all">
               {change.oldValueFormatted || '-'}
@@ -237,7 +237,7 @@ function MobileFieldChangeRow({ change }: { change: FieldChange }) {
         >
           <span className="text-base-content/60 text-xs">Yangi: </span>
           {change.isSensitive ? (
-            <span className="text-base-content/40">****** (Maxfiy)</span>
+            <span className="text-base-content/60">****** (Maxfiy)</span>
           ) : (
             <code className="bg-base-200 px-2 py-0.5 rounded text-xs break-all">
               {change.newValueFormatted || '-'}

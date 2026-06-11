@@ -123,7 +123,7 @@ export function AuditLogGroupCard({ group }: AuditLogGroupCardProps) {
       className="flex items-center justify-between py-3 px-4 border-b border-base-200 last:border-0 hover:bg-base-100/50 transition-colors"
     >
       <div className="flex items-start gap-3 flex-1 min-w-0">
-        <span className="text-base-content/40 text-sm font-mono w-6 flex-shrink-0">
+        <span className="text-base-content/60 text-sm font-mono w-6 flex-shrink-0">
           {index + 1}.
         </span>
         <div className="flex-1 min-w-0">

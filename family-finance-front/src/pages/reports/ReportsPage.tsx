@@ -510,7 +510,7 @@ export function ReportsPage() {
                           <p className="font-medium">{cat.categoryName}</p>
                           <p className="text-sm text-base-content/60">
                             {formatCurrency(cat.amount)}
-                            <span className="ml-2 text-base-content/40">{cat.percentage.toFixed(1)}%</span>
+                            <span className="ml-2 text-base-content/60">{cat.percentage.toFixed(1)}%</span>
                           </p>
                         </div>
                       </div>

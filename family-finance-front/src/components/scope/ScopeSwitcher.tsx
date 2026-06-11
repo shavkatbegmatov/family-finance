@@ -197,7 +197,7 @@ function ActiveScopeBadge({ scope }: { scope: Scope | null }) {
         <Icon className="h-3.5 w-3.5" />
       </div>
       <div className="flex flex-col items-start min-w-0">
-        <span className="text-[10px] uppercase tracking-wider text-base-content/40 leading-none">
+        <span className="text-xs uppercase tracking-wide text-base-content/60 leading-none">
           {meta.label}
         </span>
         <span className="text-sm font-semibold truncate max-w-[180px]">{scope.name}</span>
@@ -280,7 +280,7 @@ function ScopeOption({
           {role === 'OWNER' && <Crown className="h-3 w-3 text-amber-400" />}
           {role === 'ADMIN' && <ShieldCheck className="h-3 w-3 text-emerald-400" />}
         </div>
-        <span className="text-[10px] uppercase tracking-wider text-base-content/40">
+        <span className="text-xs uppercase tracking-wide text-base-content/60">
           {meta.label}
           {role && <span className={clsx('ml-1.5', ROLE_TONE[role])}>· {ROLE_LABEL[role]}</span>}
         </span>

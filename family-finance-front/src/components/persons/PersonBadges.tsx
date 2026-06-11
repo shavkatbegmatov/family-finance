@@ -73,7 +73,7 @@ const BADGES: Record<BadgeDef['key'], BadgeDef> = {
 
 const SIZE_CLASSES = {
   xs: {
-    container: 'h-5 px-1.5 text-[10px] gap-1',
+    container: 'h-5 px-1.5 text-xs gap-1',
     icon: 'h-3 w-3',
   },
   sm: {

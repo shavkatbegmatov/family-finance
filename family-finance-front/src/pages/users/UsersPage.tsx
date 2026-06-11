@@ -895,7 +895,7 @@ export function UsersPage() {
                         <span key={role.id} className="badge badge-primary badge-sm">{role.name}</span>
                       ))
                     ) : (
-                      <span className="text-sm text-base-content/30">Rollar biriktirilmagan</span>
+                      <span className="text-sm text-base-content/60">Rollar biriktirilmagan</span>
                     )}
                   </div>
                 </div>
@@ -1022,11 +1022,11 @@ export function UsersPage() {
                           className={`grid grid-cols-2 border-b border-base-200 last:border-0 ${changed ? 'bg-warning/5' : ''}`}
                         >
                           <div className={`px-3 py-2 ${changed ? 'bg-error/5' : ''}`}>
-                            <p className="text-xs text-base-content/40 mb-0.5">{label}</p>
-                            <p className={`truncate ${changed ? 'line-through text-base-content/40' : ''}`}>{oldVal}</p>
+                            <p className="text-xs text-base-content/60 mb-0.5">{label}</p>
+                            <p className={`truncate ${changed ? 'line-through text-base-content/60' : ''}`}>{oldVal}</p>
                           </div>
                           <div className={`px-3 py-2 border-l border-base-200 ${changed ? 'bg-success/5' : ''}`}>
-                            <p className="text-xs text-base-content/40 mb-0.5">{label}</p>
+                            <p className="text-xs text-base-content/60 mb-0.5">{label}</p>
                             <p className={`truncate ${changed ? 'font-medium text-success' : ''}`}>{newVal}</p>
                           </div>
                         </div>
@@ -1042,7 +1042,7 @@ export function UsersPage() {
                     </div>
                   )}
 
-                  <p className="text-xs text-base-content/40 text-center">
+                  <p className="text-xs text-base-content/60 text-center">
                     Bu faqat ko'rinish - hali saqlanmagan
                   </p>
                 </div>
@@ -1377,7 +1377,7 @@ export function UsersPage() {
                         </div>
                       ))
                     ) : (
-                      <span className="text-sm text-base-content/30">Rollar biriktirilmagan</span>
+                      <span className="text-sm text-base-content/60">Rollar biriktirilmagan</span>
                     )}
                   </div>
                 </div>

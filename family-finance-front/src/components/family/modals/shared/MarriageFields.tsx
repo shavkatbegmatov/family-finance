@@ -52,7 +52,7 @@ export function MarriageFields({
 
   return (
     <>
-      <div className="divider text-xs text-base-content/40">Nikoh</div>
+      <div className="divider text-xs text-base-content/60">Nikoh</div>
       {typeField}
       {dateField}
     </>

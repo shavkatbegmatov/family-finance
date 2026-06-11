@@ -172,7 +172,7 @@ export function BottomNav() {
                     >
                       <item.icon className="h-5 w-5" />
                     </span>
-                    <span className="w-full truncate text-[11px] font-medium leading-tight">{item.label}</span>
+                    <span className="w-full truncate text-xs font-medium leading-tight">{item.label}</span>
                   </>
                 )}
               </NavLink>

@@ -178,7 +178,7 @@ export function PointsLayout() {
           style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
         >
           <div className="p-2">
-            <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-base-content/40">
+            <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-base-content/60">
               Qo'shimcha
             </div>
             {filteredSecondary.map((tab) => {

@@ -157,7 +157,7 @@ export function SelectFamilyUnitModal({
                         {fu.marriageDate && ` - ${fu.marriageDate}`}
                       </p>
                     </div>
-                    <span className="text-xs text-base-content/40">
+                    <span className="text-xs text-base-content/60">
                       {fu.children.length} farzand
                     </span>
                   </button>

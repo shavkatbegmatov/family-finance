@@ -61,7 +61,7 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
         aria-label={`Aktiv scope: ${activeScope.name}. Almashtirish uchun bosing`}
       >
         <Icon className={clsx('h-3 w-3 shrink-0', meta.toneClass.split(' ')[0])} />
-        <span className="truncate text-[11px] font-semibold leading-none text-base-content/60">
+        <span className="truncate text-xs font-semibold leading-none text-base-content/60">
           {activeScope.name}
         </span>
         <ChevronDown className="h-3 w-3 shrink-0 text-base-content/40" />
@@ -166,7 +166,7 @@ function MobileScopeOption({
           {role === 'OWNER' && <Crown className="h-3 w-3 shrink-0 text-amber-400" />}
           {role === 'ADMIN' && <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-400" />}
         </div>
-        <span className="text-[11px] uppercase tracking-wider text-base-content/40">
+        <span className="text-xs uppercase tracking-wide text-base-content/60">
           {meta.label}
           {role && <span className={clsx('ml-1.5', ROLE_TONE[role])}>· {ROLE_LABEL[role]}</span>}
         </span>

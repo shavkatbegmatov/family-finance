@@ -320,7 +320,7 @@ function OverviewTab({ data }: { data: MemberFinancialSummary }) {
             <div>
               <h3 className="text-lg font-bold">{profile.firstName}</h3>
               {profile.lastName && <p className="text-sm text-base-content/60">{profile.lastName}</p>}
-              {profile.middleName && <p className="text-xs italic text-base-content/40">{profile.middleName}</p>}
+              {profile.middleName && <p className="text-xs italic text-base-content/60">{profile.middleName}</p>}
             </div>
           </div>
           <div className="space-y-3">
@@ -506,7 +506,7 @@ function TransactionsTab({
         </div>
         <p className="text-xs text-base-content/60 truncate">{t.categoryName || t.description || '\u2014'}</p>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-base-content/40">{formatDateTime(t.transactionDate)}</span>
+          <span className="text-xs text-base-content/60">{formatDateTime(t.transactionDate)}</span>
           <span className={`badge badge-sm ${(t.status || 'CONFIRMED') === 'CONFIRMED' ? 'badge-success' : 'badge-warning'}`}>
             {(t.status || 'CONFIRMED') === 'CONFIRMED' ? 'Tasdiqlangan' : 'Kutilmoqda'}
           </span>
@@ -644,7 +644,7 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center py-12 text-base-content/40">
+          <div className="flex items-center justify-center py-12 text-base-content/60">
             Ma'lumot mavjud emas
           </div>
         )}
@@ -677,7 +677,7 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
               </RechartsPie>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center py-12 text-base-content/40">
+            <div className="flex items-center justify-center py-12 text-base-content/60">
               Xarajat mavjud emas
             </div>
           )}
@@ -708,7 +708,7 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
               </RechartsPie>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center py-12 text-base-content/40">
+            <div className="flex items-center justify-center py-12 text-base-content/60">
               Daromad mavjud emas
             </div>
           )}

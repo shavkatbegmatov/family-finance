@@ -361,11 +361,11 @@ export function SavingsPage() {
                     {/* Amounts */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="surface-soft rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-base-content/50 uppercase tracking-wider">Maqsad</p>
+                        <p className="text-xs leading-tight text-base-content/50 uppercase tracking-wide">Maqsad</p>
                         <p className="text-sm font-semibold">{formatCurrency(goal.targetAmount)}</p>
                       </div>
                       <div className="surface-soft rounded-lg p-2 text-center">
-                        <p className="text-[10px] text-base-content/50 uppercase tracking-wider">Joriy</p>
+                        <p className="text-xs leading-tight text-base-content/50 uppercase tracking-wide">Joriy</p>
                         <p className="text-sm font-semibold text-primary">{formatCurrency(goal.currentAmount)}</p>
                       </div>
                     </div>
@@ -379,7 +379,7 @@ export function SavingsPage() {
                         )}>
                           {goal.percentage.toFixed(1)}%
                         </span>
-                        <span className="text-[10px] text-base-content/50">
+                        <span className="text-xs text-base-content/50">
                           {formatCurrency(goal.targetAmount - goal.currentAmount)} qoldi
                         </span>
                       </div>

@@ -522,7 +522,7 @@ export function DatePicker({
           {WEEKDAYS.map((day) => (
             <div
               key={day}
-              className="flex h-6 items-center justify-center text-[10px] font-semibold text-primary/60"
+              className="flex h-6 items-center justify-center text-xs leading-none font-semibold text-primary/60"
             >
               {day}
             </div>

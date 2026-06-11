@@ -183,10 +183,10 @@ export function BanksPage() {
                                         <div className="flex flex-wrap gap-1 max-w-[280px]">
                                             {bank.binPrefixes && bank.binPrefixes.length > 0 ? (
                                                 bank.binPrefixes.map((bin: string) => (
-                                                    <span key={bin} className="badge badge-sm badge-info font-mono text-[10px]">{bin}</span>
+                                                    <span key={bin} className="badge badge-sm badge-info font-mono text-xs">{bin}</span>
                                                 ))
                                             ) : (
-                                                <span className="text-xs text-base-content/40 italic">Bin yo'q</span>
+                                                <span className="text-xs text-base-content/60 italic">Bin yo'q</span>
                                             )}
                                         </div>
                                     </td>

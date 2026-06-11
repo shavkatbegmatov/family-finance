@@ -262,7 +262,7 @@ export function HouseholdPage() {
                 <div className="flex-none text-right">
                   <p className="text-sm font-bold tabular-nums">{formatCurrency(account.balance)}</p>
                   {account.currency && account.currency !== 'UZS' && (
-                    <p className="text-[11px] text-base-content/50">{account.currency}</p>
+                    <p className="text-xs text-base-content/50">{account.currency}</p>
                   )}
                 </div>
               </div>
@@ -389,7 +389,7 @@ function MemberCard({
       {canRemove && (
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove?.(); }}
-          className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-base-content/30 opacity-0 transition hover:bg-error/10 hover:text-error group-hover:opacity-100"
+          className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full text-base-content/60 opacity-0 transition hover:bg-error/10 hover:text-error group-hover:opacity-100"
           title="Guruhdan chiqarish"
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -436,13 +436,13 @@ function MemberCard({
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-success/10 p-2 text-center">
-          <p className="text-[10px] font-medium uppercase text-success/70">Daromad</p>
+          <p className="text-xs font-medium uppercase text-success/70">Daromad</p>
           <p className="text-sm font-bold text-success">
             +{formatCompactCurrency(member.monthlyIncome)}
           </p>
         </div>
         <div className="rounded-lg bg-error/10 p-2 text-center">
-          <p className="text-[10px] font-medium uppercase text-error/70">Xarajat</p>
+          <p className="text-xs font-medium uppercase text-error/70">Xarajat</p>
           <p className="text-sm font-bold text-error">
             -{formatCompactCurrency(member.monthlyExpense)}
           </p>
