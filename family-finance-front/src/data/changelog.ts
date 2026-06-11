@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.8',
+        date: '2026-06-11 23:59',
+        title: "Yangi foydalanuvchilar uchun boshlash qo'llanmasi",
+        features: [
+            "Bosh sahifada endi yangi foydalanuvchini kutib oladigan \"Boshlash uchun qadamlar\" bo'limi bor: hisob qo'shish → tranzaksiya kiritish → byudjet belgilash → oila a'zosini qo'shish. Har qadam kerakli sahifaga olib boradi, bajarilganlari belgilanib boradi.",
+            "Qadamlar bajarilgach (yoki xohlasangiz yopib qo'ysangiz) bo'lim qayta ko'rinmaydi — tajribali foydalanuvchilarga umuman xalaqit bermaydi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.7.7',
         date: '2026-06-11 23:15',
         title: "Yosh va sana ko'rsatkichlari aniqlandi",
