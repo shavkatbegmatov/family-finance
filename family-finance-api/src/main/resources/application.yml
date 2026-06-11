@@ -39,13 +39,21 @@ jwt:
   expiration: 3600000 # 1 hour in milliseconds
   refresh-expiration: 86400000 # 1 day
 
-# Swagger/OpenAPI
+# Swagger/OpenAPI (prod profilda butunlay o'chiriladi — application-prod.yml)
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
+
+# Actuator — faqat health ochiq (env/beans/heapdump kabi endpoint'lar sir
+# va konfiguratsiya sizdirishi mumkin; aniq ro'yxat kelajak xatolaridan himoya)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
 
 # Card Encryption
 app:
