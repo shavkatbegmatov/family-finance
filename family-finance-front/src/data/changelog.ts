@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.9',
+        date: '2026-06-12 00:30',
+        title: "Xavfsizlik kuchaytirildi",
+        features: [],
+        fixes: [
+            "Kirish sahifasidagi demo-hisob tugmasi endi faqat dasturchi muhitida ko'rinadi — ishlab turgan saytda hisob ma'lumotlari ko'rsatilmaydi.",
+        ],
+    },
+    {
         version: '1.7.8',
         date: '2026-06-11 23:59',
         title: "Yangi foydalanuvchilar uchun boshlash qo'llanmasi",

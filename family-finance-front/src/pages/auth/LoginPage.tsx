@@ -162,18 +162,21 @@ export function LoginPage() {
             </button>
           </form>
 
-          {/* Demo kirish — bosib to'ldirish */}
-          <div className="mt-5 rounded-2xl border border-base-200 bg-base-200/40 p-3.5">
-            <p className="mb-2 text-xs font-semibold text-base-content/70">Demo hisob (bosing)</p>
-            <button
-              type="button"
-              onClick={() => fillDemo('admin', 'admin123')}
-              className="tap-sm block w-full rounded-xl border border-base-200 bg-base-100 px-3 py-2 text-left"
-            >
-              <span className="block text-xs font-semibold">Administrator</span>
-              <span className="block text-xs text-base-content/50">admin / admin123</span>
-            </button>
-          </div>
+          {/* Demo kirish — FAQAT dev build'da (prod'da admin credentiallarini
+              har tashrifchiga ko'rsatish xavfsizlik teshigi edi) */}
+          {import.meta.env.DEV && (
+            <div className="mt-5 rounded-2xl border border-base-200 bg-base-200/40 p-3.5">
+              <p className="mb-2 text-xs font-semibold text-base-content/70">Demo hisob (bosing)</p>
+              <button
+                type="button"
+                onClick={() => fillDemo('admin', 'admin123')}
+                className="tap-sm block w-full rounded-xl border border-base-200 bg-base-100 px-3 py-2 text-left"
+              >
+                <span className="block text-xs font-semibold">Administrator</span>
+                <span className="block text-xs text-base-content/50">admin / admin123</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Pastki qism */}
