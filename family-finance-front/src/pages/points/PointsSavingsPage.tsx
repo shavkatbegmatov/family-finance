@@ -20,6 +20,7 @@ import {
   PointsActionBar,
   PointsEmptyState,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -167,6 +168,22 @@ export function PointsSavingsPage() {
   const getInvestmentTypeInfo = (type: string) =>
     PointInvestmentTypes.find((t) => t.value === type) ?? { label: type, description: '', color: '' };
 
+  // Investitsiya amal tugmalari — desktop jadval (xs) va mobil karta (sm) baham ishlatadi.
+  const renderInvestmentActions = (inv: PointInvestment, size: 'xs' | 'sm') => {
+    const btn = size === 'xs' ? 'btn-xs' : 'btn-sm';
+    if (inv.isActive) {
+      return (
+        <button
+          className={clsx('btn btn-warning', btn)}
+          onClick={() => handleSellInvestment(inv.id)}
+        >
+          Sotish
+        </button>
+      );
+    }
+    return <span className="badge badge-ghost badge-xs">Sotilgan</span>;
+  };
+
   if (!canViewPoints) {
     return <PointsPermissionState />;
   }
@@ -294,7 +311,43 @@ export function PointsSavingsPage() {
                 description="Yangi investitsiya qo'shish orqali daromadni oshiring."
               />
             ) : (
-              <PointsTableShell>
+              <PointsTableShell
+                mobileCards={investments.map((inv) => {
+                  const typeInfo = getInvestmentTypeInfo(inv.type);
+                  return (
+                    <PointsMobileCard
+                      key={inv.id}
+                      title={
+                        <span className={clsx('font-medium', typeInfo.color)}>
+                          {typeInfo.label}
+                        </span>
+                      }
+                      subtitle={typeInfo.description || undefined}
+                      trailing={
+                        <span className="text-base font-bold text-primary">
+                          {inv.currentValue.toLocaleString()}
+                        </span>
+                      }
+                      rows={[
+                        { label: 'Kiritilgan', value: inv.investedAmount.toLocaleString() },
+                        {
+                          label: 'Foyda %',
+                          value: (
+                            <span className={clsx(
+                              'font-medium',
+                              inv.profitPercentage >= 0 ? 'text-success' : 'text-error'
+                            )}>
+                              {inv.profitPercentage >= 0 ? '+' : ''}{inv.profitPercentage.toFixed(1)}%
+                            </span>
+                          ),
+                        },
+                        { label: 'Sana', value: formatDate(inv.investedAt) },
+                      ]}
+                      actions={renderInvestmentActions(inv, 'sm')}
+                    />
+                  );
+                })}
+              >
                 <table className="table table-sm">
                   <thead>
                     <tr>
@@ -328,19 +381,7 @@ export function PointsSavingsPage() {
                             </span>
                           </td>
                           <td className="text-sm">{formatDate(inv.investedAt)}</td>
-                          <td>
-                            {inv.isActive && (
-                              <button
-                                className="btn btn-warning btn-xs"
-                                onClick={() => handleSellInvestment(inv.id)}
-                              >
-                                Sotish
-                              </button>
-                            )}
-                            {!inv.isActive && (
-                              <span className="badge badge-ghost badge-xs">Sotilgan</span>
-                            )}
-                          </td>
+                          <td>{renderInvestmentActions(inv, 'xs')}</td>
                         </tr>
                       );
                     })}

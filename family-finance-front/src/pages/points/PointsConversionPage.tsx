@@ -13,6 +13,7 @@ import { Select } from '../../components/ui/Select';
 import {
   PointsEmptyState,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -225,7 +226,23 @@ export function PointsConversionPage() {
               />
             ) : (
               <>
-                <PointsTableShell>
+                <PointsTableShell
+                  mobileCards={conversions.map((c) => (
+                    <PointsMobileCard
+                      key={c.id}
+                      title={formatDate(c.conversionDate)}
+                      trailing={
+                        <span className="text-base font-bold text-success">
+                          {c.moneyAmount.toLocaleString()} {c.currency}
+                        </span>
+                      }
+                      rows={[
+                        { label: 'Ball', value: c.pointsConverted.toLocaleString() },
+                        { label: 'Kurs', value: c.conversionRate },
+                      ]}
+                    />
+                  ))}
+                >
                   <table className="table table-xs">
                     <thead>
                       <tr>

@@ -16,6 +16,7 @@ import {
   PointsEmptyState,
   PointsGamifiedBadge,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -429,30 +430,43 @@ export function PointsChallengesPage() {
           </div>
           {results.length === 0 ? (
             <p className="text-center py-8 text-base-content/50">Natijalar topilmadi</p>
-          ) : (
-            <PointsTableShell>
-              <table className="table table-sm">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Ishtirokchi</th>
-                    <th>Ball</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {results
-                    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-                    .map((r, idx) => (
+          ) : (() => {
+            const ranked = [...results].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+            return (
+              <PointsTableShell
+                mobileCards={ranked.map((r, idx) => (
+                  <PointsMobileCard
+                    key={r.participantId}
+                    title={r.participantName}
+                    trailing={<span className="text-base font-bold text-primary">{r.score}</span>}
+                    rows={[
+                      { label: "O'rin", value: `#${idx + 1}` },
+                    ]}
+                    className={clsx(idx < 3 && 'font-semibold')}
+                  />
+                ))}
+              >
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Ishtirokchi</th>
+                      <th>Ball</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ranked.map((r, idx) => (
                       <tr key={r.participantId} className={clsx(idx < 3 && 'font-semibold')}>
                         <td>{idx + 1}</td>
                         <td>{r.participantName}</td>
                         <td className="text-primary font-bold">{r.score}</td>
                       </tr>
                     ))}
-                </tbody>
-              </table>
-            </PointsTableShell>
-          )}
+                  </tbody>
+                </table>
+              </PointsTableShell>
+            );
+          })()}
         </div>
       </ModalPortal>
     </PointsPageShell>
