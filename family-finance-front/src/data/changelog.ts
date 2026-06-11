@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.1',
+        date: '2026-06-11 17:30',
+        title: "Telefonda scope (urug'/xonadon) almashtirish qaytdi",
+        features: [
+            "Telefonda endi aktiv urug' yoki xonadonni almashtirish mumkin — sahifa sarlavhasi ostida joriy scope nomi chip ko'rinishida turadi, bosilganda pastdan ochiluvchi varaqdan boshqa urug'/xonadon/loyihani tanlaysiz. Avval bu imkoniyat faqat kompyuterda (keng ekranda) bor edi.",
+            "Joriy scope nomi mobil sarlavhada doim ko'rinib turadi — qaysi urug'/xonadon kontekstida ishlayotganingiz aniq bo'ladi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.7.0',
         date: '2026-06-11 16:00',
         title: "Mobil ko'rinish: yagona dizayn standarti",

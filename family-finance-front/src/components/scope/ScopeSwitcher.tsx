@@ -6,35 +6,16 @@ import { useAuthStore } from '../../store/authStore';
 import { useScopeStore } from '../../store/scopeStore';
 import { scopesApi } from '../../api/scopes.api';
 import type { ApiResponse } from '../../types';
-import type { Scope, ScopeRole } from '../../types/scope.types';
+import type { Scope } from '../../types/scope.types';
 import { SCOPE_TYPE_META } from './scopeTypeMeta';
 import { useSwitchScope } from '../../hooks/useSwitchScope';
+import { groupScopesByClan, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
 
 /**
  * SCOPE_CHANGED_EVENT endi {@link useSwitchScope} hook'ida e'lon qilingan — bu yerdan
  * re-export (mavjud import qiluvchilar, masalan useScopeChangeEffect, buzilmasligi uchun).
  */
 export { SCOPE_CHANGED_EVENT } from '../../hooks/useSwitchScope';
-
-// =============================================================================
-// Constants
-// =============================================================================
-
-const ROLE_LABEL: Record<ScopeRole, string> = {
-  OWNER: 'Egasi',
-  ADMIN: 'Admin',
-  MEMBER: 'A\'zo',
-  VIEWER: 'Ko\'ruvchi',
-  GUEST: 'Mehmon',
-};
-
-const ROLE_TONE: Record<ScopeRole, string> = {
-  OWNER: 'text-amber-400',
-  ADMIN: 'text-emerald-400',
-  MEMBER: 'text-sky-400',
-  VIEWER: 'text-base-content/50',
-  GUEST: 'text-violet-400',
-};
 
 // =============================================================================
 // Component
@@ -311,53 +292,4 @@ function ScopeOption({
   );
 }
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
-interface ScopeGroupData {
-  key: string;
-  clanName: string | null;
-  scopes: Scope[];
-}
-
-/**
- * Scope'larni Clan bo'yicha guruhlash. CLAN o'zi va uning bevosita farzandlari
- * (HOUSEHOLD, PROJECT, EVENT, h.k.) bir guruhda. Clan'siz scope'lar (PROJECT
- * to'g'ridan-to'g'ri user uchun, ya'ni parentSiz bo'lsa) "Boshqa" guruhida.
- */
-function groupScopesByClan(scopes: Scope[]): ScopeGroupData[] {
-  if (scopes.length === 0) return [];
-
-  const groups = new Map<string, ScopeGroupData>();
-  const clansById = new Map<number, Scope>();
-
-  // Avval barcha CLAN'larni topish
-  for (const s of scopes) {
-    if (s.type === 'CLAN') {
-      clansById.set(s.id, s);
-      groups.set(`clan-${s.id}`, {
-        key: `clan-${s.id}`,
-        clanName: s.name,
-        scopes: [s],
-      });
-    }
-  }
-
-  // Keyin qolganlarini parent bo'yicha taqsimlash
-  for (const s of scopes) {
-    if (s.type === 'CLAN') continue;
-    const parentClan = s.parentScopeId ? clansById.get(s.parentScopeId) : null;
-    if (parentClan) {
-      const group = groups.get(`clan-${parentClan.id}`)!;
-      group.scopes.push(s);
-    } else {
-      const other = groups.get('other') ?? { key: 'other', clanName: null, scopes: [] };
-      other.scopes.push(s);
-      groups.set('other', other);
-    }
-  }
-
-  return Array.from(groups.values());
-}
 

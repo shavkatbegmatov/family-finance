@@ -26,7 +26,7 @@ import { authApi } from '../../api/auth.api';
 import { ROLES } from '../../config/constants';
 import { clearIntendedPath } from '../../utils/sessionNavigation';
 import { SearchCommand } from '../common/SearchCommand';
-import { ScopeSwitcher } from '../scope';
+import { MobileScopeSwitcher, ScopeSwitcher } from '../scope';
 import { WhatsNewModal } from '../common/WhatsNewModal';
 import { BrandMark } from '../common/BrandLogo';
 import { LATEST_VERSION } from '../../data/changelog';
@@ -239,10 +239,13 @@ export function Header() {
 
           {/* Multi-level breadcrumb navigation */}
           <div className="flex items-center gap-1.5 min-w-0">
-            {/* On mobile: show only last crumb as title */}
-            <h1 className="text-base font-bold text-base-content lg:text-lg sm:hidden truncate">
-              {title}
-            </h1>
+            {/* On mobile: sahifa sarlavhasi + ostida aktiv scope chip (almashtirish varaq ochadi) */}
+            <div className="flex min-w-0 flex-col gap-0.5 sm:hidden">
+              <h1 className="truncate text-base font-bold leading-tight text-base-content">
+                {title}
+              </h1>
+              <MobileScopeSwitcher />
+            </div>
             {/* On desktop: full breadcrumb chain */}
             <nav className="hidden sm:flex items-center gap-1.5 min-w-0" aria-label="Breadcrumb">
               {crumbs.map((crumb, index) => {
@@ -282,8 +285,11 @@ export function Header() {
             <SearchCommand />
           </div>
 
-          {/* Phase 3: ScopeSwitcher — aktiv scope (Clan/Xonadon/Loyiha) almashtirish */}
-          <div className="hidden lg:flex ml-2">
+          {/* ScopeSwitcher — aktiv scope (Clan/Xonadon/Loyiha) almashtirish.
+              sm+ da dropdown; <sm da sarlavha ostidagi MobileScopeSwitcher chip ishlaydi.
+              E'tibor: bu komponent scope ro'yxatini yuklaydi, shuning uchun barcha
+              o'lchamlarda mount bo'lib turishi kerak (faqat CSS bilan yashirinadi). */}
+          <div className="hidden sm:flex ml-2">
             <ScopeSwitcher />
           </div>
 
