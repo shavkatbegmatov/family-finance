@@ -342,7 +342,7 @@ export function Header() {
             >
               <Bell className="h-4 w-4" />
               {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-error text-[10px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-error text-xs font-bold leading-none text-white">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -396,7 +396,7 @@ export function Header() {
                           <p className="text-xs text-base-content/60 mt-0.5 line-clamp-1">
                             {notification.message}
                           </p>
-                          <p className="text-xs text-base-content/40 mt-1">
+                          <p className="text-xs text-base-content/60 mt-1">
                             {formatTimeAgo(notification.createdAt)}
                           </p>
                         </div>
@@ -452,7 +452,7 @@ export function Header() {
                 >
                   {user?.fullName}
                 </div>
-                <div className="text-[10px] text-base-content/50 uppercase tracking-wider truncate">
+                <div className="text-xs text-base-content/50 uppercase tracking-wide truncate">
                   {user?.role && getRoleLabel(user.role)}
                 </div>
               </div>
@@ -489,7 +489,7 @@ export function Header() {
                     </p>
                     <div
                       className={clsx(
-                        'inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium border',
+                        'inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium border',
                         getRoleBadgeColor(user?.role)
                       )}
                     >

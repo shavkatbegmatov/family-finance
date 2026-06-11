@@ -60,7 +60,7 @@ export function CapabilityFilterChips({
 }: CapabilityFilterChipsProps) {
   return (
     <div className={clsx('flex flex-wrap items-center gap-1.5', className)}>
-      <span className="text-xs text-base-content/40 mr-1">Tezkor filter:</span>
+      <span className="text-xs text-base-content/60 mr-1">Tezkor filter:</span>
       {CHIPS.map((chip) => {
         const Icon = chip.icon;
         const isActive = value === chip.key;
@@ -86,7 +86,7 @@ export function CapabilityFilterChips({
             {count !== undefined && (
               <span
                 className={clsx(
-                  'rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none',
+                  'rounded-full px-1.5 py-0.5 text-xs font-semibold leading-none',
                   isActive
                     ? 'bg-base-100/30 text-current'
                     : 'bg-base-200 text-base-content/60',

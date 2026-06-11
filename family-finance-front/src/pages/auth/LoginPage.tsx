@@ -171,7 +171,7 @@ export function LoginPage() {
               className="tap-sm block w-full rounded-xl border border-base-200 bg-base-100 px-3 py-2 text-left"
             >
               <span className="block text-xs font-semibold">Administrator</span>
-              <span className="block text-[11px] text-base-content/50">admin / admin123</span>
+              <span className="block text-xs text-base-content/50">admin / admin123</span>
             </button>
           </div>
         </div>
@@ -184,7 +184,7 @@ export function LoginPage() {
               Ro'yxatdan o'tish
             </Link>
           </p>
-          <p className="flex items-center gap-1.5 text-[11px] text-base-content/40">
+          <p className="flex items-center gap-1.5 text-xs text-base-content/60">
             <ShieldCheck className="h-3.5 w-3.5" />
             Xavfsiz va rolga asoslangan kirish
           </p>

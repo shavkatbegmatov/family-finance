@@ -603,7 +603,7 @@ export function FamilyMembersPage() {
             <div className="flex items-center gap-3 shrink-0">
               {/* Total count */}
               {!loading && (
-                <span className="text-sm text-base-content/40 whitespace-nowrap">
+                <span className="text-sm text-base-content/60 whitespace-nowrap">
                   Jami: <strong className="text-base-content/70">{totalElements}</strong> ta
                 </span>
               )}
@@ -613,7 +613,7 @@ export function FamilyMembersPage() {
 
               {/* Page size selector */}
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-base-content/40 whitespace-nowrap">Ko'rsatish:</span>
+                <span className="text-xs text-base-content/60 whitespace-nowrap">Ko'rsatish:</span>
                 <div className="flex gap-0.5 bg-base-200 rounded-lg p-0.5">
                   {(['auto', 10, 20, 50, 100] as const).map((size) => (
                     <button
@@ -828,7 +828,7 @@ export function FamilyMembersPage() {
                     {loadingMore ? (
                       <Loader2 className="h-5 w-5 animate-spin text-base-content/40" />
                     ) : hasMore ? null : allMembers.length > 0 ? (
-                      <span className="text-xs text-base-content/30">Hammasi yuklandi</span>
+                      <span className="text-xs text-base-content/60">Hammasi yuklandi</span>
                     ) : null}
                   </div>
                 )}
@@ -849,7 +849,7 @@ export function FamilyMembersPage() {
                       ref={tableHeadRef}
                       className="sticky top-0 z-10 bg-base-100 shadow-sm"
                     >
-                      <tr className="text-xs uppercase tracking-wider text-base-content/40 border-b border-base-200">
+                      <tr className="text-xs uppercase tracking-wider text-base-content/60 border-b border-base-200">
                         <th className="pl-5 py-3 w-[5%] bg-base-100">#</th>
                         <th className="py-3 w-[28%] bg-base-100">A'zo</th>
                         <th className="py-3 w-[12%] bg-base-100">Rol</th>
@@ -882,7 +882,7 @@ export function FamilyMembersPage() {
                             )}
                           >
                           {/* Index */}
-                          <td className="pl-5 py-3 text-sm text-base-content/30 font-mono">
+                          <td className="pl-5 py-3 text-sm text-base-content/60 font-mono">
                             {page * pageSize + idx + 1}
                           </td>
 
@@ -923,7 +923,7 @@ export function FamilyMembersPage() {
                                   className="mt-1"
                                 />
                                 {member.birthPlace && (
-                                  <p className="text-xs text-base-content/40 truncate max-w-[160px] mt-1">
+                                  <p className="text-xs text-base-content/60 truncate max-w-[160px] mt-1">
                                     {member.birthPlace}
                                   </p>
                                 )}
@@ -974,7 +974,7 @@ export function FamilyMembersPage() {
                             {age !== null ? (
                               <div className="text-sm">
                                 <span className="font-medium">{age} yosh</span>
-                                <span className="text-xs text-base-content/40 ml-1">
+                                <span className="text-xs text-base-content/60 ml-1">
                                   ({birthYear})
                                 </span>
                               </div>
@@ -1273,7 +1273,7 @@ export function FamilyMembersPage() {
                           }
                         />
                       </div>
-                      <p className="text-xs text-base-content/40">
+                      <p className="text-xs text-base-content/60">
                         {form.accountPassword
                           ? 'Kiritilgan parol ishlatiladi.'
                           : "Login va parol bo'sh qolsa, ism asosida avtomatik yaratiladi."}

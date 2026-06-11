@@ -35,14 +35,14 @@ export function Footer() {
               <span className="text-xs font-medium text-base-content/70">Family Finance</span>
             </div>
             <div className="h-3 w-px bg-base-300" />
-            <span className="text-[11px] text-base-content/50">© {year} Barcha huquqlar himoyalangan</span>
+            <span className="text-xs text-base-content/50">© {year} Barcha huquqlar himoyalangan</span>
           </div>
 
           {/* Center section - Quick Links */}
           <div className="flex items-center gap-1">
             <a
               href="#"
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
             >
               <Keyboard className="h-3 w-3" />
               Klaviatura
@@ -50,7 +50,7 @@ export function Footer() {
             </a>
             <a
               href="#"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
             >
               Yordam
               <ExternalLink className="h-2.5 w-2.5" />
@@ -59,7 +59,7 @@ export function Footer() {
               href="mailto:support@familyfinance.uz"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md px-2 py-1 text-[11px] text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
+              className="rounded-md px-2 py-1 text-xs text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
             >
               Qo'llab-quvvatlash
             </a>
@@ -69,10 +69,10 @@ export function Footer() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <Circle className="h-1.5 w-1.5 fill-success text-success animate-pulse" />
-              <span className="text-[11px] text-base-content/50">Tizim faol</span>
+              <span className="text-xs text-base-content/50">Tizim faol</span>
             </div>
             <div className="h-3 w-px bg-base-300" />
-            <span className="text-[11px] tabular-nums text-base-content/40">{formatTime(currentTime)}</span>
+            <span className="text-xs tabular-nums text-base-content/60">{formatTime(currentTime)}</span>
             <div className="h-3 w-px bg-base-300" />
             <button
               onClick={() => setWhatsNewOpen(true)}
@@ -82,8 +82,8 @@ export function Footer() {
                 "bg-base-200/50 hover:bg-primary/10 hover:text-primary active:scale-95"
               )}
             >
-              <span className="text-[9px] font-medium uppercase tracking-wider text-base-content/40">v</span>
-              <span className="text-[11px] font-semibold text-primary">{LATEST_VERSION}</span>
+              <span className="text-xs font-medium uppercase tracking-wide text-base-content/60">v</span>
+              <span className="text-xs font-semibold text-primary">{LATEST_VERSION}</span>
             </button>
           </div>
         </div>

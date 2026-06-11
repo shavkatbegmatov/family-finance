@@ -184,7 +184,7 @@ function AccountGridCard({
             {formatCurrency(account.balance)}
           </p>
           {account.currency && account.currency !== 'UZS' && (
-            <p className="text-xs text-base-content/40 mt-0.5">{account.currency}</p>
+            <p className="text-xs text-base-content/60 mt-0.5">{account.currency}</p>
           )}
         </div>
 

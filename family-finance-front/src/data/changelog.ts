@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.5',
+        date: '2026-06-11 21:30',
+        title: "Matnlar yirikroq va o'qishliroq bo'ldi",
+        features: [],
+        fixes: [
+            "Juda mayda (12px dan kichik) yozuvlar — yorliqlar, summalar, meta-ma'lumotlar — butun ilova bo'ylab standart o'lchamga ko'tarildi: telefonda ko'zni qiynamasdan o'qiladi.",
+            "Xira (past kontrastli) matnlar — tavsiflar, sanalar, yordam izohlar, bo'sh-holat xabarlari — to'qroq rangga o'tkazildi: yorug' kunda ham, qorong'i rejimda ham aniq ko'rinadi.",
+        ],
+    },
+    {
         version: '1.7.4',
         date: '2026-06-11 20:30',
         title: "Oynalar klaviatura va ekran o'quvchilari uchun qulay bo'ldi",

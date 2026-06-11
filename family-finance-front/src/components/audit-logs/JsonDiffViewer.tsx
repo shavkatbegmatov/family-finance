@@ -254,7 +254,7 @@ function JsonPanel({
       {/* Panel Content */}
       <div className="p-3 text-xs leading-relaxed overflow-auto flex-1 bg-base-200/30 font-mono">
         {isEmpty ? (
-          <span className="text-base-content/40 italic">{color.emptyText}</span>
+          <span className="text-base-content/60 italic">{color.emptyText}</span>
         ) : (
           highlighted
         )}

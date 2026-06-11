@@ -270,7 +270,7 @@ export function AccountDetailPage() {
         </div>
         <p className="text-xs text-base-content/60 truncate">{t.description || '—'}</p>
         <div className="flex items-center justify-between">
-          <span className="text-xs text-base-content/40">{formatDateTime(t.transactionDate)}</span>
+          <span className="text-xs text-base-content/60">{formatDateTime(t.transactionDate)}</span>
           <span className={`badge badge-sm ${t.status === 'CONFIRMED' ? 'badge-success' : t.status === 'PENDING' ? 'badge-warning' : 'badge-error'}`}>
             {t.status === 'CONFIRMED' ? 'Tasdiqlangan' : t.status === 'PENDING' ? 'Kutilmoqda' : 'Bekor'}
           </span>
@@ -432,12 +432,12 @@ export function AccountDetailPage() {
                     <p className="text-sm font-medium">{access.userFullName}</p>
                     <p className="text-xs text-base-content/50">{access.role}</p>
                   </div>
-                  <span className="text-xs text-base-content/40">{formatDate(access.grantedAt)}</span>
+                  <span className="text-xs text-base-content/60">{formatDate(access.grantedAt)}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-base-content/40">Foydalanuvchilar topilmadi</p>
+            <p className="text-sm text-base-content/60">Foydalanuvchilar topilmadi</p>
           )}
 
           {/* Cards */}

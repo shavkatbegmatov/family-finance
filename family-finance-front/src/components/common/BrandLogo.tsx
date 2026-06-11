@@ -107,7 +107,7 @@ export function BrandLogo({
             Family<span className="text-primary"> Finance</span>
           </div>
           {subtitle && (
-            <p className="truncate text-[11px] font-medium text-base-content/55">{subtitle}</p>
+            <p className="truncate text-xs font-medium text-base-content/55">{subtitle}</p>
           )}
         </div>
       )}

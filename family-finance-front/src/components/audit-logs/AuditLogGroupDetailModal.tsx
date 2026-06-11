@@ -81,7 +81,7 @@ export function AuditLogGroupDetailModal({ detail, onClose }: AuditLogGroupDetai
       className="flex items-center justify-between py-2 px-3 border-b border-base-200 last:border-0 text-sm"
     >
       <div className="flex items-center gap-2">
-        <span className="text-base-content/40 font-mono w-5">{index + 1}.</span>
+        <span className="text-base-content/60 font-mono w-5">{index + 1}.</span>
         <span className="font-medium">{getEntityTypeLabel(log.entityType)}</span>
         <span className={`badge badge-xs ${getActionBadgeClass(log.action)}`}>
           {translateAction(log.action)}

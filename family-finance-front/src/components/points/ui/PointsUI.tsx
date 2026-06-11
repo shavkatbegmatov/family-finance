@@ -312,7 +312,7 @@ export function PointsMobileCard({
         <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
           {rows.map((row, idx) => (
             <div key={idx} className="min-w-0">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-base-content/45">
+              <dt className="text-xs leading-tight font-medium uppercase tracking-wide text-base-content/45">
                 {row.label}
               </dt>
               <dd className="mt-0.5 truncate text-sm font-medium">{row.value}</dd>

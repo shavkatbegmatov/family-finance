@@ -217,7 +217,7 @@ export function InviteFamilyMemberModal({
                 <UserPlus className="h-[18px] w-[18px]" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-base-content/45">Family Invite</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-base-content/45">Family Invite</p>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2">
                   <h3 className="text-lg font-semibold tracking-tight text-base-content">A'zo qo'shish</h3>
                   <div className="relative" ref={helpPopoverRef}>
@@ -238,7 +238,7 @@ export function InviteFamilyMemberModal({
                         className="pointer-events-auto absolute left-0 top-[calc(100%+0.5rem)] z-[60] w-[min(22rem,calc(100vw-4rem))] rounded-2xl border border-base-300/70 bg-base-100 p-3.5 shadow-[var(--shadow-strong)]"
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-base-content/45">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-base-content/45">
                           Qidiruv bo'yicha yordam
                         </p>
                         <p className="mt-2 text-sm leading-6 text-base-content/70">
@@ -289,7 +289,7 @@ export function InviteFamilyMemberModal({
                     key={item.value}
                     type="button"
                     className={clsx(
-                      'rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition',
+                      'rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-wide transition',
                       isActive
                         ? 'border-primary/25 bg-primary/10 text-primary shadow-[0_10px_24px_-16px_hsl(var(--p)/0.4)]'
                         : 'border-base-300 bg-base-100 text-base-content/60 hover:border-base-content/30 hover:bg-base-200/40 hover:text-base-content'
@@ -308,7 +308,7 @@ export function InviteFamilyMemberModal({
             <div className="surface-card flex min-h-[26rem] flex-col rounded-2xl border-base-300/70 shadow-[var(--shadow-soft)]">
               <div className="shrink-0 flex items-center justify-between border-b border-base-300/60 px-4 py-3">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">Candidates</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-base-content/45">Candidates</p>
                   <p className="mt-1 text-sm font-semibold tracking-tight text-base-content">Topilgan foydalanuvchilar</p>
                   <p className="mt-0.5 text-xs text-base-content/50">
                     {debouncedSearch
@@ -366,7 +366,7 @@ export function InviteFamilyMemberModal({
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="truncate text-sm font-semibold">{candidate.fullName}</span>
                               {candidate.username && (
-                                <span className="rounded-full border border-base-300/80 bg-base-100/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-base-content/55">
+                                <span className="rounded-full border border-base-300/80 bg-base-100/90 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-base-content/55">
                                   @{candidate.username}
                                 </span>
                               )}
@@ -411,7 +411,7 @@ export function InviteFamilyMemberModal({
                             </div>
 
                             {(candidate.phone || candidate.email) && (
-                              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-base-content/55">
+                              <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-base-content/55">
                                 {candidate.phone && (
                                   <span className="inline-flex items-center gap-1">
                                     <Phone className="h-3 w-3" />
@@ -428,7 +428,7 @@ export function InviteFamilyMemberModal({
                             )}
 
                             {hasTreeLink && (
-                              <p className="mt-2 truncate text-[11px] text-base-content/65">
+                              <p className="mt-2 truncate text-xs text-base-content/65">
                                 <span className="font-medium text-base-content/75">{candidate.linkedFamilyMemberName}</span>
                                 <span className="mx-1 text-base-content/30">|</span>
                                 <span>{roleLabel(candidate.linkedFamilyRole)}</span>
@@ -438,7 +438,7 @@ export function InviteFamilyMemberModal({
                             )}
 
                             {state === 'external' && candidate.familyGroupName && (
-                              <p className="mt-2 text-[11px] font-medium text-warning">
+                              <p className="mt-2 text-xs font-medium text-warning">
                                 Guruh: {candidate.familyGroupName}
                               </p>
                             )}
@@ -452,7 +452,7 @@ export function InviteFamilyMemberModal({
             </div>
 
             <div className="surface-card flex min-h-[26rem] min-w-0 flex-col rounded-2xl border-base-300/70 p-3.5 shadow-[var(--shadow-soft)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-base-content/45">Selection</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-base-content/45">Selection</p>
               <p className="mt-1 text-sm font-semibold tracking-tight text-base-content">Tanlangan foydalanuvchi</p>
               {!selectedCandidate ? (
                 <div className="mt-4 flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-6 text-center">
@@ -630,7 +630,7 @@ function InfoRow({
 }) {
   return (
     <div className="min-w-0 rounded-xl border border-base-300/60 bg-base-200/50 px-3 py-2 shadow-[inset_0_1px_0_hsl(var(--b1)/0.08)]">
-      <p className="flex min-w-0 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-base-content/45">
+      <p className="flex min-w-0 items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-base-content/45">
         {icon}
         <span>{label}</span>
       </p>
@@ -651,7 +651,7 @@ function StatusPill({
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]',
+        'inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold uppercase tracking-wide',
         tone
       )}
     >

@@ -787,7 +787,7 @@ function CopyableField({
   return (
     <div className="flex items-center gap-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2">
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-base-content/50">
+        <p className="text-xs font-semibold uppercase tracking-wide text-base-content/50">
           {label}
         </p>
         <p

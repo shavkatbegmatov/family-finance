@@ -435,11 +435,11 @@ function HeroStat({
     <div className="rounded-2xl bg-white/12 px-3 py-2.5">
       <div className="flex items-center gap-1.5 text-white/75">
         <Icon className="h-3.5 w-3.5" />
-        <span className="text-[11px] font-medium">{label}</span>
+        <span className="text-xs font-medium leading-tight">{label}</span>
       </div>
       <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-white">
         {hidden ? '••••••' : formatCompactCurrency(value)}
-        {!hidden && <span className="ml-0.5 text-[11px] font-medium text-white/70">so'm</span>}
+        {!hidden && <span className="ml-0.5 text-xs font-medium text-white/70">so'm</span>}
       </p>
     </div>
   );
@@ -527,7 +527,7 @@ function MobileQuickActions({ canCreate }: { canCreate: boolean }) {
             <span className={clsx('grid h-[52px] w-full place-items-center rounded-2xl', a.tile)}>
               <a.icon className="h-[22px] w-[22px]" />
             </span>
-            <span className="text-[11px] font-medium text-base-content/70">{a.label}</span>
+            <span className="text-xs font-medium leading-tight text-base-content/70">{a.label}</span>
           </>
         );
         return a.to ? (

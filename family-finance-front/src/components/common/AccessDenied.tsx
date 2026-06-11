@@ -93,7 +93,7 @@ export function AccessDenied({
         </div>
 
         {/* Help text */}
-        <p className="mt-8 text-xs text-base-content/40">
+        <p className="mt-8 text-xs text-base-content/60">
           Agar bu xato deb hisoblasangiz, tizim administratoriga murojaat qiling.
         </p>
       </div>

@@ -68,7 +68,7 @@ export function TextArea({
         />
 
         {maxLength && (
-          <div className="px-4 pb-2 text-right text-xs text-base-content/40">
+          <div className="px-4 pb-2 text-right text-xs text-base-content/60">
             {value.length}/{maxLength}
           </div>
         )}

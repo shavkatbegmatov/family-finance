@@ -519,7 +519,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
                           ) : null}
                           <span className={clsx(
                             'truncate',
-                            changed ? 'line-through text-base-content/40' : 'text-base-content'
+                            changed ? 'line-through text-base-content/60' : 'text-base-content'
                           )}>
                             {label}: {isColor ? '' : oldVal}
                           </span>
@@ -599,7 +599,7 @@ export function AccountFormModal({ isOpen, onClose, onSuccess, editingAccount }:
                 </div>
               )}
 
-              <p className="text-xs text-base-content/40 text-center">
+              <p className="text-xs text-base-content/60 text-center">
                 Bu faqat ko'rinish — hali saqlanmagan
               </p>
             </div>

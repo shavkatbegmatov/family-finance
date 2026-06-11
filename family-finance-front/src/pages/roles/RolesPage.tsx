@@ -572,11 +572,11 @@ export function RolesPage() {
                             className={`grid grid-cols-2 border-b border-base-200 last:border-0 ${changed ? 'bg-warning/5' : ''}`}
                           >
                             <div className={`px-3 py-2 ${changed ? 'bg-error/5' : ''}`}>
-                              <p className="text-xs text-base-content/40 mb-0.5">{label}</p>
-                              <p className={`truncate ${changed ? 'line-through text-base-content/40' : ''}`}>{oldVal}</p>
+                              <p className="text-xs text-base-content/60 mb-0.5">{label}</p>
+                              <p className={`truncate ${changed ? 'line-through text-base-content/60' : ''}`}>{oldVal}</p>
                             </div>
                             <div className={`px-3 py-2 border-l border-base-200 ${changed ? 'bg-success/5' : ''}`}>
-                              <p className="text-xs text-base-content/40 mb-0.5">{label}</p>
+                              <p className="text-xs text-base-content/60 mb-0.5">{label}</p>
                               <p className={`truncate ${changed ? 'font-medium text-success' : ''}`}>{newVal}</p>
                             </div>
                           </div>
@@ -670,7 +670,7 @@ export function RolesPage() {
                       </span>
                     </div>
                     {rolePreviewData.permissions.length === 0 ? (
-                      <div className="text-center py-4 text-base-content/40 text-sm">
+                      <div className="text-center py-4 text-base-content/60 text-sm">
                         Hech qanday huquq tanlanmagan
                       </div>
                     ) : !permissionsGrouped ? (
@@ -687,7 +687,7 @@ export function RolesPage() {
                               <p className="text-xs font-semibold text-base-content/60 mb-1.5 flex items-center gap-1.5">
                                 <span className="h-1 w-1 rounded-full bg-primary inline-block" />
                                 {module}
-                                <span className="text-base-content/40">({selected.length})</span>
+                                <span className="text-base-content/60">({selected.length})</span>
                               </p>
                               <div className="flex flex-wrap gap-1">
                                 {selected.map(p => (
@@ -708,7 +708,7 @@ export function RolesPage() {
                   </div>
                 )}
 
-                <p className="text-xs text-base-content/40 text-center">
+                <p className="text-xs text-base-content/60 text-center">
                   Bu faqat ko'rinish — hali saqlanmagan
                 </p>
               </div>

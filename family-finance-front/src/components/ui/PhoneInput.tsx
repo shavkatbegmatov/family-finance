@@ -186,7 +186,7 @@ export function PhoneInput({
         {!isEmpty && (
           <div className={clsx(
             'pr-3 text-sm font-medium',
-            isComplete ? 'text-success' : 'text-base-content/30'
+            isComplete ? 'text-success' : 'text-base-content/60'
           )}>
             {isComplete ? (
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

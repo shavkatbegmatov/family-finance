@@ -113,7 +113,7 @@ export function Sidebar() {
         <div className="flex flex-col gap-5 pb-4">
           {visibleGroups.map((group) => (
             <div key={group.section} role="group" aria-label={group.section}>
-              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-base-content/40">
+              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-[0.2em] text-base-content/60">
                 {group.section}
               </p>
               <ul className="stagger-children flex flex-col gap-1">

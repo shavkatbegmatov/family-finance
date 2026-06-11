@@ -353,7 +353,7 @@ export function DataTable<T>({
               title="Ustun kengliklarini tiklash"
             >
               <RotateCcw className="h-3 w-3" />
-              <span className="text-[10px]">Tiklash</span>
+              <span className="text-xs">Tiklash</span>
             </button>
           </div>
         )}
@@ -465,7 +465,7 @@ export function DataTable<T>({
               {loadingMore ? (
                 <Loader2 className="h-5 w-5 animate-spin text-base-content/40" />
               ) : hasMore ? null : sortedData.length > 0 ? (
-                <span className="text-xs text-base-content/30">Hammasi yuklandi</span>
+                <span className="text-xs text-base-content/60">Hammasi yuklandi</span>
               ) : null}
             </div>
           )}

@@ -225,7 +225,7 @@ export function AvatarUploader({ value, onChange, label = 'Rasm' }: AvatarUpload
                             >
                                 <ZoomIn className="h-3.5 w-3.5" />
                             </button>
-                            <span className="text-xs text-base-content/40 w-10 text-right">
+                            <span className="text-xs text-base-content/60 w-10 text-right">
                                 {Math.round(zoom * 100)}%
                             </span>
                         </div>
@@ -255,7 +255,7 @@ export function AvatarUploader({ value, onChange, label = 'Rasm' }: AvatarUpload
                             >
                                 <RotateCw className="h-3.5 w-3.5" />
                             </button>
-                            <span className="text-xs text-base-content/40 w-10 text-right">
+                            <span className="text-xs text-base-content/60 w-10 text-right">
                                 {rotation}°
                             </span>
                         </div>

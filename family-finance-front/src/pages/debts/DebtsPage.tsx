@@ -669,7 +669,7 @@ export function DebtsPage() {
             <ArrowUpCircle className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] text-base-content/55">Berilgan</p>
+            <p className="text-xs leading-tight text-base-content/55">Berilgan</p>
             <p className="truncate text-sm font-bold text-info">{formatCurrency(summary.totalGiven)}</p>
           </div>
         </div>
@@ -678,7 +678,7 @@ export function DebtsPage() {
             <CreditCard className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] text-base-content/55">Olingan</p>
+            <p className="text-xs leading-tight text-base-content/55">Olingan</p>
             <p className="truncate text-sm font-bold text-warning">{formatCurrency(summary.totalTaken)}</p>
           </div>
         </div>

@@ -384,7 +384,7 @@ export function ComboBox({
                       <div className="flex-1 min-w-0">
                         <span className="truncate block">{option.label}</span>
                         {option.description && (
-                          <span className="text-xs text-base-content/40 truncate block">{option.description}</span>
+                          <span className="text-xs text-base-content/60 truncate block">{option.description}</span>
                         )}
                       </div>
                       {option.value === value && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
