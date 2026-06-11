@@ -59,9 +59,11 @@ package-lock.json
 .claude/
 
 # =============================================
-# Docker
+# Docker / Secrets
 # =============================================
 .env
+# Hech qanday darajadagi .env.local git'ga kirmasin (ichida real sirlar bo'ladi)
+.env.local
 
 # =============================================
 # Misc

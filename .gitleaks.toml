@@ -1,0 +1,17 @@
+# Gitleaks konfiguratsiyasi (CI "Secret Scan" job'i ishlatadi)
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Dev-only fallback sirlar va namuna placeholderlar — prod'da ishlatilmaydi"
+paths = [
+  # application-dev.yml — FAQAT lokal dev profil fallback'lari (prod profil
+  # bu faylni yuklamaydi; prod sirlar majburiy env-var, fail-fast)
+  '''family-finance-api/src/main/resources/application-dev\.yml''',
+  # .env.example fayllari — placeholder qiymatlar
+  '''\.env\.example$''',
+]
+regexes = [
+  '''dev-only-''',
+  '''changeme''',
+]

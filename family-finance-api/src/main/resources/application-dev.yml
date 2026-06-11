@@ -26,6 +26,16 @@ spring:
     compatibility-verifier:
       enabled: false
 
+# FAQAT LOKAL DEV uchun fallback sirlar — prod'da bu profil yuklanmaydi,
+# prod sirlar majburiy env-var (application.yml'da default yo'q, fail-fast).
+# Bu qiymatlar ataylab "dev-only": hech qachon prod'da ishlatilmaydi.
+jwt:
+  secret: ${JWT_SECRET:z5jURjJwwgWUWXDv367aadjEcpIJ1T3Lwm9bmhkgZT9qn5aU9H2Klb4tSqBGTQtj4emgOgdoDqj/t9P2ioK9cA==}
+
+app:
+  card-encryption:
+    key: ${CARD_ENCRYPTION_KEY:dev-only-card-key-32-characters!}
+
 logging:
   level:
     uz.familyfinance: DEBUG

@@ -18,6 +18,9 @@ services:
     image: ghcr.io/shavkatbegmatov/family-finance-api:latest
     restart: unless-stopped
     environment:
+      # Compose orqali deploy har doim prod profil (dev profilda dev-only
+      # sir fallback'lari bor — prod'da hech qachon ishlatilmasin)
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_HOST: db
       DB_NAME: ${DB_NAME:-family_finance_db}
       DB_USERNAME: ${DB_USERNAME:-family_finance_user}
