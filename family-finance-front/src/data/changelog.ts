@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.3',
+        date: '2026-06-11 19:30',
+        title: "Grafiklar brend rangiga moslandi",
+        features: [
+            "Bosh sahifa, hisobotlar va a'zo statistikasidagi grafiklar endi ilovaning o'z brend ranglaridan (teal) boshlanadi — avval boshqa mahsulotnikidek ko'rinadigan binafsha-ko'k palitra ishlatilardi.",
+        ],
+        fixes: [
+            "Byudjet bajarilishi rang signallari birxillashtirildi: endi hamma joyda 80% gacha yashil, 80–100% sariq, 100% dan oshsa qizil. Avval bir xil byudjet Bosh sahifada sariq, Byudjet sahifasida qizil ko'rinishi mumkin edi.",
+            "Rang tanlanmagan hisob va kategoriyalar uchun standart rang ham brend rangiga o'zgartirildi.",
+        ],
+    },
+    {
         version: '1.7.2',
         date: '2026-06-11 18:30',
         title: "Ball tizimi jadvallari telefonda o'qishli bo'ldi",

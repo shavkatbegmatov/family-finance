@@ -48,6 +48,7 @@ import {
   ACCOUNT_TYPES,
   ACCOUNT_STATUSES,
 } from '../../config/constants';
+import { CHART_PALETTE } from '../../config/chartColors';
 import type {
   MemberFinancialSummary,
   MemberAccountSummary,
@@ -69,7 +70,7 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'statistics', label: 'Statistika', icon: BarChart3 },
 ];
 
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+const CHART_COLORS = CHART_PALETTE;
 
 const MONTH_NAMES: Record<string, string> = {
   JANUARY: 'Yanvar', FEBRUARY: 'Fevral', MARCH: 'Mart', APRIL: 'Aprel',

@@ -18,6 +18,7 @@ import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { getCategoryIcon } from '../../utils/icons';
+import { DEFAULT_ENTITY_COLOR } from '../../config/chartColors';
 import type {
   FinanceCategory,
   FinanceCategoryRequest,
@@ -208,7 +209,7 @@ export function CategoriesPage() {
         {/* Color dot */}
         <span
           className="h-3 w-3 shrink-0 rounded-full"
-          style={{ backgroundColor: category.color || '#6366f1' }}
+          style={{ backgroundColor: category.color || DEFAULT_ENTITY_COLOR }}
         />
         {/* Icon */}
         {category.icon && (

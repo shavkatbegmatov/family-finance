@@ -24,6 +24,7 @@ import { Select } from '../../components/ui/Select';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { DEFAULT_ENTITY_COLOR } from '../../config/chartColors';
 import { AccountFormModal } from './AccountFormModal';
 
 // ---------------------------------------------------------------------------
@@ -132,7 +133,7 @@ function AccountGridCard({
   canEdit: boolean;
 }) {
   const Icon = getAccountIcon(account.type);
-  const color = account.color || '#6366f1';
+  const color = account.color || DEFAULT_ENTITY_COLOR;
   const statusInfo = STATUS_CONFIG[account.status || 'ACTIVE'];
 
   return (
@@ -469,7 +470,7 @@ export function AccountsPage() {
       className: 'w-[220px] max-w-[220px]',
       render: (item) => {
         const Icon = getAccountIcon(item.type);
-        const color = item.color || '#6366f1';
+        const color = item.color || DEFAULT_ENTITY_COLOR;
         return (
           <div className="flex items-center gap-3">
             <div
@@ -564,7 +565,7 @@ export function AccountsPage() {
 
   const renderMobileCard = (item: Account) => {
     const Icon = getAccountIcon(item.type);
-    const color = item.color || '#6366f1';
+    const color = item.color || DEFAULT_ENTITY_COLOR;
     const statusInfo = STATUS_CONFIG[item.status || 'ACTIVE'];
 
     return (

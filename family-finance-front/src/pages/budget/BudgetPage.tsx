@@ -14,6 +14,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode } from '../../hooks/usePermission';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { getCategoryIcon } from '../../utils/icons';
+import { BUDGET_TONE_BG, BUDGET_TONE_TEXT, getBudgetTone } from '../../config/chartColors';
 import type { Budget, BudgetRequest, BudgetPeriod, FinanceCategory, ApiResponse, PagedResponse } from '../../types';
 
 interface BudgetFormState {
@@ -84,17 +85,13 @@ export function BudgetPage() {
 
   // ---------- Helpers ----------
 
-  const getProgressColor = (percentage: number): string => {
-    if (percentage >= 80) return 'bg-error';
-    if (percentage >= 60) return 'bg-warning';
-    return 'bg-success';
-  };
+  // Yagona manba: config/chartColors BUDGET_THRESHOLDS (Dashboard bilan izchil,
+  // backend byudjet alert chegaralariga mos: warning=80%, over=100%)
+  const getProgressColor = (percentage: number): string =>
+    BUDGET_TONE_BG[getBudgetTone(percentage)];
 
-  const getProgressTextColor = (percentage: number): string => {
-    if (percentage >= 80) return 'text-error';
-    if (percentage >= 60) return 'text-warning';
-    return 'text-success';
-  };
+  const getProgressTextColor = (percentage: number): string =>
+    BUDGET_TONE_TEXT[getBudgetTone(percentage)];
 
   const formatPeriodLabel = (budget: Budget): string => {
     const periodLabel = BUDGET_PERIODS[budget.period]?.label ?? budget.period;
