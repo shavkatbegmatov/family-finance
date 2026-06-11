@@ -191,7 +191,7 @@ function AccountGridCard({
         {/* Footer: Role + Actions */}
         <div className="flex items-center justify-between">
           {getAccessRoleBadge(account.myAccessRole)}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
             <button
               className="btn btn-ghost btn-xs btn-square"
               onClick={(e) => { e.stopPropagation(); onView(); }}

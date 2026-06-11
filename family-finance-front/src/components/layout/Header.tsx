@@ -106,7 +106,7 @@ type RouteHandle = {
 
 export function Header() {
   const { user, logout } = useAuthStore();
-  const { themeMode, setThemeMode, isWhatsNewOpen, setWhatsNewOpen } = useUIStore();
+  const { themeMode, setThemeMode, isWhatsNewOpen, setWhatsNewOpen, setShortcutsOpen } = useUIStore();
   const { notifications, unreadCount, markAsRead, fetchNotifications, connectWebSocket, disconnectWebSocket } = useNotificationsStore();
   const navigate = useNavigate();
   const matches = useMatches();
@@ -307,11 +307,12 @@ export function Header() {
             )}
           </button>
 
-          {/* Help */}
+          {/* Help — klaviatura yorliqlari modalini ochadi (avval onClick'siz o'lik tugma edi) */}
           <button
             className="btn btn-ghost btn-sm btn-square hidden lg:flex"
-            title="Yordam"
-            aria-label="Yordam"
+            title="Yordam (klaviatura yorliqlari)"
+            aria-label="Yordam (klaviatura yorliqlari)"
+            onClick={() => setShortcutsOpen(true)}
           >
             <HelpCircle className="h-4 w-4" />
           </button>

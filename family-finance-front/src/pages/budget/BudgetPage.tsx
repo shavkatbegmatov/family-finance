@@ -207,9 +207,24 @@ export function BudgetPage() {
   // ---------- Render ----------
 
   if (loading) {
+    // Kontent shaklini eslatuvchi skeleton (markaziy spinner o'rniga)
     return (
-      <div className="flex items-center justify-center py-20">
-        <span className="loading loading-spinner loading-lg text-primary" />
+      <div className="animate-pulse space-y-4 lg:space-y-6" aria-busy="true">
+        <div className="hidden h-9 w-44 rounded bg-base-300/60 lg:block" />
+        <div className="surface-card rounded-2xl p-4 lg:p-5">
+          <div className="h-4 w-1/3 rounded bg-base-300/60" />
+          <div className="mt-4 h-2.5 w-full rounded-full bg-base-300/40" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="surface-card rounded-2xl p-4">
+              <div className="h-4 w-2/5 rounded bg-base-300/60" />
+              <div className="mt-4 h-7 w-3/5 rounded bg-base-300/60" />
+              <div className="mt-4 h-2 w-full rounded-full bg-base-300/40" />
+              <div className="mt-2 h-3 w-1/2 rounded bg-base-300/40" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

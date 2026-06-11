@@ -8,6 +8,20 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.6',
+        date: '2026-06-11 22:30',
+        title: "Yuklanish holatlari va mayda tuzatishlar",
+        features: [
+            "Jadval va Byudjet sahifalari yuklanayotganda endi aylanuvchi belgi o'rniga kontent shaklini eslatuvchi chiroyli skelet ko'rinadi — sahifa 'sakramaydi'.",
+        ],
+        fixes: [
+            "Ma'lumot yangilanayotganda butun sahifani qoplab turuvchi xira parda olib tashlandi — endi kichik 'Yangilanmoqda' belgisi chiqadi, sahifa bilan ishlashda davom etasiz.",
+            "Yuqori paneldagi 'Yordam' tugmasi va pastdagi 'Klaviatura' havolasi endi ishlaydi — klaviatura yorliqlari oynasini ochadi; ishlamaydigan 'Yordam' havolasi olib tashlandi.",
+            "Pastki paneldagi 'Tizim faol' belgisi endi haqiqiy aloqa holatini ko'rsatadi (avval doim yashil edi).",
+            "Hisob kartalaridagi amal tugmalari endi klaviatura bilan kelganda ham ko'rinadi (avval faqat sichqoncha bilan).",
+        ],
+    },
+    {
         version: '1.7.5',
         date: '2026-06-11 21:30',
         title: "Matnlar yirikroq va o'qishliroq bo'ldi",

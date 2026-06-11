@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Circle, Keyboard, ExternalLink } from 'lucide-react';
+import { Circle, Keyboard } from 'lucide-react';
 import { LATEST_VERSION } from '../../data/changelog';
 import { useUIStore } from '../../store/uiStore';
 import clsx from 'clsx';
@@ -7,11 +7,26 @@ import clsx from 'clsx';
 export function Footer() {
   const year = new Date().getFullYear();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const setWhatsNewOpen = useUIStore((state) => state.setWhatsNewOpen);
+  const setShortcutsOpen = useUIStore((state) => state.setShortcutsOpen);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
+  }, []);
+
+  // "Tizim faol" indikatorini haqiqiy aloqa holatiga bog'lash
+  // (avval hard-coded edi — backend yotgan bo'lsa ham yashil pulsatsiya qilardi)
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
   }, []);
 
   const formatTime = (date: Date) => {
@@ -38,23 +53,17 @@ export function Footer() {
             <span className="text-xs text-base-content/50">© {year} Barcha huquqlar himoyalangan</span>
           </div>
 
-          {/* Center section - Quick Links */}
+          {/* Center section - Quick Links (o'lik href="#" havolalar olib tashlandi) */}
           <div className="flex items-center gap-1">
-            <a
-              href="#"
+            <button
+              type="button"
+              onClick={() => setShortcutsOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
             >
               <Keyboard className="h-3 w-3" />
               Klaviatura
               <kbd className="kbd kbd-xs scale-90 bg-base-200">?</kbd>
-            </a>
-            <a
-              href="#"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
-            >
-              Yordam
-              <ExternalLink className="h-2.5 w-2.5" />
-            </a>
+            </button>
             <a
               href="mailto:support@familyfinance.uz"
               target="_blank"
@@ -68,8 +77,15 @@ export function Footer() {
           {/* Right section - Status & Version */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <Circle className="h-1.5 w-1.5 fill-success text-success animate-pulse" />
-              <span className="text-xs text-base-content/50">Tizim faol</span>
+              <Circle
+                className={clsx(
+                  'h-1.5 w-1.5',
+                  isOnline ? 'fill-success text-success animate-pulse' : 'fill-error text-error'
+                )}
+              />
+              <span className="text-xs text-base-content/50">
+                {isOnline ? 'Tizim faol' : "Aloqa yo'q"}
+              </span>
             </div>
             <div className="h-3 w-px bg-base-300" />
             <span className="text-xs tabular-nums text-base-content/60">{formatTime(currentTime)}</span>
