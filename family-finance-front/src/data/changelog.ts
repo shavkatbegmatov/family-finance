@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.7',
+        date: '2026-06-11 23:15',
+        title: "Yosh va sana ko'rsatkichlari aniqlandi",
+        features: [],
+        fixes: [
+            "Oila a'zolarining yoshi endi kalendar bo'yicha aniq hisoblanadi — avval tug'ilgan kun atrofida bir yilga xato ko'rsatilishi mumkin edi.",
+            "Sana va summa formatlari butun ilova bo'ylab birxillashtirildi (bosh sahifa, foydalanuvchilar va a'zo sahifalarida har xil edi).",
+        ],
+    },
+    {
         version: '1.7.6',
         date: '2026-06-11 22:30',
         title: "Yuklanish holatlari va mayda tuzatishlar",

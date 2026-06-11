@@ -33,6 +33,7 @@ import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../..
 import { PersonBadges, SuggestionsBanner, type Suggestion } from '../../components/persons';
 import { Users as UsersIcon, Trophy } from 'lucide-react';
 import { formatPhoneDisplay } from '../../utils/phone';
+import { formatDateTime } from '../../config/constants';
 
 type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | 'family-link' | null;
 
@@ -904,12 +905,12 @@ export function UsersPage() {
                 <div className="grid grid-cols-2 gap-3 border-t border-base-200 pt-3 text-xs text-base-content/50">
                   <div>
                     <span>Yaratilgan:</span>{' '}
-                    {userDetails.createdAt ? new Date(userDetails.createdAt).toLocaleString('uz') : '-'}
+                    {userDetails.createdAt ? formatDateTime(userDetails.createdAt) : '-'}
                   </div>
                   <div>
                     <span>Parol o'zgartirilgan:</span>{' '}
                     {userDetails.passwordChangedAt
-                      ? new Date(userDetails.passwordChangedAt).toLocaleString('uz')
+                      ? formatDateTime(userDetails.passwordChangedAt)
                       : '-'}
                   </div>
                 </div>
