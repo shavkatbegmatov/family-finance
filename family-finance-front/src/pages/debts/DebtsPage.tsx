@@ -32,6 +32,7 @@ import { Select } from '../../components/ui/Select';
 import { DataTable, Column } from '../../components/ui/DataTable';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { ModalPortal } from '../../components/common/Modal';
+import { RefreshingPill } from '../../components/common/RefreshingPill';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -774,14 +775,8 @@ export function DebtsPage() {
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                 {/* Debts Table */}
                 <div className="relative lg:col-span-2">
-                  {refreshing && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-base-100/60 backdrop-blur-sm">
-                      <div className="flex flex-col items-center gap-3">
-                        <span className="loading loading-spinner loading-lg text-primary"></span>
-                        <span className="text-sm font-medium text-base-content/70">Yangilanmoqda...</span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Refresh — bloklamaydigan indikator (eski blur-overlay) */}
+                  {refreshing && <RefreshingPill />}
                   <DataTable
                     data={isMobile ? allItems : debts}
                     columns={columns}

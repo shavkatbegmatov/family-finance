@@ -7,6 +7,7 @@ import { useIdleSessionTimeout } from '../../hooks/useIdleSessionTimeout';
 import { useKeyboardShortcuts, type KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
 import { useQuickEntryStore } from '../../store/quickEntryStore';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
+import { useUIStore } from '../../store/uiStore';
 import { KeyboardShortcutsModal } from '../common/KeyboardShortcutsModal';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
@@ -25,7 +26,8 @@ export function MainLayout() {
   const { hasPermission } = usePermission();
   const openQuickEntry = useQuickEntryStore((s) => s.open);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const showShortcutsModal = useUIStore((s) => s.isShortcutsOpen);
+  const setShowShortcutsModal = useUIStore((s) => s.setShortcutsOpen);
   const isSidebarPinned = useFamilyTreeStore((s) => s.isSidebarPinned);
   const activeModal = useFamilyTreeStore((s) => s.activeModal);
 
@@ -73,7 +75,7 @@ export function MainLayout() {
         label: 'Hisobotlar',
       },
     ],
-    [canCreateTransaction, openQuickEntry, navigate]
+    [canCreateTransaction, openQuickEntry, navigate, setShowShortcutsModal]
   );
 
   useKeyboardShortcuts(shortcuts, { enabled: isAuthenticated });

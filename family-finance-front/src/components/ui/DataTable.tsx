@@ -314,12 +314,37 @@ export function DataTable<T>({
     return clsx(stripWidthClasses(raw), 'overflow-hidden');
   };
 
-  // Loading state
+  // Loading state — kontent shaklini eslatuvchi skeleton (markaziy spinner o'rniga)
   if (loading) {
     return (
-      <div className={clsx('surface-card', containerClassName)}>
-        <div className="flex items-center justify-center h-64">
-          <span className="loading loading-spinner loading-lg" />
+      <div className={clsx('surface-card', containerClassName)} aria-busy="true">
+        {/* Desktop: jadval qatorlari skeleti */}
+        <div className="hidden animate-pulse space-y-0 lg:block">
+          <div className="flex gap-4 border-b border-base-200 px-4 py-3">
+            {Array.from({ length: Math.min(columns.length, 5) }).map((_, i) => (
+              <div key={i} className="h-3 flex-1 rounded bg-base-300/60" />
+            ))}
+          </div>
+          {Array.from({ length: 6 }).map((_, r) => (
+            <div key={r} className="flex items-center gap-4 border-b border-base-200/60 px-4 py-3.5">
+              {Array.from({ length: Math.min(columns.length, 5) }).map((_, c) => (
+                <div
+                  key={c}
+                  className={clsx('h-3.5 flex-1 rounded bg-base-300/40', c === 0 && 'max-w-[40%]')}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        {/* Mobil: karta skeletlari */}
+        <div className="animate-pulse space-y-3 p-3 lg:hidden">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-base-200 p-4">
+              <div className="h-4 w-2/5 rounded bg-base-300/60" />
+              <div className="mt-3 h-3 w-4/5 rounded bg-base-300/40" />
+              <div className="mt-2 h-3 w-3/5 rounded bg-base-300/40" />
+            </div>
+          ))}
         </div>
       </div>
     );

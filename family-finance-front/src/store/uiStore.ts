@@ -7,10 +7,13 @@ interface UIState {
   sidebarOpen: boolean;
   themeMode: ThemeMode;
   isWhatsNewOpen: boolean;
+  /** Klaviatura yorliqlari modali — Header/Footer/Shift+? dan ochiladi. */
+  isShortcutsOpen: boolean;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setThemeMode: (mode: ThemeMode) => void;
   setWhatsNewOpen: (open: boolean) => void;
+  setShortcutsOpen: (open: boolean) => void;
   getEffectiveTheme: () => 'family' | 'family-dark';
 
   // Column widths per table
@@ -32,6 +35,7 @@ export const useUIStore = create<UIState>()(
       sidebarOpen: true,
       themeMode: 'system',
       isWhatsNewOpen: false,
+      isShortcutsOpen: false,
       columnWidths: {},
 
       toggleSidebar: () =>
@@ -40,6 +44,8 @@ export const useUIStore = create<UIState>()(
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
       setWhatsNewOpen: (open) => set({ isWhatsNewOpen: open }),
+
+      setShortcutsOpen: (open) => set({ isShortcutsOpen: open }),
 
       setThemeMode: (mode) => {
         set({ themeMode: mode });

@@ -46,6 +46,7 @@ import type {
 } from '../../types';
 import { useNotificationsStore } from '../../store/notificationsStore';
 import { InsightCard, type InsightTone } from '../../components/common/InsightCard';
+import { RefreshingPill } from '../../components/common/RefreshingPill';
 import { PageHeader } from '../../components/layout/PageHeader';
 import {
   BUDGET_THRESHOLDS,
@@ -722,14 +723,8 @@ export function DashboardPage() {
 
   return (
     <div className="relative space-y-4 lg:space-y-6">
-      {refreshing && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-base-100/60 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3">
-            <span className="loading loading-spinner loading-lg text-primary"></span>
-            <span className="text-sm font-medium text-base-content/70">Yangilanmoqda...</span>
-          </div>
-        </div>
-      )}
+      {/* Refresh — bloklamaydigan indikator (eski blur-overlay kontent bilan ishlashni to'xtatardi) */}
+      {refreshing && <RefreshingPill />}
 
       {/* Mobil: gradient hero balans kartasi + tezkor amallar */}
       <div className="space-y-4 lg:hidden">
