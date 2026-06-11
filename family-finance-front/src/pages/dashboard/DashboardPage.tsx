@@ -48,6 +48,7 @@ import { useNotificationsStore } from '../../store/notificationsStore';
 import { InsightCard, type InsightTone } from '../../components/common/InsightCard';
 import { RefreshingPill } from '../../components/common/RefreshingPill';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { OnboardingChecklist } from '../../components/dashboard/OnboardingChecklist';
 import {
   BUDGET_THRESHOLDS,
   BUDGET_TONE_BG,
@@ -748,6 +749,14 @@ export function DashboardPage() {
             {currentMonthLabel && <> · {currentMonthLabel}</>}
           </>
         }
+      />
+
+      {/* Onboarding — yangi foydalanuvchi uchun 4 qadamli yo'naltirish (E9).
+          Tranzaksiya+byudjet bo'lgan foydalanuvchida o'zi yashirinadi. */}
+      <OnboardingChecklist
+        stats={stats}
+        transactionCount={recentTransactions.length}
+        loaded={!initialLoading}
       />
 
       {/* Insights — AI tipida avtomatik xulosalar (max 2 ta birinchi navbatda) */}
