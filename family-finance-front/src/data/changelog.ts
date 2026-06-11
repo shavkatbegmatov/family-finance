@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.0',
+        date: '2026-06-11 16:00',
+        title: "Mobil ko'rinish: yagona dizayn standarti",
+        features: [
+            "Barcha sahifalar yagona sarlavha standartiga o'tkazildi — telefonda sahifa nomi endi faqat yuqoridagi panelda bitta marta ko'rinadi (avval ba'zi sahifalarda ikki marta takrorlanardi), bu kontent uchun ko'proq joy ochadi.",
+            "Telefonda kartalar va bo'limlardagi ortiqcha bo'sh joylar kamaytirildi — bir ekranga ko'proq ma'lumot sig'adi, ko'rinish esa yengilroq.",
+        ],
+        fixes: [
+            "Telefonda mayda tugmalar (filtrlar, ro'yxat amallari, sahifa tanlagichlar) kattalashtirildi — endi barmoq bilan bexato bosiladi.",
+            "Hisoblar sahifasidagi filtr belgilarini olib tashlash (×) tugmalari kattaroq va qulayroq bo'ldi.",
+        ],
+    },
+    {
         version: '1.6.7',
         date: '2026-06-10 10:40',
         title: "3D shajara: porlash yumshatildi, ismlar o'qishli bo'ldi",

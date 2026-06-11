@@ -72,7 +72,7 @@ export function CapabilityFilterChips({
             type="button"
             onClick={() => onChange(chip.key)}
             className={clsx(
-              'btn btn-xs gap-1.5 normal-case',
+              'btn btn-sm gap-1.5 normal-case',
               isActive
                 ? chip.tone === 'warning'
                   ? 'btn-warning'

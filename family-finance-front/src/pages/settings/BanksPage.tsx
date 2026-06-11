@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { banksApi, type Bank } from '../../api/banks.api';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { BankFormModal } from './BankFormModal';
 
 export function BanksPage() {
@@ -61,20 +62,15 @@ export function BanksPage() {
 
     return (
         <div className="space-y-4 lg:space-y-6">
-            <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                    <h1 className="flex items-center gap-2 text-xl font-bold lg:text-2xl">
-                        <Building2 className="h-5 w-5 flex-none text-primary lg:h-6 lg:w-6" />
-                        Banklar
-                    </h1>
-                    <p className="mt-0.5 truncate text-sm text-base-content/60">
-                        Rasmiy banklar va ularning BIN bog'lamalari
-                    </p>
-                </div>
-                <button onClick={handleAdd} className="btn btn-primary btn-sm gap-1.5">
-                    <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Yangi bank</span>
-                </button>
-            </div>
+            <PageHeader
+                title="Banklar"
+                subtitle="Rasmiy banklar va ularning BIN bog'lamalari"
+                actions={
+                    <button onClick={handleAdd} className="btn btn-primary btn-sm gap-1.5">
+                        <Plus className="h-4 w-4" /> Yangi bank
+                    </button>
+                }
+            />
 
             {/* Search Header */}
             <div className="flex flex-col sm:flex-row justify-between gap-4">
@@ -134,12 +130,12 @@ export function BanksPage() {
                         <div className="flex flex-none items-center gap-1">
                           <button
                             onClick={() => toggleStatusMutation.mutate(bank)}
-                            className="btn btn-ghost btn-xs btn-square"
+                            className="btn btn-ghost btn-sm btn-square"
                             title={bank.isActive ? 'Nofaol qilish' : 'Faollashtirish'}
                           >
                             <Activity className={`h-4 w-4 ${bank.isActive ? 'text-error' : 'text-success'}`} />
                           </button>
-                          <button onClick={() => handleEdit(bank)} className="btn btn-ghost btn-xs btn-square text-primary" title="Tahrirlash">
+                          <button onClick={() => handleEdit(bank)} className="btn btn-ghost btn-sm btn-square text-primary" title="Tahrirlash">
                             <Edit2 className="h-4 w-4" />
                           </button>
                         </div>

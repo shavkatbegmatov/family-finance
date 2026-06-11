@@ -46,6 +46,7 @@ import type {
 } from '../../types';
 import { useNotificationsStore } from '../../store/notificationsStore';
 import { InsightCard, type InsightTone } from '../../components/common/InsightCard';
+import { PageHeader } from '../../components/layout/PageHeader';
 
 // Professional rang palitrasi
 const COLORS = {
@@ -190,14 +191,14 @@ function ChartCard({
 }) {
   return (
     <div className={clsx('surface-card overflow-hidden', className)}>
-      <div className="flex items-center justify-between gap-3 border-b border-base-200 px-5 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-base-200 px-4 py-4 lg:px-5">
         <h3 className="flex items-center gap-2 font-semibold">
           {Icon && <Icon className="h-5 w-5 text-primary" />}
           {title}
         </h3>
         {action}
       </div>
-      <div className="p-5">{children}</div>
+      <div className="p-4 lg:p-5">{children}</div>
     </div>
   );
 }
@@ -670,7 +671,7 @@ export function DashboardPage() {
 
   if (initialLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 lg:space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <div className="skeleton h-8 w-48" />
@@ -679,7 +680,7 @@ export function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="surface-card p-5">
+            <div key={i} className="surface-card p-4 lg:p-5">
               <div className="skeleton h-4 w-24" />
               <div className="skeleton mt-3 h-8 w-32" />
               <div className="skeleton mt-3 h-6 w-20" />
@@ -688,25 +689,25 @@ export function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="surface-card p-5">
+            <div key={i} className="surface-card p-4 lg:p-5">
               <div className="skeleton h-4 w-24" />
               <div className="skeleton mt-3 h-8 w-32" />
             </div>
           ))}
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="surface-card p-5 lg:col-span-2">
+          <div className="surface-card p-4 lg:col-span-2 lg:p-5">
             <div className="skeleton h-72 w-full" />
           </div>
-          <div className="surface-card p-5">
+          <div className="surface-card p-4 lg:p-5">
             <div className="skeleton h-72 w-full" />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="surface-card p-5">
+          <div className="surface-card p-4 lg:p-5">
             <div className="skeleton h-48 w-full" />
           </div>
-          <div className="surface-card p-5">
+          <div className="surface-card p-4 lg:p-5">
             <div className="skeleton h-48 w-full" />
           </div>
         </div>
@@ -725,7 +726,7 @@ export function DashboardPage() {
   })();
 
   return (
-    <div className="space-y-6 relative">
+    <div className="relative space-y-4 lg:space-y-6">
       {refreshing && (
         <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-base-100/60 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
@@ -749,15 +750,15 @@ export function DashboardPage() {
       </div>
 
       {/* Desktop sarlavha */}
-      <div className="hidden flex-col gap-4 lg:flex lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold lg:text-3xl">Bosh sahifa</h1>
-          <p className="mt-1 text-base-content/60">
+      <PageHeader
+        title="Bosh sahifa"
+        subtitle={
+          <>
             Oilaviy moliya boshqaruvi
             {currentMonthLabel && <> · {currentMonthLabel}</>}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Insights — AI tipida avtomatik xulosalar (max 2 ta birinchi navbatda) */}
       {insights.length > 0 && (

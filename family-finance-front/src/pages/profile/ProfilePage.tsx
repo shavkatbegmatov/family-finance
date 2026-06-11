@@ -19,6 +19,7 @@ import { authApi } from '../../api/auth.api';
 import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
 import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
 import { useAuthStore } from '../../store/authStore';
+import { PageHeader } from '../../components/layout/PageHeader';
 import type { ChangePasswordRequest, User as UserType } from '../../types';
 import { SessionsTab } from './SessionsTab';
 import { LoginActivityTab } from './LoginActivityTab';
@@ -111,10 +112,7 @@ export function ProfilePage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="section-title">Profil</h1>
-        <p className="section-subtitle">Shaxsiy ma'lumotlar va xavfsizlik sozlamalari</p>
-      </div>
+      <PageHeader title="Profil" subtitle="Shaxsiy ma'lumotlar va xavfsizlik sozlamalari" />
 
       {/* Tabs — pill */}
       <div className="scrollbar-hide -mx-4 flex items-center gap-1.5 overflow-x-auto px-4 lg:mx-0 lg:px-0">

@@ -19,6 +19,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { usePermission, PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import type { Role, RoleRequest } from '../../types';
 import { formatPhoneDisplay } from '../../utils/phone';
 
@@ -266,29 +267,26 @@ export function RolesPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold lg:text-2xl">Rollar</h1>
-          <p className="truncate text-sm text-base-content/60">
-            Rollar va huquqlarni boshqarish
-          </p>
-        </div>
-        <div className="flex flex-none items-center gap-2">
-          <ExportButtons
-            onExportExcel={() => handleExport('excel')}
-            onExportPdf={() => handleExport('pdf')}
-            disabled={!roles?.content || roles.content.length === 0}
-            loading={isLoading}
-          />
-          <PermissionGate permission={PermissionCode.ROLES_CREATE}>
-            <button className="btn btn-primary btn-sm gap-1.5" onClick={() => openModal()}>
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Yangi rol</span>
-            </button>
-          </PermissionGate>
-        </div>
-      </div>
+      <PageHeader
+        title="Rollar"
+        subtitle="Rollar va huquqlarni boshqarish"
+        actions={
+          <>
+            <ExportButtons
+              onExportExcel={() => handleExport('excel')}
+              onExportPdf={() => handleExport('pdf')}
+              disabled={!roles?.content || roles.content.length === 0}
+              loading={isLoading}
+            />
+            <PermissionGate permission={PermissionCode.ROLES_CREATE}>
+              <button className="btn btn-primary btn-sm gap-1.5" onClick={() => openModal()}>
+                <Plus className="h-4 w-4" />
+                Yangi rol
+              </button>
+            </PermissionGate>
+          </>
+        }
+      />
 
       {/* Search */}
       <div className="relative max-w-md">
@@ -465,14 +463,14 @@ export function RolesPage() {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      className="btn btn-ghost btn-xs"
+                      className="btn btn-ghost btn-sm"
                       onClick={selectAllPermissions}
                     >
                       Hammasini tanlash
                     </button>
                     <button
                       type="button"
-                      className="btn btn-ghost btn-xs"
+                      className="btn btn-ghost btn-sm"
                       onClick={clearAllPermissions}
                     >
                       Tozalash
@@ -886,7 +884,7 @@ export function RolesPage() {
                         <div className="flex items-center justify-between mb-3 pb-2 border-b border-base-300">
                           <h5 className="font-semibold text-sm">Biriktirilgan foydalanuvchilar</h5>
                           <button
-                            className="btn btn-ghost btn-xs"
+                            className="btn btn-ghost btn-sm"
                             onClick={() => setShowUsersPopover(false)}
                           >
                             <X className="h-3 w-3" />
@@ -954,13 +952,13 @@ export function RolesPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowAllPermissions(false)}
-                      className={`btn btn-xs ${!showAllPermissions ? 'btn-primary' : 'btn-ghost'}`}
+                      className={`btn btn-sm ${!showAllPermissions ? 'btn-primary' : 'btn-ghost'}`}
                     >
                       Faqat biriktirilganlar
                     </button>
                     <button
                       onClick={() => setShowAllPermissions(true)}
-                      className={`btn btn-xs ${showAllPermissions ? 'btn-primary' : 'btn-ghost'}`}
+                      className={`btn btn-sm ${showAllPermissions ? 'btn-primary' : 'btn-ghost'}`}
                     >
                       Barchasi
                     </button>

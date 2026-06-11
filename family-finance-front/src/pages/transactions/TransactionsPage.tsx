@@ -32,6 +32,7 @@ import { PermissionCode } from '../../hooks/usePermission';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useHighlight } from '../../hooks/useHighlight';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
 import { resolvePreset } from '../../utils/dateRangePresets';
 import { TransactionFormModal } from '../../components/common/TransactionFormModal';
@@ -529,20 +530,19 @@ export function TransactionsPage() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="section-title">Tranzaksiyalar</h1>
-          <p className="section-subtitle">Barcha moliyaviy operatsiyalar</p>
-        </div>
-        {/* Mobilda pastki navigatsiya markazidagi FAB yaratish uchun ishlatiladi */}
-        <PermissionGate permission={PermissionCode.TRANSACTIONS_CREATE}>
-          <button className="btn btn-primary hidden sm:inline-flex" onClick={handleOpenCreate}>
-            <Plus className="h-4 w-4" />
-            Yangi tranzaksiya
-          </button>
-        </PermissionGate>
-      </div>
+      {/* Header — mobilda FAB yaratishni qoplaydi, blok faqat lg+ da ko'rinadi */}
+      <PageHeader
+        title="Tranzaksiyalar"
+        subtitle="Barcha moliyaviy operatsiyalar"
+        actions={
+          <PermissionGate permission={PermissionCode.TRANSACTIONS_CREATE}>
+            <button className="btn btn-primary" onClick={handleOpenCreate}>
+              <Plus className="h-4 w-4" />
+              Yangi tranzaksiya
+            </button>
+          </PermissionGate>
+        }
+      />
 
       {/* Bulk actions toolbar */}
       {selectedIds.size > 0 && (
@@ -561,7 +561,7 @@ export function TransactionsPage() {
             <button
               type="button"
               onClick={clearSelection}
-              className="btn btn-ghost btn-xs"
+              className="btn btn-ghost btn-sm"
             >
               Bekor qilish
             </button>
@@ -665,7 +665,7 @@ export function TransactionsPage() {
                     setFilterSearch('');
                     setPage(0);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-square"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-square"
                   aria-label="Qidiruvni tozalash"
                 >
                   <X className="h-3.5 w-3.5" />

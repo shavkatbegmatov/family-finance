@@ -10,6 +10,7 @@ import { DateInput } from '../../components/ui/DateInput';
 import { TextArea } from '../../components/ui/TextArea';
 import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode } from '../../hooks/usePermission';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import type {
@@ -272,26 +273,26 @@ export function SavingsPage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="section-title">Jamg'armalar</h1>
-          <p className="section-subtitle truncate">
-            {goals.length === 0
-              ? 'Moliyaviy maqsadlaringizni kuzating'
-              : `${goals.length} ta maqsad${
-                  goals.filter((g) => g.isCompleted).length > 0
-                    ? ` · ${goals.filter((g) => g.isCompleted).length} bajarilgan`
-                    : ''
-                }`}
-          </p>
-        </div>
-        <PermissionGate permission={PermissionCode.SAVINGS_CREATE}>
-          <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenCreateGoal}>
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Yangi maqsad</span>
-          </button>
-        </PermissionGate>
-      </div>
+      <PageHeader
+        title="Jamg'armalar"
+        subtitle={
+          goals.length === 0
+            ? 'Moliyaviy maqsadlaringizni kuzating'
+            : `${goals.length} ta maqsad${
+                goals.filter((g) => g.isCompleted).length > 0
+                  ? ` · ${goals.filter((g) => g.isCompleted).length} bajarilgan`
+                  : ''
+              }`
+        }
+        actions={
+          <PermissionGate permission={PermissionCode.SAVINGS_CREATE}>
+            <button className="btn btn-primary btn-sm gap-1.5" onClick={handleOpenCreateGoal}>
+              <Plus className="h-4 w-4" />
+              Yangi maqsad
+            </button>
+          </PermissionGate>
+        }
+      />
 
       {/* Main content: goals grid + detail panel */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
@@ -395,7 +396,7 @@ export function SavingsPage() {
                       <PermissionGate permission={PermissionCode.SAVINGS_CONTRIBUTE}>
                         {!goal.isCompleted && (
                           <button
-                            className="btn btn-ghost btn-xs text-primary"
+                            className="btn btn-ghost btn-sm text-primary"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenContrib(goal.id);
@@ -409,7 +410,7 @@ export function SavingsPage() {
                       <div className="flex items-center gap-1 ml-auto">
                         <PermissionGate permission={PermissionCode.SAVINGS_UPDATE}>
                           <button
-                            className="btn btn-ghost btn-xs"
+                            className="btn btn-ghost btn-sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenEditGoal(goal);
@@ -420,7 +421,7 @@ export function SavingsPage() {
                         </PermissionGate>
                         <PermissionGate permission={PermissionCode.SAVINGS_DELETE}>
                           <button
-                            className="btn btn-ghost btn-xs text-error"
+                            className="btn btn-ghost btn-sm text-error"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteClick(goal.id);
@@ -737,7 +738,7 @@ export function SavingsPage() {
 
       {/* Delete Confirmation Modal */}
       <ModalPortal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
-        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl p-6">
+        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl p-4 sm:p-6">
           <div className="flex flex-col items-center text-center">
             <div className="h-14 w-14 rounded-full bg-error/10 flex items-center justify-center mb-4">
               <Trash2 className="h-7 w-7 text-error" />

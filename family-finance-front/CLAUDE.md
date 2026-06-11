@@ -73,6 +73,15 @@ Switching scope updates JWT + authStore + invalidates React Query.
 - **Password policy single source:** `utils/password.ts` (`PASSWORD_MIN_LENGTH=6`,
   `isPasswordStrong`, `evaluatePasswordStrength`, `generateStrongPassword`).
 - **Permissions:** `hooks/usePermission.ts` + `PermissionGate`.
+- **Page layout standard (MUST):** page root `space-y-4 lg:space-y-6`; page title ONLY via
+  `components/layout/PageHeader` (renders `h1.section-title`, hidden on mobile — the sticky
+  Header already shows the route title; never hand-write a second page `<h1>`). Card padding
+  `p-4 lg:p-5` (`rounded-2xl`), modal body padding `p-4 sm:p-6`. Empty/hero states may use
+  larger padding. Create-buttons live in `PageHeader` `actions` (desktop-only by default —
+  BottomNav FAB covers `<lg`).
+- **Touch targets:** `btn-xs` is desktop-only (table rows, dense desktop toolbars). Anything
+  tappable on mobile is at least `btn-sm`; standalone mobile controls aim for a ~44px
+  effective zone (padding counts).
 - **User-facing change:** prepend to `data/changelog.ts` + bump `package.json` version.
 - **Routing:** `router/index.tsx` — lazy pages, `ProtectedRoute` with permission fallback
   (no DASHBOARD_VIEW → redirect to first accessible feature).

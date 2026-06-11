@@ -113,11 +113,11 @@ export function HouseholdPage() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 lg:space-y-6">
         <div className="skeleton h-8 w-48" />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="surface-card p-5">
+            <div key={i} className="surface-card p-4 lg:p-5">
               <div className="skeleton h-4 w-24" />
               <div className="skeleton mt-3 h-8 w-32" />
             </div>
@@ -125,7 +125,7 @@ export function HouseholdPage() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="surface-card p-5">
+            <div key={i} className="surface-card p-4 lg:p-5">
               <div className="skeleton h-32 w-full" />
             </div>
           ))}
@@ -151,11 +151,11 @@ export function HouseholdPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-xl font-bold lg:text-3xl">
-            <Home className="h-6 w-6 flex-none text-primary lg:h-7 lg:w-7" />
+          <h1 className="section-title flex items-center gap-2 text-xl lg:text-2xl">
+            <Home className="h-6 w-6 flex-none text-primary" />
             <span className="truncate">{data.groupName}</span>
           </h1>
-          <p className="mt-0.5 text-sm text-base-content/60 lg:mt-1 lg:text-base">Oilaviy xo'jalik boshqaruvi</p>
+          <p className="section-subtitle mt-0.5 text-sm">Oilaviy xo'jalik boshqaruvi</p>
         </div>
         <div className="flex flex-none gap-2">
           <button onClick={() => setIsJoinModalOpen(true)} className="btn btn-outline btn-sm gap-1.5">
@@ -215,13 +215,13 @@ export function HouseholdPage() {
             Oila a'zolari
           </h3>
           {data.admin && (
-            <button onClick={() => setIsAddModalOpen(true)} className="btn btn-ghost btn-xs gap-1">
+            <button onClick={() => setIsAddModalOpen(true)} className="btn btn-ghost btn-sm gap-1">
               <UserPlus className="h-3.5 w-3.5" />
               A'zo qo'shish
             </button>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 p-4 lg:p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.members.map((member) => (
             <MemberCard
               key={member.id}

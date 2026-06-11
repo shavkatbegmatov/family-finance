@@ -28,6 +28,7 @@ import { pointParticipantApi } from '../../api/points.api';
 import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
+import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -513,60 +514,60 @@ export function FamilyMembersPage() {
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-3">
+    <div className="h-full min-h-0 flex flex-col gap-4 lg:gap-6">
       {/* Header + Tabs — bitta qatorda */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="section-title text-xl">Oila a'zolari</h1>
-          <div className="flex gap-0.5 bg-base-200 rounded-lg p-0.5">
-            <button
-              className={clsx(
-                'btn btn-xs gap-1.5',
-                activeTab === 'list' ? 'btn-primary' : 'btn-ghost'
-              )}
-              onClick={() => setActiveTab('list')}
-            >
-              <List className="h-3.5 w-3.5" />
-              Ro'yxat
-            </button>
-            <button
-              className={clsx(
-                'btn btn-xs gap-1.5',
-                activeTab === 'tree' ? 'btn-primary' : 'btn-ghost'
-              )}
-              onClick={() => setActiveTab('tree')}
-            >
-              <TreePine className="h-3.5 w-3.5" />
-              Daraxti
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="pill hidden sm:inline-flex">
-            {totalElements} ta a'zo
-          </span>
-          <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm gap-1.5"
-              onClick={() => setShowWizard(true)}
-              title="Yangi shaxs qo'shish (wizard)"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Yangi shaxs</span>
-            </button>
-          </PermissionGate>
-          <PermissionGate permission={PermissionCode.FAMILY_EXPORT}>
-            <ExportButtons
-              onExportExcel={() => handleExport('excel')}
-              onExportPdf={() => handleExport('pdf')}
-              disabled={members.length === 0}
-              loading={loading}
-            />
-          </PermissionGate>
-
-        </div>
-      </div>
+      <PageHeader
+        title="Oila a'zolari"
+        subtitle={`${totalElements} ta a'zo`}
+        mobileVisible
+        actions={
+          <>
+            <div className="flex gap-0.5 bg-base-200 rounded-lg p-0.5">
+              <button
+                className={clsx(
+                  'btn btn-sm gap-1.5',
+                  activeTab === 'list' ? 'btn-primary' : 'btn-ghost'
+                )}
+                onClick={() => setActiveTab('list')}
+              >
+                <List className="h-3.5 w-3.5" />
+                Ro'yxat
+              </button>
+              <button
+                className={clsx(
+                  'btn btn-sm gap-1.5',
+                  activeTab === 'tree' ? 'btn-primary' : 'btn-ghost'
+                )}
+                onClick={() => setActiveTab('tree')}
+              >
+                <TreePine className="h-3.5 w-3.5" />
+                Daraxti
+              </button>
+            </div>
+            <div className="hidden items-center gap-2 lg:flex">
+              <PermissionGate permission={PermissionCode.FAMILY_CREATE}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm gap-1.5"
+                  onClick={() => setShowWizard(true)}
+                  title="Yangi shaxs qo'shish (wizard)"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Yangi shaxs
+                </button>
+              </PermissionGate>
+              <PermissionGate permission={PermissionCode.FAMILY_EXPORT}>
+                <ExportButtons
+                  onExportExcel={() => handleExport('excel')}
+                  onExportPdf={() => handleExport('pdf')}
+                  disabled={members.length === 0}
+                  loading={loading}
+                />
+              </PermissionGate>
+            </div>
+          </>
+        }
+      />
 
       {/* Smart suggestions — capability bo'shliqlari haqida eslatma */}
       {activeTab === 'list' && memberSuggestions.length > 0 && (
@@ -618,7 +619,7 @@ export function FamilyMembersPage() {
                     <button
                       key={size}
                       className={clsx(
-                        'btn btn-xs min-w-[2.5rem]',
+                        'btn btn-sm min-w-[2.5rem]',
                         pageSizeMode === size ? 'btn-primary' : 'btn-ghost'
                       )}
                       onClick={() => {
@@ -648,7 +649,7 @@ export function FamilyMembersPage() {
               {totalElements > pageSize && (
                 <div className="flex items-center gap-1">
                   <button
-                    className="btn btn-xs btn-ghost"
+                    className="btn btn-sm btn-ghost"
                     disabled={page === 0}
                     onClick={() => setPage((p) => p - 1)}
                   >
@@ -658,7 +659,7 @@ export function FamilyMembersPage() {
                     {page + 1} / {Math.ceil(totalElements / pageSize)}
                   </span>
                   <button
-                    className="btn btn-xs btn-ghost"
+                    className="btn btn-sm btn-ghost"
                     disabled={(page + 1) * pageSize >= totalElements}
                     onClick={() => setPage((p) => p + 1)}
                   >
