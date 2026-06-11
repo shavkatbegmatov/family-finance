@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -21,6 +21,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { PermissionCode } from '../../hooks/usePermission';
 import { useQuickEntryStore } from '../../store/quickEntryStore';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import clsx from 'clsx';
 
 interface NavItem {
@@ -83,6 +84,17 @@ function NavTab({ item }: { item: NavItem }) {
 
 export function BottomNav() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreTrapRef = useFocusTrap(moreOpen);
+
+  // Esc bosilganda "Yana" varag'ini yopish (tashqi klaviaturali planshetlar uchun)
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [moreOpen]);
   const permissions = useAuthStore((state) => state.permissions);
   const openQuickEntry = useQuickEntryStore((s) => s.open);
   const location = useLocation();
@@ -113,7 +125,14 @@ export function BottomNav() {
       )}
 
       {moreOpen && (
-        <div className="animate-slide-up fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-base-200 bg-base-100 shadow-2xl lg:hidden">
+        <div
+          ref={moreTrapRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Barcha bo'limlar"
+          className="animate-slide-up fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-base-200 bg-base-100 shadow-2xl outline-none lg:hidden"
+        >
           <div className="flex flex-col items-center pt-2.5">
             <span className="h-1.5 w-10 rounded-full bg-base-300" />
           </div>

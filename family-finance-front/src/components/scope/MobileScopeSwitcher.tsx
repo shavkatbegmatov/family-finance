@@ -5,6 +5,7 @@ import { useScopeStore } from '../../store/scopeStore';
 import type { Scope } from '../../types/scope.types';
 import { SCOPE_TYPE_META } from './scopeTypeMeta';
 import { useSwitchScope } from '../../hooks/useSwitchScope';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { groupScopesByClan, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
 
 /**
@@ -20,6 +21,7 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
   const myScopes = useScopeStore((s) => s.myScopes);
   const { switchScope, switchingId } = useSwitchScope();
   const [isOpen, setIsOpen] = useState(false);
+  const trapRef = useFocusTrap(isOpen);
 
   const grouped = useMemo(() => groupScopesByClan(myScopes), [myScopes]);
 
@@ -76,7 +78,9 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
 
       {isOpen && (
         <div
-          className="animate-slide-up fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-3xl border-t border-base-200 bg-base-100 shadow-2xl lg:hidden"
+          ref={trapRef}
+          tabIndex={-1}
+          className="animate-slide-up fixed inset-x-0 bottom-0 z-50 flex max-h-[75vh] flex-col rounded-t-3xl border-t border-base-200 bg-base-100 shadow-2xl outline-none lg:hidden"
           role="dialog"
           aria-modal="true"
           aria-label="Scope tanlash"

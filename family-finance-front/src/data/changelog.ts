@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.4',
+        date: '2026-06-11 20:30',
+        title: "Oynalar klaviatura va ekran o'quvchilari uchun qulay bo'ldi",
+        features: [],
+        fixes: [
+            "Barcha dialog oynalar (formalar, tasdiqlashlar, pastdan ochiluvchi varaqlar) endi klaviatura bilan to'g'ri ishlaydi: Tab tugmasi fokusni oyna ichida aylantiradi (orqa fonga chiqib ketmaydi), oyna yopilganda fokus uni ochgan tugmaga qaytadi.",
+            "Dialog oynalar ekran o'quvchilariga (screen reader) to'g'ri tanitiladi — ko'zi ojiz foydalanuvchilar uchun ilova ancha qulaylashdi.",
+            "Yuqori paneldagi ikonka-tugmalar (mavzu, bildirishnomalar, yordam) ekran o'quvchilari uchun nomlandi.",
+        ],
+    },
+    {
         version: '1.7.3',
         date: '2026-06-11 19:30',
         title: "Grafiklar brend rangiga moslandi",

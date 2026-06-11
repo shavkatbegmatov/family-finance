@@ -1,8 +1,9 @@
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import clsx from 'clsx';
 import { useIsMobile } from '../../hooks/useMediaQuery';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 // =============================================================================
 // ModalPortal - Simple portal wrapper for existing modal content
@@ -11,10 +12,13 @@ interface ModalPortalProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
+  /** Screen-reader uchun dialog nomi (kontent ichida ko'rinadigan sarlavha bo'lsa ham bering). */
+  ariaLabel?: string;
 }
 
-export function ModalPortal({ isOpen, onClose, children }: ModalPortalProps) {
+export function ModalPortal({ isOpen, onClose, children, ariaLabel }: ModalPortalProps) {
   const isMobile = useIsMobile();
+  const trapRef = useFocusTrap(isOpen);
 
   // Handle escape key and body overflow
   useEffect(() => {
@@ -68,8 +72,13 @@ export function ModalPortal({ isOpen, onClose, children }: ModalPortalProps) {
       />
       {/* Modal content wrapper */}
       <div
+        ref={trapRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={ariaLabel}
         className={clsx(
-          'relative z-10',
+          'relative z-10 outline-none',
           isMobile
             ? 'w-full max-h-[90vh] overflow-hidden rounded-t-2xl animate-slide-up'
             : ''
@@ -103,6 +112,8 @@ interface ModalProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
   showCloseButton?: boolean;
   closeOnBackdrop?: boolean;
+  /** title berilmaganda screen-reader uchun dialog nomi. */
+  ariaLabel?: string;
 }
 
 const maxWidthClasses = {
@@ -125,9 +136,11 @@ export function Modal({
   maxWidth = '3xl',
   showCloseButton = true,
   closeOnBackdrop = true,
+  ariaLabel,
 }: ModalProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
+  const titleId = useId();
+  const modalRef = useFocusTrap(isOpen);
 
   // Handle escape key
   useEffect(() => {
@@ -147,13 +160,6 @@ export function Modal({
       document.body.style.overflow = '';
     };
   }, [isOpen, onClose]);
-
-  // Focus trap - focus modal when opened
-  useEffect(() => {
-    if (isOpen && modalRef.current) {
-      modalRef.current.focus();
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -185,8 +191,12 @@ export function Modal({
       <div
         ref={modalRef}
         tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        aria-label={!title ? ariaLabel : undefined}
         className={clsx(
-          'relative w-full bg-base-100 shadow-2xl',
+          'relative w-full bg-base-100 shadow-2xl outline-none',
           'overflow-y-auto',
           isMobile
             ? 'max-h-[85vh] rounded-t-2xl animate-slide-up'
@@ -207,7 +217,7 @@ export function Modal({
           <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-base-200 bg-base-100 p-4 sm:p-6">
             {title && (
               <div>
-                <h3 className="text-xl font-semibold">{title}</h3>
+                <h3 id={titleId} className="text-xl font-semibold">{title}</h3>
                 {subtitle && <p className="mt-1 text-sm text-base-content/60">{subtitle}</p>}
               </div>
             )}
