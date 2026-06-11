@@ -298,6 +298,7 @@ export function Header() {
             className="btn btn-ghost btn-sm btn-square hidden sm:flex"
             onClick={toggleTheme}
             title={isDark ? "Yorug' rejimga o'tish" : "Qorong'i rejimga o'tish"}
+            aria-label={isDark ? "Yorug' rejimga o'tish" : "Qorong'i rejimga o'tish"}
           >
             {isDark ? (
               <Moon className="h-4 w-4" />
@@ -310,6 +311,7 @@ export function Header() {
           <button
             className="btn btn-ghost btn-sm btn-square hidden lg:flex"
             title="Yordam"
+            aria-label="Yordam"
           >
             <HelpCircle className="h-4 w-4" />
           </button>
@@ -319,6 +321,7 @@ export function Header() {
             className="btn btn-ghost btn-sm btn-square relative hidden sm:flex"
             onClick={openWhatsNew}
             title="Nima yangiliklar?"
+            aria-label="Nima yangiliklar?"
           >
             <Sparkles className="h-4 w-4 text-primary" />
             {!hasSeenLatestVersion && (
@@ -331,6 +334,7 @@ export function Header() {
             <button
               className="btn btn-ghost btn-sm btn-square relative"
               title="Bildirishnomalar"
+              aria-label={unreadCount > 0 ? `Bildirishnomalar, ${unreadCount} ta yangi` : 'Bildirishnomalar'}
               onClick={() => {
                 setNotifDropdownOpen(!notifDropdownOpen);
                 setUserDropdownOpen(false);
@@ -422,6 +426,9 @@ export function Header() {
           <div className="relative" ref={userDropdownRef}>
             <button
               className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-base-300"
+              aria-label="Foydalanuvchi menyusi"
+              aria-haspopup="menu"
+              aria-expanded={userDropdownOpen}
               onClick={() => {
                 setUserDropdownOpen(!userDropdownOpen);
                 setNotifDropdownOpen(false);
