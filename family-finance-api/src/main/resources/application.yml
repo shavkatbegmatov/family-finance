@@ -34,8 +34,10 @@ server:
     context-path: /api
 
 # JWT Configuration
+# DIQQAT: default YO'Q — JWT_SECRET env o'rnatilmasa ilova ishga tushmaydi
+# (fail-fast). Lokal dev uchun application-dev.yml'da dev-only fallback bor.
 jwt:
-  secret: ${JWT_SECRET:xnhjaEEX34DyNFfL44YWX3kDuQNj4xxhb1jZ6SEESCrAoAyXAAXIl1IPCNPT0N3fyBXmdyBg6Gj4GLSz+hiGkg==}
+  secret: ${JWT_SECRET}
   expiration: 3600000 # 1 hour in milliseconds
   refresh-expiration: 86400000 # 1 day
 
@@ -55,10 +57,10 @@ management:
       exposure:
         include: health
 
-# Card Encryption
+# Card Encryption — default YO'Q (fail-fast); dev fallback application-dev.yml'da
 app:
   card-encryption:
-    key: ${CARD_ENCRYPTION_KEY:acf5854e4ece6429894b227aeaaecbeb}
+    key: ${CARD_ENCRYPTION_KEY}
 
 # Logging
 logging:

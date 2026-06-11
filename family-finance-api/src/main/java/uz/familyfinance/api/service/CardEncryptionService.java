@@ -24,7 +24,10 @@ public class CardEncryptionService {
 
     private final SecretKeySpec secretKey;
 
-    public CardEncryptionService(@Value("${app.card-encryption.key:default-key-change-in-production-32ch}") String key) {
+    // Default YO'Q — kalit env'dan kelmasa kontekst ko'tarilmaydi (fail-fast).
+    // Eski "default-key-change-in-production-32ch" fallback jim ishlab ketish
+    // xavfini tug'dirardi (ommaga ma'lum kalit bilan shifrlash — himoya emas).
+    public CardEncryptionService(@Value("${app.card-encryption.key}") String key) {
         byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
         if (keyBytes.length < 32) {
             byte[] paddedKey = new byte[32];
