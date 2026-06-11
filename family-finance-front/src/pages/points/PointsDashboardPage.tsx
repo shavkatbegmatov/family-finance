@@ -15,6 +15,7 @@ import {
   PointsEmptyState,
   PointsGamifiedBadge,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -234,7 +235,28 @@ export function PointsDashboardPage() {
                   description="Hozircha tekshiruv talab qiladigan topshiriqlar yo'q."
                 />
               ) : (
-                <PointsTableShell>
+                <PointsTableShell
+                  mobileCards={pendingTasks.slice(0, 10).map((task) => (
+                    <PointsMobileCard
+                      key={task.id}
+                      title={task.title}
+                      trailing={
+                        <span className="text-base font-bold text-primary">{task.effectivePoints}</span>
+                      }
+                      rows={[
+                        { label: 'Ishtirokchi', value: task.assignedToName ?? '-' },
+                        {
+                          label: 'Kategoriya',
+                          value: <PointsGamifiedBadge variant="outline" label={task.category} />,
+                        },
+                        {
+                          label: 'Holat',
+                          value: <PointsGamifiedBadge variant="accent" label="Topshirilgan" />,
+                        },
+                      ]}
+                    />
+                  ))}
+                >
                   <table className="table table-sm">
                     <thead>
                       <tr>

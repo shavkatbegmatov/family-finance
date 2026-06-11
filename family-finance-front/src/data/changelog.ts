@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.2',
+        date: '2026-06-11 18:30',
+        title: "Ball tizimi jadvallari telefonda o'qishli bo'ldi",
+        features: [
+            "Ball tizimidagi barcha jadvallar (Vazifalar, Reyting, Tarix, Do'kon, Konversiya, Jamg'arma, Musobaqa, Bosh sahifa) telefonda endi qulay karta ko'rinishida — avval ekranni yon tomonga surib o'qishga to'g'ri kelardi. Har bir karta asosiy ma'lumotni (nom, ball) yuqorida, qolgan tafsilotlarni tartibli ko'rsatadi.",
+            "Kartalardagi amal tugmalari (topshirish, tasdiqlash, tahrirlash, sotish) telefonda kattaroq va barmoq bilan qulay bosiladigan bo'ldi.",
+        ],
+        fixes: [
+            "Musobaqa natijalari reytingi saralanganda ro'yxat holatini noto'g'ri o'zgartiruvchi nozik xato tuzatildi.",
+        ],
+    },
+    {
         version: '1.7.1',
         date: '2026-06-11 17:30',
         title: "Telefonda scope (urug'/xonadon) almashtirish qaytdi",

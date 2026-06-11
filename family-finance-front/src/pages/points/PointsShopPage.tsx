@@ -17,6 +17,7 @@ import {
   PointsEmptyState,
   PointsGamifiedBadge,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -351,7 +352,30 @@ export function PointsShopPage() {
                   description="Tanlangan ishtirokchi bo'yicha xaridlar yo'q."
                 />
               ) : (
-                <PointsTableShell>
+                <PointsTableShell
+                  mobileCards={purchases.map((p) => (
+                    <PointsMobileCard
+                      key={p.id}
+                      title={p.shopItemName}
+                      trailing={
+                        <span className="text-base font-bold text-primary">
+                          {p.pointsSpent.toLocaleString()} ball
+                        </span>
+                      }
+                      rows={[
+                        { label: 'Sana', value: formatDate(p.purchaseDate) },
+                        {
+                          label: 'Holat',
+                          value: p.isDelivered ? (
+                            <PointsGamifiedBadge variant="success" size="xs" label="Topshirilgan" />
+                          ) : (
+                            <PointsGamifiedBadge variant="warning" size="xs" label="Kutilmoqda" />
+                          ),
+                        },
+                      ]}
+                    />
+                  ))}
+                >
                   <table className="table table-xs">
                     <thead>
                       <tr>

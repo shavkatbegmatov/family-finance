@@ -11,6 +11,7 @@ import {
   PointsActionBar,
   PointsEmptyState,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -70,6 +71,21 @@ export function PointsHistoryPage() {
   const getAmountColor = (amount: number) =>
     amount >= 0 ? 'text-success' : 'text-error';
 
+  // Miqdor ko'rinishi — desktop jadval (xs ikonka) va mobil karta (sm ikonka) baham ishlatadi.
+  const renderAmount = (amount: number, size: 'xs' | 'sm') => {
+    const ic = size === 'xs' ? 'h-3 w-3' : 'h-4 w-4';
+    return (
+      <span className={clsx('font-semibold flex items-center gap-1', getAmountColor(amount))}>
+        {amount > 0 ? (
+          <ArrowUpRight className={ic} />
+        ) : (
+          <ArrowDownRight className={ic} />
+        )}
+        {amount > 0 ? '+' : ''}{amount.toLocaleString()}
+      </span>
+    );
+  };
+
   const getTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
       EARNED: 'Topilgan',
@@ -126,7 +142,37 @@ export function PointsHistoryPage() {
       ) : (
         <PointsSectionCard title="Tranzaksiyalar" subtitle="Kirim va chiqim operatsiyalari">
           <>
-            <PointsTableShell>
+            <PointsTableShell
+              mobileCards={transactions.map((tx) => (
+                <PointsMobileCard
+                  key={tx.id}
+                  title={
+                    <span className="badge badge-ghost badge-sm">
+                      {getTypeLabel(tx.type)}
+                    </span>
+                  }
+                  trailing={renderAmount(tx.amount, 'sm')}
+                  rows={[
+                    { label: 'Sana', value: formatDate(tx.transactionDate) },
+                    {
+                      label: 'Balans',
+                      value: (
+                        <span>
+                          <span className="text-base-content/60">
+                            {tx.balanceBefore.toLocaleString()}
+                          </span>
+                          {' -> '}
+                          <span className="font-medium">
+                            {tx.balanceAfter.toLocaleString()}
+                          </span>
+                        </span>
+                      ),
+                    },
+                    { label: 'Tavsif', value: tx.description || tx.taskTitle || '-' },
+                  ]}
+                />
+              ))}
+            >
               <table className="table table-sm">
                 <thead>
                   <tr>
@@ -149,14 +195,7 @@ export function PointsHistoryPage() {
                         </span>
                       </td>
                       <td>
-                        <span className={clsx('font-semibold flex items-center gap-1', getAmountColor(tx.amount))}>
-                          {tx.amount > 0 ? (
-                            <ArrowUpRight className="h-3 w-3" />
-                          ) : (
-                            <ArrowDownRight className="h-3 w-3" />
-                          )}
-                          {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
-                        </span>
+                        {renderAmount(tx.amount, 'xs')}
                       </td>
                       <td className="text-sm">
                         <span className="text-base-content/60">

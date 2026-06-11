@@ -9,6 +9,7 @@ import {
   PointsActionBar,
   PointsEmptyState,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -137,7 +138,59 @@ export function PointsLeaderboardPage() {
           )}
 
           <PointsSectionCard title="To'liq ro'yxat" subtitle="Har bir ishtirokchi bo'yicha umumiy natijalar">
-            <PointsTableShell>
+            <PointsTableShell
+              mobileCards={entries.map((entry) => (
+                <PointsMobileCard
+                  key={entry.participantId}
+                  className={clsx(entry.rank <= 3 && 'font-semibold')}
+                  title={
+                    <div className="flex items-center gap-2">
+                      <div className="avatar placeholder">
+                        <div className="bg-base-200 text-base-content rounded-full w-8 h-8">
+                          <span className="text-xs">
+                            {entry.participantName?.charAt(0) ?? '?'}
+                          </span>
+                        </div>
+                      </div>
+                      {entry.participantName}
+                    </div>
+                  }
+                  trailing={
+                    <span className="text-base font-bold text-primary">
+                      {entry.totalPoints.toLocaleString()}
+                    </span>
+                  }
+                  rows={[
+                    {
+                      label: "O'rin",
+                      value:
+                        entry.rank <= 3 ? (
+                          <span className={clsx('inline-flex items-center gap-1', MEDAL_COLORS[entry.rank])}>
+                            <Medal className="h-4 w-4" />
+                            {entry.rank}
+                          </span>
+                        ) : (
+                          <span className="text-base-content/60">{entry.rank}</span>
+                        ),
+                    },
+                    { label: 'Balans', value: entry.currentBalance.toLocaleString() },
+                    { label: 'Vazifalar', value: entry.tasksCompleted },
+                    {
+                      label: 'Streak',
+                      value:
+                        entry.currentStreak > 0 ? (
+                          <span className="flex items-center gap-1 text-warning">
+                            <Flame className="h-3 w-3" />
+                            {entry.currentStreak}
+                          </span>
+                        ) : (
+                          <span className="text-base-content/40">-</span>
+                        ),
+                    },
+                  ]}
+                />
+              ))}
+            >
               <table className="table table-sm">
                 <thead>
                   <tr>

@@ -228,15 +228,105 @@ export function PointsStatCard({
 }
 
 interface PointsTableShellProps {
+  /** Desktop jadval (<table>). */
   children: ReactNode;
+  /**
+   * Mobil karta ro'yxati (sm dan past). Berilsa: jadval `hidden sm:block`
+   * bo'ladi, kartalar esa `sm:hidden` — jadval mobilda gorizontal scroll
+   * o'rniga o'qishli kartalarga aylanadi. Berilmasa — eski xulq (faqat
+   * overflow-x-auto), orqaga to'liq mos.
+   */
+  mobileCards?: ReactNode;
   className?: string;
 }
 
-export function PointsTableShell({ children, className }: PointsTableShellProps) {
+export function PointsTableShell({ children, mobileCards, className }: PointsTableShellProps) {
+  if (mobileCards) {
+    return (
+      <>
+        {/* Mobil: karta ro'yxati */}
+        <div className="space-y-2.5 sm:hidden">{mobileCards}</div>
+        {/* Desktop: jadval */}
+        <div
+          className={clsx(
+            'hidden overflow-x-auto rounded-2xl border border-base-200/80 bg-base-100/75 sm:block',
+            className,
+          )}
+        >
+          {children}
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className={clsx('overflow-x-auto rounded-2xl border border-base-200/80 bg-base-100/75', className)}>
       {children}
     </div>
+  );
+}
+
+interface PointsMobileCardRow {
+  label: string;
+  value: ReactNode;
+}
+
+interface PointsMobileCardProps {
+  /** Karta sarlavhasi (asosiy matn). */
+  title: ReactNode;
+  /** Sarlavha ostidagi ikkilamchi matn (masalan tavsif). */
+  subtitle?: ReactNode;
+  /** O'ng yuqori burchakdagi element (odatda badge yoki ball). */
+  trailing?: ReactNode;
+  /** "Label: value" qatorlari (asosiy maydonlar). */
+  rows?: PointsMobileCardRow[];
+  /** Pastki amallar qatori (tugmalar). */
+  actions?: ReactNode;
+  className?: string;
+}
+
+/**
+ * Points jadvallari uchun yagona mobil karta — har sahifa o'z maydonlarini
+ * `rows`/`actions` orqali beradi, vizual qobiq esa izchil bo'ladi.
+ */
+export function PointsMobileCard({
+  title,
+  subtitle,
+  trailing,
+  rows,
+  actions,
+  className,
+}: PointsMobileCardProps) {
+  return (
+    <article className={clsx('surface-card rounded-xl p-3.5', className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          {/* title ixtiyoriy ReactNode (avatar/badge bo'lishi mumkin) — div, p emas */}
+          <div className="font-semibold leading-tight">{title}</div>
+          {subtitle && <div className="mt-0.5 text-xs text-base-content/60">{subtitle}</div>}
+        </div>
+        {trailing && <div className="flex flex-shrink-0 items-center gap-1.5">{trailing}</div>}
+      </div>
+
+      {rows && rows.length > 0 && (
+        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
+          {rows.map((row, idx) => (
+            <div key={idx} className="min-w-0">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-base-content/45">
+                {row.label}
+              </dt>
+              <dd className="mt-0.5 truncate text-sm font-medium">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {actions && (
+        <div className="mt-3 flex items-center justify-end gap-1.5 border-t border-base-200/70 pt-2.5">
+          {actions}
+        </div>
+      )}
+    </article>
   );
 }
 

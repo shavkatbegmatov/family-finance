@@ -3,6 +3,7 @@ export {
   PointsEmptyState,
   PointsGamifiedBadge,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,

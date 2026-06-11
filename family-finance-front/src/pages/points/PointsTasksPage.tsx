@@ -17,6 +17,7 @@ import {
   PointsEmptyState,
   PointsGamifiedBadge,
   PointsLoadingState,
+  PointsMobileCard,
   PointsPageShell,
   PointsPermissionState,
   PointsSectionCard,
@@ -211,6 +212,69 @@ export function PointsTasksPage() {
     }
   };
 
+  // Vazifa amal tugmalari — desktop jadval (xs) va mobil karta (sm) baham ishlatadi.
+  const renderTaskActions = (task: PointTask, size: 'xs' | 'sm') => {
+    const btn = size === 'xs' ? 'btn-xs' : 'btn-sm';
+    const ic = size === 'xs' ? 'h-3 w-3' : 'h-4 w-4';
+    return (
+      <div className="flex gap-1">
+        {task.status === 'ASSIGNED' && (
+          <button
+            className={clsx('btn btn-ghost text-info tooltip', btn)}
+            data-tip="Topshirish"
+            aria-label="Topshirish"
+            onClick={() => handleAction('submit', task.id)}
+          >
+            <Send className={ic} />
+          </button>
+        )}
+        {task.status === 'SUBMITTED' && canVerifyPointTasks && (
+          <>
+            <button
+              className={clsx('btn btn-ghost text-success tooltip', btn)}
+              data-tip="Tasdiqlash"
+              aria-label="Tasdiqlash"
+              onClick={() => handleAction('verify', task.id)}
+            >
+              <CheckCircle className={ic} />
+            </button>
+            <button
+              className={clsx('btn btn-ghost text-error tooltip', btn)}
+              data-tip="Rad etish"
+              aria-label="Rad etish"
+              onClick={() => {
+                setRejectTaskId(task.id);
+                setShowRejectModal(true);
+              }}
+            >
+              <XCircle className={ic} />
+            </button>
+          </>
+        )}
+        {canManagePoints && (
+          <>
+            <button
+              className={clsx('btn btn-ghost tooltip', btn)}
+              data-tip="Tahrirlash"
+              aria-label="Tahrirlash"
+              onClick={() => openEditModal(task)}
+            >
+              <Edit2 className={ic} />
+            </button>
+            <button
+              className={clsx('btn btn-ghost text-error tooltip', btn)}
+              data-tip="O'chirish"
+              aria-label="O'chirish"
+              onClick={() => handleAction('delete', task.id)}
+            >
+              <Trash2 className={ic} />
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
   if (!canViewPoints) {
     return <PointsPermissionState />;
   }
@@ -256,7 +320,45 @@ export function PointsTasksPage() {
             />
           ) : (
             <>
-              <PointsTableShell>
+              <PointsTableShell
+                mobileCards={tasks.map((task) => {
+                  const status = getStatusInfo(task.status);
+                  return (
+                    <PointsMobileCard
+                      key={task.id}
+                      title={task.title}
+                      subtitle={task.description || undefined}
+                      trailing={
+                        <span className="text-base font-bold text-primary">
+                          {task.effectivePoints}
+                          {task.multiplier > 1 && (
+                            <span className="ml-0.5 text-xs text-warning">x{task.multiplier}</span>
+                          )}
+                        </span>
+                      }
+                      rows={[
+                        {
+                          label: 'Kategoriya',
+                          value: (
+                            <PointsGamifiedBadge variant="outline" label={getCategoryLabel(task.category)} />
+                          ),
+                        },
+                        {
+                          label: 'Holat',
+                          value: (
+                            <PointsGamifiedBadge
+                              variant={mapStatusColorToVariant(status.color)}
+                              label={status.label}
+                            />
+                          ),
+                        },
+                        { label: 'Tayinlangan', value: task.assignedToName ?? '-' },
+                      ]}
+                      actions={renderTaskActions(task, 'sm')}
+                    />
+                  );
+                })}
+              >
                 <table className="table table-sm">
                   <thead>
                     <tr>
@@ -301,58 +403,7 @@ export function PointsTasksPage() {
                             />
                           </td>
                           <td>{task.assignedToName ?? '-'}</td>
-                          <td>
-                            <div className="flex gap-1">
-                              {task.status === 'ASSIGNED' && (
-                                <button
-                                  className="btn btn-ghost btn-xs text-info tooltip"
-                                  data-tip="Topshirish"
-                                  onClick={() => handleAction('submit', task.id)}
-                                >
-                                  <Send className="h-3 w-3" />
-                                </button>
-                              )}
-                              {task.status === 'SUBMITTED' && canVerifyPointTasks && (
-                                <>
-                                  <button
-                                    className="btn btn-ghost btn-xs text-success tooltip"
-                                    data-tip="Tasdiqlash"
-                                    onClick={() => handleAction('verify', task.id)}
-                                  >
-                                    <CheckCircle className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    className="btn btn-ghost btn-xs text-error tooltip"
-                                    data-tip="Rad etish"
-                                    onClick={() => {
-                                      setRejectTaskId(task.id);
-                                      setShowRejectModal(true);
-                                    }}
-                                  >
-                                    <XCircle className="h-3 w-3" />
-                                  </button>
-                                </>
-                              )}
-                              {canManagePoints && (
-                                <>
-                                  <button
-                                    className="btn btn-ghost btn-xs tooltip"
-                                    data-tip="Tahrirlash"
-                                    onClick={() => openEditModal(task)}
-                                  >
-                                    <Edit2 className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    className="btn btn-ghost btn-xs text-error tooltip"
-                                    data-tip="O'chirish"
-                                    onClick={() => handleAction('delete', task.id)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
+                          <td>{renderTaskActions(task, 'xs')}</td>
                         </tr>
                       );
                     })}
