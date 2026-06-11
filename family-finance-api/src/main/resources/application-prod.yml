@@ -25,6 +25,14 @@ spring:
     compatibility-verifier:
       enabled: false
 
+# Swagger/OpenAPI production'da BUTUNLAY o'chiq — API sxemasi hujum yuzasi
+# (avval api.family-finance.uz/api/api-docs autentifikatsiyasiz to'liq sxema qaytarardi)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 app:
   cors:
     allowed-origins: ${CORS_ORIGINS:}

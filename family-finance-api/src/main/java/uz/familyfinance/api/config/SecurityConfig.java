@@ -44,8 +44,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/v1/auth/**").permitAll()
+                        // Swagger faqat dev'da ishlaydi (prod'da springdoc o'chiq — application-prod.yml)
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
+                        // Actuator: faqat health ochiq; qolganlari (env, beans, heapdump...)
+                        // kelajakda expose qilinsa ham autentifikatsiya talab qiladi
+                        .requestMatchers("/actuator/health").permitAll()
                         // WebSocket endpoint (JWT token interceptor'da tekshiriladi)
                         .requestMatchers("/v1/ws/**").permitAll()
 
