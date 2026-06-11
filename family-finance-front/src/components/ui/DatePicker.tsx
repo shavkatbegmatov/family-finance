@@ -21,14 +21,9 @@ import {
   parse,
   isValid,
 } from 'date-fns';
-import { getTashkentToday } from '../../config/constants';
+import { getTashkentToday, MONTHS_UZ } from '../../config/constants';
 
 // ==================== CONSTANTS ====================
-
-const MONTHS_UZ = [
-  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
-];
 
 const MONTHS_SHORT = [
   'Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn',

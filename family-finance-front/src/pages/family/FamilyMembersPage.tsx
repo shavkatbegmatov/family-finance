@@ -25,7 +25,7 @@ import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 import { familyMembersApi } from '../../api/family-members.api';
 import { pointParticipantApi } from '../../api/points.api';
-import { formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
+import { calculateAge, formatDate, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -699,12 +699,7 @@ export function FamilyMembersPage() {
               {/* Mobile card view */}
               <div className="flex-1 overflow-auto p-3 space-y-3 lg:hidden">
                 {(isMobile ? displayedAllMembers : displayedMembers).map((member) => {
-                  const age = member.birthDate
-                    ? Math.floor(
-                      (Date.now() - new Date(member.birthDate).getTime()) /
-                      (365.25 * 24 * 60 * 60 * 1000)
-                    )
-                    : null;
+                  const age = calculateAge(member.birthDate);
 
                   return (
                     <div
@@ -865,12 +860,7 @@ export function FamilyMembersPage() {
                         const birthYear = member.birthDate
                           ? new Date(member.birthDate).getFullYear()
                           : null;
-                        const age = member.birthDate
-                          ? Math.floor(
-                            (Date.now() - new Date(member.birthDate).getTime()) /
-                            (365.25 * 24 * 60 * 60 * 1000)
-                          )
-                          : null;
+                        const age = calculateAge(member.birthDate);
 
                         return (
                           <tr

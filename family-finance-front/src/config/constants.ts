@@ -239,3 +239,21 @@ export const formatDateTime = (dateStr: string): string => {
     minute: '2-digit',
   });
 };
+
+/**
+ * Tug'ilgan sanadan kalendar-aniq yosh hisoblaydi (tug'ilgan kun hali
+ * kelmagan bo'lsa bir yil ayiradi). Avval 4 joyda 365.25 kunlik taxminiy
+ * formula nusxalangan edi — bu yagona manba.
+ */
+export const calculateAge = (birthDate?: string | null): number | null => {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+};

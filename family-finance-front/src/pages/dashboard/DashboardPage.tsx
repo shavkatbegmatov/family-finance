@@ -35,7 +35,7 @@ import {
 } from 'recharts';
 import { familyDashboardApi } from '../../api/family-dashboard.api';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
-import { formatCurrency, formatCompactCurrency, MONTHS_UZ } from '../../config/constants';
+import { formatCurrency, formatCompactCurrency, formatDate, MONTHS_UZ } from '../../config/constants';
 import type {
   FamilyDashboardStats,
   FamilyChartData,
@@ -1089,11 +1089,7 @@ export function DashboardPage() {
                     return (
                       <tr key={tx.id} className="hover">
                         <td className="whitespace-nowrap text-sm text-base-content/70">
-                          {new Date(tx.transactionDate).toLocaleDateString('ru-RU', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                          })}
+                          {formatDate(tx.transactionDate)}
                         </td>
                         <td>
                           <span
@@ -1139,11 +1135,7 @@ export function DashboardPage() {
                         {config.label}
                       </span>
                       <span className="text-xs text-base-content/50">
-                        {new Date(tx.transactionDate).toLocaleDateString('ru-RU', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                        })}
+                        {formatDate(tx.transactionDate)}
                       </span>
                     </div>
                     <p className="mt-1.5 text-sm font-medium">{tx.categoryName || '—'}</p>

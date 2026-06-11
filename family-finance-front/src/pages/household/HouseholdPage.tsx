@@ -20,7 +20,7 @@ import clsx from 'clsx';
 import { householdApi } from '../../api/household.api';
 import type { HouseholdDashboardResponse, HouseholdMemberSummary, HouseholdAccountSummary } from '../../api/household.api';
 import { familyGroupApi } from '../../api/family-group.api';
-import { formatCurrency, FAMILY_ROLES, GENDERS } from '../../config/constants';
+import { formatCurrency, formatCompactCurrency, FAMILY_ROLES, GENDERS } from '../../config/constants';
 import { useAuthStore } from '../../store/authStore';
 import { ConfirmModal } from '../../components/common/ConfirmModal';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
@@ -33,13 +33,6 @@ const roleLabel = (role: string): string =>
 
 const genderLabel = (gender: string): string =>
   (GENDERS as Record<string, { label: string }>)[gender]?.label || gender;
-
-const formatCompactCurrency = (value: number): string => {
-  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
-  return value.toString();
-};
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   CASH: 'Naqd',

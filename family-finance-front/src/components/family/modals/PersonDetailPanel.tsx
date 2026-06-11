@@ -18,6 +18,7 @@ import {
 } from '../../../hooks/useFamilyTreeQueries';
 import { useFamilyTreeStore } from '../../../store/familyTreeStore';
 import {
+  calculateAge,
   formatDate,
   GENDERS,
   MARRIAGE_TYPES,
@@ -58,14 +59,6 @@ function getGenderBorder(gender?: string) {
   return 'ring-amber-400/30';
 }
 
-function getAgeFromDate(dateString?: string) {
-  if (!dateString) return null;
-  return Math.floor(
-    (Date.now() - new Date(dateString).getTime()) /
-    (365.25 * 24 * 60 * 60 * 1000)
-  );
-}
-
 export function PersonDetailPanel({
   isOpen,
   personId,
@@ -84,7 +77,7 @@ export function PersonDetailPanel({
 
   if (!isOpen) return null;
 
-  const age = getAgeFromDate(person?.birthDate);
+  const age = calculateAge(person?.birthDate);
 
   const getPersonDetails = (id: number) => activePersons.find((p) => p.id === id);
 
@@ -111,7 +104,7 @@ export function PersonDetailPanel({
   const renderAgeInfo = (personId: number) => {
     const details = getPersonDetails(personId);
     if (!details?.birthDate) return null;
-    const pAge = getAgeFromDate(details.birthDate);
+    const pAge = calculateAge(details.birthDate);
     const year = new Date(details.birthDate).getFullYear();
     return (
       <span className="text-xs text-base-content/60 whitespace-nowrap">

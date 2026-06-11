@@ -39,7 +39,9 @@ import { transactionsApi } from '../../api/transactions.api';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import {
+  calculateAge,
   formatCurrency,
+  formatCompactCurrency,
   formatDate,
   formatDateTime,
   FAMILY_ROLES,
@@ -89,18 +91,6 @@ function getGenderGradient(gender?: string) {
   if (gender === 'MALE') return 'from-blue-400 to-blue-600';
   if (gender === 'FEMALE') return 'from-pink-400 to-pink-600';
   return 'from-amber-400 to-amber-600';
-}
-
-function getAge(birthDate?: string) {
-  if (!birthDate) return null;
-  return Math.floor((Date.now() - new Date(birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-}
-
-function formatCompactCurrency(value: number): string {
-  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
-  return value.toString();
 }
 
 const roleLabel = (role: string): string =>
@@ -216,7 +206,7 @@ export function MemberDetailPage() {
   }
 
   const { profile } = data;
-  const age = getAge(profile.birthDate);
+  const age = calculateAge(profile.birthDate);
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -299,7 +289,7 @@ export function MemberDetailPage() {
 
 function OverviewTab({ data }: { data: MemberFinancialSummary }) {
   const { profile } = data;
-  const age = getAge(profile.birthDate);
+  const age = calculateAge(profile.birthDate);
 
   return (
     <div className="space-y-4 lg:space-y-6">

@@ -15,7 +15,7 @@ import type {
   ApiResponse, PagedResponse,
 } from '../../types';
 import {
-  formatCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
+  formatCurrency, formatCompactCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
 } from '../../config/constants';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { useIsMobile } from '../../hooks/useMediaQuery';
@@ -70,14 +70,6 @@ function getAccessRoleBadge(role?: string) {
   if (!info) return <span className="badge badge-ghost badge-sm">{role}</span>;
   return <span className={`badge ${info.badge} badge-sm`}>{info.label}</span>;
 }
-
-// Valyuta formatlash (qisqa)
-const formatCompactCurrency = (value: number): string => {
-  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
-  return value.toString();
-};
 
 // ---------------------------------------------------------------------------
 // KPI Card
