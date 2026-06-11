@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 
-const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'];
+import { CHART_PALETTE as COLORS } from '../../config/chartColors';
 
 type ReportTab = 'income-expense' | 'category' | 'member';
 

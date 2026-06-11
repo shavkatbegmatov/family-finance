@@ -47,23 +47,18 @@ import type {
 import { useNotificationsStore } from '../../store/notificationsStore';
 import { InsightCard, type InsightTone } from '../../components/common/InsightCard';
 import { PageHeader } from '../../components/layout/PageHeader';
-
-// Professional rang palitrasi
-const COLORS = {
-  primary: '#6366f1',
-  success: '#22c55e',
-  warning: '#f59e0b',
-  error: '#ef4444',
-  info: '#3b82f6',
-  secondary: '#8b5cf6',
-  chart: ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6'],
-};
+import {
+  BUDGET_THRESHOLDS,
+  BUDGET_TONE_BG,
+  CHART_COLORS,
+  getBudgetTone,
+  getChartColor,
+} from '../../config/chartColors';
 
 // Insight thresholds
 const TREND_NEUTRAL_THRESHOLD = 1; // % — bundan kichik o'zgarish trend ko'rsatilmaydi
 const SAVINGS_RATE_GOOD = 20; // %
 const SAVINGS_RATE_LOW = 5; // %
-const BUDGET_WARNING_THRESHOLD = 80; // %
 
 // Chart range options
 type ChartRange = '3m' | '6m' | '12m';
@@ -381,7 +376,7 @@ function generateInsights({
   if (stats?.budgetProgress?.length) {
     const overBudget = stats.budgetProgress.filter((b) => b.percentage > 100);
     const nearBudget = stats.budgetProgress.filter(
-      (b) => b.percentage > BUDGET_WARNING_THRESHOLD && b.percentage <= 100
+      (b) => b.percentage > BUDGET_THRESHOLDS.warning && b.percentage <= 100
     );
     if (overBudget.length > 0) {
       insights.push({
@@ -404,7 +399,7 @@ function generateInsights({
         message: (
           <>
             <span className="font-semibold text-warning">{nearBudget.length} ta kategoriya</span>{' '}
-            byudjetning {BUDGET_WARNING_THRESHOLD}% dan ko'pini ishlatdi.
+            byudjetning {BUDGET_THRESHOLDS.warning}% dan ko'pini ishlatdi.
           </>
         ),
       });
@@ -858,12 +853,12 @@ export function DashboardPage() {
                 <AreaChart data={formattedMonthlyTrend}>
                   <defs>
                     <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS.success} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={COLORS.success} stopOpacity={0} />
+                      <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS.error} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={COLORS.error} stopOpacity={0} />
+                      <stop offset="5%" stopColor={CHART_COLORS.error} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={CHART_COLORS.error} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
@@ -884,7 +879,7 @@ export function DashboardPage() {
                     type="monotone"
                     dataKey="income"
                     name="Daromad"
-                    stroke={COLORS.success}
+                    stroke={CHART_COLORS.success}
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorIncome)"
@@ -893,7 +888,7 @@ export function DashboardPage() {
                     type="monotone"
                     dataKey="expense"
                     name="Xarajat"
-                    stroke={COLORS.error}
+                    stroke={CHART_COLORS.error}
                     strokeWidth={2}
                     strokeDasharray="4 3"
                     fillOpacity={1}
@@ -953,7 +948,7 @@ export function DashboardPage() {
                       return (
                         <Cell
                           key={`cell-${index}`}
-                          fill={entry.color || COLORS.chart[index % COLORS.chart.length]}
+                          fill={entry.color || getChartColor(index)}
                           fillOpacity={isActive ? 1 : 0.3}
                         />
                       );
@@ -994,7 +989,7 @@ export function DashboardPage() {
                       <div
                         className={clsx(
                           'h-full rounded-full transition-all duration-500',
-                          isOver ? 'bg-error' : item.percentage > 80 ? 'bg-warning' : 'bg-success'
+                          BUDGET_TONE_BG[getBudgetTone(item.percentage)]
                         )}
                         style={{ width: `${percentage}%` }}
                       />

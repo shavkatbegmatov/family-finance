@@ -12,6 +12,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../config/constants';
+import { DEFAULT_ENTITY_COLOR } from '../../config/chartColors';
 import {
   PointsActionBar,
   PointsEmptyState,
@@ -513,7 +514,7 @@ export function PointsShopPage() {
                 <input
                   type="color"
                   className="input input-bordered h-12"
-                  value={form.color || '#6366f1'}
+                  value={form.color || DEFAULT_ENTITY_COLOR}
                   onChange={(e) => setForm({ ...form, color: e.target.value })}
                 />
               </div>
