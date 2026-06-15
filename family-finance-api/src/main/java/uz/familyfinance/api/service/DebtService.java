@@ -49,7 +49,9 @@ public class DebtService {
 
     @Transactional(readOnly = true)
     public DebtResponse getById(Long id) {
-        return toResponse(findById(id));
+        Debt debt = findById(id);
+        scopeContext.assertCanView(debt.getScope().getId());
+        return toResponse(debt);
     }
 
     @Transactional
@@ -72,6 +74,7 @@ public class DebtService {
     @Transactional
     public DebtResponse update(Long id, DebtRequest request) {
         Debt debt = findById(id);
+        scopeContext.assertCanWrite(debt.getScope().getId());
         debt.setType(request.getType());
         debt.setPersonName(request.getPersonName());
         debt.setPersonPhone(request.getPersonPhone());
@@ -82,15 +85,15 @@ public class DebtService {
 
     @Transactional
     public void delete(Long id) {
-        if (!debtRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Qarz topilmadi: " + id);
-        }
-        debtRepository.deleteById(id);
+        Debt debt = findById(id);
+        scopeContext.assertCanWrite(debt.getScope().getId());
+        debtRepository.delete(debt);
     }
 
     @Transactional
     public DebtPaymentResponse addPayment(Long debtId, DebtPaymentRequest request) {
         Debt debt = findById(debtId);
+        scopeContext.assertCanWrite(debt.getScope().getId());
 
         BigDecimal paymentAmount = request.getAmount().setScale(2, RoundingMode.HALF_UP);
         BigDecimal remaining = debt.getRemainingAmount().setScale(2, RoundingMode.HALF_UP);
@@ -121,18 +124,36 @@ public class DebtService {
 
     @Transactional(readOnly = true)
     public List<DebtPaymentResponse> getPayments(Long debtId) {
+        Debt debt = findById(debtId);
+        scopeContext.assertCanView(debt.getScope().getId());
         return debtPaymentRepository.findByDebtIdOrderByPaymentDateDesc(debtId).stream()
                 .map(this::toPaymentResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public BigDecimal getTotalGiven() {
-        return debtRepository.sumRemainingByType(DebtType.GIVEN);
+        return sumRemainingScoped(DebtType.GIVEN);
     }
 
     @Transactional(readOnly = true)
     public BigDecimal getTotalTaken() {
-        return debtRepository.sumRemainingByType(DebtType.TAKEN);
+        return sumRemainingScoped(DebtType.TAKEN);
+    }
+
+    /**
+     * /debts/summary uchun scope-aware yig'indi. Avval bu metodlar global
+     * sumRemainingByType ishlatib BARCHA tenant'lar qarzini qaytarardi (ma'lumot
+     * oqishi) — endi faqat ko'rinadigan scope'lar bo'yicha.
+     */
+    private BigDecimal sumRemainingScoped(DebtType type) {
+        if (scopeContext.isSuperAdmin()) {
+            return debtRepository.sumRemainingByType(type);
+        }
+        java.util.Set<Long> visible = scopeContext.getVisibleScopeIds();
+        if (visible.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return debtRepository.sumRemainingByTypeAndScopeIds(type, visible);
     }
 
     private Debt findById(Long id) {

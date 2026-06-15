@@ -351,6 +351,44 @@ public class AccountService {
     }
 
     // -----------------------------------------------------------------------
+    // Public guard'lar — hisobga osma entity'lar (Transaction, Card) uchun.
+    // Bular o'z scope'iga ega emas, balki account orqali boriladi; shu sabab
+    // ularning by-id operatsiyalari shu guard'larni chaqiradi (IDOR himoyasi).
+    // -----------------------------------------------------------------------
+
+    private CustomUserDetails currentUserOrThrow() {
+        CustomUserDetails u = scopeContext.getCurrentUserDetails();
+        if (u == null) {
+            throw new AccessDeniedException("Autentifikatsiya talab qilinadi");
+        }
+        return u;
+    }
+
+    /** Joriy foydalanuvchi shu hisobni ko'ra olmasa 403 (read guard). */
+    public void assertCanAccess(Account account) {
+        checkAccess(account, currentUserOrThrow());
+    }
+
+    /**
+     * Joriy foydalanuvchi shu hisobga yoza olmasa 403 (write guard).
+     * <p>FAMILY hisob uchun scope-a'zolik yozish roli yetarli (aniq AccountAccess
+     * grant shart emas) — aks holda oddiy oila a'zosi o'z xonadoni hisobiga
+     * tranzaksiya kirita olmay qolardi. Boshqa hollarda (PERSONAL hisob yoki
+     * maxsus grant) AccountAccess roli bo'yicha tekshiriladi.</p>
+     */
+    public void assertCanModify(Account account) {
+        CustomUserDetails currentUser = currentUserOrThrow();
+        if (currentUser.isAdmin()) {
+            return;
+        }
+        if (account.getHomeScope() != null
+                && scopeContext.canWriteToScope(account.getHomeScope().getId())) {
+            return;
+        }
+        checkWriteAccess(account, currentUser);
+    }
+
+    // -----------------------------------------------------------------------
     // Response mapping
     // -----------------------------------------------------------------------
 

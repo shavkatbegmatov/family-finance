@@ -48,7 +48,9 @@ public class SavingsGoalService {
 
     @Transactional(readOnly = true)
     public SavingsGoalResponse getById(Long id) {
-        return toResponse(findById(id));
+        SavingsGoal goal = findById(id);
+        scopeContext.assertCanView(goal.getScope().getId());
+        return toResponse(goal);
     }
 
     @Transactional
@@ -76,6 +78,7 @@ public class SavingsGoalService {
     @Transactional
     public SavingsGoalResponse update(Long id, SavingsGoalRequest request) {
         SavingsGoal goal = findById(id);
+        scopeContext.assertCanWrite(goal.getScope().getId());
         goal.setName(request.getName());
         goal.setTargetAmount(request.getTargetAmount());
         goal.setDeadline(request.getDeadline());
@@ -95,12 +98,15 @@ public class SavingsGoalService {
 
     @Transactional
     public void delete(Long id) {
-        savingsGoalRepository.deleteById(id);
+        SavingsGoal goal = findById(id);
+        scopeContext.assertCanWrite(goal.getScope().getId());
+        savingsGoalRepository.delete(goal);
     }
 
     @Transactional
     public SavingsContributionResponse addContribution(Long goalId, SavingsContributionRequest request) {
         SavingsGoal goal = findById(goalId);
+        scopeContext.assertCanWrite(goal.getScope().getId());
 
         SavingsContribution contribution = SavingsContribution.builder()
                 .savingsGoal(goal)
@@ -130,6 +136,8 @@ public class SavingsGoalService {
 
     @Transactional(readOnly = true)
     public List<SavingsContributionResponse> getContributions(Long goalId) {
+        SavingsGoal goal = findById(goalId);
+        scopeContext.assertCanView(goal.getScope().getId());
         return contributionRepository.findBySavingsGoalIdOrderByContributionDateDesc(goalId).stream()
                 .map(this::toContributionResponse).collect(Collectors.toList());
     }

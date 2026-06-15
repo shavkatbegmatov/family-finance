@@ -67,7 +67,9 @@ public class RecurringTransactionService {
             }
 
             TransactionRequest request = buildRequestFromTemplate(template, forDate);
-            TransactionResponse response = transactionService.create(request);
+            // Tizim oqimi — auth-konteksti yo'q; shablon yaratilganda hisobga
+            // yozish huquqi allaqachon tekshirilgan (createSystem guard'siz)
+            TransactionResponse response = transactionService.createSystem(request);
 
             Transaction generated = transactionRepository.findById(response.getId())
                     .orElseThrow(() -> new IllegalStateException(
