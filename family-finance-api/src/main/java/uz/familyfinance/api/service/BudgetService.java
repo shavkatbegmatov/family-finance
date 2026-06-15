@@ -63,7 +63,9 @@ public class BudgetService {
 
     @Transactional(readOnly = true)
     public BudgetResponse getById(Long id) {
-        return toResponse(findById(id));
+        Budget budget = findById(id);
+        scopeContext.assertCanView(budget.getScope().getId());
+        return toResponse(budget);
     }
 
     @Transactional
@@ -88,6 +90,7 @@ public class BudgetService {
     @Transactional
     public BudgetResponse update(Long id, BudgetRequest request) {
         Budget budget = findById(id);
+        scopeContext.assertCanWrite(budget.getScope().getId());
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kategoriya topilmadi"));
 
@@ -111,6 +114,7 @@ public class BudgetService {
     @Transactional
     public void delete(Long id) {
         Budget budget = findById(id);
+        scopeContext.assertCanWrite(budget.getScope().getId());
         budget.setIsActive(false);
         budgetRepository.save(budget);
     }

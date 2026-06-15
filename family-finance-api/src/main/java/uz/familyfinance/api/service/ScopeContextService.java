@@ -2,6 +2,7 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -278,6 +279,25 @@ public class ScopeContextService {
     public boolean canViewScope(Long scopeId) {
         if (isSuperAdmin()) return true;
         return getVisibleScopeIds().contains(scopeId);
+    }
+
+    // ====================================================================
+    // Assert guard'lar — scope-aware entity'larning by-id operatsiyalarida
+    // ishlatiladi (IDOR/cross-tenant himoyasi). Ruxsat yo'q bo'lsa 403.
+    // ====================================================================
+
+    /** Scope ko'rinmasa AccessDeniedException (403) tashlaydi. */
+    public void assertCanView(Long scopeId) {
+        if (scopeId == null || !canViewScope(scopeId)) {
+            throw new AccessDeniedException("Bu ma'lumotni ko'rish huquqingiz yo'q");
+        }
+    }
+
+    /** Scope'ga yozish huquqi bo'lmasa AccessDeniedException (403) tashlaydi. */
+    public void assertCanWrite(Long scopeId) {
+        if (scopeId == null || !canWriteToScope(scopeId)) {
+            throw new AccessDeniedException("Bu amalni bajarish huquqingiz yo'q");
+        }
     }
 
     // ====================================================================

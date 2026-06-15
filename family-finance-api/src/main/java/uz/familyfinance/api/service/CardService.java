@@ -24,9 +24,12 @@ public class CardService {
     private final CardRepository cardRepository;
     private final AccountService accountService;
     private final CardEncryptionService encryptionService;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public List<CardResponse> getCardsByAccount(Long accountId) {
+        // IDOR himoyasi: faqat o'zi kira oladigan hisob kartalari
+        accountService.assertCanAccess(accountService.findById(accountId));
         return cardRepository.findByAccountIdAndIsActiveTrue(accountId).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -35,6 +38,7 @@ public class CardService {
     @Transactional
     public CardResponse addCard(Long accountId, CardRequest request) {
         Account account = accountService.findById(accountId);
+        accountService.assertCanModify(account);
 
         if (account.getType() != AccountType.BANK_CARD) {
             throw new BadRequestException("Karta faqat BANK_CARD turidagi hisobga qo'shilishi mumkin");
@@ -63,6 +67,7 @@ public class CardService {
     @Transactional
     public CardResponse updateCard(Long cardId, CardRequest request) {
         Card card = findCardById(cardId);
+        accountService.assertCanModify(card.getAccount());
 
         if (request.getCardType() != null) {
             card.setCardType(request.getCardType());
@@ -86,6 +91,7 @@ public class CardService {
     @Transactional
     public void deleteCard(Long cardId) {
         Card card = findCardById(cardId);
+        accountService.assertCanModify(card.getAccount());
         card.setIsActive(false);
         cardRepository.save(card);
     }
@@ -97,9 +103,15 @@ public class CardService {
     @Transactional(readOnly = true)
     public String revealCardNumber(Long cardId) {
         Card card = findCardById(cardId);
+        // IDOR himoyasi: to'liq PAN — eng sezgir amal; faqat hisobga kira
+        // oladigan foydalanuvchi ocha oladi (avval har kim istalgan kartani ochardi)
+        accountService.assertCanAccess(card.getAccount());
         if (card.getCardNumberEncrypted() == null) {
             throw new BadRequestException("Bu karta uchun to'liq raqam saqlanmagan");
         }
+        // Forensik iz: kim qaysi kartani ochdi (audit uchun)
+        log.info("PAN reveal: card={} account={} user={}",
+                cardId, card.getAccount().getId(), scopeContext.getCurrentUserId());
         return encryptionService.decrypt(card.getCardNumberEncrypted());
     }
 

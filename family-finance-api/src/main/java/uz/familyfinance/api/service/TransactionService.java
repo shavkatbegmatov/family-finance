@@ -119,9 +119,31 @@ public class TransactionService {
      */
     @Transactional
     public TransactionResponse create(TransactionRequest request) {
+        return doCreate(request, true);
+    }
+
+    /**
+     * Tizim oqimi (recurring scheduler) uchun tranzaksiya yaratish — foydalanuvchi
+     * auth-konteksti yo'q. Recurring shablon yaratilganda hisobga yozish huquqi
+     * allaqachon tekshirilgan, shu sabab bu yerda qayta tekshirilmaydi (aks holda
+     * scheduler thread'ida getCurrentUser null bo'lib, barcha takrorlanuvchi
+     * tranzaksiyalar jimgina ishlamay qolardi).
+     */
+    @Transactional
+    public TransactionResponse createSystem(TransactionRequest request) {
+        return doCreate(request, false);
+    }
+
+    private TransactionResponse doCreate(TransactionRequest request, boolean enforceAccess) {
         validateSplits(request);
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
+
+        // IDOR himoyasi: faqat o'zi yoza oladigan hisobga tranzaksiya kiritsin
+        // (tizim oqimida o'tkazib yuboriladi — yuqoridagi createSystem izohiga qarang)
+        if (enforceAccess) {
+            accountService.assertCanModify(account);
+        }
 
         // FROZEN/CLOSED holatdagi hisobga tranzaksiya kiritib bo'lmaydi
         ensureAccountActive(account);
@@ -176,6 +198,10 @@ public class TransactionService {
                 }
                 Account toAccount = accountRepository.findById(request.getToAccountId())
                         .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                // O'tkazmada qabul qiluvchi hisobga ham yozish huquqi tekshiriladi
+                if (enforceAccess) {
+                    accountService.assertCanModify(toAccount);
+                }
                 ensureAccountActive(toAccount);
                 transaction.setToAccount(toAccount);
                 debitAccount = toAccount;   // Pul tushayotgan hisob
@@ -225,6 +251,7 @@ public class TransactionService {
     public TransactionResponse update(Long id, TransactionRequest request) {
         validateSplits(request);
         Transaction existing = findById(id);
+        accountService.assertCanModify(existing.getAccount());
 
         if (existing.getStatus() == TransactionStatus.REVERSED) {
             throw new BadRequestException("Storno qilingan tranzaksiyani o'zgartirib bo'lmaydi");
@@ -331,6 +358,7 @@ public class TransactionService {
     @Transactional
     public TransactionResponse reverse(Long id, String reason) {
         Transaction original = findById(id);
+        accountService.assertCanModify(original.getAccount());
 
         if (original.getStatus() == TransactionStatus.REVERSED) {
             throw new BadRequestException("Bu tranzaksiya allaqachon storno qilingan");
@@ -394,12 +422,15 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public Page<TransactionResponse> getByAccount(Long accountId, Pageable pageable) {
+        // IDOR himoyasi: faqat o'zi kira oladigan hisob tranzaksiyalari
+        accountService.assertCanAccess(accountService.findById(accountId));
         return transactionRepository.findByAccountId(accountId, pageable).map(this::toResponse);
     }
 
     @Transactional
     public TransactionResponse confirm(Long id) {
         Transaction transaction = findById(id);
+        accountService.assertCanModify(transaction.getAccount());
 
         if (transaction.getStatus() != TransactionStatus.PENDING) {
             throw new BadRequestException("Faqat PENDING holatdagi tranzaksiyani tasdiqlash mumkin");
@@ -423,6 +454,7 @@ public class TransactionService {
     @Transactional
     public TransactionResponse cancel(Long id, String reason) {
         Transaction transaction = findById(id);
+        accountService.assertCanModify(transaction.getAccount());
 
         if (transaction.getStatus() == TransactionStatus.REVERSED) {
             throw new BadRequestException("Allaqachon bekor qilingan tranzaksiyani qayta bekor qilib bo'lmaydi");
@@ -516,6 +548,7 @@ public class TransactionService {
         for (Long id : request.getTransactionIds()) {
             try {
                 Transaction tx = findById(id);
+                accountService.assertCanModify(tx.getAccount());
                 if (tx.getStatus() == TransactionStatus.REVERSED) {
                     failures.add(BulkOperationFailure.builder()
                             .transactionId(id)
@@ -625,8 +658,12 @@ public class TransactionService {
     }
 
     private Transaction findById(Long id) {
-        return transactionRepository.findById(id)
+        Transaction tx = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tranzaksiya topilmadi: " + id));
+        // IDOR himoyasi: tranzaksiya o'z scope'iga ega emas — uning hisobiga
+        // kirish huquqi orqali tekshiriladi (barcha by-id metodlar shu yerdan o'tadi).
+        accountService.assertCanAccess(tx.getAccount());
+        return tx;
     }
 
     private TransactionResponse toResponse(Transaction t) {
