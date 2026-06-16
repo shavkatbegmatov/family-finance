@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.14',
+        date: '2026-06-16 15:30',
+        title: "Vizual effektlar va fokus ko'rsatkichi tiklandi",
+        features: [],
+        fixes: [
+            "Ballar (geymifikatsiya) bo'limidagi gradient va yorug'lik (glow) bezaklari endi to'g'ri ko'rinadi — avval mavzu rang formati tufayli jimgina ko'rinmasdi.",
+            "Klaviatura bilan harakatlanishda fokus ko'rsatkichi (outline) tiklandi — qulaylik va kirish imkoniyati (a11y) yaxshilandi.",
+        ],
+    },
+    {
         version: '1.7.13',
         date: '2026-06-16 15:00',
         title: "Kirish maydonlari — autofill ko'rinishi",

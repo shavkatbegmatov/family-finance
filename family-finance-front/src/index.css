@@ -44,8 +44,8 @@
 
   body {
     min-height: 100%;
-    background-color: hsl(var(--b1));
-    color: hsl(var(--bc));
+    background-color: oklch(var(--b1));
+    color: oklch(var(--bc));
   }
 
   /* Native his — interaktiv elementlarda ko'k tap-highlight'ni o'chirish */
@@ -105,7 +105,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid hsl(var(--p));
+    outline: 2px solid oklch(var(--p));
     outline-offset: 2px;
   }
 }
@@ -209,13 +209,13 @@
   .points-gradient-bg {
     @apply bg-base-100/90;
     background-image:
-      radial-gradient(circle at 10% 12%, color-mix(in oklab, hsl(var(--p)) 18%, transparent), transparent 42%),
-      radial-gradient(circle at 90% 15%, color-mix(in oklab, hsl(var(--s)) 18%, transparent), transparent 44%),
-      linear-gradient(140deg, color-mix(in oklab, hsl(var(--b1)) 88%, hsl(var(--p)) 12%), color-mix(in oklab, hsl(var(--b1)) 90%, hsl(var(--s)) 10%));
+      radial-gradient(circle at 10% 12%, color-mix(in oklab, oklch(var(--p)) 18%, transparent), transparent 42%),
+      radial-gradient(circle at 90% 15%, color-mix(in oklab, oklch(var(--s)) 18%, transparent), transparent 44%),
+      linear-gradient(140deg, color-mix(in oklab, oklch(var(--b1)) 88%, oklch(var(--p)) 12%), color-mix(in oklab, oklch(var(--b1)) 90%, oklch(var(--s)) 10%));
   }
 
   .points-glow {
-    box-shadow: 0 20px 44px -30px color-mix(in oklab, hsl(var(--p)) 45%, transparent);
+    box-shadow: 0 20px 44px -30px color-mix(in oklab, oklch(var(--p)) 45%, transparent);
   }
 
   .points-card-hover {
@@ -224,18 +224,18 @@
 
   .points-card-hover:hover {
     @apply -translate-y-0.5;
-    box-shadow: 0 24px 48px -32px color-mix(in oklab, hsl(var(--p)) 34%, transparent);
+    box-shadow: 0 24px 48px -32px color-mix(in oklab, oklch(var(--p)) 34%, transparent);
   }
 
   .points-badge-glow {
-    box-shadow: inset 0 1px 0 color-mix(in oklab, hsl(var(--b1)) 30%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in oklab, oklch(var(--b1)) 30%, transparent);
   }
 
   .points-nav-shell {
     @apply border-b border-base-200/70 bg-base-100/85 backdrop-blur;
     background-image:
-      linear-gradient(180deg, color-mix(in oklab, hsl(var(--p)) 7%, transparent), transparent 40%),
-      linear-gradient(0deg, color-mix(in oklab, hsl(var(--b1)) 95%, hsl(var(--p)) 5%), color-mix(in oklab, hsl(var(--b1)) 98%, transparent));
+      linear-gradient(180deg, color-mix(in oklab, oklch(var(--p)) 7%, transparent), transparent 40%),
+      linear-gradient(0deg, color-mix(in oklab, oklch(var(--b1)) 95%, oklch(var(--p)) 5%), color-mix(in oklab, oklch(var(--b1)) 98%, transparent));
   }
 
   .points-nav-link {
@@ -244,7 +244,7 @@
 
   .points-nav-link-active {
     @apply bg-primary text-primary-content shadow-sm;
-    box-shadow: 0 10px 20px -14px color-mix(in oklab, hsl(var(--p)) 70%, transparent);
+    box-shadow: 0 10px 20px -14px color-mix(in oklab, oklch(var(--p)) 70%, transparent);
   }
 
   .points-nav-link-inactive {
@@ -432,20 +432,20 @@
   /* Highlight row animation for search results */
   @keyframes highlight-row {
     0% {
-      background-color: hsl(var(--p) / 0.3);
-      box-shadow: 0 0 0 2px hsl(var(--p) / 0.5), 0 0 20px hsl(var(--p) / 0.3);
+      background-color: oklch(var(--p) / 0.3);
+      box-shadow: 0 0 0 2px oklch(var(--p) / 0.5), 0 0 20px oklch(var(--p) / 0.3);
     }
     25% {
-      background-color: hsl(var(--p) / 0.15);
-      box-shadow: 0 0 0 2px hsl(var(--p) / 0.3), 0 0 10px hsl(var(--p) / 0.2);
+      background-color: oklch(var(--p) / 0.15);
+      box-shadow: 0 0 0 2px oklch(var(--p) / 0.3), 0 0 10px oklch(var(--p) / 0.2);
     }
     50% {
-      background-color: hsl(var(--p) / 0.25);
-      box-shadow: 0 0 0 2px hsl(var(--p) / 0.4), 0 0 15px hsl(var(--p) / 0.25);
+      background-color: oklch(var(--p) / 0.25);
+      box-shadow: 0 0 0 2px oklch(var(--p) / 0.4), 0 0 15px oklch(var(--p) / 0.25);
     }
     75% {
-      background-color: hsl(var(--p) / 0.1);
-      box-shadow: 0 0 0 1px hsl(var(--p) / 0.2), 0 0 5px hsl(var(--p) / 0.1);
+      background-color: oklch(var(--p) / 0.1);
+      box-shadow: 0 0 0 1px oklch(var(--p) / 0.2), 0 0 5px oklch(var(--p) / 0.1);
     }
     100% {
       background-color: transparent;
@@ -612,8 +612,8 @@ input[type="number"] {
 }
 
 /* Keep custom email/phone inputs rounded and theme-aligned in Chrome autofill.
-   MUHIM: daisyUI v4 ranglarni oklch'da saqlaydi — `hsl(var(--b1))` YAROQSIZ (deklaratsiya
-   e'tiborsiz qoldiriladi → autofill default fon chiqadi). Shuning uchun `oklch(var(--b1))`. */
+   MUHIM: daisyUI v4 ranglarni oklch'da saqlaydi — hsl() funksiyasi bilan YAROQSIZ bo'ladi
+   (deklaratsiya e'tiborsiz qoldiriladi → autofill default fon chiqadi). Shuning uchun oklch(). */
 .email-input-field:-webkit-autofill,
 .email-input-field:-webkit-autofill:hover,
 .email-input-field:-webkit-autofill:focus,
@@ -645,7 +645,7 @@ input[type="number"] {
 
 /* Custom NumberInput component styles */
 .number-input-wrapper {
-  background: hsl(var(--b1));
+  background: oklch(var(--b1));
 }
 
 .number-input-btn {
