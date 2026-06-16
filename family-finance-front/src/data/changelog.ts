@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.15',
+        date: '2026-06-17 00:30',
+        title: "Tez/parallel kirishda barqarorlik",
+        features: [],
+        fixes: [
+            "Bir hisobga juda tez ketma-ket yoki bir vaqtda (ikki qurilmadan) kirilganda ba'zan server xatosi (500) yuz berardi — endi har kirish noyob sessiya yaratadi va bu xato bartaraf etildi.",
+        ],
+    },
+    {
         version: '1.7.14',
         date: '2026-06-16 15:30',
         title: "Vizual effektlar va fokus ko'rsatkichi tiklandi",

@@ -84,4 +84,22 @@ class AuthSessionIntegrationTest extends AbstractPostgresIntegrationTest {
                 .as("refresh'dan keyin ham faol Session bo'lishi shart")
                 .isNotEmpty();
     }
+
+    @Test
+    @DisplayName("bir xil user tez ketma-ket login: noyob token, to'qnashuv yo'q (C5 jti fix)")
+    void rapidRepeatedLoginsDoNotCollide() {
+        // jti fix'dan OLDIN: ikkala login bir soniyada bo'lib, bir xil refresh-token →
+        // ikkinchi login idx_sessions_refresh_token_hash UNIQUE constraint'ini buzib 500 berardi.
+        JwtResponse first = authService.login(adminLogin(), IP, UA);
+        JwtResponse second = authService.login(adminLogin(), IP, UA);
+
+        assertThat(second.getRefreshToken())
+                .as("ketma-ket login'lar noyob refresh-token berishi shart (jti)")
+                .isNotEqualTo(first.getRefreshToken());
+
+        Long adminId = userRepository.findByUsername(ADMIN).orElseThrow().getId();
+        assertThat(sessionRepository.findActiveSessionsByUserId(adminId))
+                .as("ikkala login ham alohida Session yaratishi shart")
+                .hasSizeGreaterThanOrEqualTo(2);
+    }
 }
