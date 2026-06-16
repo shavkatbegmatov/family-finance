@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.11',
+        date: '2026-06-16 13:00',
+        title: "Xatolik va topilmagan sahifa ekranlari",
+        features: [
+            "Noto'g'ri manzil ochilganda endi chiroyli \"404 — Sahifa topilmadi\" ekrani ko'rsatiladi (avval jimgina bosh sahifaga o'tkazib yuborardi).",
+        ],
+        fixes: [
+            "Kutilmagan xatolik yuz berganda endi tushunarli o'zbekcha ekran va \"Qayta yuklash\" tugmasi ko'rsatiladi (avval xom texnik xato matni chiqardi).",
+            "Yangi versiya chiqqanidan keyin sahifa eski fayllarni so'rab \"oq ekran\" bersa, endi avtomatik bir marta qayta yuklanadi.",
+        ],
+    },
+    {
         version: '1.7.10',
         date: '2026-06-16 12:00',
         title: "Qo'llab-quvvatlash emaili tuzatildi",

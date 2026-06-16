@@ -5,6 +5,8 @@ import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { PermissionCode } from '../hooks/usePermission';
 import { useAuthStore } from '../store/authStore';
 import { LazyRoute } from './LazyRoute';
+import { NotFoundPage } from '../pages/common/NotFoundPage';
+import { RouteErrorPage } from '../pages/common/RouteErrorPage';
 
 // Auth pages (small, load immediately)
 import { LoginPage } from '../pages/auth/LoginPage';
@@ -99,6 +101,9 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <MainLayout />,
+    // Route ichidagi render xatosi / eskirgan lazy-chunk xatosi xom react-router
+    // ekrani o'rniga brendlangan RouteErrorPage'ni ko'rsatadi (chunk'da auto-reload)
+    errorElement: <RouteErrorPage />,
     children: [
       {
         index: true,
@@ -363,7 +368,8 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    // Noto'g'ri URL — jimgina redirect o'rniga brendlangan 404
     path: '*',
-    element: <Navigate to="/" replace />,
+    element: <NotFoundPage />,
   },
 ]);
