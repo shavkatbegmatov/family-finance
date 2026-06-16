@@ -66,6 +66,10 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
         var builder = Jwts.builder()
+                // jti — har token NOYOB bo'lishi uchun (bir xil user bir soniyada qayta
+                // login qilsa, iat soniya aniqligida bir xil bo'lib, refresh_token_hash
+                // UNIQUE constraint'ini buzardi → 500). UUID buni oldini oladi.
+                .id(UUID.randomUUID().toString())
                 .subject(username)
                 .claim("type", tokenType)
                 .issuedAt(now)
@@ -99,6 +103,10 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
         var builder = Jwts.builder()
+                // jti — har token NOYOB bo'lishi uchun (bir xil user bir soniyada qayta
+                // login qilsa, iat soniya aniqligida bir xil bo'lib, refresh_token_hash
+                // UNIQUE constraint'ini buzardi → 500). UUID buni oldini oladi.
+                .id(UUID.randomUUID().toString())
                 .subject(username)
                 .claim("type", "STAFF")
                 .claim("userId", userId)
@@ -127,6 +135,10 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + refreshExpiration);
 
         var builder = Jwts.builder()
+                // jti — har token NOYOB bo'lishi uchun (bir xil user bir soniyada qayta
+                // login qilsa, iat soniya aniqligida bir xil bo'lib, refresh_token_hash
+                // UNIQUE constraint'ini buzardi → 500). UUID buni oldini oladi.
+                .id(UUID.randomUUID().toString())
                 .subject(username)
                 .claim("type", tokenType)
                 .issuedAt(now)
