@@ -2,6 +2,8 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,17 @@ public class TransactionService {
     private final TagService tagService;
     private final TransactionSplitRepository transactionSplitRepository;
     private final ScopeContextService scopeContext;
+
+    /**
+     * O'z-o'ziga proxy havola — bulkReverse() ichidan reverse() ni Spring
+     * proxy orqali chaqirish uchun. To'g'ridan-to'g'ri this.reverse() self-
+     * invocation bo'lib, @Transactional o'tkazib yuborilardi (TransactionRequired
+     * → har element xato → bulk butunlay ishlamasdi). @Lazy — aylanma bog'liqlik
+     * (o'ziga) startup'da muammo qilmasligi uchun.
+     */
+    @Autowired
+    @Lazy
+    private TransactionService self;
 
     /**
      * Aktiv scope'ga mos family_group_id ni qaytaradi.
@@ -518,7 +531,9 @@ public class TransactionService {
         int successCount = 0;
         for (Long id : request.getTransactionIds()) {
             try {
-                reverse(id, request.getReason());
+                // Proxy orqali — har storno o'z tranzaksiyasida bajariladi
+                // (partial-success: bir element xatosi qolganlarini buzmaydi)
+                self.reverse(id, request.getReason());
                 successCount++;
             } catch (Exception e) {
                 log.warn("Bulk reverse: tranzaksiya {} storno qilinmadi: {}", id, e.getMessage());
