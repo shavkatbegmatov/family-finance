@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.13',
+        date: '2026-06-16 15:00',
+        title: "Kirish maydonlari — autofill ko'rinishi",
+        features: [],
+        fixes: [
+            "Brauzer login va parolni avtomatik to'ldirganda maydonlarda paydo bo'lgan ochiq rangli to'rtburchak fon olib tashlandi — endi qora mavzuga mos, silliq ko'rinadi.",
+        ],
+    },
+    {
         version: '1.7.12',
         date: '2026-06-16 14:00',
         title: "Faol sessiyalarda qurilma aniqligi",

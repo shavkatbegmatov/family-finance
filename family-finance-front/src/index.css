@@ -611,7 +611,9 @@ input[type="number"] {
   color-scheme: dark;
 }
 
-/* Keep custom email/phone inputs rounded and theme-aligned in Chrome autofill */
+/* Keep custom email/phone inputs rounded and theme-aligned in Chrome autofill.
+   MUHIM: daisyUI v4 ranglarni oklch'da saqlaydi — `hsl(var(--b1))` YAROQSIZ (deklaratsiya
+   e'tiborsiz qoldiriladi → autofill default fon chiqadi). Shuning uchun `oklch(var(--b1))`. */
 .email-input-field:-webkit-autofill,
 .email-input-field:-webkit-autofill:hover,
 .email-input-field:-webkit-autofill:focus,
@@ -619,9 +621,25 @@ input[type="number"] {
 .phone-input-field:-webkit-autofill:hover,
 .phone-input-field:-webkit-autofill:focus {
   border-radius: inherit;
-  -webkit-text-fill-color: hsl(var(--bc));
-  -webkit-box-shadow: 0 0 0 1000px hsl(var(--b1)) inset;
-  caret-color: hsl(var(--bc));
+  -webkit-text-fill-color: oklch(var(--bc));
+  -webkit-box-shadow: 0 0 0 1000px oklch(var(--b1)) inset;
+  caret-color: oklch(var(--bc));
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* form-control-wrapper ichidagi shaffof input'lar (login, register, ...) Chrome
+   autofill'da och to'rtburchak fon ko'rsatardi: input bg-transparent, ko'rinadigan
+   fon esa wrapper'da (bg-base-200/50, karta bg-base-100 ustida). Autofill fonini
+   wrapper'ning EFFEKTIV rangiga (base-200 50% + base-100) moslab seamless qilamiz.
+   daisyUI oklch — hsl() EMAS, oklch() ishlatamiz (aks holda fon shaffof bo'lib qoladi). */
+.form-control-wrapper input:-webkit-autofill,
+.form-control-wrapper input:-webkit-autofill:hover,
+.form-control-wrapper input:-webkit-autofill:focus,
+.form-control-wrapper input:-webkit-autofill:active {
+  -webkit-text-fill-color: oklch(var(--bc));
+  -webkit-box-shadow: 0 0 0 1000px oklch(var(--b2)) inset; /* color-mix'siz brauzer uchun fallback */
+  -webkit-box-shadow: 0 0 0 1000px color-mix(in srgb, oklch(var(--b2)) 50%, oklch(var(--b1))) inset;
+  caret-color: oklch(var(--bc));
   transition: background-color 5000s ease-in-out 0s;
 }
 
