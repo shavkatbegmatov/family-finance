@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.12',
+        date: '2026-06-16 14:00',
+        title: "Faol sessiyalarda qurilma aniqligi",
+        features: [],
+        fixes: [
+            "Faol sessiyalar ro'yxatida qurilma operatsion tizimi va brauzeri to'g'riroq ko'rsatiladi (Android telefonlar endi \"Linux\" emas \"Android\", iPhone \"MacOS\" emas \"iOS\", Opera \"Chrome\" emas \"Opera\" deb aniqlanadi).",
+        ],
+    },
+    {
         version: '1.7.11',
         date: '2026-06-16 13:00',
         title: "Xatolik va topilmagan sahifa ekranlari",
