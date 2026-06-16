@@ -46,7 +46,7 @@ config/  scheduler/  util/  annotation/  exception/
 - **Scoping:** resolve via `ScopeContextService` (never raw `family_group_id`). See
   `../docs/architecture.md`.
 
-## Key entities (44 total) & services
+## Key entities & services
 
 - **Financial:** `Account`, `Transaction`, `Budget`, `Debt`+`DebtPayment`, `SavingsGoal`,
   `Category`, `Card` (AES-encrypted), `BalanceSnapshot`, `TransactionSplit`, `Tag`.

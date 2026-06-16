@@ -75,15 +75,12 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5178,
-    host: true, // SHU QATORNI QO'SHING - teldan kirish uchun shart!
-    strictPort: true, // Agar 5175 band bo'lsa, boshqa portga o'tib ketmasligi uchun
-    // Port removed - Vite will use any available port (default 5173)
-    // This allows flexibility when multiple dev servers are running
+    port: 5178, // CLAUDE.md va preview-tooling shu portga bog'langan
+    host: true, // LAN/telefondan kirish uchun (0.0.0.0)
+    strictPort: true, // Port band bo'lsa boshqasiga o'tmasin (ataylab)
     proxy: {
       '/api': {
-        target: 'http://localhost:8098',
-        // target: 'http://192.168.1.33:8080',
+        target: 'http://localhost:8098', // dev backend
         changeOrigin: true,
         ws: true, // WebSocket support
       },
