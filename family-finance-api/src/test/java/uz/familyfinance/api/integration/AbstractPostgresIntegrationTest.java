@@ -37,6 +37,8 @@ public abstract class AbstractPostgresIntegrationTest {
         // placeholder'larini qondirish uchun (test-only, haqiqiy sir emas).
         registry.add("jwt.secret", () ->
                 "z5jURjJwwgWUWXDv367aadjEcpIJ1T3Lwm9bmhkgZT9qn5aU9H2Klb4tSqBGTQtj4emgOgdoDqj/t9P2ioK9cA==");
-        registry.add("card-encryption.key", () -> "dev-only-card-key-32-characters!");
+        // DIQQAT: property yo'li `app.card-encryption.key` (app: parent ostida) —
+        // CardEncryptionService @Value("${app.card-encryption.key}") o'qiydi.
+        registry.add("app.card-encryption.key", () -> "dev-only-card-key-32-characters!");
     }
 }
