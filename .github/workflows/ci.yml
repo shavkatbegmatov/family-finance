@@ -47,7 +47,7 @@ jobs:
       - run: npm run lint
       - run: npm run build
 
-  # ── CI: Backend compile ──
+  # ── CI: Backend compile + unit tests ──
   backend-ci:
     name: Backend CI
     runs-on: ubuntu-latest
@@ -61,7 +61,9 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
-      - run: chmod +x mvnw && ./mvnw clean compile -DskipTests -q
+      # `clean test` kompilyatsiya + toza-mantiq birlik testlarini ishga tushiradi.
+      # Qizil test merge'ni bloklaydi (Docker image build'i alohida -DskipTests bilan).
+      - run: chmod +x mvnw && ./mvnw clean test -q
 
   # ── CD: Build Docker images + push to GHCR ──
   build-and-push:
