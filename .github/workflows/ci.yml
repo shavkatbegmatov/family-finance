@@ -64,7 +64,27 @@ jobs:
           cache: maven
       # `clean test` kompilyatsiya + toza-mantiq birlik testlarini ishga tushiradi.
       # Qizil test merge'ni bloklaydi (Docker image build'i alohida -DskipTests bilan).
+      # Integration testlar (*IntegrationTest) surefire'da exclude — pastdagi alohida job.
       - run: chmod +x mvnw && ./mvnw clean test -q
+
+  # ── CI: Integration testlar (Testcontainers — real PostgreSQL, Docker kerak) ──
+  # ATAYLAB ALOHIDA va (hozircha) GATE-QILMAYDIGAN job: barqarorligini isbotlaguncha
+  # branch-protection required check'lar ro'yxatiga qo'shilmaydi. ubuntu-latest'da
+  # Docker mavjud → Testcontainers ishlaydi.
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: family-finance-api
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+      - run: chmod +x mvnw && ./mvnw test -Dtest='*IntegrationTest' -DfailIfNoTests=false -q
 
   # ── CD: Build Docker images + push to GHCR ──
   build-and-push:

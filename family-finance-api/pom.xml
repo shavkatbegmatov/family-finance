@@ -116,6 +116,18 @@
             <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Integration testlar uchun real PostgreSQL (Testcontainers) — versiya
+             spring-boot-dependencies BOM tomonidan boshqariladi. CI'da Docker kerak. -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- WebSocket -->
         <dependency>
@@ -211,6 +223,18 @@
                             <version>1.18.46</version>
                         </path>
                     </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <!-- Surefire (gating unit testlar): integration testlar (*IntegrationTest,
+                 Docker/Testcontainers kerak) bu yerdan CHIQARILADI — ular alohida,
+                 gate-qilmaydigan CI job'da `-Dtest=*IntegrationTest` bilan ishlaydi. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*IntegrationTest.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>
