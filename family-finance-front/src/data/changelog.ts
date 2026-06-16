@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.10',
+        date: '2026-06-16 12:00',
+        title: "Qo'llab-quvvatlash emaili tuzatildi",
+        features: [],
+        fixes: [
+            "Pastki paneldagi \"Qo'llab-quvvatlash\" havolasi ishlamaydigan manzilga (mavjud bo'lmagan domen) yo'naltirardi — endi to'g'ri manzil: support@family-finance.uz.",
+            "Pastki paneldagi brend belgisi yagona standart logotipga almashtirildi.",
+        ],
+    },
+    {
         version: '1.7.9',
         date: '2026-06-12 00:30',
         title: "Xavfsizlik kuchaytirildi",
