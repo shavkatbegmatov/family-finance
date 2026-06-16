@@ -24,9 +24,11 @@ components/  ui/ (inputs, table)  common/ (modals, gates)  layout/  scope/  fami
 pages/       route-level containers (dashboard/, transactions/, accounts/, family/, scope/, ...)
 router/      index.tsx — react-router v6 createBrowserRouter, lazy pages, ProtectedRoute
 store/       Zustand stores
-hooks/       usePermission, useSwitchScope, useScopeChange, ...
+hooks/       usePermission, useSwitchScope, useScopeChange, useFocusTrap, ...
+services/    websocket.ts (STOMP/SockJS realtime — notificationsStore ishlatadi)
 types/       scope.types, family-tree.types, persons.types, index
-config/      constants.ts (ACCOUNT_TYPES, GENDERS, MONTHS_UZ, formatters)
+config/      constants.ts (ACCOUNT_TYPES, GENDERS, MONTHS_UZ, SUPPORT_EMAIL, formatters),
+             chartColors.ts (brend chart palitra + BUDGET_THRESHOLDS)
 data/        changelog.ts          utils/  password.ts, ...        i18n/  locales/
 ```
 
