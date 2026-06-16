@@ -40,5 +40,9 @@ public abstract class AbstractPostgresIntegrationTest {
         // DIQQAT: property yo'li `app.card-encryption.key` (app: parent ostida) —
         // CardEncryptionService @Value("${app.card-encryption.key}") o'qiydi.
         registry.add("app.card-encryption.key", () -> "dev-only-card-key-32-characters!");
+        // Spring Cloud Vault'ni o'chirish (application-dev.yml/prod kabi) — test'da Vault
+        // token yo'q, aks holda VaultHealthIndicator → health endpoint → security kaskad yiqiladi.
+        registry.add("spring.cloud.vault.enabled", () -> "false");
+        registry.add("spring.cloud.compatibility-verifier.enabled", () -> "false");
     }
 }
