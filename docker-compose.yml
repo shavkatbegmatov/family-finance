@@ -42,9 +42,11 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+    # Oddiy depends_on (service_healthy SHARTSIZ) — frontend statik SPA, backend
+    # health'iga bog'lanmasin. G4'dagi condition: service_healthy bilan birga
+    # frontend HEALTHCHECK 503 outage'ga sabab bo'lgan edi.
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
 volumes:
   postgres_data:
