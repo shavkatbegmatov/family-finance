@@ -1,5 +1,11 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+// ==================== BRAND / CONTACT ====================
+// Qo'llab-quvvatlash emaili — YAGONA manba. Avval Footer'da defissiz
+// "support@familyfinance.uz" yozilgan edi — bu domen MAVJUD EMAS (NXDOMAIN),
+// yuborilgan xatlar qaytib ketardi. To'g'risi defisli prod domen.
+export const SUPPORT_EMAIL = 'support@family-finance.uz';
+
 // ==================== TIMEZONE CONFIGURATION ====================
 export const TIMEZONE = 'Asia/Tashkent';
 

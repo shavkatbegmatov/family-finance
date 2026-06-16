@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Circle, Keyboard } from 'lucide-react';
 import { LATEST_VERSION } from '../../data/changelog';
 import { useUIStore } from '../../store/uiStore';
+import { SUPPORT_EMAIL } from '../../config/constants';
+import { BrandMark } from '../common/BrandLogo';
 import clsx from 'clsx';
 
 export function Footer() {
@@ -44,9 +46,9 @@ export function Footer() {
           {/* Left section - Brand & Copyright */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-primary to-primary/70">
-                <span className="text-[8px] font-bold text-primary-content">FF</span>
-              </div>
+              {/* Yagona brend belgisi (avval qo'lda yasalgan "FF" monogramma edi —
+                  rebrendda unutilib qolish va asosiy belgidan farq qilish xavfi) */}
+              <BrandMark size={20} />
               <span className="text-xs font-medium text-base-content/70">Family Finance</span>
             </div>
             <div className="h-3 w-px bg-base-300" />
@@ -65,7 +67,7 @@ export function Footer() {
               <kbd className="kbd kbd-xs scale-90 bg-base-200">?</kbd>
             </button>
             <a
-              href="mailto:support@familyfinance.uz"
+              href={`mailto:${SUPPORT_EMAIL}`}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-md px-2 py-1 text-xs text-base-content/50 transition-colors hover:bg-base-200 hover:text-base-content"
