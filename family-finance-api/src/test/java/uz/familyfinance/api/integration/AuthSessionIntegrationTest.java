@@ -1,5 +1,6 @@
 package uz.familyfinance.api.integration;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,14 @@ class AuthSessionIntegrationTest extends AbstractPostgresIntegrationTest {
     private SessionRepository sessionRepository;
     @Autowired
     private UserRepository userRepository;
+
+    @BeforeEach
+    void cleanSessions() {
+        // Test izolyatsiyasi: admin refresh-token bir soniya ichida deterministik bo'lgani
+        // uchun ketma-ket login'lar idx_sessions_refresh_token_hash unique constraint'ini
+        // buzadi. Har testdan oldin sessiyalarni tozalaymiz.
+        sessionRepository.deleteAll();
+    }
 
     private LoginRequest adminLogin() {
         LoginRequest req = new LoginRequest();
