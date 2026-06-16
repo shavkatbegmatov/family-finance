@@ -34,20 +34,23 @@ public class UserAgentParser {
     }
 
     private String detectBrowser(String ua) {
+        // Maxsus belgilar umumiydan OLDIN: Edge ("Edg/") va Opera ("OPR/") UA'sida "Chrome/" ham bor.
         if (ua.contains("Edg/")) return "Edge";
+        if (ua.contains("OPR/") || ua.contains("Opera")) return "Opera";
         if (ua.contains("Chrome/")) return "Chrome";
         if (ua.contains("Safari/") && !ua.contains("Chrome")) return "Safari";
         if (ua.contains("Firefox/")) return "Firefox";
-        if (ua.contains("Opera") || ua.contains("OPR/")) return "Opera";
         return "Unknown";
     }
 
     private String detectOS(String ua) {
+        // Mobil OS'lar AVVAL: Android UA'sida "Linux", iPhone/iPad UA'sida "Mac OS X" uchraydi —
+        // umumiy belgilar oldinda bo'lsa Android "Linux", iPhone "MacOS" deb noto'g'ri aniqlanardi.
+        if (ua.contains("Android")) return "Android";
+        if (ua.contains("iPhone") || ua.contains("iPad")) return "iOS";
         if (ua.contains("Windows")) return "Windows";
         if (ua.contains("Mac OS")) return "MacOS";
         if (ua.contains("Linux")) return "Linux";
-        if (ua.contains("Android")) return "Android";
-        if (ua.contains("iPhone") || ua.contains("iPad")) return "iOS";
         return "Unknown";
     }
 

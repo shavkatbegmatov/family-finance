@@ -11,10 +11,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * {@link UserAgentParser} — User-Agent satridan qurilma/brauzer/OS aniqlash testlari.
  *
- * Bog'liqliksiz toza komponent ({@code new UserAgentParser()}). Testlar amaldagi xatti-harakatni
- * qulflaydi — jumladan ma'lum chekkalar (Android UA "Linux" deb belgilanadi, chunki
- * {@code detectOS} Linux'ni Android'dan oldin tekshiradi). Bu ataylab — kod o'zgartirilmagan,
- * faqat regressiya ushlanadi.
+ * Bog'liqliksiz toza komponent ({@code new UserAgentParser()}). Testlar to'g'ri xatti-harakatni
+ * qulflaydi: maxsus belgilar umumiydan oldin tekshiriladi — Android UA "Linux" emas "Android",
+ * iPhone UA "MacOS" emas "iOS", Opera UA "Chrome" emas "Opera" deb aniqlanadi.
  */
 @DisplayName("UserAgentParser")
 class UserAgentParserTest {
@@ -76,7 +75,7 @@ class UserAgentParserTest {
     }
 
     @Test
-    @DisplayName("Android mobil: deviceType=Mobile, browser=Chrome, os=Linux (amaldagi chekka)")
+    @DisplayName("Android mobil: deviceType=Mobile, browser=Chrome, os=Android (Linux EMAS)")
     void detectsAndroidMobile() {
         String ua = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 "
                 + "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
@@ -84,8 +83,32 @@ class UserAgentParserTest {
 
         assertThat(info.getDeviceType()).isEqualTo("Mobile");
         assertThat(info.getBrowser()).isEqualTo("Chrome");
-        // detectOS Linux'ni Android'dan oldin tekshiradi -> "Linux" (amaldagi xatti-harakat)
-        assertThat(info.getOs()).isEqualTo("Linux");
+        // Android Linux'dan oldin tekshiriladi -> UA "Linux" bo'lsa ham "Android"
+        assertThat(info.getOs()).isEqualTo("Android");
+    }
+
+    @Test
+    @DisplayName("iPhone: os=iOS (MacOS EMAS), browser=Safari")
+    void detectsIPhone() {
+        String ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+                + "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+        UserAgentParser.DeviceInfo info = parser.parse(ua);
+
+        assertThat(info.getDeviceType()).isEqualTo("Mobile");
+        assertThat(info.getBrowser()).isEqualTo("Safari");
+        // iPhone "Mac OS X"'dan oldin tekshiriladi -> "iOS"
+        assertThat(info.getOs()).isEqualTo("iOS");
+    }
+
+    @Test
+    @DisplayName("Opera: browser=Opera (Chrome EMAS — UA'da 'Chrome/' ham bor)")
+    void detectsOperaBeforeChrome() {
+        String ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                + "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0";
+        UserAgentParser.DeviceInfo info = parser.parse(ua);
+
+        assertThat(info.getBrowser()).isEqualTo("Opera");
+        assertThat(info.getOs()).isEqualTo("Windows");
     }
 
     @Test
