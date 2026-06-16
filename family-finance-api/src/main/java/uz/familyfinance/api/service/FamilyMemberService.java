@@ -475,17 +475,33 @@ public class FamilyMemberService {
         return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin);
     }
 
+    /**
+     * Bitta oila a'zosiga (getById/update/delete/financialSummary) kirish nazorati.
+     *
+     * <p>FAIL-CLOSED: ruxsat AYNAN LIST query'lari bilan bir xil
+     * (findAccessibleMembers: {@code isAdmin OR fm.familyGroup.id = activeFamilyGroupId}).
+     * Avval bu metod fail-OPEN edi — a'zoning guruhi null bo'lsa yoki aktiv guruh
+     * aniqlanmasa (-1L/null) JIMGINA ruxsat berardi, ya'ni har qanday non-admin
+     * istalgan oila a'zosini ko'ra/tahrirlay/o'chira olardi (IDOR). Endi bu
+     * noaniq holatlarda ruxsat yo'q — list'da ko'rinadigan a'zogina ochiladi.</p>
+     *
+     * <p>Yagona kengaytma: foydalanuvchi O'Z member yozuviga har doim kira oladi
+     * (onboarding/profil paytida guruh hali aniqlanmagan bo'lsa ham o'zini ko'rsin).</p>
+     */
     private void checkAccess(FamilyMember member, CustomUserDetails currentUser) {
         if (currentUser.isAdmin())
             return;
-        if (member.getFamilyGroup() == null)
+
+        // O'z member yozuvi — doim ruxsat
+        if (member.getUser() != null && currentUser.getUser() != null
+                && member.getUser().getId().equals(currentUser.getUser().getId())) {
             return;
+        }
 
         Long activeFamilyGroupId = resolveActiveFamilyGroupId(currentUser);
-        if (activeFamilyGroupId == null || activeFamilyGroupId < 0)
-            return;
-
-        if (!member.getFamilyGroup().getId().equals(activeFamilyGroupId)) {
+        if (activeFamilyGroupId == null || activeFamilyGroupId < 0
+                || member.getFamilyGroup() == null
+                || !member.getFamilyGroup().getId().equals(activeFamilyGroupId)) {
             throw new AccessDeniedException(
                     "Siz ushbu oila a'zosini ko'rish yoki tahrirlash huquqiga ega emassiz.");
         }
