@@ -126,3 +126,31 @@ jobs:
           curl -f -X GET "${{ secrets.COOLIFY_FRONTEND_WEBHOOK_URL }}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
             --max-time 30
+
+  # ── CD: Deploy'dan keyin prod sog'ligini tekshirish ──
+  # Coolify webhook'ni qabul qilishi deploy muvaffaqiyat DEGANI EMAS — konteyner
+  # haqiqatda ko'tarilganini bu job tekshiradi. Backend VA frontend ikkalasi ham
+  # 200 bo'lishi shart (2026-06-16 frontend 503 jim outage'idan keyin qo'shildi).
+  verify:
+    name: Verify Deploy
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Health-check backend + frontend
+        run: |
+          echo "Coolify rollout uchun kutish (120s)..."
+          sleep 120
+          api=000; front=000
+          for i in $(seq 1 24); do
+            api=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.family-finance.uz/api/actuator/health || echo 000)
+            front=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://family-finance.uz || echo 000)
+            echo "urinish $i: api=$api front=$front"
+            if [ "$api" = "200" ] && [ "$front" = "200" ]; then
+              echo "Prod sog'lom: api=200 front=200"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "::error::Deploy verify FAILED — api=$api front=$front (prod tiklanmadi)"
+          exit 1
