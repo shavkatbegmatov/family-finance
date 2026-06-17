@@ -516,6 +516,14 @@ public class AuthService {
 
     public JwtResponse refreshToken(String refreshToken, String ipAddress, String userAgent) {
         if (tokenProvider.validateToken(refreshToken)) {
+            // C5: access token'ni refresh sifatida ishlatishni to'sish. Deploy-xavfsiz —
+            // explicit ACCESS rad etiladi, legacy (claim'siz/null) token o'tadi (24soatdan
+            // keyin barcha token tokenUse'ga ega bo'ladi, hech kim ommaviy logout bo'lmaydi).
+            String tokenUse = tokenProvider.getTokenUse(refreshToken);
+            if (tokenUse != null && !JwtTokenProvider.TOKEN_USE_REFRESH.equals(tokenUse)) {
+                throw new BadRequestException("Bu token yangilash (refresh) uchun ishlatib bo'lmaydi");
+            }
+
             String username = tokenProvider.getUsernameFromToken(refreshToken);
             User user = userRepository.findByUsernameWithRolesAndPermissions(username)
                     .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi", "username", username));
