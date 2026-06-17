@@ -14,7 +14,6 @@ import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.service.AuditLogService;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * JPA Entity Listener for automatic audit trail logging.
@@ -60,9 +59,8 @@ public class AuditEntityListener {
     private static SensitiveDataMasker sensitiveDataMasker;
     private static ObjectMapper objectMapper;
 
-    // Cache to store original entity state when loaded from database
-    // Key: "EntityClass:EntityId", Value: audit map of original values
-    private static final ConcurrentHashMap<String, Map<String, Object>> originalStateCache = new ConcurrentHashMap<>();
+    // Asl entity holati so'rov ko'lamida saqlanadi — qarang AuditOriginalStateContext (D5).
+    // Avval bu static ConcurrentHashMap edi → xotira oqishi + cross-request poyga.
 
     /**
      * Spring autowiring method to inject dependencies into static fields.
@@ -100,7 +98,7 @@ public class AuditEntityListener {
         try {
             String cacheKey = getCacheKey(entity.getClass(), auditable.getId());
             Map<String, Object> originalData = auditable.toAuditMap();
-            originalStateCache.put(cacheKey, originalData);
+            AuditOriginalStateContext.put(cacheKey, originalData);
             log.debug("Cached original state for {} with id {}", auditable.getEntityName(), auditable.getId());
         } catch (Exception e) {
             log.warn("Could not cache original state for {}: {}", entity.getClass().getSimpleName(), e.getMessage());
@@ -172,7 +170,7 @@ public class AuditEntityListener {
             String cacheKey = getCacheKey(entity.getClass(), auditable.getId());
 
             // Get old data from cache (captured at @PostLoad)
-            Map<String, Object> originalData = originalStateCache.remove(cacheKey);
+            Map<String, Object> originalData = AuditOriginalStateContext.remove(cacheKey);
 
             if (originalData == null) {
                 log.warn("No cached original state found for {} with id {}. Skipping audit log.",
@@ -230,7 +228,7 @@ public class AuditEntityListener {
         try {
             // Clean up cache entry
             String cacheKey = getCacheKey(entity.getClass(), auditable.getId());
-            originalStateCache.remove(cacheKey);
+            AuditOriginalStateContext.remove(cacheKey);
 
             Long userId = getCurrentUserId();
             String ipAddress = getClientIpAddress();
