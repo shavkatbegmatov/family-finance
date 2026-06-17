@@ -28,6 +28,11 @@ public class JwtTokenProvider {
 
     private SecretKey key;
 
+    // C5: token turini ajratish — access token'ni refresh endpoint'da ishlatishni to'sish uchun.
+    public static final String TOKEN_USE_ACCESS = "ACCESS";
+    public static final String TOKEN_USE_REFRESH = "REFRESH";
+    private static final String CLAIM_TOKEN_USE = "tokenUse";
+
     @PostConstruct
     public void init() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
@@ -71,6 +76,7 @@ public class JwtTokenProvider {
                 // UNIQUE constraint'ini buzardi → 500). UUID buni oldini oladi.
                 .id(UUID.randomUUID().toString())
                 .subject(username)
+                .claim(CLAIM_TOKEN_USE, TOKEN_USE_ACCESS)
                 .claim("type", tokenType)
                 .issuedAt(now)
                 .expiration(expiryDate);
@@ -108,6 +114,7 @@ public class JwtTokenProvider {
                 // UNIQUE constraint'ini buzardi → 500). UUID buni oldini oladi.
                 .id(UUID.randomUUID().toString())
                 .subject(username)
+                .claim(CLAIM_TOKEN_USE, TOKEN_USE_ACCESS)
                 .claim("type", "STAFF")
                 .claim("userId", userId)
                 .claim("roles", new ArrayList<>(roles))
@@ -140,6 +147,7 @@ public class JwtTokenProvider {
                 // UNIQUE constraint'ini buzardi → 500). UUID buni oldini oladi.
                 .id(UUID.randomUUID().toString())
                 .subject(username)
+                .claim(CLAIM_TOKEN_USE, TOKEN_USE_REFRESH)
                 .claim("type", tokenType)
                 .issuedAt(now)
                 .expiration(expiryDate);
@@ -168,6 +176,14 @@ public class JwtTokenProvider {
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaims(token);
         return claims.get("userId", Long.class);
+    }
+
+    /**
+     * Token "tokenUse" claim'ini qaytaradi (ACCESS | REFRESH). Eski (claim'siz)
+     * token'lar uchun null — refresh endpoint'da REFRESH talab qilinadi.
+     */
+    public String getTokenUse(String token) {
+        return getClaims(token).get(CLAIM_TOKEN_USE, String.class);
     }
 
     public String getTokenType(String token) {

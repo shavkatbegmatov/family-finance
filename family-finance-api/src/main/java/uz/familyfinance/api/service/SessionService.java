@@ -2,6 +2,7 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,13 @@ public class SessionService {
         this.userAgentParser = userAgentParser;
         this.notificationDispatcher = notificationDispatcher;
     }
+
+    // C5: refresh paytida session topilmasa (rotated-away yoki legacy) yangi yaratish.
+    // Default FALSE (prod) — eski (rotated-away) refresh-token replay'ini to'sadi. Legacy
+    // (V44'gacha) NULL-hash sessiyalar uchun vaqtinchalik TRUE qilish mumkin edi, lekin
+    // 24soat refresh-TTL'dan keyin barchasi muddati o'tgan → kerak emas.
+    @Value("${app.session.allow-create-on-missing-refresh:false}")
+    private boolean allowCreateOnMissingRefresh;
 
     /**
      * Create a new session (access token only — refresh token hash NULL bo'lib qoladi).
@@ -105,8 +113,13 @@ public class SessionService {
         Optional<Session> existing = sessionRepository.findByRefreshTokenHash(hashToken(oldRefreshToken));
 
         if (existing.isEmpty()) {
-            createSession(user, newAccessToken, newRefreshToken, ipAddress, userAgent, expiresAt);
-            return;
+            // C5: session topilmadi. Bu odatda eski (rotated-away) refresh-token replay'i —
+            // rotatsiya invariantini saqlash uchun rad etamiz (flag bilan legacy uchun ochiladi).
+            if (allowCreateOnMissingRefresh) {
+                createSession(user, newAccessToken, newRefreshToken, ipAddress, userAgent, expiresAt);
+                return;
+            }
+            throw new BadRequestException("Sessiya topilmadi, qaytadan kiring");
         }
 
         Session session = existing.get();
