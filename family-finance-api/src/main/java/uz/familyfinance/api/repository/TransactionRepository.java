@@ -71,6 +71,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                  @Param("from") LocalDateTime from,
                                                  @Param("to") LocalDateTime to);
 
+    /**
+     * C3: Scope-aware kategoriya xarajati — faqat berilgan scope'dagi hisoblardagi
+     * tranzaksiyalar (account.homeScope orqali). Global kategoriyalarda cross-tenant
+     * sizishni oldini oladi (budget "spent" boshqa urug'/xonadon xarajatini qo'shmaydi).
+     */
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'EXPENSE' AND " +
+           "t.category.id = :categoryId AND t.account.homeScope.id = :scopeId " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to")
+    BigDecimal sumExpenseByCategoryAndScopeAndDateRange(@Param("categoryId") Long categoryId,
+                                                        @Param("scopeId") Long scopeId,
+                                                        @Param("from") LocalDateTime from,
+                                                        @Param("to") LocalDateTime to);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'INCOME' AND " +
            "t.category.id = :categoryId AND t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumIncomeByCategoryAndDateRange(@Param("categoryId") Long categoryId,

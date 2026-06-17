@@ -38,6 +38,13 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     Optional<Budget> findByCategoryIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Long categoryId, LocalDate startDate, LocalDate endDate);
 
+    /**
+     * C3: Scope-aware byudjet qidiruvi — faqat berilgan scope'dagi. Aks holda
+     * checkBudgetWarning boshqa urug'/xonadon byudjetini topib, noto'g'ri ogohlantirardi.
+     */
+    Optional<Budget> findByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            Long categoryId, Long scopeId, LocalDate startDate, LocalDate endDate);
+
     @Query("SELECT b FROM Budget b WHERE b.isActive = true AND " +
            "b.startDate >= :startDate AND b.endDate <= :endDate")
     List<Budget> findByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
