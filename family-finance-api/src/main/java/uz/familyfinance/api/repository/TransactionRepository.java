@@ -55,15 +55,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                       @Param("from") LocalDateTime from,
                                       @Param("to") LocalDateTime to);
 
-    /** Scope-aware: faqat berilgan family_group'ning tranzaksiyalar yig'indisi (Account orqali). */
+    /** Scope-aware: faqat berilgan scope'ning tranzaksiyalar yig'indisi (Account orqali). */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
          + "WHERE t.type = :type "
          + "AND t.transactionDate >= :from AND t.transactionDate <= :to "
-         + "AND t.account.familyGroup.id = :familyGroupId")
-    BigDecimal sumByTypeAndDateRangeAndFamilyGroup(@Param("type") TransactionType type,
+         + "AND t.scope.id = :scopeId")
+    BigDecimal sumByTypeAndDateRangeAndScope(@Param("type") TransactionType type,
                                                     @Param("from") LocalDateTime from,
                                                     @Param("to") LocalDateTime to,
-                                                    @Param("familyGroupId") Long familyGroupId);
+                                                    @Param("scopeId") Long scopeId);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'EXPENSE' AND " +
            "t.category.id = :categoryId AND t.transactionDate >= :from AND t.transactionDate <= :to")
@@ -115,42 +115,42 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "GROUP BY t.type, extract(month from t.transactionDate)")
     List<Object[]> sumByTypeGroupedByMonth(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Scope-aware: faqat berilgan family_group'ning oylik trend'i. */
+    /** Scope-aware: faqat berilgan scope'ning oylik trend'i. */
     @Query("SELECT t.type, extract(month from t.transactionDate), COALESCE(SUM(t.amount), 0) "
          + "FROM Transaction t WHERE t.transactionDate >= :from AND t.transactionDate <= :to "
-         + "AND t.account.familyGroup.id = :familyGroupId "
+         + "AND t.scope.id = :scopeId "
          + "GROUP BY t.type, extract(month from t.transactionDate)")
-    List<Object[]> sumByTypeGroupedByMonthAndFamilyGroup(@Param("from") LocalDateTime from,
+    List<Object[]> sumByTypeGroupedByMonthAndScope(@Param("from") LocalDateTime from,
                                                          @Param("to") LocalDateTime to,
-                                                         @Param("familyGroupId") Long familyGroupId);
+                                                         @Param("scopeId") Long scopeId);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.type = 'EXPENSE' AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumExpenseGroupedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Scope-aware: faqat berilgan family_group'ning kategoriya bo'yicha xarajatlari. */
+    /** Scope-aware: faqat berilgan scope'ning kategoriya bo'yicha xarajatlari. */
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t "
          + "WHERE t.type = 'EXPENSE' AND t.transactionDate >= :from AND t.transactionDate <= :to "
-         + "AND t.account.familyGroup.id = :familyGroupId "
+         + "AND t.scope.id = :scopeId "
          + "GROUP BY t.category.id")
-    List<Object[]> sumExpenseGroupedByCategoryAndFamilyGroup(@Param("from") LocalDateTime from,
+    List<Object[]> sumExpenseGroupedByCategoryAndScope(@Param("from") LocalDateTime from,
                                                               @Param("to") LocalDateTime to,
-                                                              @Param("familyGroupId") Long familyGroupId);
+                                                              @Param("scopeId") Long scopeId);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.type = 'INCOME' AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumIncomeGroupedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Scope-aware: faqat berilgan family_group'ning daromad kategoriyalari bo'yicha summa. */
+    /** Scope-aware: faqat berilgan scope'ning daromad kategoriyalari bo'yicha summa. */
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t "
          + "WHERE t.type = 'INCOME' AND t.transactionDate >= :from AND t.transactionDate <= :to "
-         + "AND t.account.familyGroup.id = :familyGroupId "
+         + "AND t.scope.id = :scopeId "
          + "GROUP BY t.category.id")
-    List<Object[]> sumIncomeGroupedByCategoryAndFamilyGroup(@Param("from") LocalDateTime from,
+    List<Object[]> sumIncomeGroupedByCategoryAndScope(@Param("from") LocalDateTime from,
                                                              @Param("to") LocalDateTime to,
-                                                             @Param("familyGroupId") Long familyGroupId);
+                                                             @Param("scopeId") Long scopeId);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.type = 'EXPENSE' AND t.category.id IN :categoryIds " +
@@ -163,12 +163,12 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t "
          + "WHERE t.type = 'EXPENSE' AND t.category.id IN :categoryIds "
          + "AND t.transactionDate >= :from AND t.transactionDate <= :to "
-         + "AND t.account.familyGroup.id = :familyGroupId "
+         + "AND t.scope.id = :scopeId "
          + "GROUP BY t.category.id")
-    List<Object[]> sumExpenseByCategoryIdsAndFamilyGroup(@Param("categoryIds") List<Long> categoryIds,
+    List<Object[]> sumExpenseByCategoryIdsAndScope(@Param("categoryIds") List<Long> categoryIds,
                                                           @Param("from") LocalDateTime from,
                                                           @Param("to") LocalDateTime to,
-                                                          @Param("familyGroupId") Long familyGroupId);
+                                                          @Param("scopeId") Long scopeId);
 
     @Query("SELECT t FROM Transaction t WHERE " +
            "(t.debitAccount.id = :accountId OR t.creditAccount.id = :accountId OR t.account.id = :accountId) " +
