@@ -190,6 +190,7 @@ public class TransactionService {
                 .type(request.getType())
                 .amount(request.getAmount())
                 .account(account)
+                .scope(account.getHomeScope()) // D1: tranzaksiya scope'i = asosiy hisob scope'i (null = system/SYSTEM_TRANSIT)
                 .transactionDate(request.getTransactionDate())
                 .description(request.getDescription())
                 .isRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false)
@@ -420,6 +421,7 @@ public class TransactionService {
                 .type(TransactionType.REVERSAL)
                 .amount(original.getAmount())
                 .account(original.getAccount())
+                .scope(original.getScope()) // D1: storno asl tranzaksiya scope'ini meros qiladi
                 .toAccount(original.getToAccount())
                 .transactionDate(LocalDateTime.now())
                 .description("STORNO: " + (reason != null ? reason : "") +

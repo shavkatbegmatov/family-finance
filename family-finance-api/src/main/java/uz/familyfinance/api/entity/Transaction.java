@@ -44,6 +44,18 @@ public class Transaction extends BaseEntity implements Auditable {
     @JoinColumn(name = "to_account_id")
     private Account toAccount;
 
+    /**
+     * D1: tranzaksiya scope'i (= asosiy {@link #account} ning {@code homeScope}'i). To'g'ridan
+     * scope-filtrlash uchun (avval bilvosita {@code account.homeScope}/{@code familyGroup} orqali
+     * edi). <b>Nullable</b> — system/SYSTEM_TRANSIT tranzaksiyalar scope'siz bo'lishi mumkin
+     * ({@code account.homeScope} NULL; V39 {@code accounts}'ni shu sabab NOT NULL'dan istisno
+     * qilgan). {@code doCreate}/{@code reverse}'da to'ldiriladi; mavjud qatorlar V48'da backfill
+     * qilingan. Read-path query'lar bunga PR-b da ko'chadi.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     // ==========================================
     // Yangi Double-Entry maydonlari
     // ==========================================
