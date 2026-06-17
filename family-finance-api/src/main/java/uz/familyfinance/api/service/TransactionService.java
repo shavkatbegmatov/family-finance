@@ -124,6 +124,31 @@ public class TransactionService {
     }
 
     /**
+     * D7: O'tkazmada (TRANSFER) jo'natuvchi va qabul qiluvchi hisob valyutasi bir xil
+     * bo'lishi shart. Valyuta kursi (FX) tizimi hozircha yo'q — turli valyutali o'tkazma
+     * summani o'zgartirmasdan ko'chirib balansni buzadi (masalan 1000 UZS → 1000 USD).
+     * Shuning uchun bunday o'tkazmani rad etamiz (kelajakda exchange_rates bilan
+     * konvertatsiya). Taqqoslash case/probelga bardoshli (currency drift'ni sindirmaslik uchun).
+     */
+    private void ensureSameCurrency(Account from, Account to) {
+        if (!isSameCurrency(from.getCurrency(), to.getCurrency())) {
+            throw new BadRequestException(
+                    "Turli valyutali hisoblar o'rtasida o'tkazma qilib bo'lmaydi: "
+                            + from.getCurrency() + " → " + to.getCurrency());
+        }
+    }
+
+    /**
+     * Valyuta tengligini case/probelga bardoshli taqqoslaydi (currency drift'ni
+     * sindirmaslik uchun). Package-private static — unit test bevosita tekshiradi.
+     */
+    static boolean isSameCurrency(String a, String b) {
+        String x = a == null ? "" : a.trim();
+        String y = b == null ? "" : b.trim();
+        return x.equalsIgnoreCase(y);
+    }
+
+    /**
      * Yangi tranzaksiya yaratadi — to'liq Double-Entry mantiq bilan.
      *
      * INCOME:   debit = foydalanuvchi hisobi (pul tushdi), credit = tranzit daromad hisobi
@@ -216,6 +241,7 @@ public class TransactionService {
                     accountService.assertCanModify(toAccount);
                 }
                 ensureAccountActive(toAccount);
+                ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
                 transaction.setToAccount(toAccount);
                 debitAccount = toAccount;   // Pul tushayotgan hisob
                 creditAccount = account;     // Pul chiqayotgan hisob
@@ -334,6 +360,7 @@ public class TransactionService {
                     toAccount = accountRepository.findById(request.getToAccountId())
                             .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
                     ensureAccountActive(toAccount); // D4: qabul qiluvchi hisob ham faol bo'lishi shart
+                    ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
                     existing.setToAccount(toAccount);
                 } else {
                     existing.setToAccount(null);
