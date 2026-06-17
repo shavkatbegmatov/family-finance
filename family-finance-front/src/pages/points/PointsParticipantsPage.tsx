@@ -14,6 +14,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import { ComboBox } from '../../components/ui/ComboBox';
 import { useFamilyMemberOptions } from '../../hooks/useFamilyMemberOptions';
 import { AddPersonWizard, PersonBadges } from '../../components/persons';
+import { getApiErrorMessage } from '../../utils/apiError';
 import {
   PointsEmptyState,
   PointsLoadingState,
@@ -34,11 +35,6 @@ const emptyForm: ParticipantFormState = {
   lastName: '',
   nickname: '',
   birthDate: '',
-};
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-  const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-  return typeof message === 'string' && message.trim().length > 0 ? message : fallback;
 };
 
 export function PointsParticipantsPage() {
@@ -217,7 +213,7 @@ export function PointsParticipantsPage() {
       closeLinkModal();
       loadParticipants();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Bog'lashda xatolik"));
+      toast.error(getApiErrorMessage(error, "Bog'lashda xatolik"));
     } finally {
       setLinkSubmitting(false);
     }
@@ -258,7 +254,7 @@ export function PointsParticipantsPage() {
       toast.success(`${created.fullName} qo'shildi va tanlandi`);
       closeInlineMemberModal();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Oila a'zosini qo'shishda xatolik"));
+      toast.error(getApiErrorMessage(error, "Oila a'zosini qo'shishda xatolik"));
     } finally {
       setInlineMemberSubmitting(false);
     }
@@ -277,7 +273,7 @@ export function PointsParticipantsPage() {
       closeLinkModal();
       loadParticipants();
     } catch (error) {
-      toast.error(getErrorMessage(error, "Bog'lanishni uzishda xatolik"));
+      toast.error(getApiErrorMessage(error, "Bog'lanishni uzishda xatolik"));
     } finally {
       setUnlinkSubmitting(false);
     }

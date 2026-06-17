@@ -34,6 +34,7 @@ import { PersonBadges, SuggestionsBanner, type Suggestion } from '../../componen
 import { Users as UsersIcon, Trophy } from 'lucide-react';
 import { formatPhoneDisplay } from '../../utils/phone';
 import { formatDateTime } from '../../config/constants';
+import { getApiErrorMessage, toastApiError } from '../../utils/apiError';
 
 type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | 'family-link' | null;
 
@@ -197,11 +198,7 @@ export function UsersPage() {
       toast.success('Foydalanuvchi yangilandi');
       closeModal();
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const resetPasswordMutation = useMutation({
@@ -211,11 +208,7 @@ export function UsersPage() {
   
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const activateMutation = useMutation({
@@ -224,11 +217,7 @@ export function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('Foydalanuvchi aktivlashtirildi');
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const deactivateMutation = useMutation({
@@ -237,11 +226,7 @@ export function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success("Foydalanuvchi o'chirildi");
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const assignRoleMutation = useMutation({
@@ -253,11 +238,7 @@ export function UsersPage() {
       toast.success('Rol biriktirildi');
       setSelectedRoleId(null);
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const removeRoleMutation = useMutation({
@@ -268,11 +249,7 @@ export function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success('Rol olib tashlandi');
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const changeUsernameMutation = useMutation({
@@ -283,11 +260,7 @@ export function UsersPage() {
       toast.success("Username o'zgartirildi. Foydalanuvchi qayta kirishi kerak.");
       closeModal();
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const linkFamilyMemberMutation = useMutation({
@@ -302,11 +275,7 @@ export function UsersPage() {
       toast.success("Bog'lanish muvaffaqiyatli yangilandi");
       closeModal();
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Bog\'lashda xatolik yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Bog\'lashda xatolik yuz berdi'),
   });
 
   const unlinkFamilyMemberMutation = useMutation({
@@ -321,11 +290,7 @@ export function UsersPage() {
       toast.success("Bog'lanish uzildi");
       closeModal();
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Bog\'lanishni uzishda xatolik yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Bog\'lanishni uzishda xatolik yuz berdi'),
   });
 
   /**
@@ -343,9 +308,7 @@ export function UsersPage() {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       toast.success(`${targetUser.fullName} ball tizimiga qo'shildi`);
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message ?? "Ball tizimiga qo'shishda xatolik");
-    },
+    onError: (error) => toast.error(getApiErrorMessage(error, "Ball tizimiga qo'shishda xatolik")),
   });
 
   // ========================

@@ -18,6 +18,7 @@ import { EmailInput } from '../../components/ui/EmailInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
 import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { RegisterRequest } from '../../types';
 
 export function RegisterPage() {
@@ -102,9 +103,8 @@ export function RegisterPage() {
         : "Muvaffaqiyatli ro'yxatdan o'tildi! Endi tizimga kirishingiz mumkin.";
       toast.success(successMsg);
       navigate('/login');
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Ro'yxatdan o'tishda xatolik");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Ro'yxatdan o'tishda xatolik"));
     } finally {
       setLoading(false);
     }

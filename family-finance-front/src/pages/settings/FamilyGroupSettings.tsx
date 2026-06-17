@@ -11,6 +11,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
 import type { ApiResponse } from '../../types';
 import { formatPhoneDisplay } from '../../utils/phone';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 interface AddressHistoryItem {
     id: number;
@@ -50,9 +51,7 @@ export function FamilyGroupSettings() {
             toast.success('A\'zo guruhdan chiqarildi');
             queryClient.invalidateQueries({ queryKey: ['myFamilyGroup'] });
         },
-        onError: (err: { response?: { data?: { message?: string } } }) => {
-            toast.error(err.response?.data?.message || 'Foydalanuvchini o\'chirishda xatolik');
-        },
+        onError: (err) => toast.error(getApiErrorMessage(err, 'Foydalanuvchini o\'chirishda xatolik')),
     });
 
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
@@ -81,9 +80,7 @@ export function FamilyGroupSettings() {
             setMoveInDate('');
             setMoveOutDate('');
         },
-        onError: (err: { response?: { data?: { message?: string } } }) => {
-            toast.error(err.response?.data?.message || 'Manzilni saqlashda xatolik');
-        },
+        onError: (err) => toast.error(getApiErrorMessage(err, 'Manzilni saqlashda xatolik')),
     });
 
     const handleInvite = async (username: string) => {
