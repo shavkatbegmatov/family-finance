@@ -248,9 +248,12 @@ public class TransactionService {
             saveSplits(saved, request.getSplits());
         }
 
-        // Check budget warnings for expenses
+        // Check budget warnings for expenses (C3: faqat shu tranzaksiya scope'ida)
         if (request.getType() == TransactionType.EXPENSE && request.getCategoryId() != null) {
-            checkBudgetWarning(request.getCategoryId(), request.getAmount());
+            Long scopeId = saved.getAccount().getHomeScope() != null
+                    ? saved.getAccount().getHomeScope().getId()
+                    : null;
+            checkBudgetWarning(request.getCategoryId(), scopeId, request.getAmount());
         }
 
         log.info("Tranzaksiya yaratildi: {} {} (debit: {}, credit: {})",
@@ -623,14 +626,19 @@ public class TransactionService {
         }
     }
 
-    private void checkBudgetWarning(Long categoryId, BigDecimal expenseAmount) {
+    private void checkBudgetWarning(Long categoryId, Long scopeId, BigDecimal expenseAmount) {
+        // C3: scope'siz (masalan SYSTEM_TRANSIT hisob) tranzaksiyaga byudjet ogohlantirishi yo'q
+        if (scopeId == null) {
+            return;
+        }
         LocalDate today = LocalDate.now();
-        budgetRepository.findByCategoryIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
-                categoryId, today, today).ifPresent(budget -> {
+        // C3: byudjet va xarajat FAQAT shu scope'da qidiriladi (boshqa urug'/xonadon emas)
+        budgetRepository.findByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                categoryId, scopeId, today, today).ifPresent(budget -> {
             LocalDateTime from = budget.getStartDate().atStartOfDay();
             LocalDateTime to = budget.getEndDate().atTime(23, 59, 59);
-            BigDecimal directSpent = transactionRepository.sumExpenseByCategoryAndDateRange(categoryId, from, to);
-            BigDecimal splitSpent = transactionSplitRepository.sumExpenseByCategoryAndDateRange(categoryId, from, to);
+            BigDecimal directSpent = transactionRepository.sumExpenseByCategoryAndScopeAndDateRange(categoryId, scopeId, from, to);
+            BigDecimal splitSpent = transactionSplitRepository.sumExpenseByCategoryAndScopeAndDateRange(categoryId, scopeId, from, to);
             BigDecimal totalSpent = directSpent.add(splitSpent);
             BigDecimal percentage = totalSpent.multiply(BigDecimal.valueOf(100))
                     .divide(budget.getAmount(), 2, RoundingMode.HALF_UP);

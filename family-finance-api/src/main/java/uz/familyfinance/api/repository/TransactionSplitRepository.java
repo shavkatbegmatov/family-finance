@@ -27,4 +27,16 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
     BigDecimal sumExpenseByCategoryAndDateRange(@Param("categoryId") Long categoryId,
                                                  @Param("from") LocalDateTime from,
                                                  @Param("to") LocalDateTime to);
+
+    /** C3: Scope-aware split xarajati — faqat berilgan scope'dagi (transaction.account.homeScope). */
+    @Query("SELECT COALESCE(SUM(s.amount), 0) FROM TransactionSplit s " +
+            "WHERE s.category.id = :categoryId " +
+            "AND s.transaction.account.homeScope.id = :scopeId " +
+            "AND s.transaction.type = 'EXPENSE' " +
+            "AND s.transaction.transactionDate >= :from " +
+            "AND s.transaction.transactionDate <= :to")
+    BigDecimal sumExpenseByCategoryAndScopeAndDateRange(@Param("categoryId") Long categoryId,
+                                                        @Param("scopeId") Long scopeId,
+                                                        @Param("from") LocalDateTime from,
+                                                        @Param("to") LocalDateTime to);
 }
