@@ -65,19 +65,21 @@ public class TransactionService {
     private TransactionService self;
 
     /**
-     * Aktiv scope'ga mos family_group_id ni qaytaradi.
-     * SUPER_ADMIN bo'lsa yoki scope topilmasa null — query global qoladi.
+     * Aktiv scope ID ni qaytaradi (D1-b: tranzaksiyalar to'g'ridan {@code t.scope.id} bo'yicha
+     * filtrlanadi — avval bilvosita aktiv scope → klan → legacy familyGroup orqali edi).
+     * SUPER_ADMIN → null (query global, barchasini ko'radi); aktiv scope topilmasa → -1
+     * (hech bir tranzaksiya mos kelmaydi, xavfsiz default). Accounts naqshiga izchil
+     * ({@code getActiveScopeIdOrNull}).
      */
-    private Long resolveActiveFamilyGroupIdOrNull() {
+    private Long resolveActiveScopeIdOrNull() {
         if (scopeContext.isSuperAdmin()) {
             return null; // SUPER_ADMIN barcha tranzaksiyalarni ko'radi
         }
         try {
-            return scopeContext.getActiveFamilyGroupOptional()
-                    .map(fg -> fg.getId())
-                    .orElse(-1L); // -1 = hech bir tranzaksiya mos kelmaydi (xavfsiz default)
+            Long scopeId = scopeContext.getActiveScopeIdOrNull();
+            return scopeId != null ? scopeId : -1L; // -1 = hech bir tranzaksiya mos kelmaydi (xavfsiz default)
         } catch (Exception e) {
-            log.warn("Aktiv family group olib bo'lmadi: {}", e.getMessage());
+            log.warn("Aktiv scope olib bo'lmadi: {}", e.getMessage());
             return -1L;
         }
     }
@@ -87,8 +89,8 @@ public class TransactionService {
                                               Long memberId, LocalDateTime from, LocalDateTime to,
                                               String search, Pageable pageable) {
         String normalizedSearch = (search == null || search.isBlank()) ? null : search.trim();
-        Long familyGroupId = resolveActiveFamilyGroupIdOrNull();
-        return transactionRepository.findWithFilters(familyGroupId, type, accountId, categoryId, memberId,
+        Long scopeId = resolveActiveScopeIdOrNull();
+        return transactionRepository.findWithFilters(scopeId, type, accountId, categoryId, memberId,
                                                        from, to, null, normalizedSearch, pageable)
                 .map(this::toResponse);
     }
@@ -100,14 +102,14 @@ public class TransactionService {
 
     @Transactional(readOnly = true)
     public List<TransactionResponse> getRecent() {
-        Long familyGroupId = resolveActiveFamilyGroupIdOrNull();
-        if (familyGroupId == null) {
+        Long scopeId = resolveActiveScopeIdOrNull();
+        if (scopeId == null) {
             // SUPER_ADMIN — eski global qaytaradi
             return transactionRepository.findTop10ByOrderByTransactionDateDesc().stream()
                     .map(this::toResponse).collect(Collectors.toList());
         }
         return transactionRepository
-                .findTop10ByFamilyGroup(familyGroupId, org.springframework.data.domain.PageRequest.of(0, 10))
+                .findTop10ByScope(scopeId, org.springframework.data.domain.PageRequest.of(0, 10))
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
