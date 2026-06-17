@@ -7,6 +7,7 @@ import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
 import { consumeIntendedPath, sanitizeInternalPath } from '../../utils/sessionNavigation';
 import { BrandMark } from '../../components/common/BrandLogo';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { LoginRequest } from '../../types';
 
 export function LoginPage() {
@@ -51,9 +52,8 @@ export function LoginPage() {
 
       toast.success('Muvaffaqiyatli kirish!');
       navigate(redirectTo, { replace: true });
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Kirish xatosi');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Kirish xatosi'));
     } finally {
       setLoading(false);
     }

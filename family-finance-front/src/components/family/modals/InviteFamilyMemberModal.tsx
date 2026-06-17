@@ -19,6 +19,7 @@ import { FAMILY_ROLES, GENDERS } from '../../../config/constants';
 import { ModalPortal } from '../../common/Modal';
 import { SearchInput } from '../../ui/SearchInput';
 import { formatPhoneDisplay } from '../../../utils/phone';
+import { getApiErrorMessage } from '../../../utils/apiError';
 
 interface InviteFamilyMemberModalProps {
   isOpen: boolean;
@@ -28,11 +29,6 @@ interface InviteFamilyMemberModalProps {
 }
 
 type InviteFilter = 'all' | 'ready' | 'with-tree' | 'tree-only' | 'external';
-
-const getErrorMessage = (error: unknown, fallback: string) => {
-  const message = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-  return typeof message === 'string' && message.trim().length > 0 ? message : fallback;
-};
 
 const SEARCH_RESULT_LIMIT = 12;
 
@@ -200,7 +196,7 @@ export function InviteFamilyMemberModal({
     try {
       await onInvite(selectedCandidate.username);
     } catch (error) {
-      setSubmitError(getErrorMessage(error, "A'zoni qo'shishda xatolik yuz berdi"));
+      setSubmitError(getApiErrorMessage(error, "A'zoni qo'shishda xatolik yuz berdi"));
     }
   };
 

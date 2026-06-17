@@ -10,6 +10,7 @@ import type { Scope } from '../../types/scope.types';
 import { SCOPE_TYPE_META } from './scopeTypeMeta';
 import { useSwitchScope } from '../../hooks/useSwitchScope';
 import { groupScopesByClan, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 /**
  * SCOPE_CHANGED_EVENT endi {@link useSwitchScope} hook'ida e'lon qilingan — bu yerdan
@@ -88,9 +89,7 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
       })
       .catch((err) => {
         console.error('Scope\'larni yuklashda xato:', err);
-        const msg = (err as { response?: { data?: { message?: string } } })
-          ?.response?.data?.message;
-        toast.error(msg ?? 'Scope\'larni yuklashda xatolik');
+        toast.error(getApiErrorMessage(err, 'Scope\'larni yuklashda xatolik'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
