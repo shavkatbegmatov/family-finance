@@ -286,6 +286,9 @@ public class TransactionService {
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
 
+        // D4: UPDATE'da ham muzlatilgan/yopilgan hisob rad etiladi (avval faqat CREATE tekshirardi)
+        ensureAccountActive(account);
+
         existing.setType(request.getType());
         existing.setAmount(request.getAmount());
         existing.setAccount(account);
@@ -330,6 +333,7 @@ public class TransactionService {
                 if (request.getToAccountId() != null) {
                     toAccount = accountRepository.findById(request.getToAccountId())
                             .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                    ensureAccountActive(toAccount); // D4: qabul qiluvchi hisob ham faol bo'lishi shart
                     existing.setToAccount(toAccount);
                 } else {
                     existing.setToAccount(null);
