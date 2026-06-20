@@ -8,10 +8,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import uz.familyfinance.api.dto.request.LoginRequest;
 import uz.familyfinance.api.dto.response.JwtResponse;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.repository.SessionRepository;
 import uz.familyfinance.api.repository.UserRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Auth oqimi integration testi (Faza 1, behavior qulflash) — real PostgreSQL 16.
@@ -101,5 +103,28 @@ class AuthSessionIntegrationTest extends AbstractPostgresIntegrationTest {
         assertThat(sessionRepository.findActiveSessionsByUserId(adminId))
                 .as("ikkala login ham alohida Session yaratishi shart")
                 .hasSizeGreaterThanOrEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("access token'ni refresh sifatida ishlatish RAD ETILADI (C5 tokenUse)")
+    void accessTokenCannotBeUsedAsRefresh() {
+        JwtResponse login = authService.login(adminLogin(), IP, UA);
+        // access token tokenUse=ACCESS → refresh endpoint rad etishi shart
+        assertThatThrownBy(() -> authService.refreshToken(login.getAccessToken(), IP, UA))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    @DisplayName("eski (rotated-away) refresh token replay RAD ETILADI (C5 fallback gating)")
+    void rotatedAwayRefreshTokenIsRejected() {
+        JwtResponse login = authService.login(adminLogin(), IP, UA);
+        String oldRefresh = login.getRefreshToken();
+
+        authService.refreshToken(oldRefresh, IP, UA); // rotatsiya — oldRefresh endi yaroqsiz
+
+        // Eski refresh-token qayta ishlatilsa, session topilmaydi (rotated-away) →
+        // fallback OFF (default) → rad etiladi (replay himoyasi).
+        assertThatThrownBy(() -> authService.refreshToken(oldRefresh, IP, UA))
+                .isInstanceOf(BadRequestException.class);
     }
 }

@@ -144,7 +144,9 @@ public class BudgetService {
         // Calculate spent amount
         LocalDateTime from = b.getStartDate().atStartOfDay();
         LocalDateTime to = b.getEndDate().atTime(23, 59, 59);
-        BigDecimal spent = transactionRepository.sumExpenseByCategoryAndDateRange(b.getCategory().getId(), from, to);
+        // C3: faqat shu byudjet scope'idagi xarajat (cross-tenant sizishni oldini oladi)
+        BigDecimal spent = transactionRepository.sumExpenseByCategoryAndScopeAndDateRange(
+                b.getCategory().getId(), b.getScope().getId(), from, to);
         r.setSpentAmount(spent);
         r.setRemainingAmount(b.getAmount().subtract(spent));
         if (b.getAmount().compareTo(BigDecimal.ZERO) > 0) {

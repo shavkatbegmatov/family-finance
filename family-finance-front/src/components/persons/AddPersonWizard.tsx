@@ -23,6 +23,7 @@ import { DateInput } from '../ui/DateInput';
 import { usePermission } from '../../hooks/usePermission';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { personsApi } from '../../api/persons.api';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type {
   PersonCreateRequest,
   PersonCreateResponse,
@@ -96,12 +97,6 @@ interface AddPersonWizardProps {
 // =============================================================================
 // Helpers
 // =============================================================================
-
-const getErrorMessage = (error: unknown, fallback: string): string => {
-  const message = (error as { response?: { data?: { message?: string } } })
-    ?.response?.data?.message;
-  return typeof message === 'string' && message.trim().length > 0 ? message : fallback;
-};
 
 const buildRequest = (type: PersonType, form: FormState): PersonCreateRequest => {
   const trim = (v: string): string | undefined => (v.trim().length > 0 ? v.trim() : undefined);
@@ -206,7 +201,7 @@ export function AddPersonWizard({
       toast.success(data.message ?? 'Shaxs qo\'shildi');
       onCreated?.(data);
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Shaxs qo\'shishda xatolik yuz berdi'));
+      toast.error(getApiErrorMessage(err, 'Shaxs qo\'shishda xatolik yuz berdi'));
     } finally {
       setSubmitting(false);
     }

@@ -22,6 +22,7 @@ import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
 import type { Role, RoleRequest } from '../../types';
 import { formatPhoneDisplay } from '../../utils/phone';
+import { toastApiError } from '../../utils/apiError';
 
 export function RolesPage() {
   const { hasPermission } = usePermission();
@@ -70,12 +71,7 @@ export function RolesPage() {
       toast.success('Rol yaratildi');
       closeModal();
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      // Skip toast for 403 errors (axios interceptor handles them)
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   // Update role mutation
@@ -87,12 +83,7 @@ export function RolesPage() {
       toast.success('Rol yangilandi');
       closeModal();
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      // Skip toast for 403 errors (axios interceptor handles them)
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   // Delete role mutation
@@ -102,12 +93,7 @@ export function RolesPage() {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
       toast.success("Rol o'chirildi");
     },
-    onError: (error: { response?: { status?: number; data?: { message?: string } } }) => {
-      // Skip toast for 403 errors (axios interceptor handles them)
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
-    },
+    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
   });
 
   const openModal = (role?: Role) => {

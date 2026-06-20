@@ -55,4 +55,18 @@ class JwtTokenProviderTest {
         assertThat(provider.getUsernameFromToken(token)).isEqualTo("admin");
         assertThat(provider.getUserIdFromToken(token)).isEqualTo(42L);
     }
+
+    @Test
+    @DisplayName("access token tokenUse=ACCESS (C5)")
+    void accessTokenHasAccessTokenUse() {
+        String access = provider.generateStaffToken("admin", 1L);
+        assertThat(provider.getTokenUse(access)).isEqualTo(JwtTokenProvider.TOKEN_USE_ACCESS);
+    }
+
+    @Test
+    @DisplayName("refresh token tokenUse=REFRESH (C5 — refresh endpoint shu bilan ajratadi)")
+    void refreshTokenHasRefreshTokenUse() {
+        String refresh = provider.generateStaffRefreshToken("admin", 1L);
+        assertThat(provider.getTokenUse(refresh)).isEqualTo(JwtTokenProvider.TOKEN_USE_REFRESH);
+    }
 }

@@ -6,9 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import uz.familyfinance.api.dto.request.ChangePasswordRequest;
 import uz.familyfinance.api.dto.request.LoginRequest;
 import uz.familyfinance.api.dto.request.RegisterRequest;
@@ -19,6 +21,7 @@ import uz.familyfinance.api.dto.response.SwitchScopeResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.Session;
 import uz.familyfinance.api.security.CustomUserDetails;
+import uz.familyfinance.api.security.LoginRateLimiter;
 import uz.familyfinance.api.service.AuthService;
 import uz.familyfinance.api.service.ScopeSwitchService;
 import uz.familyfinance.api.service.SessionService;
@@ -34,6 +37,7 @@ public class AuthController {
     private final UserService userService;
     private final SessionService sessionService;
     private final ScopeSwitchService scopeSwitchService;
+    private final LoginRateLimiter loginRateLimiter;
 
     @PostMapping("/register")
     @Operation(summary = "Register", description = "Yangi foydalanuvchi ro'yxatdan o'tish")
@@ -51,6 +55,13 @@ public class AuthController {
 
         String ipAddress = getClientIpAddress(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+
+        // C6: IP-asosli rate-limit (brute-force/DoS himoyasi). LoginAttemptService per-username
+        // lockout'iga qo'shimcha. Oshib ketsa 429.
+        if (!loginRateLimiter.allow(ipAddress)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Juda ko'p kirish urinishi. Birozdan so'ng qayta urinib ko'ring.");
+        }
 
         JwtResponse response = authService.login(request, ipAddress, userAgent);
         return ResponseEntity.ok(ApiResponse.success("Muvaffaqiyatli kirish", response));

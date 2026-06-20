@@ -19,6 +19,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { getCategoryIcon } from '../../utils/icons';
 import { DEFAULT_ENTITY_COLOR } from '../../config/chartColors';
+import { toastApiError } from '../../utils/apiError';
 import type {
   FinanceCategory,
   FinanceCategoryRequest,
@@ -135,11 +136,8 @@ export function CategoriesPage() {
 
       closeModal();
       fetchCategories();
-    } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { message?: string } } };
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || 'Xato yuz berdi');
-      }
+    } catch (err) {
+      toastApiError(err, 'Xato yuz berdi');
     } finally {
       setSubmitting(false);
     }
@@ -157,11 +155,8 @@ export function CategoriesPage() {
       await categoriesApi.delete(category.id);
       toast.success("Kategoriya o'chirildi");
       fetchCategories();
-    } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { message?: string } } };
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || "O'chirishda xato yuz berdi");
-      }
+    } catch (err) {
+      toastApiError(err, "O'chirishda xato yuz berdi");
     }
   };
 

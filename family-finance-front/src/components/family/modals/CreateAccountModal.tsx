@@ -7,6 +7,7 @@ import { UsernameInput } from '../../ui/UsernameInput';
 import { familyMembersApi } from '../../../api/family-members.api';
 import { useQueryClient } from '@tanstack/react-query';
 import { PASSWORD_MIN_LENGTH } from '../../../utils/password';
+import { getApiErrorMessage } from '../../../utils/apiError';
 import type { CredentialsInfo, FamilyMember } from '../../../types';
 
 interface CreateAccountModalProps {
@@ -85,8 +86,7 @@ export function CreateAccountModal({
         toast.error("Akkaunt yaratishda kutilmagan xatolik");
       }
     } catch (err) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      toast.error(axiosErr?.response?.data?.message || "Akkaunt yaratishda xatolik yuz berdi");
+      toast.error(getApiErrorMessage(err, "Akkaunt yaratishda xatolik yuz berdi"));
     } finally {
       setIsLoading(false);
     }

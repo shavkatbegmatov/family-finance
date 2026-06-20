@@ -20,6 +20,7 @@ import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter
 import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
 import { useAuthStore } from '../../store/authStore';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { ChangePasswordRequest, User as UserType } from '../../types';
 import { SessionsTab } from './SessionsTab';
 import { LoginActivityTab } from './LoginActivityTab';
@@ -93,9 +94,8 @@ export function ProfilePage() {
         logout();
         navigate('/login');
       }, 1500);
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Parolni o'zgartirishda xatolik");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Parolni o'zgartirishda xatolik"));
     } finally {
       setChangingPassword(false);
     }

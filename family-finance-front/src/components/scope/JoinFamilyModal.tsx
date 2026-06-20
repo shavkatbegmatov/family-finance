@@ -3,6 +3,7 @@ import { Users, Home, X, Loader2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { scopesApi } from '../../api/scopes.api';
 import { ModalPortal } from '../common/Modal';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 interface JoinFamilyModalProps {
   isOpen: boolean;
@@ -59,9 +60,8 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
       onClose();
       // Page reload — barcha scope-related ma'lumotlar yangilanadi
       setTimeout(() => window.location.reload(), 500);
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      toast.error(e.response?.data?.message ?? "Qo'shilishda xatolik");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Qo'shilishda xatolik"));
     } finally {
       setSubmitting(false);
     }
