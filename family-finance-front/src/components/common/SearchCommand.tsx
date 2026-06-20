@@ -30,7 +30,7 @@ import { accountsApi } from '../../api/accounts.api';
 import { familyMembersApi } from '../../api/family-members.api';
 import { familyDebtsApi } from '../../api/family-debts.api';
 import { formatCurrency } from '../../config/constants';
-import type { Transaction, Account, FamilyMember, FamilyDebt, ApiResponse, PagedResponse } from '../../types';
+import type { FamilyMember, FamilyDebt, ApiResponse, PagedResponse } from '../../types';
 
 type ResultType = 'transaction' | 'account' | 'member' | 'debt' | 'page';
 
@@ -217,7 +217,7 @@ export function SearchCommand() {
 
       // Transactions
       if (transactionsRes.status === 'fulfilled') {
-        const transactions = (transactionsRes.value.data as ApiResponse<PagedResponse<Transaction>>).data.content;
+        const transactions = transactionsRes.value.data.data.content;
         transactions
           .filter((t) =>
             t.description?.toLowerCase().includes(q) ||
@@ -238,7 +238,7 @@ export function SearchCommand() {
 
       // Accounts
       if (accountsRes.status === 'fulfilled') {
-        const accounts = (accountsRes.value.data as ApiResponse<PagedResponse<Account>>).data.content;
+        const accounts = accountsRes.value.data.data.content;
         accounts
           .filter((a) => a.name.toLowerCase().includes(q))
           .forEach((a) => {

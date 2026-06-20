@@ -20,7 +20,7 @@ export function TagInput({ selectedIds, onChange, label = 'Teglar' }: TagInputPr
   const loadTags = useCallback(async () => {
     try {
       const res = await tagsApi.getAll();
-      setAllTags((res.data as { data: TagResponse[] }).data);
+      setAllTags(res.data.data);
     } catch {
       // tag yuklamadi — tinchcha
     }
@@ -68,7 +68,7 @@ export function TagInput({ selectedIds, onChange, label = 'Teglar' }: TagInputPr
     setCreating(true);
     try {
       const res = await tagsApi.create({ name });
-      const newTag = (res.data as { data: TagResponse }).data;
+      const newTag = res.data.data;
       setAllTags((prev) => [...prev, newTag]);
       onChange([...selectedIds, newTag.id]);
       setQuery('');

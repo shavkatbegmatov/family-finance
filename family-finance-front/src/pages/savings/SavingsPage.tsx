@@ -18,8 +18,6 @@ import type {
   SavingsGoalRequest,
   GoalContribution,
   GoalContributionRequest,
-  ApiResponse,
-  PagedResponse,
 } from '../../types';
 
 // ---------- Form types ----------
@@ -86,7 +84,7 @@ export function SavingsPage() {
   const loadGoals = useCallback(async () => {
     try {
       const res = await savingsApi.getAll();
-      const data = res.data as ApiResponse<PagedResponse<SavingsGoal>>;
+      const data = res.data;
       setGoals(data.data.content);
     } catch {
       toast.error("Jamg'arma maqsadlarini yuklashda xatolik");
@@ -99,7 +97,7 @@ export function SavingsPage() {
     setLoadingContribs(true);
     try {
       const contribRes = await savingsApi.getContributions(goalId);
-      const data = contribRes.data as ApiResponse<GoalContribution[]>;
+      const data = contribRes.data;
       setContributions(data.data);
     } catch {
       toast.error("Hissalarni yuklashda xatolik");

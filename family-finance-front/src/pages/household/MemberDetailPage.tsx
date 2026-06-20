@@ -57,7 +57,6 @@ import type {
   MemberRecentTransaction,
   Transaction,
   ApiResponse,
-  PagedResponse,
 } from '../../types';
 import { formatPhoneDisplay } from '../../utils/phone';
 
@@ -142,7 +141,7 @@ export function MemberDetailPage() {
       const filters: Record<string, unknown> = { memberId };
       if (txTypeFilter) filters.type = txTypeFilter;
       const res = await transactionsApi.getAll(txPage, 15, filters);
-      const pageData = (res.data as ApiResponse<PagedResponse<Transaction>>).data;
+      const pageData = res.data.data;
       setTxData(pageData.content);
       setTxTotalElements(pageData.totalElements);
       setTxTotalPages(pageData.totalPages);

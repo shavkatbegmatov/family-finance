@@ -12,7 +12,6 @@ import toast from 'react-hot-toast';
 import { accountsApi } from '../../api/accounts.api';
 import type {
   Account, AccountType, AccountStatus, AccountFilters,
-  ApiResponse, PagedResponse,
 } from '../../types';
 import {
   formatCurrency, formatCompactCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
@@ -319,8 +318,7 @@ export function AccountsPage() {
     try {
       setKpiLoading(true);
       const res = await accountsApi.getTotalBalance();
-      const data = res.data?.data ?? res.data;
-      setTotalBalance(typeof data === 'number' ? data : data?.totalBalance ?? 0);
+      setTotalBalance(res.data.data ?? 0);
     } catch {
       // silently fail
     } finally {
@@ -338,7 +336,7 @@ export function AccountsPage() {
 
       if (activeTab === 'my') {
         const res = await accountsApi.getMy(page, pageSize);
-        const data = res.data as ApiResponse<PagedResponse<Account>>;
+        const data = res.data;
         content = data.data.content;
         elems = data.data.totalElements;
         pages = data.data.totalPages;
@@ -349,7 +347,7 @@ export function AccountsPage() {
         if (filterStatus) filters.status = filterStatus;
 
         const res = await accountsApi.getAll(filters);
-        const data = res.data as ApiResponse<PagedResponse<Account>>;
+        const data = res.data;
         content = data.data.content;
         elems = data.data.totalElements;
         pages = data.data.totalPages;

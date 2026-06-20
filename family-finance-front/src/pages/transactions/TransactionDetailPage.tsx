@@ -40,7 +40,6 @@ import type {
   ApiResponse,
   FamilyMember,
   FinanceCategory,
-  PagedResponse,
   Transaction,
   TransactionType,
 } from '../../types';
@@ -112,7 +111,7 @@ export function TransactionDetailPage() {
     setError(null);
     try {
       const res = await transactionsApi.getById(Number(id));
-      const data = (res.data as ApiResponse<Transaction>).data;
+      const data = res.data.data;
       setTransaction(data);
     } catch {
       setError("Tranzaksiya topilmadi yoki yuklab bo'lmadi");
@@ -129,24 +128,13 @@ export function TransactionDetailPage() {
         familyMembersApi.getList(),
         tagsApi.getAll(),
       ]);
-      setAccounts(
-        (accountsRes.data as ApiResponse<Account[]>).data ?? (accountsRes.data as Account[])
-      );
-
-      const catData = categoriesRes.data as
-        | ApiResponse<PagedResponse<FinanceCategory>>
-        | ApiResponse<FinanceCategory[]>;
-      if ('content' in (catData.data as PagedResponse<FinanceCategory>)) {
-        setCategories((catData.data as PagedResponse<FinanceCategory>).content);
-      } else {
-        setCategories(catData.data as FinanceCategory[]);
-      }
-
+      setAccounts(accountsRes.data.data);
+      setCategories(categoriesRes.data.data.content);
       setMembers(
         (membersRes.data as ApiResponse<FamilyMember[]>).data ??
           (membersRes.data as FamilyMember[])
       );
-      setAllTags((tagsRes.data as ApiResponse<TagResponse[]>).data);
+      setAllTags(tagsRes.data.data);
     } catch {
       // Reference data is non-blocking for read-only display
     }

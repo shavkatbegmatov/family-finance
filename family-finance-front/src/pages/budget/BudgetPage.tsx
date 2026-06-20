@@ -15,7 +15,7 @@ import { PermissionCode } from '../../hooks/usePermission';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { getCategoryIcon } from '../../utils/icons';
 import { BUDGET_TONE_BG, BUDGET_TONE_TEXT, getBudgetTone } from '../../config/chartColors';
-import type { Budget, BudgetRequest, BudgetPeriod, FinanceCategory, ApiResponse, PagedResponse } from '../../types';
+import type { Budget, BudgetRequest, BudgetPeriod, FinanceCategory } from '../../types';
 
 interface BudgetFormState {
   categoryId: number;
@@ -53,7 +53,7 @@ export function BudgetPage() {
   const loadBudgets = useCallback(async () => {
     try {
       const res = await budgetsApi.getAll();
-      const data = res.data as ApiResponse<PagedResponse<Budget>>;
+      const data = res.data;
       setBudgets(data.data.content);
     } catch {
       toast.error('Byudjetlarni yuklashda xatolik');
@@ -65,7 +65,7 @@ export function BudgetPage() {
   const loadCategories = useCallback(async () => {
     try {
       const categoriesRes = await categoriesApi.getByType('EXPENSE');
-      const data = categoriesRes.data as ApiResponse<FinanceCategory[]>;
+      const data = categoriesRes.data;
       setCategories(data.data);
     } catch {
       toast.error('Kategoriyalarni yuklashda xatolik');
