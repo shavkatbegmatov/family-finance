@@ -96,7 +96,7 @@ export function PointsConversionPage() {
     if (pointsInput <= 0) return;
     try {
       const res = await pointConversionApi.calculate(pointsInput);
-      setCalculatedMoney(res.data?.data ?? res.data ?? null);
+      setCalculatedMoney(res.data.data?.moneyAmount ?? null);
     } catch {
       toast.error("Hisoblashda xatolik");
     }
