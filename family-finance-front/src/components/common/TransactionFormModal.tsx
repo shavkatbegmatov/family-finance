@@ -241,7 +241,7 @@ export function TransactionFormModal({
         toast.success('Tranzaksiya yangilandi');
       }
 
-      const created = (response.data as { data: Transaction }).data;
+      const created = response.data.data;
       onSuccess?.(created);
       onClose();
     } catch {

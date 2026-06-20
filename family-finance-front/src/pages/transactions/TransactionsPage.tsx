@@ -46,7 +46,6 @@ import type {
   FinanceCategory,
   FamilyMember,
   ApiResponse,
-  PagedResponse,
 } from '../../types';
 
 type TabType = 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
@@ -144,17 +143,8 @@ export function TransactionsPage() {
         categoriesApi.getAll(),
         familyMembersApi.getList(),
       ]);
-      setAccounts(
-        (accountsRes.data as ApiResponse<Account[]>).data ?? (accountsRes.data as Account[])
-      );
-
-      const catData = categoriesRes.data as ApiResponse<PagedResponse<FinanceCategory>> | ApiResponse<FinanceCategory[]>;
-      if ('content' in (catData.data as PagedResponse<FinanceCategory>)) {
-        setCategories((catData.data as PagedResponse<FinanceCategory>).content);
-      } else {
-        setCategories(catData.data as FinanceCategory[]);
-      }
-
+      setAccounts(accountsRes.data.data);
+      setCategories(categoriesRes.data.data.content);
       setMembers(
         (membersRes.data as ApiResponse<FamilyMember[]>).data ?? (membersRes.data as FamilyMember[])
       );
@@ -169,7 +159,7 @@ export function TransactionsPage() {
     else if (isMobile && page > 0) setLoadingMore(true);
     try {
       const res = await transactionsApi.getAll(page, pageSize, filters);
-      const data = (res.data as ApiResponse<PagedResponse<Transaction>>).data;
+      const data = res.data.data;
       setTransactions(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);

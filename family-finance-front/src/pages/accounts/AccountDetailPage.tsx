@@ -11,7 +11,7 @@ import { accountsApi } from '../../api/accounts.api';
 import { transactionsApi } from '../../api/transactions.api';
 import type {
   Account, AccountBalanceSummary, AccountStatus,
-  Transaction, ApiResponse, PagedResponse,
+  Transaction,
 } from '../../types';
 import {
   formatCurrency, formatDate, formatDateTime,
@@ -76,8 +76,8 @@ export function AccountDetailPage() {
         accountsApi.getById(accountId),
         accountsApi.getBalanceSummary(accountId),
       ]);
-      setAccount((accRes.data as ApiResponse<Account>).data);
-      setSummary((summaryRes.data as ApiResponse<AccountBalanceSummary>).data);
+      setAccount(accRes.data.data);
+      setSummary(summaryRes.data.data);
     } catch {
       toast.error('Hisob ma\'lumotlarini yuklashda xatolik');
     } finally {
@@ -90,7 +90,7 @@ export function AccountDetailPage() {
     else setTxLoading(true);
     try {
       const res = await transactionsApi.getByAccount(accountId, txPage, 10);
-      const data = res.data as ApiResponse<PagedResponse<Transaction>>;
+      const data = res.data;
       setTransactions(data.data.content);
       setTxTotalElements(data.data.totalElements);
       setTxTotalPages(data.data.totalPages);

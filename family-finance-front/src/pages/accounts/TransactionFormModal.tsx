@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { transactionsApi } from '../../api/transactions.api';
 import { accountsApi } from '../../api/accounts.api';
-import type { Account, TransactionRequest, TransactionType, ApiResponse } from '../../types';
+import type { Account, TransactionRequest, TransactionType } from '../../types';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { Select } from '../../components/ui/Select';
 import { ModalPortal } from '../../components/common/Modal';
@@ -39,7 +39,7 @@ export function TransactionFormModal({ isOpen, onClose, onSuccess, preselectedAc
   useEffect(() => {
     if (isOpen) {
       accountsApi.getList().then((res) => {
-        const data = res.data as ApiResponse<Account[]>;
+        const data = res.data;
         // Filter only ACTIVE accounts
         setAccounts(data.data.filter((a) => a.status !== 'FROZEN' && a.status !== 'CLOSED'));
       }).catch(() => {});

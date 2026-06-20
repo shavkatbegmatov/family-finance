@@ -15,7 +15,7 @@ import { useQuickEntryStore } from '../../store/quickEntryStore';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { accountsApi } from '../../api/accounts.api';
 import { familyMembersApi } from '../../api/family-members.api';
-import type { FamilyDashboardStats, PagedResponse, ApiResponse, Account, FamilyMember } from '../../types';
+import type { FamilyDashboardStats, PagedResponse, ApiResponse, FamilyMember } from '../../types';
 
 /** Yopilganlik kaliti — user'ga bog'lanadi (boshqa akkauntga xalaqit bermasin). */
 const dismissKey = (userId: number | string | undefined) =>
@@ -78,7 +78,7 @@ export function OnboardingChecklist({ stats, transactionCount, loaded }: Onboard
         .getAll({ page: 0, size: 1 })
         .then((res) => {
           if (cancelled) return;
-          const data = (res.data as ApiResponse<PagedResponse<Account>>).data;
+          const data = res.data.data;
           setAccountsCount(data?.totalElements ?? 0);
         })
         .catch(() => setAccountsCount(null));

@@ -15,7 +15,6 @@ import type {
   ApiResponse,
   FamilyMember,
   FinanceCategory,
-  PagedResponse,
 } from '../../types';
 
 const HIDDEN_ROUTE_PATTERNS: readonly RegExp[] = [
@@ -52,19 +51,8 @@ export function QuickEntryFab() {
         categoriesApi.getAll(),
         familyMembersApi.getList(),
       ]);
-      setAccounts(
-        (accountsRes.data as ApiResponse<Account[]>).data ?? (accountsRes.data as Account[])
-      );
-
-      const catData = categoriesRes.data as
-        | ApiResponse<PagedResponse<FinanceCategory>>
-        | ApiResponse<FinanceCategory[]>;
-      if ('content' in (catData.data as PagedResponse<FinanceCategory>)) {
-        setCategories((catData.data as PagedResponse<FinanceCategory>).content);
-      } else {
-        setCategories(catData.data as FinanceCategory[]);
-      }
-
+      setAccounts(accountsRes.data.data);
+      setCategories(categoriesRes.data.data.content);
       setMembers(
         (membersRes.data as ApiResponse<FamilyMember[]>).data ??
           (membersRes.data as FamilyMember[])

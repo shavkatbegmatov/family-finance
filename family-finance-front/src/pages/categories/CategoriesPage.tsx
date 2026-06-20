@@ -24,7 +24,6 @@ import type {
   FinanceCategory,
   FinanceCategoryRequest,
   CategoryType,
-  ApiResponse,
 } from '../../types';
 
 export function CategoriesPage() {
@@ -53,8 +52,8 @@ export function CategoriesPage() {
         categoriesApi.getByType('INCOME'),
         categoriesApi.getByType('EXPENSE'),
       ]);
-      const incomeData = (incomeRes.data as ApiResponse<FinanceCategory[]>).data;
-      const expenseData = (expenseRes.data as ApiResponse<FinanceCategory[]>).data;
+      const incomeData = incomeRes.data.data;
+      const expenseData = expenseRes.data.data;
       setIncomeCategories(incomeData);
       setExpenseCategories(expenseData);
     } catch {
