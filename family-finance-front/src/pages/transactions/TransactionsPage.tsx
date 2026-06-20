@@ -311,7 +311,7 @@ export function TransactionsPage() {
     try {
       const ids = Array.from(selectedIds);
       const res = await transactionsApi.bulkReverse(ids, 'Bulk storno');
-      const data = (res.data as { data: { successCount: number; failures: unknown[] } }).data;
+      const data = res.data.data;
       if (data.failures.length > 0) {
         toast.success(`${data.successCount} storno qilindi, ${data.failures.length} xatolik`);
       } else {
@@ -333,7 +333,7 @@ export function TransactionsPage() {
     try {
       const ids = Array.from(selectedIds);
       const res = await transactionsApi.bulkCategorize(ids, bulkCategoryId);
-      const data = (res.data as { data: { successCount: number; failures: unknown[] } }).data;
+      const data = res.data.data;
       if (data.failures.length > 0) {
         toast.success(`${data.successCount} kategoriyalandi, ${data.failures.length} xatolik`);
       } else {

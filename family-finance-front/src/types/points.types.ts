@@ -158,6 +158,12 @@ export interface PointConversionRequest {
   targetAccountId?: number;
 }
 
+/** GET /v1/point-conversions/calculate javobi — backend Map<String,Object> qaytaradi. */
+export interface PointConversionCalculation {
+  points: number;
+  moneyAmount: number;
+}
+
 export interface PointAchievement {
   id: number;
   name: string;

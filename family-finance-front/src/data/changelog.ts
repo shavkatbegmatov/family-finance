@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.18',
+        date: '2026-06-20 13:00',
+        title: "Ballarni pulga aylantirish hisoblagichi tuzatildi",
+        features: [],
+        fixes: [
+            "Ballar bo'limidagi \"pulga aylantirish\" hisoblagichida natija noto'g'ri (texnik qiymat) ko'rinardi — endi hisoblangan pul miqdori to'g'ri ko'rsatiladi.",
+        ],
+    },
+    {
         version: '1.7.17',
         date: '2026-06-20 12:30',
         title: "Dashboard balansi ham valyutalar bo'yicha",

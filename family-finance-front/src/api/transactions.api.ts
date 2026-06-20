@@ -1,6 +1,7 @@
 import axiosInstance from './axios';
 import type {
   ApiResponse,
+  BulkOperationResponse,
   PagedResponse,
   Transaction,
   TransactionFilters,
@@ -34,7 +35,7 @@ export const transactionsApi = {
   cancel: (id: number, reason: string) =>
     axiosInstance.patch<ApiResponse<Transaction>>(`/v1/transactions/${id}/cancel`, { reason }),
   bulkReverse: (transactionIds: number[], reason: string) =>
-    axiosInstance.post('/v1/transactions/bulk-reverse', { transactionIds, reason }),
+    axiosInstance.post<ApiResponse<BulkOperationResponse>>('/v1/transactions/bulk-reverse', { transactionIds, reason }),
   bulkCategorize: (transactionIds: number[], categoryId: number) =>
-    axiosInstance.patch('/v1/transactions/bulk-categorize', { transactionIds, categoryId }),
+    axiosInstance.patch<ApiResponse<BulkOperationResponse>>('/v1/transactions/bulk-categorize', { transactionIds, categoryId }),
 };

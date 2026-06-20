@@ -157,6 +157,18 @@ export interface PagedResponse<T> {
   first: boolean;
 }
 
+/** Bitta bulk-operatsiya muvaffaqiyatsizligi (qaysi tranzaksiya + sabab). */
+export interface BulkOperationFailure {
+  transactionId: number;
+  reason: string;
+}
+
+/** Ko'p tranzaksiya ustida bajarilgan bulk-operatsiya natijasi. */
+export interface BulkOperationResponse {
+  successCount: number;
+  failures: BulkOperationFailure[];
+}
+
 // ============================================
 // FAMILY FINANCE TYPES
 // ============================================
