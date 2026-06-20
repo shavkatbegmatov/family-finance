@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.20',
+        date: '2026-06-21 12:00',
+        title: "Buzilgan parollardan himoya (HIBP)",
+        features: [],
+        fixes: [
+            "Yangi parol o'rnatishda parol ommaviy ma'lumotlar sizishlari ro'yxatida (Have I Been Pwned) tekshiriladi — topilsa, boshqa parol tanlash so'raladi. Parolingiz tashqariga yuborilmaydi (k-anonymity).",
+        ],
+    },
+    {
         version: '1.7.19',
         date: '2026-06-21 10:00',
         title: "Parol talablari kuchaytirildi",

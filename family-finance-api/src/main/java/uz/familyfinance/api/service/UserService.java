@@ -62,6 +62,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final SessionService sessionService;
+    private final PwnedPasswordService pwnedPasswordService;
 
     /**
      * Reserved usernames that cannot be used
@@ -372,8 +373,9 @@ public class UserService {
             throw new IllegalArgumentException("Joriy parol noto'g'ri");
         }
 
-        // Validate new password
+        // Validate new password + buzilgan-parol tekshiruvi (HIBP, fail-open)
         PasswordPolicy.validateStrength(newPassword);
+        pwnedPasswordService.assertNotPwned(newPassword);
 
         // Update password
         user.setPassword(passwordEncoder.encode(newPassword));

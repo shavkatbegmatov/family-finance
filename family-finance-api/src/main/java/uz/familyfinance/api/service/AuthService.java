@@ -61,6 +61,7 @@ public class AuthService {
     private final AuditLogService auditLogService;
     private final InviteCodeGenerator inviteCodeGenerator;
     private final HouseholdCodeGenerator householdCodeGenerator;
+    private final PwnedPasswordService pwnedPasswordService;
 
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
@@ -77,8 +78,9 @@ public class AuthService {
             throw new IllegalArgumentException("Parol va tasdiqlash mos kelmadi");
         }
 
-        // Validate password strength
+        // Validate password strength + buzilgan-parol tekshiruvi (HIBP, fail-open)
         PasswordPolicy.validateStrength(request.getPassword());
+        pwnedPasswordService.assertNotPwned(request.getPassword());
 
         // Find MEMBER role
         RoleEntity memberRole = roleRepository.findByCode("MEMBER")
