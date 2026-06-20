@@ -37,6 +37,7 @@ import { familyDashboardApi } from '../../api/family-dashboard.api';
 import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { formatCurrency, formatCompactCurrency, formatDate, MONTHS_UZ } from '../../config/constants';
 import type {
+  CurrencyBalance,
   FamilyDashboardStats,
   FamilyChartData,
   Transaction,
@@ -55,6 +56,12 @@ import {
   getBudgetTone,
   getChartColor,
 } from '../../config/chartColors';
+
+/** D7: balansni valyutasi bilan formatlaydi (UZS -> "so'm", boshqa valyuta -> kod). */
+function formatBalance(b?: CurrencyBalance): string {
+  if (!b) return "0 so'm";
+  return `${formatCompactCurrency(b.amount)} ${b.currency === 'UZS' ? "so'm" : b.currency}`;
+}
 
 // Insight thresholds
 const TREND_NEUTRAL_THRESHOLD = 1; // % — bundan kichik o'zgarish trend ko'rsatilmaydi
@@ -777,10 +784,14 @@ export function DashboardPage() {
       <div className="hidden gap-4 lg:grid lg:grid-cols-4">
         <KPICard
           title="Umumiy balans"
-          value={formatCurrency(stats?.totalBalance || 0)}
+          value={stats?.balancesByCurrency?.length
+            ? formatBalance(stats.balancesByCurrency[0])
+            : formatCurrency(stats?.totalBalance || 0)}
           icon={Wallet}
           color="primary"
-          subtitle="barcha hisoblar"
+          subtitle={stats?.balancesByCurrency && stats.balancesByCurrency.length > 1
+            ? stats.balancesByCurrency.slice(1).map(formatBalance).join(' · ')
+            : 'barcha hisoblar'}
           style={{ '--i': 0 } as CSSProperties}
         />
         <KPICard

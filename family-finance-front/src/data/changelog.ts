@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.17',
+        date: '2026-06-20 12:30',
+        title: "Dashboard balansi ham valyutalar bo'yicha",
+        features: [],
+        fixes: [
+            "Bosh sahifa (dashboard) dagi \"Umumiy balans\" ham endi valyutalar bo'yicha ajratib ko'rsatiladi (asosiy valyuta katta, qolganlari ostida kichik) — Hisoblar sahifasi bilan izchil.",
+        ],
+    },
+    {
         version: '1.7.16',
         date: '2026-06-20 12:00',
         title: "Ko'p-valyutali umumiy balans",

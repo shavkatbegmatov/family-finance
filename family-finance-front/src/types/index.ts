@@ -617,6 +617,8 @@ export interface DebtPaymentRequest {
 // Dashboard Types
 export interface FamilyDashboardStats {
   totalBalance: number;
+  /** D7: balans valyutalar bo'yicha (asosiy + qolganlar, summa kamayuvchi). */
+  balancesByCurrency?: CurrencyBalance[];
   totalIncome: number;
   totalExpense: number;
   totalSavings: number;

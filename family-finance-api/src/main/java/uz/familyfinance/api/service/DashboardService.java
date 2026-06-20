@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.response.ChartDataResponse;
+import uz.familyfinance.api.dto.response.CurrencyBalanceResponse;
 import uz.familyfinance.api.dto.response.DashboardStatsResponse;
 import uz.familyfinance.api.entity.Budget;
 import uz.familyfinance.api.entity.Category;
@@ -100,8 +101,13 @@ public class DashboardService {
                             .build();
                 }).toList();
 
+        List<CurrencyBalanceResponse> balancesByCurrency = accountRepository.getBalancesByCurrencyAndScope(scopeId)
+                .stream().map(row -> new CurrencyBalanceResponse((String) row[0], (BigDecimal) row[1])).toList();
+        BigDecimal primaryBalance = balancesByCurrency.isEmpty() ? BigDecimal.ZERO : balancesByCurrency.get(0).amount();
+
         return DashboardStatsResponse.builder()
-                .totalBalance(accountRepository.getTotalBalanceByScopeId(scopeId))
+                .totalBalance(primaryBalance)
+                .balancesByCurrency(balancesByCurrency)
                 .totalIncome(totalIncome)
                 .totalExpense(totalExpense)
                 .totalSavings(savingsGoalRepository.getTotalSavingsByScope(scopeId))
