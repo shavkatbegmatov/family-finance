@@ -6,6 +6,26 @@ import { saveIntendedPath } from '../utils/sessionNavigation';
 // Bir nechta logout chaqiruvini oldini olish uchun guard
 let isLoggingOut = false;
 
+/**
+ * PWA workbox runtime `api-cache`'ni tozalaydi (logout xavfsizligi).
+ *
+ * `vite.config.ts` da `/api/v1/*` javoblari `NetworkFirst` bilan `api-cache`'ga yoziladi.
+ * Logout'da bularni tozalamasak, bitta qurilmada boshqa foydalanuvchi kirganda oldingi
+ * user'ning maxfiy ma'lumotlari (hisoblar, tranzaksiyalar) offline'da ko'rinib qolishi mumkin.
+ * Best-effort, fire-and-forget (Cache API yo'q bo'lsa jim o'tadi).
+ */
+function clearApiCache(): void {
+  if (typeof caches === 'undefined') return;
+  caches
+    .keys()
+    .then((names) =>
+      Promise.all(names.filter((n) => n.includes('api-cache')).map((n) => caches.delete(n)))
+    )
+    .catch(() => {
+      // Cache API mavjud emas yoki xato — kerakli emas
+    });
+}
+
 interface LogoutRedirectOptions {
   captureCurrentPath?: boolean;
 }
@@ -61,6 +81,9 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem('refreshToken');
         // Phase 3: scope cache'ni ham tozalash (yangi user kirsa, eski scope'lar ko'rinmasin)
         localStorage.removeItem('scope-store');
+        // D12-PR3: PWA runtime api-cache'ni tozalash — eski user'ning maxfiy /api/v1/*
+        // javoblari keyingi user uchun keshda qolib ketmasin.
+        clearApiCache();
         set({
           user: null,
           accessToken: null,
