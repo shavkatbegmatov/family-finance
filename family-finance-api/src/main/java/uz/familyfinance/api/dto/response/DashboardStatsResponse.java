@@ -12,7 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DashboardStatsResponse {
+    /** Asosiy (eng katta) valyutadagi balans — raqamli ko'rsatkichlar (mobil hero) uchun. */
     private BigDecimal totalBalance;
+    /** D7: balans valyutalar bo'yicha ajratilgan (asosiy + qolganlar, summa kamayuvchi). */
+    private List<CurrencyBalanceResponse> balancesByCurrency;
     private BigDecimal totalIncome;
     private BigDecimal totalExpense;
     private BigDecimal totalSavings;
