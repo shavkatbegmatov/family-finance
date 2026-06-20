@@ -141,6 +141,12 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
+/** D7: bitta valyuta bo'yicha umumiy balans (umumiy balans valyutalar bo'yicha ajratiladi). */
+export interface CurrencyBalance {
+  currency: string;
+  amount: number;
+}
+
 export interface PagedResponse<T> {
   content: T[];
   page: number;

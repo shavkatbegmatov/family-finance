@@ -10,6 +10,7 @@ import type {
   ApiResponse,
   Card,
   CardRequest,
+  CurrencyBalance,
   PagedResponse,
 } from '../types';
 
@@ -27,7 +28,7 @@ export const accountsApi = {
   getMy: (page = 0, size = 20) =>
     axiosInstance.get<ApiResponse<PagedResponse<Account>>>('/v1/accounts/my', { params: { page, size } }),
   getList: () => axiosInstance.get<ApiResponse<Account[]>>('/v1/accounts/list'),
-  getTotalBalance: () => axiosInstance.get<ApiResponse<number>>('/v1/accounts/total-balance'),
+  getTotalBalance: () => axiosInstance.get<ApiResponse<CurrencyBalance[]>>('/v1/accounts/total-balance'),
   getById: (id: number) => axiosInstance.get<ApiResponse<Account>>(`/v1/accounts/${id}`),
   create: (data: AccountRequest) => axiosInstance.post<ApiResponse<Account>>('/v1/accounts', data),
   update: (id: number, data: AccountRequest) => axiosInstance.put<ApiResponse<Account>>(`/v1/accounts/${id}`, data),

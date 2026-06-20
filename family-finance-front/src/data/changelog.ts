@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.16',
+        date: '2026-06-20 12:00',
+        title: "Ko'p-valyutali umumiy balans",
+        features: [],
+        fixes: [
+            "Hisoblar sahifasidagi \"Umumiy balans\" endi har valyutani alohida ko'rsatadi (asosiy valyuta katta, qolganlari ostida kichik) — avval har xil valyutadagi balanslar (masalan so'm va dollar) bitta songa noto'g'ri qo'shib ko'rsatilardi.",
+        ],
+    },
+    {
         version: '1.7.15',
         date: '2026-06-17 00:30',
         title: "Tez/parallel kirishda barqarorlik",

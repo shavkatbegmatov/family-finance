@@ -15,6 +15,7 @@ import uz.familyfinance.api.dto.response.AccountBalanceSummaryResponse;
 import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
+import uz.familyfinance.api.dto.response.CurrencyBalanceResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
 import uz.familyfinance.api.enums.AccountStatus;
 import uz.familyfinance.api.enums.AccountType;
@@ -26,7 +27,6 @@ import uz.familyfinance.api.service.AccountService;
 import uz.familyfinance.api.service.CardService;
 
 import jakarta.validation.Valid;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -93,7 +93,7 @@ public class AccountController {
 
     @GetMapping("/total-balance")
     @RequiresPermission(PermissionCode.ACCOUNTS_VIEW)
-    public ResponseEntity<ApiResponse<BigDecimal>> getTotalBalance() {
+    public ResponseEntity<ApiResponse<List<CurrencyBalanceResponse>>> getTotalBalance() {
         return ResponseEntity.ok(ApiResponse.success(accountService.getTotalBalance()));
     }
 
