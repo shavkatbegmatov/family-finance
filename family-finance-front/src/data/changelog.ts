@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.21',
+        date: '2026-06-21 14:00',
+        title: "Chiqishda keshni tozalash (xavfsizlik)",
+        features: [],
+        fixes: [
+            "Tizimdan chiqqanda (logout) ilova keshidagi maxfiy ma'lumotlar (hisoblar, tranzaksiyalar) ham tozalanadi — bitta qurilmada boshqa foydalanuvchi kirsa, oldingi ma'lumotlar ko'rinmaydi.",
+        ],
+    },
+    {
         version: '1.7.20',
         date: '2026-06-21 12:00',
         title: "Buzilgan parollardan himoya (HIBP)",
