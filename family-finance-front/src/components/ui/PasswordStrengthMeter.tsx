@@ -1,26 +1,49 @@
+import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { Check, X } from 'lucide-react';
-import { evaluatePasswordStrength } from '../../utils/password';
+import { AlertTriangle, Check, X } from 'lucide-react';
+import { evaluatePasswordStrength, PASSWORD_MIN_LENGTH } from '../../utils/password';
+import { isPasswordPwned } from '../../utils/hibp';
 
 interface PasswordStrengthMeterProps {
   password: string;
   /** Mezonlar checklist'ini ham ko'rsatish (uzunlik, katta/kichik harf, raqam). */
   showRequirements?: boolean;
+  /** HIBP buzilgan-parol tekshiruvi (debounced, advisory). Default: true. */
+  checkPwned?: boolean;
   className?: string;
 }
 
 /**
- * Parol kuchi indikatori (progress bar + baho + ixtiyoriy mezonlar checklist'i).
+ * Parol kuchi indikatori (progress bar + baho + ixtiyoriy mezonlar checklist'i + HIBP advisory).
  *
- * Strength-tekshiruvi avval bir nechta sahifada copy-paste qilingan edi; endi yagona
- * {@link evaluatePasswordStrength} manbasiga tayanadi. {@code PasswordInput} ham,
- * react-hook-form ishlatadigan self-service sahifalar ham shu komponentni ishlatadi.
+ * Strength-tekshiruvi yagona {@link evaluatePasswordStrength} manbasiga tayanadi. Buzilgan-parol
+ * ogohlantirishi {@link isPasswordPwned} (HIBP k-anonymity) bilan — debounced va faqat MASLAHAT
+ * (backend PwnedPasswordService baribir majburiy tekshiradi).
  */
 export function PasswordStrengthMeter({
   password,
   showRequirements = false,
+  checkPwned = true,
   className,
 }: PasswordStrengthMeterProps) {
+  const [pwned, setPwned] = useState(false);
+
+  useEffect(() => {
+    setPwned(false); // yangi parol — eski ogohlantirishni darhol olib tashlash
+    // Faqat min-uzunlikka yetgan parolni tekshiramiz (terish paytidagi keraksiz so'rovlarni kamaytiradi)
+    if (!checkPwned || password.length < PASSWORD_MIN_LENGTH) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      isPasswordPwned(password, controller.signal).then(setPwned).catch(() => {});
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [password, checkPwned]);
+
   if (!password) return null;
 
   const strength = evaluatePasswordStrength(password);
@@ -53,6 +76,13 @@ export function PasswordStrengthMeter({
               <span>{req.label}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {pwned && (
+        <div className="flex items-start gap-1.5 text-xs text-error">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+          <span>Bu parol ommaviy ma'lumotlar sizishida topilgan — boshqa, noyob parol tanlang.</span>
         </div>
       )}
     </div>
