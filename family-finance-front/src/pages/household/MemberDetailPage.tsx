@@ -626,7 +626,7 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
               <XAxis dataKey="name" className="text-xs" />
               <YAxis tickFormatter={(v) => formatCompactCurrency(v)} className="text-xs" />
               <Tooltip
-                formatter={(value: number) => formatCurrency(value)}
+                formatter={(value) => formatCurrency(Number(value))}
                 contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--b3))' }}
               />
               <Area type="monotone" dataKey="Daromad" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} strokeWidth={2} />
@@ -656,14 +656,14 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
                   innerRadius={50} outerRadius={90}
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   labelLine={false}
                 >
                   {data.expenseByCategory.map((_, i) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               </RechartsPie>
             </ResponsiveContainer>
           ) : (
@@ -687,14 +687,14 @@ function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
                   innerRadius={50} outerRadius={90}
                   paddingAngle={3}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   labelLine={false}
                 >
                   {data.incomeByCategory.map((_, i) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
               </RechartsPie>
             </ResponsiveContainer>
           ) : (
