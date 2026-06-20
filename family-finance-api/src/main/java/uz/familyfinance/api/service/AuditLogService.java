@@ -73,33 +73,6 @@ public class AuditLogService {
     }
 
     /**
-     * Log without old value (for CREATE operations)
-     */
-    @Async
-    @Transactional
-    public void logCreate(String entityType, Long entityId, Object newValue, Long userId) {
-        log(entityType, entityId, "CREATE", null, newValue, userId);
-    }
-
-    /**
-     * Log update operation
-     */
-    @Async
-    @Transactional
-    public void logUpdate(String entityType, Long entityId, Object oldValue, Object newValue, Long userId) {
-        log(entityType, entityId, "UPDATE", oldValue, newValue, userId);
-    }
-
-    /**
-     * Log delete operation
-     */
-    @Async
-    @Transactional
-    public void logDelete(String entityType, Long entityId, Object oldValue, Long userId) {
-        log(entityType, entityId, "DELETE", oldValue, null, userId);
-    }
-
-    /**
      * Log CREATE operation with explicit IP address and user agent (from entity listener)
      */
     @Async
@@ -216,6 +189,21 @@ public class AuditLogService {
         } catch (Exception e) {
             log.error("Failed to create audit log in new transaction: {}", e.getMessage(), e);
         }
+    }
+
+    /** Audit log retention (kun) — bundan eski loglar @Scheduled cleanup'da o'chiriladi. */
+    private static final int AUDIT_RETENTION_DAYS = 365;
+
+    /**
+     * D5: belgilangan kundan eski audit loglarni o'chiradi (retention). FinanceScheduler kunlik
+     * chaqiradi. Avval cleanup mexanizmi yo'q edi — audit_logs jadvali cheksiz o'sardi.
+     */
+    @Transactional
+    public void cleanupOldLogs() {
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(AUDIT_RETENTION_DAYS);
+        auditLogRepository.deleteByCreatedAtBefore(cutoff);
+        log.info("Audit log retention cleanup: {} kundan eski loglar o'chirildi (cutoff={})",
+                AUDIT_RETENTION_DAYS, cutoff);
     }
 
     /**

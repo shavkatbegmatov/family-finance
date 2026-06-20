@@ -8,6 +8,7 @@ import uz.familyfinance.api.entity.Debt;
 import uz.familyfinance.api.enums.DebtStatus;
 import uz.familyfinance.api.enums.StaffNotificationType;
 import uz.familyfinance.api.repository.DebtRepository;
+import uz.familyfinance.api.service.AuditLogService;
 import uz.familyfinance.api.service.RecurringTransactionService;
 import uz.familyfinance.api.service.StaffNotificationService;
 
@@ -23,6 +24,7 @@ public class FinanceScheduler {
     private final DebtRepository debtRepository;
     private final StaffNotificationService notificationService;
     private final RecurringTransactionService recurringTransactionService;
+    private final AuditLogService auditLogService;
 
     @Scheduled(cron = "0 0 9 * * *")
     public void checkOverdueDebts() {
@@ -72,5 +74,15 @@ public class FinanceScheduler {
         log.info("Recurring transactions executor boshlanmoqda...");
         int created = recurringTransactionService.executeDueRecurringTransactions(LocalDate.now());
         log.info("Recurring transactions executor tugadi. {} ta yangi tranzaksiya yaratildi", created);
+    }
+
+    /**
+     * D5: har kuni 02:30 da retention'dan eski audit loglarni o'chiradi. Avval cleanup
+     * mexanizmi yo'q edi — audit_logs jadvali cheksiz o'sardi (prod-barqarorlik).
+     */
+    @Scheduled(cron = "0 30 2 * * *")
+    public void cleanupOldAuditLogs() {
+        log.info("Audit log retention cleanup boshlanmoqda...");
+        auditLogService.cleanupOldLogs();
     }
 }
