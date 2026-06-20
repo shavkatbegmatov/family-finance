@@ -36,6 +36,7 @@ import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.JwtTokenProvider;
 import uz.familyfinance.api.util.HouseholdCodeGenerator;
 import uz.familyfinance.api.util.InviteCodeGenerator;
+import uz.familyfinance.api.util.PasswordPolicy;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -77,7 +78,7 @@ public class AuthService {
         }
 
         // Validate password strength
-        validatePassword(request.getPassword());
+        PasswordPolicy.validateStrength(request.getPassword());
 
         // Find MEMBER role
         RoleEntity memberRole = roleRepository.findByCode("MEMBER")
@@ -382,20 +383,6 @@ public class AuthService {
         if (!last.isEmpty()) return last;
         if (!first.isEmpty()) return first;
         return request.getUsername();
-    }
-
-    private void validatePassword(String password) {
-        if (password == null || password.length() < 6) {
-            throw new IllegalArgumentException("Parol kamida 6 belgidan iborat bo'lishi kerak");
-        }
-
-        boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
-        boolean hasLower = password.chars().anyMatch(Character::isLowerCase);
-        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
-
-        if (!hasUpper || !hasLower || !hasDigit) {
-            throw new IllegalArgumentException("Parol katta harf, kichik harf va raqam o'z ichiga olishi kerak");
-        }
     }
 
     public JwtResponse login(LoginRequest request, String ipAddress, String userAgent) {

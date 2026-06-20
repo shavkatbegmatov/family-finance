@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.19',
+        date: '2026-06-21 10:00',
+        title: "Parol talablari kuchaytirildi",
+        features: [],
+        fixes: [
+            "Yangi parol o'rnatishda (ro'yxatdan o'tish, parol o'zgartirish, admin parol berishi) endi kamida 10 belgi talab qilinadi (avval 6). Mavjud parollar bilan kirishga ta'sir qilmaydi.",
+        ],
+    },
+    {
         version: '1.7.18',
         date: '2026-06-20 13:00',
         title: "Ballarni pulga aylantirish hisoblagichi tuzatildi",

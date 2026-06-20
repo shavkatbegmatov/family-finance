@@ -7,6 +7,7 @@ import lombok.Data;
 import uz.familyfinance.api.enums.FamilyRole;
 import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.enums.PersonType;
+import uz.familyfinance.api.util.PasswordPolicy;
 
 import java.time.LocalDate;
 
@@ -62,7 +63,7 @@ public class PersonCreateRequest {
     @Size(max = 30, message = "Login 30 belgidan oshmasligi kerak")
     private String username;
 
-    @Size(min = 6, max = 100, message = "Parol 6-100 belgi orasida bo'lishi kerak")
+    @Size(min = PasswordPolicy.MIN_LENGTH, max = PasswordPolicy.MAX_LENGTH, message = "Parol {min}-{max} belgi orasida bo'lishi kerak")
     private String password;
 
     @Size(max = 50, message = "Rol kodi 50 belgidan oshmasligi kerak")

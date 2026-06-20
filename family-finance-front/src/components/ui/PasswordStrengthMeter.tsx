@@ -4,7 +4,7 @@ import { evaluatePasswordStrength } from '../../utils/password';
 
 interface PasswordStrengthMeterProps {
   password: string;
-  /** Mezonlar checklist'ini ham ko'rsatish (kamida 6 belgi, katta harf, ...). */
+  /** Mezonlar checklist'ini ham ko'rsatish (uzunlik, katta/kichik harf, raqam). */
   showRequirements?: boolean;
   className?: string;
 }
