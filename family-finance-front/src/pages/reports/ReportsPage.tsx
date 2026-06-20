@@ -358,7 +358,7 @@ export function ReportsPage() {
                             }
                           />
                           <Tooltip
-                            formatter={(value: number) => [formatCurrency(value), 'Summa']}
+                            formatter={(value) => [formatCurrency(Number(value)), 'Summa'] as [string, string]}
                             contentStyle={{
                               borderRadius: '0.75rem',
                               border: 'none',
@@ -431,9 +431,10 @@ export function ReportsPage() {
                           innerRadius={50}
                           dataKey="amount"
                           nameKey="categoryName"
-                          label={({ categoryName, percentage }) =>
-                            `${categoryName}: ${percentage.toFixed(1)}%`
-                          }
+                          label={(props) => {
+                            const p = props as { categoryName?: string; percentage?: number };
+                            return `${p.categoryName}: ${(p.percentage ?? 0).toFixed(1)}%`;
+                          }}
                           labelLine={true}
                         >
                           {sortedCategories.map((_entry, index) => (
@@ -444,7 +445,7 @@ export function ReportsPage() {
                           ))}
                         </Pie>
                         <Tooltip
-                          formatter={(value: number) => [formatCurrency(value), 'Summa']}
+                          formatter={(value) => [formatCurrency(Number(value)), 'Summa'] as [string, string]}
                           contentStyle={{
                             borderRadius: '0.75rem',
                             border: 'none',
@@ -556,7 +557,7 @@ export function ReportsPage() {
                           }
                         />
                         <Tooltip
-                          formatter={(value: number) => [formatCurrency(value), 'Xarajat']}
+                          formatter={(value) => [formatCurrency(Number(value)), 'Xarajat'] as [string, string]}
                           contentStyle={{
                             borderRadius: '0.75rem',
                             border: 'none',

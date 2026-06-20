@@ -41,7 +41,6 @@ import type {
   FamilyChartData,
   Transaction,
   MonthlyTrendItem,
-  CategoryChartItem,
   BudgetProgressItem,
 } from '../../types';
 import { useNotificationsStore } from '../../store/notificationsStore';
@@ -938,13 +937,14 @@ export function DashboardPage() {
                     paddingAngle={2}
                     dataKey="amount"
                     nameKey="name"
-                    label={({ name, percentage }) =>
-                      percentage > 5 ? `${name} ${percentage.toFixed(0)}%` : ''
+                    label={({ name, percentage }: { name?: string; percentage?: number }) =>
+                      (percentage ?? 0) > 5 ? `${name} ${(percentage ?? 0).toFixed(0)}%` : ''
                     }
                     labelLine={false}
-                    onClick={(entry: CategoryChartItem) =>
-                      setCategoryFilter((cur) => (cur === entry.name ? null : entry.name))
-                    }
+                    onClick={(entry) => {
+                      const name = (entry as { name?: string }).name;
+                      setCategoryFilter((cur) => (cur === name ? null : (name ?? null)));
+                    }}
                     cursor="pointer"
                   >
                     {charts.expenseByCategory.map((entry, index) => {
@@ -958,7 +958,7 @@ export function DashboardPage() {
                       );
                     })}
                   </Pie>
-                  <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                   <Legend />
                 </RechartsPie>
               </ResponsiveContainer>
