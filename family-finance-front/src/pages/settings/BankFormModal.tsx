@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { Building2, X, Plus } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { banksApi, type Bank, type BankRequest } from '../../api/banks.api';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 interface BankFormModalProps {
     isOpen: boolean;
@@ -65,9 +66,7 @@ export function BankFormModal({ isOpen, onClose, editingBank }: BankFormModalPro
             toast.success(editingBank ? "Bank muvaffaqiyatli saqlandi" : "Yangi bank qo'shildi");
             onClose();
         },
-        onError: (error: { response?: { data?: { message?: string } } }) => {
-            toast.error(error.response?.data?.message || "Xatolik yuz berdi");
-        }
+        onError: (error) => toast.error(getApiErrorMessage(error, "Xatolik yuz berdi"))
     });
 
     const onSubmit = (data: BankRequest) => {

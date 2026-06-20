@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { useScopeStore } from '../store/scopeStore';
 import { useNotificationsStore } from '../store/notificationsStore';
 import { scopesApi } from '../api/scopes.api';
+import { getApiErrorMessage } from '../utils/apiError';
 import type { ApiResponse } from '../types';
 import type { Scope } from '../types/scope.types';
 
@@ -78,8 +79,7 @@ export function useSwitchScope(): SwitchScopeResult {
 
         toast.success(`"${target.name}" ga o'tildi`);
       } catch (err) {
-        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-        toast.error(msg ?? 'Scope almashtirishda xatolik');
+        toast.error(getApiErrorMessage(err, 'Scope almashtirishda xatolik'));
       } finally {
         setSwitchingId(null);
       }
