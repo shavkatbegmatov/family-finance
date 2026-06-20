@@ -44,6 +44,7 @@ import { Trophy } from 'lucide-react';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { TextInput } from '../../components/ui/TextInput';
 import { PasswordInput } from '../../components/ui/PasswordInput';
+import { PASSWORD_MIN_LENGTH } from '../../utils/password';
 import { UsernameInput } from '../../components/ui/UsernameInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { formatPhoneDisplay } from '../../utils/phone';
@@ -331,7 +332,7 @@ export function FamilyMembersPage() {
     try {
       if (editingMember) {
         // Bo'sh string maydonlar backend validatsiyasini buzadi: LocalDate ("" ni parse qila olmaydi)
-        // va accountPassword @Size(min=6). Shuning uchun bo'shlarni undefined ga aylantiramiz.
+        // va accountPassword @Size(min=10). Shuning uchun bo'shlarni undefined ga aylantiramiz.
         const payload: FamilyMemberRequest = {
           ...form,
           middleName: form.middleName?.trim() || undefined,
@@ -1256,8 +1257,8 @@ export function FamilyMembersPage() {
                           showStrength
                           showGenerate
                           error={
-                            form.accountPassword && form.accountPassword.length > 0 && form.accountPassword.length < 6
-                              ? 'Kamida 6 belgi'
+                            form.accountPassword && form.accountPassword.length > 0 && form.accountPassword.length < PASSWORD_MIN_LENGTH
+                              ? `Kamida ${PASSWORD_MIN_LENGTH} belgi`
                               : undefined
                           }
                         />

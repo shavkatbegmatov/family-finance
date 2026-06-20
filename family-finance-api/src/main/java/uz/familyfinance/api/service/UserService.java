@@ -29,6 +29,7 @@ import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.entity.PointParticipant;
+import uz.familyfinance.api.util.PasswordPolicy;
 
 import java.security.SecureRandom;
 import java.text.Normalizer;
@@ -74,9 +75,6 @@ public class UserService {
     /** Qo'lda kiritilgan login formati: lotin harf/raqam/nuqta/pastki chiziq, 3-30 belgi. */
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9._]{3,30}$");
 
-    /** Parol minimal uzunligi — barcha joyda izchil (FamilyMemberRequest @Size bilan mos). */
-    private static final int MIN_PASSWORD_LENGTH = 6;
-
     private static final String PASSWORD_CHARS_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final String PASSWORD_CHARS_LOWER = "abcdefghjkmnpqrstuvwxyz";
     private static final String PASSWORD_CHARS_DIGITS = "23456789";
@@ -117,7 +115,7 @@ public class UserService {
         // Use custom password or generate temporary
         boolean isCustomPassword = customPassword != null && !customPassword.isBlank();
         if (isCustomPassword) {
-            validateMinPasswordLength(customPassword);
+            PasswordPolicy.validateMinLength(customPassword);
         }
         String temporaryPassword = isCustomPassword ? customPassword : generateTemporaryPassword();
 
@@ -211,18 +209,6 @@ public class UserService {
             throw new BadRequestException("Bu login allaqachon band: " + normalized);
         }
         return normalized;
-    }
-
-    /**
-     * Admin tomonidan qo'yilgan custom parol uchun minimal tekshiruv.
-     * "Muvozanatli" siyosat: admin oila a'zosiga oson parol bera olishi uchun faqat uzunlik
-     * majburiy; murakkablik (katta/kichik/raqam) faqat self-service uchun ({@link #validatePassword}).
-     */
-    private void validateMinPasswordLength(String password) {
-        if (password == null || password.length() < MIN_PASSWORD_LENGTH) {
-            throw new BadRequestException(
-                    "Parol kamida " + MIN_PASSWORD_LENGTH + " belgidan iborat bo'lishi kerak");
-        }
     }
 
     /**
@@ -340,7 +326,9 @@ public class UserService {
      * @return Generated password
      */
     public String generateTemporaryPassword() {
-        StringBuilder password = new StringBuilder(8);
+        // Siyosatga mos uzunlik (kamida MIN_LENGTH, qulaylik uchun kamida 12)
+        int length = Math.max(PasswordPolicy.MIN_LENGTH, 12);
+        StringBuilder password = new StringBuilder(length);
 
         // Ensure at least one of each type
         password.append(PASSWORD_CHARS_UPPER.charAt(RANDOM.nextInt(PASSWORD_CHARS_UPPER.length())));
@@ -350,7 +338,7 @@ public class UserService {
 
         // Fill remaining with mix
         String allChars = PASSWORD_CHARS_UPPER + PASSWORD_CHARS_LOWER + PASSWORD_CHARS_DIGITS;
-        for (int i = 4; i < 8; i++) {
+        for (int i = 4; i < length; i++) {
             password.append(allChars.charAt(RANDOM.nextInt(allChars.length())));
         }
 
@@ -385,7 +373,7 @@ public class UserService {
         }
 
         // Validate new password
-        validatePassword(newPassword);
+        PasswordPolicy.validateStrength(newPassword);
 
         // Update password
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -862,19 +850,5 @@ public class UserService {
         return pointParticipantRepository
                 .findByFamilyGroupIdAndFamilyMemberId(member.getFamilyGroup().getId(), member.getId())
                 .orElse(null);
-    }
-
-    private void validatePassword(String password) {
-        if (password == null || password.length() < 6) {
-            throw new IllegalArgumentException("Parol kamida 6 belgidan iborat bo'lishi kerak");
-        }
-
-        boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
-        boolean hasLower = password.chars().anyMatch(Character::isLowerCase);
-        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
-
-        if (!hasUpper || !hasLower || !hasDigit) {
-            throw new IllegalArgumentException("Parol katta harf, kichik harf va raqam o'z ichiga olishi kerak");
-        }
     }
 }

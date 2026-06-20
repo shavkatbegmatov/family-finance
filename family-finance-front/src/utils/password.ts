@@ -12,8 +12,8 @@
  *    ko'rsatkichi orqali kuchliroq parolga undaladi.
  */
 
-/** Minimal parol uzunligi — backend bilan izchil (FamilyMemberRequest @Size, validatePassword). */
-export const PASSWORD_MIN_LENGTH = 6;
+/** Minimal parol uzunligi — backend bilan izchil (PasswordPolicy.MIN_LENGTH, DTO @Size). */
+export const PASSWORD_MIN_LENGTH = 10;
 
 /** "Kuchli" deb hisoblash uchun zarur minimal ball (4 mezondan). */
 export const PASSWORD_STRONG_SCORE = 3;
@@ -43,7 +43,7 @@ export interface PasswordStrength {
 
 /**
  * Parol kuchini baholaydi. Mezonlar barcha sahifalarda izchil:
- * uzunlik (≥6), katta harf, kichik harf, raqam.
+ * uzunlik (≥10), katta harf, kichik harf, raqam.
  */
 export function evaluatePasswordStrength(password: string): PasswordStrength {
   const hasMinLength = password.length >= PASSWORD_MIN_LENGTH;

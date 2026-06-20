@@ -20,7 +20,7 @@ interface PasswordInputProps {
   leadingIcon?: React.ReactNode;
   /** Parol kuchi indikatori (progress bar + baho). Faqat qiymat bor bo'lsa ko'rinadi. */
   showStrength?: boolean;
-  /** Mezonlar checklist'i (kamida 6 belgi, katta harf, ...). */
+  /** Mezonlar checklist'i (uzunlik, katta/kichik harf, raqam). */
   showRequirements?: boolean;
   /** Tasodifiy kuchli parol generatsiya tugmasi. */
   showGenerate?: boolean;

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uz.familyfinance.api.util.PasswordPolicy;
 
 @Data
 @NoArgsConstructor
@@ -24,7 +25,7 @@ public class RegisterRequest {
     private String username;
 
     @NotBlank(message = "Parol kiritilishi shart")
-    @Size(min = 6, max = 100, message = "Parol 6-100 belgi orasida bo'lishi kerak")
+    @Size(min = PasswordPolicy.MIN_LENGTH, max = PasswordPolicy.MAX_LENGTH, message = "Parol {min}-{max} belgi orasida bo'lishi kerak")
     private String password;
 
     @NotBlank(message = "Parolni tasdiqlash kiritilishi shart")
