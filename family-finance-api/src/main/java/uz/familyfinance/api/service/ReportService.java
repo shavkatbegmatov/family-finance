@@ -53,19 +53,33 @@ public class ReportService {
         return -1L;
     }
 
+    /**
+     * Aktiv scope ID ni qaytaradi (D1-c: transaction-hisobotlar to'g'ridan {@code t.scope.id}
+     * bo'yicha — avval bilvosita familyGroup orqali edi). SUPER_ADMIN → null (global hisobot);
+     * aktiv scope yo'q → -1 (hech narsa, xavfsiz default). Members uchun EMAS — ular genealogiya
+     * asosida ({@link #resolveFamilyGroupIdOrNull}).
+     */
+    private Long resolveActiveScopeIdOrNull() {
+        if (scopeContext.isSuperAdmin()) {
+            return null;
+        }
+        Long scopeId = scopeContext.getActiveScopeIdOrNull();
+        return scopeId != null ? scopeId : -1L;
+    }
+
     @Transactional(readOnly = true)
     public Map<String, Object> getIncomeExpenseReport(LocalDateTime from, LocalDateTime to) {
-        Long familyGroupId = resolveFamilyGroupIdOrNull();
+        Long scopeId = resolveActiveScopeIdOrNull();
         BigDecimal income;
         BigDecimal expense;
-        if (familyGroupId == null) {
+        if (scopeId == null) {
             income = transactionRepository.sumByTypeAndDateRange(TransactionType.INCOME, from, to);
             expense = transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, from, to);
         } else {
-            income = transactionRepository.sumByTypeAndDateRangeAndFamilyGroup(
-                    TransactionType.INCOME, from, to, familyGroupId);
-            expense = transactionRepository.sumByTypeAndDateRangeAndFamilyGroup(
-                    TransactionType.EXPENSE, from, to, familyGroupId);
+            income = transactionRepository.sumByTypeAndDateRangeAndScope(
+                    TransactionType.INCOME, from, to, scopeId);
+            expense = transactionRepository.sumByTypeAndDateRangeAndScope(
+                    TransactionType.EXPENSE, from, to, scopeId);
         }
         Map<String, Object> report = new HashMap<>();
         report.put("totalIncome", income);
@@ -77,13 +91,13 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getCategoryReport(CategoryType type, LocalDateTime from, LocalDateTime to) {
-        Long familyGroupId = resolveFamilyGroupIdOrNull();
+        Long scopeId = resolveActiveScopeIdOrNull();
         List<Category> categories = categoryRepository.findByTypeAndIsActiveTrue(type);
         boolean isExpense = type == CategoryType.EXPENSE;
 
         // Barcha kategoriyalar uchun yagona batch query — N+1 yo'q
         Map<Long, BigDecimal> amountByCategory;
-        if (familyGroupId == null) {
+        if (scopeId == null) {
             amountByCategory = isExpense
                     ? transactionRepository.sumExpenseGroupedByCategory(from, to).stream()
                             .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]))
@@ -91,9 +105,9 @@ public class ReportService {
                             .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]));
         } else {
             amountByCategory = isExpense
-                    ? transactionRepository.sumExpenseGroupedByCategoryAndFamilyGroup(from, to, familyGroupId).stream()
+                    ? transactionRepository.sumExpenseGroupedByCategoryAndScope(from, to, scopeId).stream()
                             .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]))
-                    : transactionRepository.sumIncomeGroupedByCategoryAndFamilyGroup(from, to, familyGroupId).stream()
+                    : transactionRepository.sumIncomeGroupedByCategoryAndScope(from, to, scopeId).stream()
                             .collect(Collectors.toMap(row -> (Long) row[0], row -> (BigDecimal) row[1]));
         }
 

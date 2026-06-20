@@ -47,6 +47,7 @@ import { PasswordInput } from '../../components/ui/PasswordInput';
 import { UsernameInput } from '../../components/ui/UsernameInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { formatPhoneDisplay } from '../../utils/phone';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { DateInput } from '../../components/ui/DateInput';
 import { Select } from '../../components/ui/Select';
 import { AvatarUploader } from '../../components/ui/AvatarUploader';
@@ -437,9 +438,7 @@ export function FamilyMembersPage() {
       toast.success(`${member.fullName} ball tizimiga qo'shildi`);
       void loadMembers();
     } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? "Ball tizimiga qo'shishda xatolik";
-      toast.error(message);
+      toast.error(getApiErrorMessage(err, "Ball tizimiga qo'shishda xatolik"));
     }
   }, [loadMembers]);
 

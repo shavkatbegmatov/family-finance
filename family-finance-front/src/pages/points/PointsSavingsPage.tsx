@@ -16,6 +16,7 @@ import { usePermission } from '../../hooks/usePermission';
 import { ModalPortal } from '../../components/common/Modal';
 import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../config/constants';
+import { toastApiError } from '../../utils/apiError';
 import {
   PointsActionBar,
   PointsEmptyState,
@@ -115,11 +116,8 @@ export function PointsSavingsPage() {
       setShowDepositModal(false);
       setAmount(0);
       loadData();
-    } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { message?: string } } };
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || "Amal bajarishda xatolik");
-      }
+    } catch (err) {
+      toastApiError(err, "Amal bajarishda xatolik");
     } finally {
       setSubmitting(false);
     }
@@ -141,11 +139,8 @@ export function PointsSavingsPage() {
       setShowInvestModal(false);
       setInvestForm({ type: 'STABLE', amount: 0 });
       loadData();
-    } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { message?: string } } };
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || "Investitsiya yaratishda xatolik");
-      }
+    } catch (err) {
+      toastApiError(err, "Investitsiya yaratishda xatolik");
     } finally {
       setSubmitting(false);
     }
@@ -157,11 +152,8 @@ export function PointsSavingsPage() {
       await pointInvestmentApi.sell(id);
       toast.success("Investitsiya sotildi");
       loadData();
-    } catch (err: unknown) {
-      const error = err as { response?: { status?: number; data?: { message?: string } } };
-      if (error.response?.status !== 403) {
-        toast.error(error.response?.data?.message || "Sotishda xatolik");
-      }
+    } catch (err) {
+      toastApiError(err, "Sotishda xatolik");
     }
   };
 

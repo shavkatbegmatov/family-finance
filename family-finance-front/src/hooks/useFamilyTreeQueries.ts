@@ -15,12 +15,7 @@ import type {
 } from '../types';
 import type { FamilyMember, FamilyMemberRequest, UpdateSelfRequest, ApiResponse } from '../types';
 import toast from 'react-hot-toast';
-
-/** Axios xato javobidagi backend xabarini (response.data.message) ajratadi; bo'lmasa fallback. */
-function extractErrorMessage(error: unknown, fallback: string): string {
-  const axiosErr = error as { response?: { data?: { message?: string } } };
-  return axiosErr?.response?.data?.message || fallback;
-}
+import { getApiErrorMessage } from '../utils/apiError';
 
 // ========== Query Keys Factory ==========
 export const familyTreeKeys = {
@@ -134,7 +129,7 @@ export function useCreateFamilyUnit() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success('Oila birligi yaratildi');
     },
-    onError: (error) => toast.error(extractErrorMessage(error, 'Oila birligini yaratishda xatolik')),
+    onError: (error) => toast.error(getApiErrorMessage(error, 'Oila birligini yaratishda xatolik')),
   });
 }
 
@@ -147,7 +142,7 @@ export function useUpdateFamilyUnit() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success('Oila birligi yangilandi');
     },
-    onError: (error) => toast.error(extractErrorMessage(error, 'Oila birligini yangilashda xatolik')),
+    onError: (error) => toast.error(getApiErrorMessage(error, 'Oila birligini yangilashda xatolik')),
   });
 }
 
@@ -159,7 +154,7 @@ export function useDeleteFamilyUnit() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Oila birligi o'chirildi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Oila birligini o'chirishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Oila birligini o'chirishda xatolik")),
   });
 }
 
@@ -172,7 +167,7 @@ export function useAddPartner() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Partner qo'shildi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Partner qo'shishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Partner qo'shishda xatolik")),
   });
 }
 
@@ -185,7 +180,7 @@ export function useAddChild() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Farzand qo'shildi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Farzand qo'shishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Farzand qo'shishda xatolik")),
   });
 }
 
@@ -197,7 +192,7 @@ export function useAddParents() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Ota-ona qo'shildi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Ota-ona qo'shishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Ota-ona qo'shishda xatolik")),
   });
 }
 
@@ -209,7 +204,7 @@ export function useAddSpouse() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Turmush o'rtoq qo'shildi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Turmush o'rtoq qo'shishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Turmush o'rtoq qo'shishda xatolik")),
   });
 }
 
@@ -221,7 +216,7 @@ export function useRemoveChild() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Farzandni olib tashlashda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Farzandni olib tashlashda xatolik")),
   });
 }
 
@@ -232,7 +227,7 @@ export function useCreatePerson() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Shaxs yaratishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Shaxs yaratishda xatolik")),
   });
 }
 
@@ -245,7 +240,7 @@ export function useUpdatePerson() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Shaxs ma'lumotlari yangilandi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Shaxs ma'lumotlarini yangilashda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Shaxs ma'lumotlarini yangilashda xatolik")),
   });
 }
 
@@ -283,6 +278,6 @@ export function useDeletePerson() {
       queryClient.invalidateQueries({ queryKey: familyTreeKeys.all });
       toast.success("Shaxs o'chirildi");
     },
-    onError: (error) => toast.error(extractErrorMessage(error, "Shaxsni o'chirishda xatolik")),
+    onError: (error) => toast.error(getApiErrorMessage(error, "Shaxsni o'chirishda xatolik")),
   });
 }

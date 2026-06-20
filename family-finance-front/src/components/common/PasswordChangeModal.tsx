@@ -14,6 +14,7 @@ import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
 import { PasswordStrengthMeter } from '../ui/PasswordStrengthMeter';
 import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { ChangePasswordRequest } from '../../types';
 
 interface PasswordFormData {
@@ -65,9 +66,8 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
 
       // Force re-login after password change
       logoutWithRedirect();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Parolni o'zgartirishda xatolik");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Parolni o'zgartirishda xatolik"));
     } finally {
       setChangingPassword(false);
     }
