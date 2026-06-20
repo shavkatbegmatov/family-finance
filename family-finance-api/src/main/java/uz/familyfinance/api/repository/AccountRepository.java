@@ -30,10 +30,15 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
        List<Account> findByTypeAndCurrencyAndIsActiveTrue(AccountType type, String currency);
 
-       /** Faqat berilgan family_group'ning hisoblar yig'indisi (legacy — Dashboard ishlatadi). */
-       @Query("SELECT COALESCE(SUM(a.balance), 0) FROM Account a "
-            + "WHERE a.isActive = true AND a.familyGroup.id = :familyGroupId")
-       BigDecimal getTotalBalanceByFamilyGroup(@Param("familyGroupId") Long familyGroupId);
+       /**
+        * D7: aktiv scope balansini VALYUTA bo'yicha ajratib qaytaradi (yig'indi kamayuvchi tartibda —
+        * birinchisi asosiy valyuta). Avval {@code getTotalBalanceByScopeId} har xil valyutani bitta
+        * songa qo'shib noto'g'ri ko'rsatardi (UZS + USD = bir son). Har qator: [currency, SUM(balance)].
+        */
+       @Query("SELECT a.currency, COALESCE(SUM(a.balance), 0) FROM Account a "
+            + "WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId "
+            + "GROUP BY a.currency ORDER BY SUM(a.balance) DESC")
+       List<Object[]> getBalancesByCurrencyAndScope(@Param("scopeId") Long scopeId);
 
        /**
         * Aktiv scope'dagi hisoblar balansi yig'indisi (scope-aware, "Umumiy balans" KPI).

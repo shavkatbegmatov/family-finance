@@ -12,6 +12,7 @@ import uz.familyfinance.api.dto.response.AccountAccessResponse;
 import uz.familyfinance.api.dto.response.AccountBalanceSummaryResponse;
 import uz.familyfinance.api.dto.response.AccountResponse;
 import uz.familyfinance.api.dto.response.CardResponse;
+import uz.familyfinance.api.dto.response.CurrencyBalanceResponse;
 import uz.familyfinance.api.entity.Account;
 import uz.familyfinance.api.entity.AccountAccess;
 import uz.familyfinance.api.entity.Card;
@@ -102,12 +103,14 @@ public class AccountService {
     }
 
     @Transactional(readOnly = true)
-    public BigDecimal getTotalBalance() {
+    public List<CurrencyBalanceResponse> getTotalBalance() {
         Long scopeId = scopeContext.getActiveScopeIdOrNull();
         if (scopeId == null) {
-            return BigDecimal.ZERO;
+            return List.of();
         }
-        return accountRepository.getTotalBalanceByScopeId(scopeId);
+        return accountRepository.getBalancesByCurrencyAndScope(scopeId).stream()
+                .map(row -> new CurrencyBalanceResponse((String) row[0], (BigDecimal) row[1]))
+                .toList();
     }
 
     @Transactional

@@ -11,7 +11,7 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { accountsApi } from '../../api/accounts.api';
 import type {
-  Account, AccountType, AccountStatus, AccountFilters,
+  Account, AccountType, AccountStatus, AccountFilters, CurrencyBalance,
 } from '../../types';
 import {
   formatCurrency, formatCompactCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
@@ -74,11 +74,19 @@ function getAccessRoleBadge(role?: string) {
 // KPI Card
 // ---------------------------------------------------------------------------
 
+/** D7: balansni valyutasi bilan formatlaydi (UZS -> "so'm", boshqa valyuta -> kod). */
+function formatBalance(b?: CurrencyBalance): string {
+  if (!b) return "0 so'm";
+  const label = b.currency === 'UZS' ? "so'm" : b.currency;
+  return `${formatCompactCurrency(b.amount)} ${label}`;
+}
+
 function KPICard({
-  title, value, icon: Icon, color = 'primary', style,
+  title, value, subtitle, icon: Icon, color = 'primary', style,
 }: {
   title: string;
   value: string;
+  subtitle?: string;
   icon: React.ElementType;
   color?: 'primary' | 'success' | 'error' | 'info' | 'warning';
   style?: CSSProperties;
@@ -101,6 +109,7 @@ function KPICard({
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-base-content/60 lg:text-sm">{title}</p>
             <p className="mt-1.5 truncate text-lg font-bold tracking-tight lg:mt-2 lg:text-2xl">{value}</p>
+            {subtitle && <p className="mt-0.5 truncate text-xs text-base-content/50">{subtitle}</p>}
           </div>
           <div className={clsx('grid h-10 w-10 flex-shrink-0 place-items-center rounded-2xl border lg:h-12 lg:w-12', colorMap[color])}>
             <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
@@ -288,7 +297,7 @@ export function AccountsPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   // KPI
-  const [totalBalance, setTotalBalance] = useState(0);
+  const [balances, setBalances] = useState<CurrencyBalance[]>([]);
   const [kpiLoading, setKpiLoading] = useState(true);
 
   // Tabs, View & Filters
@@ -318,7 +327,7 @@ export function AccountsPage() {
     try {
       setKpiLoading(true);
       const res = await accountsApi.getTotalBalance();
-      setTotalBalance(res.data.data ?? 0);
+      setBalances(res.data.data ?? []);
     } catch {
       // silently fail
     } finally {
@@ -634,7 +643,10 @@ export function AccountsPage() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <KPICard
           title="Umumiy balans"
-          value={kpiLoading ? '...' : formatCompactCurrency(totalBalance) + " so'm"}
+          value={kpiLoading ? '...' : formatBalance(balances[0])}
+          subtitle={!kpiLoading && balances.length > 1
+            ? balances.slice(1).map(formatBalance).join(' · ')
+            : undefined}
           icon={Wallet}
           color="primary"
           style={{ '--i': 0 } as CSSProperties}
