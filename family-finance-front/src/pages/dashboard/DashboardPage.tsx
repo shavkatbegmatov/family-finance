@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   Wallet,
@@ -34,7 +35,7 @@ import {
   Legend,
 } from 'recharts';
 import { familyDashboardApi } from '../../api/family-dashboard.api';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import { formatCurrency, formatCompactCurrency, formatDate, MONTHS_UZ } from '../../config/constants';
 import type {
   CurrencyBalance,
@@ -555,11 +556,6 @@ function MobileQuickActions({ canCreate }: { canCreate: boolean }) {
 const HIDE_BALANCE_KEY = 'ff-hide-balance';
 
 export function DashboardPage() {
-  const [stats, setStats] = useState<FamilyDashboardStats | null>(null);
-  const [charts, setCharts] = useState<FamilyChartData | null>(null);
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [chartRange, setChartRange] = useState<ChartRange>('6m');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [hideBalance, setHideBalance] = useState<boolean>(
@@ -577,46 +573,48 @@ export function DashboardPage() {
     });
   }, []);
 
-  const loadData = useCallback(async (isInitial = false) => {
-    try {
-      if (!isInitial) {
-        setRefreshing(true);
-      }
-      const [statsRes, chartsRes, recentRes] = await Promise.all([
-        familyDashboardApi.getStats(),
-        familyDashboardApi.getCharts(),
-        familyDashboardApi.getRecentTransactions(),
-      ]);
-      const statsData: FamilyDashboardStats = statsRes.data.data;
-      const chartsData: FamilyChartData = chartsRes.data.data;
-      const recentData: Transaction[] = recentRes.data.data;
-      setStats(statsData);
-      setCharts(chartsData);
-      setRecentTransactions(recentData);
-    } catch {
-      toast.error("Ma'lumotlarni yuklashda xatolik");
-    } finally {
-      setInitialLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  // ---------- Data (react-query) ----------
+  // Aktiv scope queryKey'da — scope almashganda avtomatik refetch (eski
+  // useScopeChangeEffect + manual loadData o'rniga; D8 migratsiyasi).
+  const queryClient = useQueryClient();
+  const activeScopeId = useActiveScopeId();
 
+  const statsQuery = useQuery({
+    queryKey: ['dashboard-stats', activeScopeId],
+    queryFn: async (): Promise<FamilyDashboardStats> => (await familyDashboardApi.getStats()).data.data,
+  });
+  const chartsQuery = useQuery({
+    queryKey: ['dashboard-charts', activeScopeId],
+    queryFn: async (): Promise<FamilyChartData> => (await familyDashboardApi.getCharts()).data.data,
+  });
+  const recentQuery = useQuery({
+    queryKey: ['dashboard-recent', activeScopeId],
+    queryFn: async (): Promise<Transaction[]> => (await familyDashboardApi.getRecentTransactions()).data.data,
+  });
+
+  const stats = statsQuery.data ?? null;
+  const charts = chartsQuery.data ?? null;
+  const recentTransactions = recentQuery.data ?? [];
+  const initialLoading = statsQuery.isLoading || chartsQuery.isLoading || recentQuery.isLoading;
+  const refreshing =
+    !initialLoading && (statsQuery.isFetching || chartsQuery.isFetching || recentQuery.isFetching);
+
+  // Xulqni saqlash: yuklash xatosida toast (eski try/catch o'rniga)
   useEffect(() => {
-    loadData(true);
-  }, [loadData]);
+    if (statsQuery.isError || chartsQuery.isError || recentQuery.isError) {
+      toast.error("Ma'lumotlarni yuklashda xatolik");
+    }
+  }, [statsQuery.isError, chartsQuery.isError, recentQuery.isError]);
 
+  // Real-time bildirishnoma kelganda dashboard'ni yangilash
   useEffect(() => {
     if (notifications.length > 0) {
-      void loadData();
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-recent'] });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length]);
-
-  // Phase 3: aktiv scope o'zgarganda dashboard ma'lumotlarini qayta yuklash
-  // (F5 bosish kerak emas — switching avtomatik refresh qiladi)
-  useScopeChangeEffect(() => {
-    void loadData();
-  });
 
   // Range bo'yicha trend formatlash (oxirgi N oy)
   const formattedMonthlyTrend = useMemo(() => {
