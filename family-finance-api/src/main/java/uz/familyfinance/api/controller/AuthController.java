@@ -4,11 +4,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import uz.familyfinance.api.dto.request.ChangePasswordRequest;
@@ -20,12 +23,16 @@ import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.SwitchScopeResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.Session;
+import uz.familyfinance.api.exception.BadRequestException;
+import uz.familyfinance.api.security.AuthCookies;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.LoginRateLimiter;
 import uz.familyfinance.api.service.AuthService;
 import uz.familyfinance.api.service.ScopeSwitchService;
 import uz.familyfinance.api.service.SessionService;
 import uz.familyfinance.api.service.UserService;
+
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -38,6 +45,9 @@ public class AuthController {
     private final SessionService sessionService;
     private final ScopeSwitchService scopeSwitchService;
     private final LoginRateLimiter loginRateLimiter;
+
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration;
 
     @PostMapping("/register")
     @Operation(summary = "Register", description = "Yangi foydalanuvchi ro'yxatdan o'tish")
@@ -64,18 +74,35 @@ public class AuthController {
         }
 
         JwtResponse response = authService.login(request, ipAddress, userAgent);
-        return ResponseEntity.ok(ApiResponse.success("Muvaffaqiyatli kirish", response));
+        // D12-PR4: refresh token httpOnly cookie'da ham (additive — body'da ham qaytadi)
+        ResponseCookie refreshCookie = AuthCookies.refreshCookie(
+                response.getRefreshToken(), Duration.ofMillis(refreshExpiration));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success("Muvaffaqiyatli kirish", response));
     }
 
     @PostMapping("/refresh-token")
     @Operation(summary = "Refresh Token", description = "Token yangilash")
     public ResponseEntity<ApiResponse<JwtResponse>> refreshToken(
-            @RequestParam @NotBlank String refreshToken,
+            @RequestParam(required = false) String refreshToken,
             HttpServletRequest httpRequest) {
+        // D12-PR4: refresh token query param (legacy) yoki httpOnly cookie (PR5 cutover) dan
+        String token = StringUtils.hasText(refreshToken)
+                ? refreshToken
+                : AuthCookies.readRefreshToken(httpRequest);
+        if (!StringUtils.hasText(token)) {
+            throw new BadRequestException("Refresh token topilmadi");
+        }
         String ipAddress = getClientIpAddress(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
-        JwtResponse response = authService.refreshToken(refreshToken, ipAddress, userAgent);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        JwtResponse response = authService.refreshToken(token, ipAddress, userAgent);
+        // Rotatsiya: yangi refresh token cookie'ni ham yangilash
+        ResponseCookie refreshCookie = AuthCookies.refreshCookie(
+                response.getRefreshToken(), Duration.ofMillis(refreshExpiration));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success(response));
     }
 
     @GetMapping("/me")
@@ -120,7 +147,10 @@ public class AuthController {
             );
         }
 
-        return ResponseEntity.ok(ApiResponse.success("Muvaffaqiyatli chiqish"));
+        // D12-PR4: refresh token cookie'ni ham tozalash
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, AuthCookies.clearRefreshCookie().toString())
+                .body(ApiResponse.success("Muvaffaqiyatli chiqish"));
     }
 
     @PostMapping("/change-password")

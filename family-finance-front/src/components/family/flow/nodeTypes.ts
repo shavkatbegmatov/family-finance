@@ -5,6 +5,7 @@ import { HouseholdNode } from './nodes/HouseholdNode';
 import { MarriageEdge } from './edges/MarriageEdge';
 import { ChildEdge } from './edges/ChildEdge';
 import { RelativesTreeEdge } from './edges/RelativesTreeEdge';
+import { HouseholdEdge } from './edges/HouseholdEdge';
 
 export const nodeTypes = {
   personNode: PersonNode,
@@ -17,4 +18,5 @@ export const edgeTypes = {
   marriageEdge: MarriageEdge,
   childEdge: ChildEdge,
   relativesTreeEdge: RelativesTreeEdge,
+  householdEdge: HouseholdEdge,
 };

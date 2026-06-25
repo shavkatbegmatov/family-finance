@@ -1,12 +1,22 @@
 import { isAxiosError } from 'axios';
 import toast from 'react-hot-toast';
 
+/** Backend `ApiResponse.errorCode` qiymatlari (backend `enums/ErrorCode` bilan izchil). */
+export type ApiErrorCode =
+  | 'VALIDATION'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'RATE_LIMITED'
+  | 'INTERNAL';
+
 /**
- * Backend `ApiResponse` xato javobining tanasi (`{ success, message, ... }`).
- * Bizga faqat `message` kerak.
+ * Backend `ApiResponse` xato javobining tanasi (`{ success, message, errorCode, ... }`).
  */
 interface ApiErrorBody {
   message?: string;
+  errorCode?: string;
 }
 
 const DEFAULT_ERROR_MESSAGE = 'Xato yuz berdi';
@@ -34,6 +44,21 @@ export function getApiErrorMessage(error: unknown, fallback: string = DEFAULT_ER
 /** Axios xatosining HTTP status kodi (axios bo'lmasa `undefined`). */
 export function getApiErrorStatus(error: unknown): number | undefined {
   return isAxiosError(error) ? error.response?.status : undefined;
+}
+
+/**
+ * Backend xato kodi (`ApiResponse.errorCode`) — xatoni o'zgaruvchan xabar matniga emas, barqaror
+ * kodga tayanib handle qilish uchun (masalan `getApiErrorCode(e) === 'RATE_LIMITED'`).
+ * Axios bo'lmasa yoki kod yo'q bo'lsa `undefined`.
+ */
+export function getApiErrorCode(error: unknown): ApiErrorCode | undefined {
+  if (isAxiosError(error)) {
+    const body = error.response?.data as ApiErrorBody | undefined;
+    if (typeof body?.errorCode === 'string') {
+      return body.errorCode as ApiErrorCode;
+    }
+  }
+  return undefined;
 }
 
 /**
