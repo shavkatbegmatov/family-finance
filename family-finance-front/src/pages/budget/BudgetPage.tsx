@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PieChart, Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -12,10 +13,10 @@ import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode } from '../../hooks/usePermission';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import { getCategoryIcon } from '../../utils/icons';
 import { BUDGET_TONE_BG, BUDGET_TONE_TEXT, getBudgetTone } from '../../config/chartColors';
-import type { Budget, BudgetRequest, BudgetPeriod, FinanceCategory } from '../../types';
+import type { Budget, BudgetRequest, BudgetPeriod } from '../../types';
 
 interface BudgetFormState {
   categoryId: number;
@@ -34,10 +35,10 @@ const emptyForm: BudgetFormState = {
 };
 
 export function BudgetPage() {
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [categories, setCategories] = useState<FinanceCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const queryClient = useQueryClient();
+  // Aktiv scope queryKey'da — scope almashganda so'rovlar avtomatik qayta yuklanadi
+  // (eski useScopeChangeEffect + manual fetch o'rniga; D8 react-query migratsiyasi).
+  const activeScopeId = useActiveScopeId();
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -48,40 +49,49 @@ export function BudgetPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // ---------- Data loading ----------
+  // ---------- Data (react-query) ----------
 
-  const loadBudgets = useCallback(async () => {
-    try {
-      const res = await budgetsApi.getAll();
-      const data = res.data;
-      setBudgets(data.data.content);
-    } catch {
-      toast.error('Byudjetlarni yuklashda xatolik');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadCategories = useCallback(async () => {
-    try {
-      const categoriesRes = await categoriesApi.getByType('EXPENSE');
-      const data = categoriesRes.data;
-      setCategories(data.data);
-    } catch {
-      toast.error('Kategoriyalarni yuklashda xatolik');
-    }
-  }, []);
-
-  // Phase 3: aktiv scope o'zgarganda byudjetlarni qayta yuklash
-  useScopeChangeEffect(() => {
-    void loadBudgets();
+  const {
+    data: budgets = [],
+    isLoading: loading,
+    isError: budgetsError,
+  } = useQuery({
+    queryKey: ['budgets', activeScopeId],
+    queryFn: async () => (await budgetsApi.getAll()).data.data.content,
   });
 
+  const { data: categories = [], isError: categoriesError } = useQuery({
+    queryKey: ['categories', 'EXPENSE', activeScopeId],
+    queryFn: async () => (await categoriesApi.getByType('EXPENSE')).data.data,
+  });
+
+  // Xulqni saqlash: yuklash xatosida toast (eski try/catch o'rniga)
   useEffect(() => {
-    void loadBudgets();
-    void loadCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (budgetsError) toast.error('Byudjetlarni yuklashda xatolik');
+  }, [budgetsError]);
+  useEffect(() => {
+    if (categoriesError) toast.error('Kategoriyalarni yuklashda xatolik');
+  }, [categoriesError]);
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: BudgetRequest) =>
+      editingBudget ? budgetsApi.update(editingBudget.id, payload) : budgetsApi.create(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['budgets'] });
+      setShowModal(false);
+      setEditingBudget(null);
+      setForm(emptyForm);
+    },
+    onError: () => toast.error('Byudjetni saqlashda xatolik'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => budgetsApi.delete(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['budgets'] }),
+    onError: () => toast.error("Byudjetni o'chirishda xatolik"),
+  });
+
+  const submitting = saveMutation.isPending;
 
   // ---------- Helpers ----------
 
@@ -129,32 +139,15 @@ export function BudgetPage() {
     setForm(emptyForm);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!form.categoryId || form.amount <= 0 || !form.startDate || !form.endDate) return;
-
-    setSubmitting(true);
-    try {
-      const payload: BudgetRequest = {
-        categoryId: form.categoryId,
-        amount: form.amount,
-        period: form.period,
-        startDate: form.startDate,
-        endDate: form.endDate,
-      };
-
-      if (editingBudget) {
-        await budgetsApi.update(editingBudget.id, payload);
-      } else {
-        await budgetsApi.create(payload);
-      }
-
-      handleCloseModal();
-      void loadBudgets();
-    } catch {
-      toast.error('Byudjetni saqlashda xatolik');
-    } finally {
-      setSubmitting(false);
-    }
+    saveMutation.mutate({
+      categoryId: form.categoryId,
+      amount: form.amount,
+      period: form.period,
+      startDate: form.startDate,
+      endDate: form.endDate,
+    });
   };
 
   // ---------- Delete handlers ----------
@@ -164,17 +157,14 @@ export function BudgetPage() {
     setShowDeleteConfirm(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (deletingId === null) return;
-    try {
-      await budgetsApi.delete(deletingId);
-      void loadBudgets();
-    } catch {
-      toast.error("Byudjetni o'chirishda xatolik");
-    } finally {
-      setShowDeleteConfirm(false);
-      setDeletingId(null);
-    }
+    deleteMutation.mutate(deletingId, {
+      onSettled: () => {
+        setShowDeleteConfirm(false);
+        setDeletingId(null);
+      },
+    });
   };
 
   // ---------- Period change auto-date ----------
