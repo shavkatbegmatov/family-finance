@@ -80,7 +80,8 @@ function HouseholdNodeComponent({ data }: NodeProps) {
 
   return (
     <div className="w-[280px] overflow-hidden rounded-2xl border-2 border-base-300 bg-base-200/70 shadow-md">
-      <Handle id="hh-top" type="target" position={Position.Top} className={HANDLE_CLASS} />
+      <Handle id="hh-top-left" type="target" position={Position.Top} style={{ left: '25%' }} className={HANDLE_CLASS} />
+      <Handle id="hh-top-right" type="target" position={Position.Top} style={{ left: '75%' }} className={HANDLE_CLASS} />
       <Handle id="hh-bottom" type="source" position={Position.Bottom} className={HANDLE_CLASS} />
 
       {/* Sarlavha — oila boshlig'i ismi + byudjet-xonadon raqami */}
