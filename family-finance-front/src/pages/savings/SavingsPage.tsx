@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Target, Plus, Edit2, Trash2, X, PiggyBank, ArrowUpCircle } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
@@ -12,11 +13,10 @@ import { ModalPortal } from '../../components/common/Modal';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode } from '../../hooks/usePermission';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import type {
   SavingsGoal,
   SavingsGoalRequest,
-  GoalContribution,
   GoalContributionRequest,
 } from '../../types';
 
@@ -52,10 +52,6 @@ const GOAL_COLORS = [
 const GOAL_ICONS = ['🎯', '🏠', '🚗', '✈️', '📱', '💻', '🎓', '💍', '🏥', '🎁'];
 
 export function SavingsPage() {
-  const [goals, setGoals] = useState<SavingsGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
   // Goal modal
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
@@ -70,51 +66,72 @@ export function SavingsPage() {
     note: '',
   });
 
-  // Selected goal detail & contributions
+  // Selected goal detail (hissalar useQuery enabled bilan auto-yuklanadi)
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
-  const [contributions, setContributions] = useState<GoalContribution[]>([]);
-  const [loadingContribs, setLoadingContribs] = useState(false);
 
   // Delete confirmation
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // ---------- Data loading ----------
+  // ---------- Data (react-query) ----------
+  // Aktiv scope queryKey'da — scope almashganda avtomatik refetch (D8 migratsiyasi).
+  const queryClient = useQueryClient();
+  const activeScopeId = useActiveScopeId();
 
-  const loadGoals = useCallback(async () => {
-    try {
-      const res = await savingsApi.getAll();
-      const data = res.data;
-      setGoals(data.data.content);
-    } catch {
-      toast.error("Jamg'arma maqsadlarini yuklashda xatolik");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const {
+    data: goals = [],
+    isLoading: loading,
+    isError: goalsError,
+  } = useQuery({
+    queryKey: ['savings-goals', activeScopeId],
+    queryFn: async () => (await savingsApi.getAll()).data.data.content,
+  });
 
-  const loadContributions = useCallback(async (goalId: number) => {
-    setLoadingContribs(true);
-    try {
-      const contribRes = await savingsApi.getContributions(goalId);
-      const data = contribRes.data;
-      setContributions(data.data);
-    } catch {
-      toast.error("Hissalarni yuklashda xatolik");
-    } finally {
-      setLoadingContribs(false);
-    }
-  }, []);
+  // Tanlangan maqsad hissalar — selectedGoal o'zgarsa avtomatik yuklanadi
+  const { data: contributions = [], isFetching: loadingContribs } = useQuery({
+    queryKey: ['savings-contributions', selectedGoal?.id],
+    queryFn: async () => (await savingsApi.getContributions(selectedGoal!.id)).data.data,
+    enabled: selectedGoal !== null,
+  });
 
   useEffect(() => {
-    void loadGoals();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (goalsError) toast.error("Jamg'arma maqsadlarini yuklashda xatolik");
+  }, [goalsError]);
 
-  // Phase 3: aktiv scope o'zgarganda jamg'arma maqsadlarini qayta yuklash
-  useScopeChangeEffect(() => {
-    void loadGoals();
+  const goalSaveMutation = useMutation({
+    mutationFn: (payload: SavingsGoalRequest) =>
+      editingGoal ? savingsApi.update(editingGoal.id, payload) : savingsApi.create(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
+      setShowGoalModal(false);
+      setEditingGoal(null);
+      setGoalForm(emptyGoalForm);
+    },
+    onError: () => toast.error('Maqsadni saqlashda xatolik'),
   });
+
+  const contribMutation = useMutation({
+    mutationFn: (vars: { goalId: number; payload: GoalContributionRequest }) =>
+      savingsApi.addContribution(vars.goalId, vars.payload),
+    onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
+      void queryClient.invalidateQueries({ queryKey: ['savings-contributions', vars.goalId] });
+      setShowContribModal(false);
+      setContributionGoalId(null);
+    },
+    onError: () => toast.error("Hissa qo'shishda xatolik"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => savingsApi.delete(id),
+    onSuccess: (_data, id) => {
+      void queryClient.invalidateQueries({ queryKey: ['savings-goals'] });
+      if (selectedGoal?.id === id) setSelectedGoal(null);
+    },
+    onError: () => toast.error("Maqsadni o'chirishda xatolik"),
+  });
+
+  const submitting = goalSaveMutation.isPending || contribMutation.isPending;
 
   // ---------- Goal modal handlers ----------
 
@@ -142,32 +159,15 @@ export function SavingsPage() {
     setGoalForm(emptyGoalForm);
   };
 
-  const handleSubmitGoal = async () => {
+  const handleSubmitGoal = () => {
     if (!goalForm.name.trim() || goalForm.targetAmount <= 0) return;
-
-    setSubmitting(true);
-    try {
-      const payload: SavingsGoalRequest = {
-        name: goalForm.name.trim(),
-        targetAmount: goalForm.targetAmount,
-        deadline: goalForm.deadline || undefined,
-        icon: goalForm.icon || undefined,
-        color: goalForm.color || undefined,
-      };
-
-      if (editingGoal) {
-        await savingsApi.update(editingGoal.id, payload);
-      } else {
-        await savingsApi.create(payload);
-      }
-
-      handleCloseGoalModal();
-      void loadGoals();
-    } catch {
-      toast.error('Maqsadni saqlashda xatolik');
-    } finally {
-      setSubmitting(false);
-    }
+    goalSaveMutation.mutate({
+      name: goalForm.name.trim(),
+      targetAmount: goalForm.targetAmount,
+      deadline: goalForm.deadline || undefined,
+      icon: goalForm.icon || undefined,
+      color: goalForm.color || undefined,
+    });
   };
 
   // ---------- Contribution modal handlers ----------
@@ -187,42 +187,23 @@ export function SavingsPage() {
     setContributionGoalId(null);
   };
 
-  const handleSubmitContrib = async () => {
+  const handleSubmitContrib = () => {
     if (contributionGoalId === null || contribForm.amount <= 0) return;
-
-    setSubmitting(true);
-    try {
-      const payload: GoalContributionRequest = {
+    contribMutation.mutate({
+      goalId: contributionGoalId,
+      payload: {
         amount: contribForm.amount,
         contributionDate: contribForm.contributionDate,
         note: contribForm.note || undefined,
-      };
-
-      await savingsApi.addContribution(contributionGoalId, payload);
-      handleCloseContrib();
-      void loadGoals();
-
-      // Refresh contributions if viewing the same goal
-      if (selectedGoal && selectedGoal.id === contributionGoalId) {
-        void loadContributions(contributionGoalId);
-      }
-    } catch {
-      toast.error("Hissa qo'shishda xatolik");
-    } finally {
-      setSubmitting(false);
-    }
+      },
+    });
   };
 
   // ---------- Goal selection & contributions ----------
 
   const handleSelectGoal = (goal: SavingsGoal) => {
-    if (selectedGoal?.id === goal.id) {
-      setSelectedGoal(null);
-      setContributions([]);
-    } else {
-      setSelectedGoal(goal);
-      void loadContributions(goal.id);
-    }
+    // Toggle — hissalar selectedGoal o'zgarishida useQuery (enabled) orqali auto-yuklanadi
+    setSelectedGoal((cur) => (cur?.id === goal.id ? null : goal));
   };
 
   // ---------- Delete handlers ----------
@@ -232,21 +213,14 @@ export function SavingsPage() {
     setShowDeleteConfirm(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = () => {
     if (deletingId === null) return;
-    try {
-      await savingsApi.delete(deletingId);
-      if (selectedGoal?.id === deletingId) {
-        setSelectedGoal(null);
-        setContributions([]);
-      }
-      void loadGoals();
-    } catch {
-      toast.error("Maqsadni o'chirishda xatolik");
-    } finally {
-      setShowDeleteConfirm(false);
-      setDeletingId(null);
-    }
+    deleteMutation.mutate(deletingId, {
+      onSettled: () => {
+        setShowDeleteConfirm(false);
+        setDeletingId(null);
+      },
+    });
   };
 
   // ---------- Helpers ----------
@@ -462,10 +436,7 @@ export function SavingsPage() {
                 </div>
                 <button
                   className="btn btn-ghost btn-sm btn-circle"
-                  onClick={() => {
-                    setSelectedGoal(null);
-                    setContributions([]);
-                  }}
+                  onClick={() => setSelectedGoal(null)}
                 >
                   <X className="h-4 w-4" />
                 </button>
