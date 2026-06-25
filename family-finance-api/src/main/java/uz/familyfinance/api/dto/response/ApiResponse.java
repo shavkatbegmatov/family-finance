@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uz.familyfinance.api.enums.ErrorCode;
 
 import java.time.LocalDateTime;
 
@@ -16,6 +17,8 @@ import java.time.LocalDateTime;
 public class ApiResponse<T> {
     private boolean success;
     private String message;
+    /** Mashina-o'qiydigan barqaror xato kodi (xato javobida) — front turi bo'yicha handle qiladi. */
+    private String errorCode;
     private T data;
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
@@ -46,6 +49,14 @@ public class ApiResponse<T> {
         return ApiResponse.<T>builder()
                 .success(false)
                 .message(message)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> error(String message, ErrorCode errorCode) {
+        return ApiResponse.<T>builder()
+                .success(false)
+                .message(message)
+                .errorCode(errorCode.name())
                 .build();
     }
 }

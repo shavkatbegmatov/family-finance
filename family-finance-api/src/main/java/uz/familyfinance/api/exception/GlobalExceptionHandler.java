@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.enums.ErrorCode;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class GlobalExceptionHandler {
         log.warn("Resource not found: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), ErrorCode.NOT_FOUND));
     }
 
     @ExceptionHandler(BadRequestException.class)
@@ -36,13 +37,14 @@ public class GlobalExceptionHandler {
         log.warn("Bad request: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), ErrorCode.VALIDATION));
     }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ApiResponse<Void>> handleConflictException(ConflictException ex) {
         log.warn("Conflict: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error(ex.getMessage(), ErrorCode.CONFLICT));
     }
 
     @ExceptionHandler(BadCredentialsException.class)
@@ -50,7 +52,7 @@ public class GlobalExceptionHandler {
         log.warn("Bad credentials: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Noto'g'ri foydalanuvchi nomi yoki parol"));
+                .body(ApiResponse.error("Noto'g'ri foydalanuvchi nomi yoki parol", ErrorCode.UNAUTHORIZED));
     }
 
     @ExceptionHandler(AccountLockedException.class)
@@ -58,7 +60,7 @@ public class GlobalExceptionHandler {
         log.warn("Account locked: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), ErrorCode.FORBIDDEN));
     }
 
     @ExceptionHandler(AccountDisabledException.class)
@@ -66,7 +68,7 @@ public class GlobalExceptionHandler {
         log.warn("Account disabled: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), ErrorCode.FORBIDDEN));
     }
 
     /**
@@ -79,7 +81,7 @@ public class GlobalExceptionHandler {
         log.warn("Access denied: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Sizda bu amalni bajarish uchun ruxsat yo'q"));
+                .body(ApiResponse.error("Sizda bu amalni bajarish uchun ruxsat yo'q", ErrorCode.FORBIDDEN));
     }
 
     /**
@@ -92,7 +94,7 @@ public class GlobalExceptionHandler {
         log.warn("Authorization denied: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Sizda bu amalni bajarish uchun ruxsat yo'q"));
+                .body(ApiResponse.error("Sizda bu amalni bajarish uchun ruxsat yo'q", ErrorCode.FORBIDDEN));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -110,6 +112,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.<Map<String, String>>builder()
                         .success(false)
                         .message("Validatsiya xatosi")
+                        .errorCode(ErrorCode.VALIDATION.name())
                         .data(errors)
                         .build());
     }
@@ -119,7 +122,7 @@ public class GlobalExceptionHandler {
         log.warn("Illegal argument: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(ex.getMessage()));
+                .body(ApiResponse.error(ex.getMessage(), ErrorCode.VALIDATION));
     }
 
     // D3: avval 500'ga tushadigan keng tarqalgan client-xatolar → to'g'ri 4xx/409
@@ -128,14 +131,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         log.warn("Type mismatch: param '{}' = '{}'", ex.getName(), ex.getValue());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Noto'g'ri parametr turi: " + ex.getName()));
+                .body(ApiResponse.error("Noto'g'ri parametr turi: " + ex.getName(), ErrorCode.VALIDATION));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotReadable(HttpMessageNotReadableException ex) {
         log.warn("Malformed request body: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("So'rov tanasi noto'g'ri formatda (JSON)"));
+                .body(ApiResponse.error("So'rov tanasi noto'g'ri formatda (JSON)", ErrorCode.VALIDATION));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -143,14 +146,14 @@ public class GlobalExceptionHandler {
         // DB tafsilotini OCHMA (sir/struktura sizishi) — umumiy 409
         log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error("Ma'lumotlar yaxlitligi buzildi (mavjud yoki bog'liq yozuv)"));
+                .body(ApiResponse.error("Ma'lumotlar yaxlitligi buzildi (mavjud yoki bog'liq yozuv)", ErrorCode.CONFLICT));
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ApiResponse<Void>> handleOptimisticLock(OptimisticLockingFailureException ex) {
         log.warn("Optimistic lock conflict: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error("Yozuv boshqa jarayon tomonidan o'zgartirildi — qayta urinib ko'ring"));
+                .body(ApiResponse.error("Yozuv boshqa jarayon tomonidan o'zgartirildi — qayta urinib ko'ring", ErrorCode.CONFLICT));
     }
 
     @ExceptionHandler(Exception.class)
@@ -158,6 +161,6 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error: ", ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Ichki server xatosi yuz berdi"));
+                .body(ApiResponse.error("Ichki server xatosi yuz berdi", ErrorCode.INTERNAL));
     }
 }
