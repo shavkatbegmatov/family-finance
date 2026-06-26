@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
@@ -37,7 +38,7 @@ import { DateRangePicker, type DateRangePreset, type DateRange } from '../../com
 import { resolvePreset } from '../../utils/dateRangePresets';
 import { TransactionFormModal } from '../../components/common/TransactionFormModal';
 import { useQuickEntryStore } from '../../store/quickEntryStore';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import type {
   Transaction,
   TransactionType,
@@ -46,6 +47,7 @@ import type {
   FinanceCategory,
   FamilyMember,
   ApiResponse,
+  PagedResponse,
 } from '../../types';
 
 type TabType = 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
@@ -74,24 +76,9 @@ export function TransactionsPage() {
   const { highlightId, clearHighlight } = useHighlight();
   const lastCreatedAt = useQuickEntryStore((s) => s.lastCreatedAt);
 
-  // Data state
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const allItemsRef = useRef<Transaction[]>([]);
-  const [allItems, setAllItems] = useState<Transaction[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<FinanceCategory[]>([]);
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-
-  // Pagination
+  // Pagination (desktop sahifa)
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-
-  // Loading
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
 
   // Filters
   const [activeTab, setActiveTab] = useState<TabType>('ALL');
@@ -120,7 +107,6 @@ export function TransactionsPage() {
   const [showBulkReverseModal, setShowBulkReverseModal] = useState(false);
   const [showBulkCategorizeModal, setShowBulkCategorizeModal] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | undefined>(undefined);
-  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Build filters object
   const filters = useMemo<TransactionFilters>(() => {
@@ -135,83 +121,81 @@ export function TransactionsPage() {
     return f;
   }, [activeTab, resolvedRange, filterAccountId, filterCategoryId, filterMemberId, debouncedSearch]);
 
-  // Load reference data
-  const loadReferenceData = useCallback(async () => {
-    try {
-      const [accountsRes, categoriesRes, membersRes] = await Promise.all([
-        accountsApi.getList(),
-        categoriesApi.getAll(),
-        familyMembersApi.getList(),
-      ]);
-      setAccounts(accountsRes.data.data);
-      setCategories(categoriesRes.data.data.content);
-      setMembers(
-        (membersRes.data as ApiResponse<FamilyMember[]>).data ?? (membersRes.data as FamilyMember[])
-      );
-    } catch {
-      toast.error("Ma'lumotnoma yuklashda xatolik");
-    }
-  }, []);
+  // ---------- Data (react-query) ----------
+  // Desktop: sahifa-asosli; Mobile: infinite scroll — UX bir xil. Scope queryKey'da (D8 migratsiyasi).
+  const queryClient = useQueryClient();
+  const activeScopeId = useActiveScopeId();
 
-  // Load transactions
-  const loadTransactions = useCallback(async (isInitial = false) => {
-    if (isInitial) setLoading(true);
-    else if (isMobile && page > 0) setLoadingMore(true);
-    try {
-      const res = await transactionsApi.getAll(page, pageSize, filters);
-      const data = res.data.data;
-      setTransactions(data.content);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
+  // Reference data (filter va form modal uchun)
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['accounts-ref', activeScopeId],
+    queryFn: async (): Promise<Account[]> => (await accountsApi.getList()).data.data,
+  });
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories-ref', activeScopeId],
+    queryFn: async (): Promise<FinanceCategory[]> => (await categoriesApi.getAll()).data.data.content,
+  });
+  const { data: members = [] } = useQuery({
+    queryKey: ['members-ref', activeScopeId],
+    queryFn: async (): Promise<FamilyMember[]> => {
+      const res = await familyMembersApi.getList();
+      return (res.data as ApiResponse<FamilyMember[]>).data ?? (res.data as FamilyMember[]);
+    },
+  });
 
-      if (isMobile && page > 0) {
-        const newAll = [...allItemsRef.current, ...data.content];
-        allItemsRef.current = newAll;
-        setAllItems(newAll);
-      } else {
-        allItemsRef.current = data.content;
-        setAllItems(data.content);
-      }
-    } catch {
-      toast.error('Tranzaksiyalarni yuklashda xatolik');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [page, pageSize, filters, isMobile]);
+  // Tranzaksiyalar — desktop page / mobile infinite
+  const desktopQuery = useQuery({
+    queryKey: ['transactions', activeScopeId, page, pageSize, filters],
+    queryFn: async (): Promise<PagedResponse<Transaction>> =>
+      (await transactionsApi.getAll(page, pageSize, filters)).data.data,
+    enabled: !isMobile,
+  });
+  const mobileQuery = useInfiniteQuery({
+    queryKey: ['transactions-infinite', activeScopeId, pageSize, filters],
+    queryFn: async ({ pageParam }): Promise<PagedResponse<Transaction>> =>
+      (await transactionsApi.getAll(pageParam, pageSize, filters)).data.data,
+    enabled: isMobile,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      allPages.length < lastPage.totalPages ? allPages.length : undefined,
+  });
+
+  const transactions = desktopQuery.data?.content ?? [];
+  const allItems = mobileQuery.data?.pages.flatMap((p) => p.content) ?? [];
+  const totalPages =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalPages : desktopQuery.data?.totalPages) ?? 0;
+  const totalElements =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalElements : desktopQuery.data?.totalElements) ?? 0;
+  const loading = isMobile ? mobileQuery.isLoading : desktopQuery.isLoading;
+  const loadingMore = mobileQuery.isFetchingNextPage;
+
+  useEffect(() => {
+    if (desktopQuery.isError || mobileQuery.isError) toast.error('Tranzaksiyalarni yuklashda xatolik');
+  }, [desktopQuery.isError, mobileQuery.isError]);
 
   const handleLoadMore = useCallback(() => {
-    if (page < totalPages - 1 && !loadingMore) {
-      setPage((p) => p + 1);
+    if (mobileQuery.hasNextPage && !mobileQuery.isFetchingNextPage) {
+      void mobileQuery.fetchNextPage();
     }
-  }, [page, totalPages, loadingMore]);
+  }, [mobileQuery]);
 
-  // Reset allItems when filters change
+  // Filter/scope o'zgarsa desktop sahifani boshiga qaytaramiz (mobile queryKey o'zi reset bo'ladi)
   useEffect(() => {
-    allItemsRef.current = [];
-    setAllItems([]);
-  }, [filters]);
+    setPage(0);
+  }, [filters, activeScopeId]);
 
-  // Initial load
-  useEffect(() => {
-    void loadReferenceData();
-  }, [loadReferenceData]);
-
-  useEffect(() => {
-    void loadTransactions(true);
-  }, [loadTransactions]);
-
-  // FAB orqali yaratilgan tranzaksiyalar ham ro'yxatda ko'rinishi uchun
+  // FAB orqali yaratilgan tranzaksiya ro'yxatda ko'rinishi uchun
   useEffect(() => {
     if (lastCreatedAt === 0) return;
-    void loadTransactions(true);
+    void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    void queryClient.invalidateQueries({ queryKey: ['transactions-infinite'] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastCreatedAt]);
 
-  // Phase 3: aktiv scope o'zgarganda tranzaksiyalarni qayta yuklash
-  useScopeChangeEffect(() => {
-    void loadTransactions(true);
-  });
+  const invalidateTransactions = () => {
+    void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    void queryClient.invalidateQueries({ queryKey: ['transactions-infinite'] });
+  };
 
   // Tab change -> reset page
   const handleTabChange = (tab: TabType) => {
@@ -265,7 +249,7 @@ export function TransactionsPage() {
   };
 
   const handleFormSuccess = () => {
-    void loadTransactions();
+    invalidateTransactions();
   };
 
   // ===== Bulk operations =====
@@ -305,49 +289,62 @@ export function TransactionsPage() {
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const handleBulkReverseSubmit = async () => {
-    if (selectedIds.size === 0) return;
-    setBulkProcessing(true);
-    try {
-      const ids = Array.from(selectedIds);
-      const res = await transactionsApi.bulkReverse(ids, 'Bulk storno');
+  const reverseMutation = useMutation({
+    mutationFn: (id: number) =>
+      transactionsApi.reverse(id, 'Foydalanuvchi tomonidan storno qilindi'),
+    onSuccess: () => {
+      invalidateTransactions();
+      setShowDeleteModal(false);
+      setDeletingTransaction(null);
+    },
+    onError: () => toast.error('Tranzaksiyani storno qilishda xatolik'),
+  });
+
+  const bulkReverseMutation = useMutation({
+    mutationFn: (ids: number[]) => transactionsApi.bulkReverse(ids, 'Bulk storno'),
+    onSuccess: (res) => {
       const data = res.data.data;
-      if (data.failures.length > 0) {
-        toast.success(`${data.successCount} storno qilindi, ${data.failures.length} xatolik`);
-      } else {
-        toast.success(`${data.successCount} ta tranzaksiya storno qilindi`);
-      }
+      toast.success(
+        data.failures.length > 0
+          ? `${data.successCount} storno qilindi, ${data.failures.length} xatolik`
+          : `${data.successCount} ta tranzaksiya storno qilindi`
+      );
+      invalidateTransactions();
       setShowBulkReverseModal(false);
       clearSelection();
-      void loadTransactions();
-    } catch {
-      toast.error('Bulk storno qilishda xatolik');
-    } finally {
-      setBulkProcessing(false);
-    }
-  };
+    },
+    onError: () => toast.error('Bulk storno qilishda xatolik'),
+  });
 
-  const handleBulkCategorizeSubmit = async () => {
-    if (selectedIds.size === 0 || !bulkCategoryId) return;
-    setBulkProcessing(true);
-    try {
-      const ids = Array.from(selectedIds);
-      const res = await transactionsApi.bulkCategorize(ids, bulkCategoryId);
+  const bulkCategorizeMutation = useMutation({
+    mutationFn: (vars: { ids: number[]; categoryId: number }) =>
+      transactionsApi.bulkCategorize(vars.ids, vars.categoryId),
+    onSuccess: (res) => {
       const data = res.data.data;
-      if (data.failures.length > 0) {
-        toast.success(`${data.successCount} kategoriyalandi, ${data.failures.length} xatolik`);
-      } else {
-        toast.success(`${data.successCount} ta tranzaksiya kategoriyalandi`);
-      }
+      toast.success(
+        data.failures.length > 0
+          ? `${data.successCount} kategoriyalandi, ${data.failures.length} xatolik`
+          : `${data.successCount} ta tranzaksiya kategoriyalandi`
+      );
+      invalidateTransactions();
       setShowBulkCategorizeModal(false);
       setBulkCategoryId(undefined);
       clearSelection();
-      void loadTransactions();
-    } catch {
-      toast.error('Bulk kategoriyalashda xatolik');
-    } finally {
-      setBulkProcessing(false);
-    }
+    },
+    onError: () => toast.error('Bulk kategoriyalashda xatolik'),
+  });
+
+  const submitting = reverseMutation.isPending;
+  const bulkProcessing = bulkReverseMutation.isPending || bulkCategorizeMutation.isPending;
+
+  const handleBulkReverseSubmit = () => {
+    if (selectedIds.size === 0) return;
+    bulkReverseMutation.mutate(Array.from(selectedIds));
+  };
+
+  const handleBulkCategorizeSubmit = () => {
+    if (selectedIds.size === 0 || !bulkCategoryId) return;
+    bulkCategorizeMutation.mutate({ ids: Array.from(selectedIds), categoryId: bulkCategoryId });
   };
 
   // Filterlar o'zgarganda tanlovlarni tozalash
@@ -356,18 +353,9 @@ export function TransactionsPage() {
   }, [activeTab, filters]);
 
   // Submit storno (reverse)
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!deletingTransaction) return;
-    setSubmitting(true);
-    try {
-      await transactionsApi.reverse(deletingTransaction.id, 'Foydalanuvchi tomonidan storno qilindi');
-      handleCloseDelete();
-      void loadTransactions();
-    } catch {
-      toast.error("Tranzaksiyani storno qilishda xatolik");
-    } finally {
-      setSubmitting(false);
-    }
+    reverseMutation.mutate(deletingTransaction.id);
   };
 
   // Type badge renderer
