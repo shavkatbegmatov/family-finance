@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { familyReportsApi, type ExportFormat } from '../../api/family-reports.api';
 import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
@@ -6,45 +6,30 @@ import { resolvePreset } from '../../utils/dateRangePresets';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { downloadBlob, extractFileName } from '../../utils/downloadFile';
-import type {
-  IncomeExpenseReport,
-  CategoryReport,
-  MemberReport,
-  CategoryType,
-  ApiResponse,
-} from '../../types';
-import {
-  formatCurrency,
-  CATEGORY_TYPES,
-  getTashkentToday,
-} from '../../config/constants';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart as RechartsPie,
-  Pie,
-  Cell,
-  Legend,
-} from 'recharts';
-import {
-  BarChart3,
-  PieChart,
-  Users,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-} from 'lucide-react';
+import { getTashkentToday } from '../../config/constants';
+import { useReportsData, type ReportTab } from '../../hooks/useReportsData';
+import { SummaryCards } from '../../components/reports/SummaryCards';
+import { IncomeExpenseBarChart } from '../../components/reports/IncomeExpenseBarChart';
+import { CategoryToggle } from '../../components/reports/CategoryToggle';
+import { CategoryPieChart } from '../../components/reports/CategoryPieChart';
+import { CategoryTable } from '../../components/reports/CategoryTable';
+import { MemberBarChart } from '../../components/reports/MemberBarChart';
+import { MemberTable } from '../../components/reports/MemberTable';
+import { BarChart3, PieChart, Users, Calendar } from 'lucide-react';
 import clsx from 'clsx';
 
-import { CHART_PALETTE as COLORS } from '../../config/chartColors';
-
-type ReportTab = 'income-expense' | 'category' | 'member';
-
+/**
+ * Hisobotlar sahifasi (orchestrator). Ma'lumot/holat/hosilaviy qiymatlar
+ * {@link useReportsData} hook'ida (react-query, D8 migratsiyasi — 3 hisobot
+ * queryKey scope-aware va date-range/categoryType bilan). Bu komponent faqat
+ * date-range/davr holati, tab holati, eksport handler'i va tab dispatcher'ni
+ * boshqaradi; tab kontenti reports/ komponentlarida (D10 bo'lish).
+ *
+ * <p>Xulq original god-sahifa bilan AYNAN: date-range (preset/custom →
+ * resolved), categoryType toggle refetch, eksport endpoint tanlash +
+ * downloadReport (Blob + file-name extract + toast), chart ranglari, loading
+ * overlay, error alert va empty-state'lar saqlangan.</p>
+ */
 export function ReportsPage() {
   // Default = current month
   const today = getTashkentToday();
@@ -61,39 +46,44 @@ export function ReportsPage() {
   const fromDate = resolvedRange.start;
   const toDate = resolvedRange.end;
 
-  // Tab 1: Income/Expense
-  const [incomeExpense, setIncomeExpense] = useState<IncomeExpenseReport | null>(null);
-  const [ieLoading, setIeLoading] = useState(false);
+  const {
+    categoryType,
+    setCategoryType,
+    isLoading,
+    error,
+    incomeExpense,
+    ieLoading,
+    difference,
+    barChartData,
+    catLoading,
+    sortedCategories,
+    totalCategoryAmount,
+    members,
+    memLoading,
+  } = useReportsData(fromDate, toDate, activeTab);
 
-  // Tab 2: Category
-  const [categoryType, setCategoryType] = useState<CategoryType>('EXPENSE');
-  const [categories, setCategories] = useState<CategoryReport[]>([]);
-  const [catLoading, setCatLoading] = useState(false);
-
-  // Tab 3: Member
-  const [members, setMembers] = useState<MemberReport[]>([]);
-  const [memLoading, setMemLoading] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const downloadReport = useCallback(async (
-    invoke: () => Promise<{ data: Blob; headers: unknown }>,
-    fallbackName: string
-  ): Promise<void> => {
-    setExporting(true);
-    try {
-      const response = await invoke();
-      const headers = response.headers as Record<string, string | undefined>;
-      const fileName = extractFileName(headers['content-disposition'] ?? null, fallbackName);
-      downloadBlob(response.data, fileName);
-      toast.success('Fayl yuklab olindi');
-    } catch {
-      toast.error('Eksportda xatolik');
-    } finally {
-      setExporting(false);
-    }
-  }, []);
+  const downloadReport = useCallback(
+    async (
+      invoke: () => Promise<{ data: Blob; headers: unknown }>,
+      fallbackName: string
+    ): Promise<void> => {
+      setExporting(true);
+      try {
+        const response = await invoke();
+        const headers = response.headers as Record<string, string | undefined>;
+        const fileName = extractFileName(headers['content-disposition'] ?? null, fallbackName);
+        downloadBlob(response.data, fileName);
+        toast.success('Fayl yuklab olindi');
+      } catch {
+        toast.error('Eksportda xatolik');
+      } finally {
+        setExporting(false);
+      }
+    },
+    []
+  );
 
   const handleExport = useCallback(
     (format: ExportFormat) => {
@@ -117,82 +107,6 @@ export function ReportsPage() {
     },
     [activeTab, categoryType, fromDate, toDate, downloadReport]
   );
-
-  // ------ Data Loaders ------
-
-  const loadIncomeExpense = useCallback(async (from: string, to: string) => {
-    setIeLoading(true);
-    setError(null);
-    try {
-      const res = await familyReportsApi.getIncomeExpense(from, to);
-      const report = (res.data as ApiResponse<IncomeExpenseReport>).data;
-      setIncomeExpense(report);
-    } catch {
-      setError('Daromad/Xarajat hisobotini yuklashda xatolik');
-    } finally {
-      setIeLoading(false);
-    }
-  }, []);
-
-  const loadCategoryReport = useCallback(async (type: CategoryType, from: string, to: string) => {
-    setCatLoading(true);
-    setError(null);
-    try {
-      const res = await familyReportsApi.getCategoryReport(type, from, to);
-      const data = (res.data as ApiResponse<CategoryReport[]>).data;
-      setCategories(data);
-    } catch {
-      setError('Kategoriya hisobotini yuklashda xatolik');
-    } finally {
-      setCatLoading(false);
-    }
-  }, []);
-
-  const loadMemberReport = useCallback(async (from: string, to: string) => {
-    setMemLoading(true);
-    setError(null);
-    try {
-      const res = await familyReportsApi.getMemberReport(from, to);
-      const data = (res.data as ApiResponse<MemberReport[]>).data;
-      setMembers(data);
-    } catch {
-      setError("Oila a'zolari hisobotini yuklashda xatolik");
-    } finally {
-      setMemLoading(false);
-    }
-  }, []);
-
-  // ------ Effects ------
-
-  useEffect(() => {
-    if (!fromDate || !toDate) return;
-    if (activeTab === 'income-expense') {
-      loadIncomeExpense(fromDate, toDate);
-    } else if (activeTab === 'category') {
-      loadCategoryReport(categoryType, fromDate, toDate);
-    } else if (activeTab === 'member') {
-      loadMemberReport(fromDate, toDate);
-    }
-  }, [activeTab, fromDate, toDate, categoryType, loadIncomeExpense, loadCategoryReport, loadMemberReport]);
-
-  // ------ Helpers ------
-
-  const isLoading = ieLoading || catLoading || memLoading;
-
-  const difference = incomeExpense ? incomeExpense.totalIncome - incomeExpense.totalExpense : 0;
-
-  const barChartData = incomeExpense
-    ? [
-        { name: 'Daromad', amount: incomeExpense.totalIncome, fill: '#22c55e' },
-        { name: 'Xarajat', amount: incomeExpense.totalExpense, fill: '#ef4444' },
-      ]
-    : [];
-
-  const sortedCategories = [...categories].sort((a, b) => b.amount - a.amount);
-
-  const totalCategoryAmount = sortedCategories.reduce((sum, c) => sum + c.amount, 0);
-
-  // ------ Render ------
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -277,106 +191,8 @@ export function ReportsPage() {
           <div className="space-y-4 lg:space-y-6">
             {incomeExpense && (
               <>
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {/* Total Income */}
-                  <div className="surface-card p-4 lg:p-5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-base-content/60">Jami daromad</p>
-                        <p className="mt-2 text-3xl font-bold text-success">
-                          {formatCurrency(incomeExpense.totalIncome)}
-                        </p>
-                      </div>
-                      <div className="rounded-xl bg-success/10 p-3 text-success">
-                        <TrendingUp className="h-6 w-6" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Total Expense */}
-                  <div className="surface-card p-4 lg:p-5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-base-content/60">Jami xarajat</p>
-                        <p className="mt-2 text-3xl font-bold text-error">
-                          {formatCurrency(incomeExpense.totalExpense)}
-                        </p>
-                      </div>
-                      <div className="rounded-xl bg-error/10 p-3 text-error">
-                        <TrendingDown className="h-6 w-6" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Difference */}
-                  <div className="surface-card p-4 lg:p-5">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm text-base-content/60">Farq (Daromad - Xarajat)</p>
-                        <p
-                          className={clsx(
-                            'mt-2 text-3xl font-bold',
-                            difference >= 0 ? 'text-success' : 'text-error'
-                          )}
-                        >
-                          {difference >= 0 ? '+' : ''}
-                          {formatCurrency(difference)}
-                        </p>
-                      </div>
-                      <div
-                        className={clsx(
-                          'rounded-xl p-3',
-                          difference >= 0
-                            ? 'bg-success/10 text-success'
-                            : 'bg-error/10 text-error'
-                        )}
-                      >
-                        <BarChart3 className="h-6 w-6" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bar Chart */}
-                <div className="surface-card p-4 lg:p-5">
-                  <h2 className="mb-4 text-lg font-semibold">Daromad va Xarajat taqqoslash</h2>
-                  {barChartData.length > 0 ? (
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={barChartData} barSize={80}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-base-content/10" />
-                          <XAxis dataKey="name" className="text-xs" />
-                          <YAxis
-                            className="text-xs"
-                            tickFormatter={(val: number) =>
-                              val >= 1_000_000
-                                ? `${(val / 1_000_000).toFixed(1)}M`
-                                : val >= 1_000
-                                  ? `${(val / 1_000).toFixed(0)}K`
-                                  : String(val)
-                            }
-                          />
-                          <Tooltip
-                            formatter={(value) => [formatCurrency(Number(value)), 'Summa'] as [string, string]}
-                            contentStyle={{
-                              borderRadius: '0.75rem',
-                              border: 'none',
-                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                            }}
-                          />
-                          <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
-                            {barChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  ) : (
-                    <p className="text-base-content/60">Ma'lumot mavjud emas</p>
-                  )}
-                </div>
+                <SummaryCards incomeExpense={incomeExpense} difference={difference} />
+                <IncomeExpenseBarChart data={barChartData} />
               </>
             )}
 
@@ -392,136 +208,15 @@ export function ReportsPage() {
         {activeTab === 'category' && (
           <div className="space-y-4 lg:space-y-6">
             {/* Toggle: INCOME / EXPENSE */}
-            <div className="flex items-center gap-2">
-              <button
-                className={clsx(
-                  'btn btn-sm',
-                  categoryType === 'INCOME' ? 'btn-success' : 'btn-outline'
-                )}
-                onClick={() => setCategoryType('INCOME')}
-              >
-                {CATEGORY_TYPES.INCOME.label}
-              </button>
-              <button
-                className={clsx(
-                  'btn btn-sm',
-                  categoryType === 'EXPENSE' ? 'btn-error' : 'btn-outline'
-                )}
-                onClick={() => setCategoryType('EXPENSE')}
-              >
-                {CATEGORY_TYPES.EXPENSE.label}
-              </button>
-            </div>
+            <CategoryToggle value={categoryType} onChange={setCategoryType} />
 
             {sortedCategories.length > 0 ? (
               <>
-                {/* Pie Chart */}
-                <div className="surface-card p-4 lg:p-5">
-                  <h2 className="mb-4 text-lg font-semibold">
-                    {categoryType === 'INCOME' ? 'Daromad' : 'Xarajat'} kategoriyalari
-                  </h2>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPie>
-                        <Pie
-                          data={sortedCategories}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={110}
-                          innerRadius={50}
-                          dataKey="amount"
-                          nameKey="categoryName"
-                          label={(props) => {
-                            const p = props as { categoryName?: string; percentage?: number };
-                            return `${p.categoryName}: ${(p.percentage ?? 0).toFixed(1)}%`;
-                          }}
-                          labelLine={true}
-                        >
-                          {sortedCategories.map((_entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => [formatCurrency(Number(value)), 'Summa'] as [string, string]}
-                          contentStyle={{
-                            borderRadius: '0.75rem',
-                            border: 'none',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                          }}
-                        />
-                        <Legend />
-                      </RechartsPie>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Category Table */}
-                <div className="surface-card p-4 lg:p-5">
-                  <h2 className="mb-4 text-lg font-semibold">Kategoriya bo'yicha tafsilot</h2>
-
-                  {/* Desktop table */}
-                  <div className="hidden overflow-x-auto sm:block">
-                    <table className="table table-sm">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>Kategoriya</th>
-                          <th className="text-right">Summa</th>
-                          <th className="text-right">Foiz</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedCategories.map((cat, index) => (
-                          <tr key={cat.categoryId}>
-                            <td>
-                              <div
-                                className="h-3 w-3 rounded-full"
-                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                              />
-                            </td>
-                            <td className="font-medium">{cat.categoryName}</td>
-                            <td className="text-right">{formatCurrency(cat.amount)}</td>
-                            <td className="text-right">{cat.percentage.toFixed(1)}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="font-bold">
-                          <td></td>
-                          <td>Jami</td>
-                          <td className="text-right">{formatCurrency(totalCategoryAmount)}</td>
-                          <td className="text-right">100%</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-
-                  {/* Mobile card view */}
-                  <div className="space-y-2 sm:hidden">
-                    {sortedCategories.map((cat, index) => (
-                      <div key={cat.categoryId} className="flex items-center gap-3 rounded-xl border border-base-200 p-3">
-                        <div
-                          className="h-3 w-3 shrink-0 rounded-full"
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium">{cat.categoryName}</p>
-                          <p className="text-sm text-base-content/60">
-                            {formatCurrency(cat.amount)}
-                            <span className="ml-2 text-base-content/60">{cat.percentage.toFixed(1)}%</span>
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between rounded-xl bg-base-200/50 px-3 py-2 font-bold">
-                      <span>Jami</span>
-                      <span>{formatCurrency(totalCategoryAmount)}</span>
-                    </div>
-                  </div>
-                </div>
+                <CategoryPieChart categoryType={categoryType} sortedCategories={sortedCategories} />
+                <CategoryTable
+                  sortedCategories={sortedCategories}
+                  totalCategoryAmount={totalCategoryAmount}
+                />
               </>
             ) : (
               !catLoading && (
@@ -538,99 +233,8 @@ export function ReportsPage() {
           <div className="space-y-4 lg:space-y-6">
             {members.length > 0 ? (
               <>
-                {/* Bar Chart */}
-                <div className="surface-card p-4 lg:p-5">
-                  <h2 className="mb-4 text-lg font-semibold">Oila a'zolari xarajatlari</h2>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={members} barSize={60}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-base-content/10" />
-                        <XAxis dataKey="memberName" className="text-xs" />
-                        <YAxis
-                          className="text-xs"
-                          tickFormatter={(val: number) =>
-                            val >= 1_000_000
-                              ? `${(val / 1_000_000).toFixed(1)}M`
-                              : val >= 1_000
-                                ? `${(val / 1_000).toFixed(0)}K`
-                                : String(val)
-                          }
-                        />
-                        <Tooltip
-                          formatter={(value) => [formatCurrency(Number(value)), 'Xarajat'] as [string, string]}
-                          contentStyle={{
-                            borderRadius: '0.75rem',
-                            border: 'none',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                          }}
-                        />
-                        <Bar dataKey="totalExpense" name="Xarajat" radius={[8, 8, 0, 0]}>
-                          {members.map((_entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Member Table */}
-                <div className="surface-card p-4 lg:p-5">
-                  <h2 className="mb-4 text-lg font-semibold">Oila a'zolari bo'yicha tafsilot</h2>
-
-                  {/* Desktop table */}
-                  <div className="hidden overflow-x-auto sm:block">
-                    <table className="table table-sm">
-                      <thead>
-                        <tr>
-                          <th>#</th>
-                          <th>A'zo ismi</th>
-                          <th className="text-right">Jami xarajat</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {members.map((member, index) => (
-                          <tr key={member.memberId}>
-                            <td>{index + 1}</td>
-                            <td className="font-medium">{member.memberName}</td>
-                            <td className="text-right">{formatCurrency(member.totalExpense)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="font-bold">
-                          <td></td>
-                          <td>Jami</td>
-                          <td className="text-right">
-                            {formatCurrency(members.reduce((sum, m) => sum + m.totalExpense, 0))}
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-
-                  {/* Mobile card view */}
-                  <div className="space-y-2 sm:hidden">
-                    {members.map((member, index) => (
-                      <div key={member.memberId} className="flex items-center gap-3 rounded-xl border border-base-200 p-3">
-                        <div
-                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-primary-content"
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        >
-                          {member.memberName.charAt(0)}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium">{member.memberName}</p>
-                          <p className="text-sm text-base-content/60">{formatCurrency(member.totalExpense)}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between rounded-xl bg-base-200/50 px-3 py-2 font-bold">
-                      <span>Jami</span>
-                      <span>{formatCurrency(members.reduce((sum, m) => sum + m.totalExpense, 0))}</span>
-                    </div>
-                  </div>
-                </div>
+                <MemberBarChart members={members} />
+                <MemberTable members={members} />
               </>
             ) : (
               !memLoading && (
