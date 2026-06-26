@@ -1,68 +1,28 @@
-import type { CSSProperties } from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   User,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
   BarChart3,
   Receipt,
   CreditCard,
-  Phone,
-  Calendar,
-  MapPin,
   RefreshCw,
-  Banknote,
-  PiggyBank,
-  Smartphone,
-  Landmark,
 } from 'lucide-react';
 import clsx from 'clsx';
-import toast from 'react-hot-toast';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart as RechartsPie,
-  Pie,
-  Cell,
-} from 'recharts';
 
-import { familyMembersApi } from '../../api/family-members.api';
-import { transactionsApi } from '../../api/transactions.api';
-import { DataTable, type Column } from '../../components/ui/DataTable';
-import { useIsMobile } from '../../hooks/useMediaQuery';
-import {
-  calculateAge,
-  formatCurrency,
-  formatCompactCurrency,
-  formatDate,
-  formatDateTime,
-  FAMILY_ROLES,
-  GENDERS,
-  TRANSACTION_TYPES,
-  ACCOUNT_TYPES,
-  ACCOUNT_STATUSES,
-} from '../../config/constants';
-import { CHART_PALETTE } from '../../config/chartColors';
-import type {
-  MemberFinancialSummary,
-  MemberAccountSummary,
-  MemberRecentTransaction,
-  Transaction,
-  ApiResponse,
-} from '../../types';
+import { calculateAge } from '../../config/constants';
 import { formatPhoneDisplay } from '../../utils/phone';
-
-// ========== Constants ==========
-
-type TabKey = 'overview' | 'transactions' | 'accounts' | 'statistics';
+import { useMemberDetailData } from '../../hooks/useMemberDetailData';
+import {
+  type TabKey,
+  getGenderGradient,
+  roleLabel,
+  genderLabel,
+} from '../../components/household/memberDetailShared';
+import { OverviewTab } from '../../components/household/OverviewTab';
+import { MemberTransactionsTab } from '../../components/household/MemberTransactionsTab';
+import { AccountsList } from '../../components/household/AccountsList';
+import { MemberStatisticsTab } from '../../components/household/MemberStatisticsTab';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'overview', label: 'Umumiy', icon: User },
@@ -71,110 +31,36 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'statistics', label: 'Statistika', icon: BarChart3 },
 ];
 
-const CHART_COLORS = CHART_PALETTE;
-
-const MONTH_NAMES: Record<string, string> = {
-  JANUARY: 'Yanvar', FEBRUARY: 'Fevral', MARCH: 'Mart', APRIL: 'Aprel',
-  MAY: 'May', JUNE: 'Iyun', JULY: 'Iyul', AUGUST: 'Avgust',
-  SEPTEMBER: 'Sentabr', OCTOBER: 'Oktabr', NOVEMBER: 'Noyabr', DECEMBER: 'Dekabr',
-};
-
-const ACCOUNT_ICON_MAP: Record<string, React.ElementType> = {
-  CASH: Banknote, BANK_CARD: CreditCard, SAVINGS: PiggyBank,
-  E_WALLET: Smartphone, TERM_DEPOSIT: Landmark, CREDIT: Receipt,
-};
-
-// ========== Helpers ==========
-
-function getGenderGradient(gender?: string) {
-  if (gender === 'MALE') return 'from-blue-400 to-blue-600';
-  if (gender === 'FEMALE') return 'from-pink-400 to-pink-600';
-  return 'from-amber-400 to-amber-600';
-}
-
-const roleLabel = (role: string): string =>
-  (FAMILY_ROLES as Record<string, { label: string }>)[role]?.label || role;
-
-const genderLabel = (gender: string): string =>
-  (GENDERS as Record<string, { label: string }>)[gender]?.label || gender;
-
-// ========== Main Component ==========
-
+/**
+ * Oila a'zosi moliyaviy tafsilot sahifasi (orchestrator). Ma'lumot/pagination/
+ * filtr/mobil load-more {@link useMemberDetailData} hook'ida (react-query, D8
+ * migratsiyasi — summary/transactions queryKey scope-aware, tranzaksiyalar lazy).
+ * Bu komponent faqat route param (memberId), tab holati, header/back va tab
+ * dispatcher'ni boshqaradi. Tab kontenti household komponentlarida.
+ */
 export function MemberDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const memberId = Number(id);
 
-  const [data, setData] = useState<MemberFinancialSummary | null>(null);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
 
-  // Transactions tab state
-  const [txData, setTxData] = useState<Transaction[]>([]);
-  const allTxRef = useRef<Transaction[]>([]);
-  const [allTxItems, setAllTxItems] = useState<Transaction[]>([]);
-  const [txLoadingMore, setTxLoadingMore] = useState(false);
-  const [txLoading, setTxLoading] = useState(false);
-  const [txPage, setTxPage] = useState(0);
-  const [txTotalElements, setTxTotalElements] = useState(0);
-  const [txTotalPages, setTxTotalPages] = useState(0);
-  const [txTypeFilter, setTxTypeFilter] = useState<string>('');
-
-  // ===== Data Fetching =====
-
-  const loadSummary = useCallback(async () => {
-    try {
-      const res = await familyMembersApi.getFinancialSummary(memberId);
-      setData((res.data as ApiResponse<MemberFinancialSummary>).data);
-    } catch {
-      toast.error("Ma'lumotlarni yuklashda xatolik");
-    } finally {
-      setLoading(false);
-    }
-  }, [memberId]);
-
-  const loadTransactions = useCallback(async () => {
-    if (isMobile && txPage > 0) setTxLoadingMore(true);
-    else setTxLoading(true);
-    try {
-      const filters: Record<string, unknown> = { memberId };
-      if (txTypeFilter) filters.type = txTypeFilter;
-      const res = await transactionsApi.getAll(txPage, 15, filters);
-      const pageData = res.data.data;
-      setTxData(pageData.content);
-      setTxTotalElements(pageData.totalElements);
-      setTxTotalPages(pageData.totalPages);
-
-      if (isMobile && txPage > 0) {
-        const newAll = [...allTxRef.current, ...pageData.content];
-        allTxRef.current = newAll;
-        setAllTxItems(newAll);
-      } else {
-        allTxRef.current = pageData.content;
-        setAllTxItems(pageData.content);
-      }
-    } catch {
-      toast.error("Tranzaksiyalarni yuklashda xatolik");
-    } finally {
-      setTxLoading(false);
-      setTxLoadingMore(false);
-    }
-  }, [memberId, txPage, txTypeFilter, isMobile]);
-
-  const handleTxLoadMore = useCallback(() => {
-    if (txPage < txTotalPages - 1 && !txLoadingMore) {
-      setTxPage((p) => p + 1);
-    }
-  }, [txPage, txTotalPages, txLoadingMore]);
-
-  useEffect(() => { loadSummary(); }, [loadSummary]);
-
-  useEffect(() => {
-    if (activeTab === 'transactions') {
-      loadTransactions();
-    }
-  }, [activeTab, loadTransactions]);
+  const {
+    data,
+    loading,
+    refreshSummary,
+    txItems,
+    txLoading,
+    txLoadingMore,
+    txPage,
+    setTxPage,
+    txTotalElements,
+    txTotalPages,
+    txTypeFilter,
+    changeTypeFilter,
+    handleTxLoadMore,
+    hasMore,
+  } = useMemberDetailData(memberId, activeTab);
 
   // ===== Loading State =====
 
@@ -236,12 +122,12 @@ export function MemberDetailPage() {
             </div>
             <p className="text-xs text-base-content/50">
               {age !== null && `${age} yosh`}
-              {age !== null && profile.phone && ' \u00B7 '}
+              {age !== null && profile.phone && ' · '}
               {formatPhoneDisplay(profile.phone)}
             </p>
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm btn-square" onClick={loadSummary}>
+        <button className="btn btn-ghost btn-sm btn-square" onClick={refreshSummary}>
           <RefreshCw className="h-4 w-4" />
         </button>
       </div>
@@ -264,498 +150,22 @@ export function MemberDetailPage() {
       {/* ===== Tab Content ===== */}
       {activeTab === 'overview' && <OverviewTab data={data} />}
       {activeTab === 'transactions' && (
-        <TransactionsTab
-          data={isMobile ? allTxItems : txData}
+        <MemberTransactionsTab
+          data={txItems}
           loading={txLoading}
           page={txPage}
           totalElements={txTotalElements}
           totalPages={txTotalPages}
           typeFilter={txTypeFilter}
           onPageChange={setTxPage}
-          onTypeFilterChange={(val) => { setTxTypeFilter(val); setTxPage(0); }}
+          onTypeFilterChange={changeTypeFilter}
           onLoadMore={handleTxLoadMore}
-          hasMore={txPage < txTotalPages - 1}
+          hasMore={hasMore}
           loadingMore={txLoadingMore}
         />
       )}
-      {activeTab === 'accounts' && <AccountsTab accounts={data.accounts} />}
-      {activeTab === 'statistics' && <StatisticsTab data={data} />}
-    </div>
-  );
-}
-
-// ========== Tab 1: Umumiy (Overview) ==========
-
-function OverviewTab({ data }: { data: MemberFinancialSummary }) {
-  const { profile } = data;
-  const age = calculateAge(profile.birthDate);
-
-  return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Profile + KPI */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Card */}
-        <div className="surface-card p-4 lg:p-5 lg:col-span-1">
-          <div className="flex items-center gap-4 mb-4">
-            <div
-              className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${getGenderGradient(profile.gender)} text-white text-2xl font-bold shadow-lg`}
-            >
-              {profile.avatar ? (
-                <img src={profile.avatar} alt={profile.fullName} className="h-16 w-16 rounded-2xl object-cover" />
-              ) : (
-                profile.fullName?.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">{profile.firstName}</h3>
-              {profile.lastName && <p className="text-sm text-base-content/60">{profile.lastName}</p>}
-              {profile.middleName && <p className="text-xs italic text-base-content/60">{profile.middleName}</p>}
-            </div>
-          </div>
-          <div className="space-y-3">
-            {profile.birthDate && (
-              <InfoRow icon={Calendar} label="Tug'ilgan sana" value={`${formatDate(profile.birthDate)}${age !== null ? ` (${age} yosh)` : ''}`} />
-            )}
-            {profile.birthPlace && (
-              <InfoRow icon={MapPin} label="Tug'ilgan joy" value={profile.birthPlace} />
-            )}
-            {profile.phone && (
-              <InfoRow icon={Phone} label="Telefon" value={formatPhoneDisplay(profile.phone)} />
-            )}
-            {profile.userName && (
-              <InfoRow icon={User} label="Username" value={`@${profile.userName}`} />
-            )}
-          </div>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatCard
-            title="Oylik daromad"
-            value={formatCurrency(data.monthlyIncome)}
-            icon={TrendingUp}
-            color="success"
-            style={{ '--i': 0 } as CSSProperties}
-          />
-          <StatCard
-            title="Oylik xarajat"
-            value={formatCurrency(data.monthlyExpense)}
-            icon={TrendingDown}
-            color="error"
-            style={{ '--i': 1 } as CSSProperties}
-          />
-          <StatCard
-            title="Sof balans"
-            value={formatCurrency(data.netBalance)}
-            icon={BarChart3}
-            color={data.netBalance >= 0 ? 'primary' : 'warning'}
-            style={{ '--i': 2 } as CSSProperties}
-          />
-          <StatCard
-            title="Jami hisob balansi"
-            value={formatCurrency(data.totalAccountBalance)}
-            icon={Wallet}
-            color="info"
-            style={{ '--i': 3 } as CSSProperties}
-          />
-        </div>
-      </div>
-
-      {/* Recent Transactions */}
-      {data.recentTransactions.length > 0 && (
-        <div className="surface-card overflow-hidden">
-          <div className="border-b border-base-200 px-5 py-4">
-            <h3 className="flex items-center gap-2 font-semibold">
-              <Receipt className="h-5 w-5 text-primary" />
-              Oxirgi tranzaksiyalar
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="table w-full">
-              <thead className="bg-base-200/50">
-                <tr>
-                  <th>Tur</th>
-                  <th className="text-right">Summa</th>
-                  <th>Kategoriya</th>
-                  <th>Tavsif</th>
-                  <th>Sana</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentTransactions.map((tx) => (
-                  <RecentTxRow key={tx.id} tx={tx} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RecentTxRow({ tx }: { tx: MemberRecentTransaction }) {
-  const typeInfo = (TRANSACTION_TYPES as Record<string, { label: string; color: string }>)[tx.type];
-  return (
-    <tr className="hover">
-      <td>
-        <span className={`text-xs font-medium ${typeInfo?.color || ''}`}>
-          {typeInfo?.label || tx.type}
-        </span>
-      </td>
-      <td className="text-right">
-        <span className={clsx('font-semibold tabular-nums',
-          tx.type === 'INCOME' ? 'text-success' : tx.type === 'EXPENSE' ? 'text-error' : ''
-        )}>
-          {tx.type === 'INCOME' ? '+' : tx.type === 'EXPENSE' ? '-' : ''}{formatCurrency(tx.amount)}
-        </span>
-      </td>
-      <td className="text-sm text-base-content/60">{tx.categoryName || '\u2014'}</td>
-      <td className="text-sm truncate max-w-[200px]">{tx.description || '\u2014'}</td>
-      <td className="text-xs text-base-content/50">{tx.transactionDate || '\u2014'}</td>
-    </tr>
-  );
-}
-
-// ========== Tab 2: Tranzaksiyalar ==========
-
-function TransactionsTab({
-  data, loading, page, totalElements, totalPages, typeFilter,
-  onPageChange, onTypeFilterChange,
-  onLoadMore, hasMore, loadingMore,
-}: {
-  data: Transaction[];
-  loading: boolean;
-  page: number;
-  totalElements: number;
-  totalPages: number;
-  typeFilter: string;
-  onPageChange: (p: number) => void;
-  onTypeFilterChange: (v: string) => void;
-  onLoadMore?: () => void;
-  hasMore?: boolean;
-  loadingMore?: boolean;
-}) {
-  const txColumns: Column<Transaction>[] = [
-    {
-      key: 'id', header: '#', className: 'w-16',
-      render: (t) => <span className="text-xs text-base-content/60">#{t.id}</span>,
-    },
-    {
-      key: 'type', header: 'Tur', className: 'w-24',
-      render: (t) => {
-        const info = (TRANSACTION_TYPES as Record<string, { label: string; color: string }>)[t.type];
-        return <span className={`text-xs font-medium ${info?.color || ''}`}>{info?.label || t.type}</span>;
-      },
-    },
-    {
-      key: 'amount', header: 'Summa', className: 'text-right',
-      render: (t) => (
-        <span className={clsx('font-semibold tabular-nums',
-          t.type === 'INCOME' ? 'text-success' : t.type === 'EXPENSE' ? 'text-error' : ''
-        )}>
-          {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
-        </span>
-      ),
-    },
-    {
-      key: 'categoryName', header: 'Kategoriya',
-      render: (t) => <span className="text-sm">{t.categoryName || '\u2014'}</span>,
-    },
-    {
-      key: 'description', header: 'Tavsif',
-      render: (t) => <span className="text-sm truncate max-w-[200px] block">{t.description || '\u2014'}</span>,
-    },
-    {
-      key: 'status', header: 'Holat', className: 'w-28',
-      render: (t) => {
-        const s = t.status || 'CONFIRMED';
-        const badge = s === 'CONFIRMED' ? 'badge-success' : s === 'PENDING' ? 'badge-warning' : 'badge-error';
-        const label = s === 'CONFIRMED' ? 'Tasdiqlangan' : s === 'PENDING' ? 'Kutilmoqda' : 'Bekor';
-        return <span className={`badge ${badge} badge-sm`}>{label}</span>;
-      },
-    },
-    {
-      key: 'transactionDate', header: 'Sana', className: 'w-36',
-      render: (t) => <span className="text-xs text-base-content/60">{formatDateTime(t.transactionDate)}</span>,
-    },
-  ];
-
-  const renderMobileCard = (t: Transaction) => {
-    const info = (TRANSACTION_TYPES as Record<string, { label: string; color: string }>)[t.type];
-    return (
-      <div className="surface-card p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className={`text-xs font-medium ${info?.color || ''}`}>{info?.label || t.type}</span>
-          <span className={clsx('font-semibold text-sm',
-            t.type === 'INCOME' ? 'text-success' : t.type === 'EXPENSE' ? 'text-error' : ''
-          )}>
-            {t.type === 'INCOME' ? '+' : t.type === 'EXPENSE' ? '-' : ''}{formatCurrency(t.amount)}
-          </span>
-        </div>
-        <p className="text-xs text-base-content/60 truncate">{t.categoryName || t.description || '\u2014'}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-base-content/60">{formatDateTime(t.transactionDate)}</span>
-          <span className={`badge badge-sm ${(t.status || 'CONFIRMED') === 'CONFIRMED' ? 'badge-success' : 'badge-warning'}`}>
-            {(t.status || 'CONFIRMED') === 'CONFIRMED' ? 'Tasdiqlangan' : 'Kutilmoqda'}
-          </span>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-4">
-      {/* Filter */}
-      <div className="flex items-center gap-3">
-        <select
-          className="select select-bordered select-sm w-40"
-          value={typeFilter}
-          onChange={(e) => onTypeFilterChange(e.target.value)}
-        >
-          <option value="">Barcha turlar</option>
-          <option value="INCOME">Daromad</option>
-          <option value="EXPENSE">Xarajat</option>
-          <option value="TRANSFER">O'tkazma</option>
-        </select>
-        <span className="text-sm text-base-content/50">Jami: {totalElements}</span>
-      </div>
-
-      <div className="surface-card p-4 lg:p-5">
-        <DataTable<Transaction>
-          data={data}
-          columns={txColumns}
-          keyExtractor={(t) => t.id}
-          loading={loading}
-          totalElements={totalElements}
-          totalPages={totalPages}
-          currentPage={page}
-          pageSize={15}
-          onPageChange={onPageChange}
-          renderMobileCard={renderMobileCard}
-          onLoadMore={onLoadMore}
-          hasMore={hasMore}
-          loadingMore={loadingMore}
-          emptyTitle="Tranzaksiya topilmadi"
-          emptyDescription="Bu a'zoda hali tranzaksiyalar mavjud emas"
-        />
-      </div>
-    </div>
-  );
-}
-
-// ========== Tab 3: Hisoblar ==========
-
-function AccountsTab({ accounts }: { accounts: MemberAccountSummary[] }) {
-  if (accounts.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-base-content/60">
-        <Wallet className="h-12 w-12 mb-3 opacity-30" />
-        <p className="text-lg font-medium">Hisob mavjud emas</p>
-        <p className="text-sm mt-1">Bu a'zoda hali hisob ochilmagan</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {accounts.map((acc) => {
-        const Icon = ACCOUNT_ICON_MAP[acc.type] || Wallet;
-        const statusInfo = (ACCOUNT_STATUSES as Record<string, { label: string; badge: string }>)[acc.status];
-        const typeInfo = (ACCOUNT_TYPES as Record<string, { label: string }>)[acc.type];
-
-        return (
-          <div key={acc.id} className="surface-card p-4 lg:p-5 transition hover:shadow-md hover:-translate-y-0.5">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-semibold">{acc.name}</h4>
-                  <p className="text-xs text-base-content/50">
-                    {typeInfo?.label || acc.type}
-                    {acc.accCode && ` \u00B7 ${acc.accCode}`}
-                  </p>
-                </div>
-              </div>
-              {statusInfo && (
-                <span className={`badge ${statusInfo.badge} badge-sm`}>{statusInfo.label}</span>
-              )}
-            </div>
-            <div className="mt-4 flex items-baseline justify-between">
-              <p className="text-2xl font-bold tabular-nums">{formatCurrency(acc.balance)}</p>
-              <span className="text-sm text-base-content/50">{acc.currency || 'UZS'}</span>
-            </div>
-            <div className="mt-2">
-              <span className={`badge badge-xs ${acc.scope === 'FAMILY' ? 'badge-info' : 'badge-ghost'}`}>
-                {acc.scope === 'FAMILY' ? 'Oilaviy' : 'Shaxsiy'}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ========== Tab 4: Statistika ==========
-
-function StatisticsTab({ data }: { data: MemberFinancialSummary }) {
-  const trendData = data.monthlyTrend.map((m) => ({
-    name: MONTH_NAMES[m.month] || m.month,
-    Daromad: m.income,
-    Xarajat: m.expense,
-  }));
-
-  const hasExpenseData = data.expenseByCategory.length > 0;
-  const hasIncomeData = data.incomeByCategory.length > 0;
-
-  return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Monthly Trend */}
-      <div className="surface-card p-4 lg:p-5">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
-          6 oylik trend
-        </h3>
-        {trendData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" className="text-xs" />
-              <YAxis tickFormatter={(v) => formatCompactCurrency(v)} className="text-xs" />
-              <Tooltip
-                formatter={(value) => formatCurrency(Number(value))}
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid hsl(var(--b3))' }}
-              />
-              <Area type="monotone" dataKey="Daromad" stroke="#22c55e" fill="#22c55e" fillOpacity={0.15} strokeWidth={2} />
-              <Area type="monotone" dataKey="Xarajat" stroke="#ef4444" fill="#ef4444" fillOpacity={0.15} strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex items-center justify-center py-12 text-base-content/60">
-            Ma'lumot mavjud emas
-          </div>
-        )}
-      </div>
-
-      {/* Pie Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Expense by Category */}
-        <div className="surface-card p-4 lg:p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
-            Xarajat kategoriya bo'yicha
-          </h3>
-          {hasExpenseData ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <RechartsPie>
-                <Pie
-                  data={data.expenseByCategory.map((c) => ({ name: c.categoryName, value: c.amount }))}
-                  cx="50%" cy="50%"
-                  innerRadius={50} outerRadius={90}
-                  paddingAngle={3}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {data.expenseByCategory.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              </RechartsPie>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center py-12 text-base-content/60">
-              Xarajat mavjud emas
-            </div>
-          )}
-        </div>
-
-        {/* Income by Category */}
-        <div className="surface-card p-4 lg:p-5">
-          <h3 className="text-sm font-semibold uppercase tracking-wider text-base-content/50 mb-4">
-            Daromad kategoriya bo'yicha
-          </h3>
-          {hasIncomeData ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <RechartsPie>
-                <Pie
-                  data={data.incomeByCategory.map((c) => ({ name: c.categoryName, value: c.amount }))}
-                  cx="50%" cy="50%"
-                  innerRadius={50} outerRadius={90}
-                  paddingAngle={3}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {data.incomeByCategory.map((_, i) => (
-                    <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              </RechartsPie>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center py-12 text-base-content/60">
-              Daromad mavjud emas
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ========== Shared Components ==========
-
-function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-3 text-sm">
-      <div className="h-8 w-8 rounded-lg bg-base-200 flex items-center justify-center shrink-0">
-        <Icon className="h-4 w-4 text-base-content/50" />
-      </div>
-      <div>
-        <span className="text-base-content/50 text-xs">{label}</span>
-        <p className="font-medium">{value}</p>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title, value, icon: Icon, color = 'primary', style,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  color?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'secondary';
-  style?: CSSProperties;
-}) {
-  const colorMap = {
-    primary: 'bg-primary/10 text-primary border-primary/20',
-    success: 'bg-success/10 text-success border-success/20',
-    warning: 'bg-warning/10 text-warning border-warning/20',
-    error: 'bg-error/10 text-error border-error/20',
-    info: 'bg-info/10 text-info border-info/20',
-    secondary: 'bg-secondary/10 text-secondary border-secondary/20',
-  };
-  return (
-    <div
-      className="surface-card group relative overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-      style={style}
-    >
-      <div className="p-4 lg:p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-base-content/60">{title}</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight lg:text-3xl">{value}</p>
-          </div>
-          <div className={clsx('grid h-12 w-12 place-items-center rounded-2xl border', colorMap[color])}>
-            <Icon className="h-6 w-6" />
-          </div>
-        </div>
-      </div>
+      {activeTab === 'accounts' && <AccountsList accounts={data.accounts} />}
+      {activeTab === 'statistics' && <MemberStatisticsTab data={data} />}
     </div>
   );
 }
