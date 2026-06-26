@@ -1,228 +1,41 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import {
-  Plus,
-  ArrowLeftRight,
-  ArrowRightLeft,
-  ArrowDownLeft,
-  ArrowUpRight,
-  RotateCcw,
-  TrendingUp,
-  TrendingDown,
-  Filter,
-  X,
-  Edit2,
-  Trash2,
-  Search,
-} from 'lucide-react';
-import clsx from 'clsx';
+import { Plus } from 'lucide-react';
 
-import { transactionsApi } from '../../api/transactions.api';
-import { accountsApi } from '../../api/accounts.api';
-import { categoriesApi } from '../../api/categories.api';
-import { familyMembersApi } from '../../api/family-members.api';
-import { formatCurrency, formatDate } from '../../config/constants';
-import { DataTable, Column } from '../../components/ui/DataTable';
-import { Select } from '../../components/ui/Select';
-import { ModalPortal } from '../../components/common/Modal';
-import { FilterSheet } from '../../components/common/FilterSheet';
-import { useIsMobile } from '../../hooks/useMediaQuery';
 import { PermissionCode } from '../../hooks/usePermission';
-import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useHighlight } from '../../hooks/useHighlight';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { DateRangePicker, type DateRangePreset, type DateRange } from '../../components/common/DateRangePicker';
-import { resolvePreset } from '../../utils/dateRangePresets';
 import { TransactionFormModal } from '../../components/common/TransactionFormModal';
-import { useQuickEntryStore } from '../../store/quickEntryStore';
-import { useActiveScopeId } from '../../hooks/useScopeChange';
-import type {
-  Transaction,
-  TransactionType,
-  TransactionFilters,
-  Account,
-  FinanceCategory,
-  FamilyMember,
-  ApiResponse,
-  PagedResponse,
-} from '../../types';
-
-type TabType = 'ALL' | 'INCOME' | 'EXPENSE' | 'TRANSFER';
-
-const TABS: { id: TabType; label: string; icon: React.ElementType }[] = [
-  { id: 'ALL', label: 'Barchasi', icon: ArrowLeftRight },
-  { id: 'INCOME', label: 'Daromad', icon: TrendingUp },
-  { id: 'EXPENSE', label: 'Xarajat', icon: TrendingDown },
-  { id: 'TRANSFER', label: "O'tkazma", icon: ArrowRightLeft },
-];
-
-// Mobil tranzaksiya qatori uchun tur metama'lumotlari (ikonka + ranglar)
-const TYPE_META: Record<
-  TransactionType,
-  { label: string; icon: React.ElementType; tile: string; color: string; sign: string }
-> = {
-  INCOME: { label: 'Daromad', icon: ArrowDownLeft, tile: 'bg-success/10 text-success', color: 'text-success', sign: '+' },
-  EXPENSE: { label: 'Xarajat', icon: ArrowUpRight, tile: 'bg-error/10 text-error', color: 'text-error', sign: '−' },
-  TRANSFER: { label: "O'tkazma", icon: ArrowRightLeft, tile: 'bg-info/10 text-info', color: 'text-info', sign: '' },
-  REVERSAL: { label: 'Storno', icon: RotateCcw, tile: 'bg-warning/10 text-warning', color: 'text-warning', sign: '' },
-};
+import { useTransactionsData } from '../../hooks/useTransactionsData';
+import { BulkActionsToolbar } from '../../components/transactions/BulkActionsToolbar';
+import { TransactionTabs } from '../../components/transactions/TransactionTabs';
+import { TransactionsFilter } from '../../components/transactions/TransactionsFilter';
+import { TransactionsTable } from '../../components/transactions/TransactionsTable';
+import { TransactionDeleteConfirmModal } from '../../components/transactions/TransactionDeleteConfirmModal';
+import { BulkReverseConfirmModal } from '../../components/transactions/BulkReverseConfirmModal';
+import { BulkCategorizeModal } from '../../components/transactions/BulkCategorizeModal';
+import type { Transaction } from '../../types';
 
 export function TransactionsPage() {
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { highlightId, clearHighlight } = useHighlight();
-  const lastCreatedAt = useQuickEntryStore((s) => s.lastCreatedAt);
 
-  // Pagination (desktop sahifa)
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
+  const data = useTransactionsData();
 
-  // Filters
-  const [activeTab, setActiveTab] = useState<TabType>('ALL');
-  const [datePreset, setDatePreset] = useState<DateRangePreset>('all');
-  const [customDateRange, setCustomDateRange] = useState<DateRange>({ start: '', end: '' });
-  const [filterAccountId, setFilterAccountId] = useState<number | undefined>(undefined);
-  const [filterCategoryId, setFilterCategoryId] = useState<number | undefined>(undefined);
-  const [filterMemberId, setFilterMemberId] = useState<number | undefined>(undefined);
-  const [filterSearch, setFilterSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(filterSearch, 300);
-  const [showFilters, setShowFilters] = useState(false);
-
-  const resolvedRange = useMemo(
-    () => resolvePreset(datePreset, customDateRange),
-    [datePreset, customDateRange]
-  );
-
-  // Modal state
+  // Modal state (form / delete / bulk)
   const [showFormModal, setShowFormModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
-
-  // Bulk selection
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkReverseModal, setShowBulkReverseModal] = useState(false);
   const [showBulkCategorizeModal, setShowBulkCategorizeModal] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | undefined>(undefined);
 
-  // Build filters object
-  const filters = useMemo<TransactionFilters>(() => {
-    const f: TransactionFilters = {};
-    if (activeTab !== 'ALL') f.type = activeTab as TransactionType;
-    if (resolvedRange?.start) f.from = resolvedRange.start;
-    if (resolvedRange?.end) f.to = resolvedRange.end;
-    if (filterAccountId) f.accountId = filterAccountId;
-    if (filterCategoryId) f.categoryId = filterCategoryId;
-    if (filterMemberId) f.memberId = filterMemberId;
-    if (debouncedSearch.trim()) f.search = debouncedSearch.trim();
-    return f;
-  }, [activeTab, resolvedRange, filterAccountId, filterCategoryId, filterMemberId, debouncedSearch]);
+  const submitting = data.reverseMutation.isPending;
+  const bulkProcessing = data.bulkReverseMutation.isPending || data.bulkCategorizeMutation.isPending;
 
-  // ---------- Data (react-query) ----------
-  // Desktop: sahifa-asosli; Mobile: infinite scroll — UX bir xil. Scope queryKey'da (D8 migratsiyasi).
-  const queryClient = useQueryClient();
-  const activeScopeId = useActiveScopeId();
-
-  // Reference data (filter va form modal uchun)
-  const { data: accounts = [] } = useQuery({
-    queryKey: ['accounts-ref', activeScopeId],
-    queryFn: async (): Promise<Account[]> => (await accountsApi.getList()).data.data,
-  });
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories-ref', activeScopeId],
-    queryFn: async (): Promise<FinanceCategory[]> => (await categoriesApi.getAll()).data.data.content,
-  });
-  const { data: members = [] } = useQuery({
-    queryKey: ['members-ref', activeScopeId],
-    queryFn: async (): Promise<FamilyMember[]> => {
-      const res = await familyMembersApi.getList();
-      return (res.data as ApiResponse<FamilyMember[]>).data ?? (res.data as FamilyMember[]);
-    },
-  });
-
-  // Tranzaksiyalar — desktop page / mobile infinite
-  const desktopQuery = useQuery({
-    queryKey: ['transactions', activeScopeId, page, pageSize, filters],
-    queryFn: async (): Promise<PagedResponse<Transaction>> =>
-      (await transactionsApi.getAll(page, pageSize, filters)).data.data,
-    enabled: !isMobile,
-  });
-  const mobileQuery = useInfiniteQuery({
-    queryKey: ['transactions-infinite', activeScopeId, pageSize, filters],
-    queryFn: async ({ pageParam }): Promise<PagedResponse<Transaction>> =>
-      (await transactionsApi.getAll(pageParam, pageSize, filters)).data.data,
-    enabled: isMobile,
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) =>
-      allPages.length < lastPage.totalPages ? allPages.length : undefined,
-  });
-
-  const transactions = desktopQuery.data?.content ?? [];
-  const allItems = mobileQuery.data?.pages.flatMap((p) => p.content) ?? [];
-  const totalPages =
-    (isMobile ? mobileQuery.data?.pages[0]?.totalPages : desktopQuery.data?.totalPages) ?? 0;
-  const totalElements =
-    (isMobile ? mobileQuery.data?.pages[0]?.totalElements : desktopQuery.data?.totalElements) ?? 0;
-  const loading = isMobile ? mobileQuery.isLoading : desktopQuery.isLoading;
-  const loadingMore = mobileQuery.isFetchingNextPage;
-
-  useEffect(() => {
-    if (desktopQuery.isError || mobileQuery.isError) toast.error('Tranzaksiyalarni yuklashda xatolik');
-  }, [desktopQuery.isError, mobileQuery.isError]);
-
-  const handleLoadMore = useCallback(() => {
-    if (mobileQuery.hasNextPage && !mobileQuery.isFetchingNextPage) {
-      void mobileQuery.fetchNextPage();
-    }
-  }, [mobileQuery]);
-
-  // Filter/scope o'zgarsa desktop sahifani boshiga qaytaramiz (mobile queryKey o'zi reset bo'ladi)
-  useEffect(() => {
-    setPage(0);
-  }, [filters, activeScopeId]);
-
-  // FAB orqali yaratilgan tranzaksiya ro'yxatda ko'rinishi uchun
-  useEffect(() => {
-    if (lastCreatedAt === 0) return;
-    void queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    void queryClient.invalidateQueries({ queryKey: ['transactions-infinite'] });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastCreatedAt]);
-
-  const invalidateTransactions = () => {
-    void queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    void queryClient.invalidateQueries({ queryKey: ['transactions-infinite'] });
-  };
-
-  // Tab change -> reset page
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-    setPage(0);
-  };
-
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize);
-    setPage(0);
-  };
-
-  // Clear filters
-  const clearFilters = () => {
-    setDatePreset('all');
-    setCustomDateRange({ start: '', end: '' });
-    setFilterAccountId(undefined);
-    setFilterCategoryId(undefined);
-    setFilterMemberId(undefined);
-    setFilterSearch('');
-    setPage(0);
-  };
-
-  const hasActiveFilters = Boolean(
-    datePreset !== 'all' || filterAccountId || filterCategoryId || filterMemberId || filterSearch
-  );
-
+  // ===== Form modal =====
   const handleOpenCreate = () => {
     setEditingTransaction(null);
     setShowFormModal(true);
@@ -233,14 +46,19 @@ export function TransactionsPage() {
     setShowFormModal(true);
   };
 
-  const handleOpenDelete = (transaction: Transaction) => {
-    setDeletingTransaction(transaction);
-    setShowDeleteModal(true);
-  };
-
   const handleCloseForm = () => {
     setShowFormModal(false);
     setEditingTransaction(null);
+  };
+
+  const handleFormSuccess = () => {
+    data.invalidateTransactions();
+  };
+
+  // ===== Delete (storno) =====
+  const handleOpenDelete = (transaction: Transaction) => {
+    setDeletingTransaction(transaction);
+    setShowDeleteModal(true);
   };
 
   const handleCloseDelete = () => {
@@ -248,263 +66,36 @@ export function TransactionsPage() {
     setDeletingTransaction(null);
   };
 
-  const handleFormSuccess = () => {
-    invalidateTransactions();
+  const handleDelete = () => {
+    if (!deletingTransaction) return;
+    data.reverseMutation.mutate(deletingTransaction.id, {
+      onSuccess: () => {
+        setShowDeleteModal(false);
+        setDeletingTransaction(null);
+      },
+    });
   };
 
   // ===== Bulk operations =====
-
-  const allVisibleIds = useMemo(() => {
-    const source = isMobile ? allItems : transactions;
-    return source.filter((t) => t.status !== 'REVERSED').map((t) => t.id);
-  }, [transactions, allItems, isMobile]);
-
-  const isAllSelected = allVisibleIds.length > 0
-    && allVisibleIds.every((id) => selectedIds.has(id));
-
-  const toggleSelect = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    setSelectedIds((prev) => {
-      if (allVisibleIds.every((id) => prev.has(id))) {
-        const next = new Set(prev);
-        allVisibleIds.forEach((id) => next.delete(id));
-        return next;
-      }
-      const next = new Set(prev);
-      allVisibleIds.forEach((id) => next.add(id));
-      return next;
-    });
-  };
-
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const reverseMutation = useMutation({
-    mutationFn: (id: number) =>
-      transactionsApi.reverse(id, 'Foydalanuvchi tomonidan storno qilindi'),
-    onSuccess: () => {
-      invalidateTransactions();
-      setShowDeleteModal(false);
-      setDeletingTransaction(null);
-    },
-    onError: () => toast.error('Tranzaksiyani storno qilishda xatolik'),
-  });
-
-  const bulkReverseMutation = useMutation({
-    mutationFn: (ids: number[]) => transactionsApi.bulkReverse(ids, 'Bulk storno'),
-    onSuccess: (res) => {
-      const data = res.data.data;
-      toast.success(
-        data.failures.length > 0
-          ? `${data.successCount} storno qilindi, ${data.failures.length} xatolik`
-          : `${data.successCount} ta tranzaksiya storno qilindi`
-      );
-      invalidateTransactions();
-      setShowBulkReverseModal(false);
-      clearSelection();
-    },
-    onError: () => toast.error('Bulk storno qilishda xatolik'),
-  });
-
-  const bulkCategorizeMutation = useMutation({
-    mutationFn: (vars: { ids: number[]; categoryId: number }) =>
-      transactionsApi.bulkCategorize(vars.ids, vars.categoryId),
-    onSuccess: (res) => {
-      const data = res.data.data;
-      toast.success(
-        data.failures.length > 0
-          ? `${data.successCount} kategoriyalandi, ${data.failures.length} xatolik`
-          : `${data.successCount} ta tranzaksiya kategoriyalandi`
-      );
-      invalidateTransactions();
-      setShowBulkCategorizeModal(false);
-      setBulkCategoryId(undefined);
-      clearSelection();
-    },
-    onError: () => toast.error('Bulk kategoriyalashda xatolik'),
-  });
-
-  const submitting = reverseMutation.isPending;
-  const bulkProcessing = bulkReverseMutation.isPending || bulkCategorizeMutation.isPending;
-
   const handleBulkReverseSubmit = () => {
-    if (selectedIds.size === 0) return;
-    bulkReverseMutation.mutate(Array.from(selectedIds));
+    if (data.selectedIds.size === 0) return;
+    data.bulkReverseMutation.mutate(Array.from(data.selectedIds), {
+      onSuccess: () => setShowBulkReverseModal(false),
+    });
   };
 
   const handleBulkCategorizeSubmit = () => {
-    if (selectedIds.size === 0 || !bulkCategoryId) return;
-    bulkCategorizeMutation.mutate({ ids: Array.from(selectedIds), categoryId: bulkCategoryId });
-  };
-
-  // Filterlar o'zgarganda tanlovlarni tozalash
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [activeTab, filters]);
-
-  // Submit storno (reverse)
-  const handleDelete = () => {
-    if (!deletingTransaction) return;
-    reverseMutation.mutate(deletingTransaction.id);
-  };
-
-  // Type badge renderer
-  const renderTypeBadge = (type: TransactionType) => {
-    const config: Record<TransactionType, { label: string; class: string }> = {
-      INCOME: { label: 'Daromad', class: 'badge-success' },
-      EXPENSE: { label: 'Xarajat', class: 'badge-error' },
-      TRANSFER: { label: "O'tkazma", class: 'badge-info' },
-      REVERSAL: { label: 'Storno', class: 'badge-warning' },
-    };
-    const c = config[type];
-    return <span className={clsx('badge badge-sm', c.class)}>{c.label}</span>;
-  };
-
-  // Amount renderer
-  const renderAmount = (transaction: Transaction) => {
-    const colorClass =
-      transaction.type === 'INCOME'
-        ? 'text-success'
-        : transaction.type === 'EXPENSE'
-          ? 'text-error'
-          : 'text-info';
-    const prefix =
-      transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : '';
-    return (
-      <span className={clsx('font-semibold', colorClass)}>
-        {prefix}{formatCurrency(transaction.amount)}
-      </span>
+    if (data.selectedIds.size === 0 || !bulkCategoryId) return;
+    data.bulkCategorizeMutation.mutate(
+      { ids: Array.from(data.selectedIds), categoryId: bulkCategoryId },
+      {
+        onSuccess: () => {
+          setShowBulkCategorizeModal(false);
+          setBulkCategoryId(undefined);
+        },
+      }
     );
   };
-
-  // Table columns
-  const columns: Column<Transaction>[] = [
-      {
-        key: 'select',
-        header: '',
-        sortable: false,
-        className: 'w-10',
-        render: (t) => {
-          const disabled = t.status === 'REVERSED';
-          return (
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm"
-              checked={selectedIds.has(t.id)}
-              onChange={(e) => {
-                e.stopPropagation();
-                toggleSelect(t.id);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              disabled={disabled}
-              aria-label={`Tranzaksiyani tanlash: ${t.id}`}
-            />
-          );
-        },
-      },
-      {
-        key: 'transactionDate',
-        header: 'Sana',
-        render: (t) => (
-          <div>
-            <div className="font-medium">{formatDate(t.transactionDate)}</div>
-          </div>
-        ),
-      },
-      {
-        key: 'type',
-        header: 'Tur',
-        render: (t) => renderTypeBadge(t.type),
-      },
-      {
-        key: 'amount',
-        header: 'Summa',
-        getValue: (t) => t.amount,
-        render: (t) => renderAmount(t),
-      },
-      {
-        key: 'accountName',
-        header: 'Hisob',
-        render: (t) => (
-          <div>
-            <span>{t.accountName}</span>
-            {t.type === 'TRANSFER' && t.toAccountName && (
-              <span className="text-base-content/50">
-                {' '}<ArrowRightLeft className="inline h-3 w-3" />{' '}
-                {t.toAccountName}
-              </span>
-            )}
-          </div>
-        ),
-      },
-      {
-        key: 'categoryName',
-        header: 'Kategoriya',
-        render: (t) => (
-          <span className="text-base-content/80">{t.categoryName || '—'}</span>
-        ),
-      },
-      {
-        key: 'familyMemberName',
-        header: "Oila a'zosi",
-        render: (t) => (
-          <span className="text-base-content/80">{t.familyMemberName || '—'}</span>
-        ),
-      },
-      {
-        key: 'description',
-        header: 'Tavsif',
-        render: (t) => (
-          <span className="text-sm text-base-content/60 max-w-[200px] truncate block">
-            {t.description || '—'}
-          </span>
-        ),
-      },
-      {
-        key: 'actions',
-        header: '',
-        sortable: false,
-        className: 'w-24',
-        render: (t) => (
-          <div className="flex items-center gap-1">
-            <PermissionGate permission={PermissionCode.TRANSACTIONS_UPDATE}>
-              <button
-                className="btn btn-ghost btn-sm btn-square"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenEdit(t);
-                }}
-                title="Tahrirlash"
-              >
-                <Edit2 className="h-4 w-4" />
-              </button>
-            </PermissionGate>
-            <PermissionGate permission={PermissionCode.TRANSACTIONS_DELETE}>
-              <button
-                className="btn btn-ghost btn-sm btn-square text-error"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenDelete(t);
-                }}
-                title="O'chirish"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </PermissionGate>
-          </div>
-        ),
-      },
-    ];
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -523,257 +114,68 @@ export function TransactionsPage() {
       />
 
       {/* Bulk actions toolbar */}
-      {selectedIds.size > 0 && (
-        <div className="surface-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              className="checkbox checkbox-sm"
-              checked={isAllSelected}
-              onChange={toggleSelectAll}
-              aria-label="Hammasini tanlash"
-            />
-            <span className="text-sm font-medium">
-              <span className="text-primary">{selectedIds.size}</span> ta tanlangan
-            </span>
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="btn btn-ghost btn-sm"
-            >
-              Bekor qilish
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <PermissionGate permission={PermissionCode.TRANSACTIONS_UPDATE}>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setShowBulkCategorizeModal(true)}
-              >
-                Kategoriyalash
-              </button>
-            </PermissionGate>
-            <PermissionGate permission={PermissionCode.TRANSACTIONS_DELETE}>
-              <button
-                type="button"
-                className="btn btn-warning btn-sm"
-                onClick={() => setShowBulkReverseModal(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-                Storno qilish
-              </button>
-            </PermissionGate>
-          </div>
-        </div>
+      {data.selectedIds.size > 0 && (
+        <BulkActionsToolbar
+          selectedCount={data.selectedIds.size}
+          isAllSelected={data.isAllSelected}
+          onToggleSelectAll={data.toggleSelectAll}
+          onClearSelection={data.clearSelection}
+          onCategorize={() => setShowBulkCategorizeModal(true)}
+          onReverse={() => setShowBulkReverseModal(true)}
+        />
       )}
 
-      {/* Tabs */}
+      {/* Tabs + Filters + Table */}
       <div className="surface-card">
-        <div className="flex items-center gap-2 border-b border-base-200 p-2">
-          <div className="scrollbar-hide flex flex-1 items-center gap-1 overflow-x-auto">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={clsx(
-                    'tap-sm flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary text-primary-content shadow-sm'
-                      : 'text-base-content/60 hover:bg-base-200'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+        <TransactionTabs
+          activeTab={data.activeTab}
+          onTabChange={data.handleTabChange}
+          showFilters={data.showFilters}
+          onToggleFilters={() => data.setShowFilters(!data.showFilters)}
+          hasActiveFilters={data.hasActiveFilters}
+        />
 
-          {/* Filter toggle */}
-          <button
-            className={clsx(
-              'tap-sm relative grid h-9 w-9 flex-none place-items-center rounded-xl border transition-colors',
-              showFilters || hasActiveFilters
-                ? 'border-primary/30 bg-primary/10 text-primary'
-                : 'border-base-200 text-base-content/60 hover:bg-base-200'
-            )}
-            onClick={() => setShowFilters(!showFilters)}
-            aria-label="Filtr"
-          >
-            <Filter className="h-4 w-4" />
-            {hasActiveFilters && (
-              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-base-100" />
-            )}
-          </button>
-        </div>
+        <TransactionsFilter
+          isOpen={data.showFilters}
+          onClose={() => data.setShowFilters(false)}
+          onClear={data.clearFilters}
+          hasActiveFilters={data.hasActiveFilters}
+          onPageReset={() => data.setPage(0)}
+          filterSearch={data.filterSearch}
+          setFilterSearch={data.setFilterSearch}
+          datePreset={data.datePreset}
+          customDateRange={data.customDateRange}
+          setDatePreset={data.setDatePreset}
+          setCustomDateRange={data.setCustomDateRange}
+          filterAccountId={data.filterAccountId}
+          setFilterAccountId={data.setFilterAccountId}
+          filterCategoryId={data.filterCategoryId}
+          setFilterCategoryId={data.setFilterCategoryId}
+          filterMemberId={data.filterMemberId}
+          setFilterMemberId={data.setFilterMemberId}
+          accounts={data.accounts}
+          categories={data.categories}
+          members={data.members}
+        />
 
-        {/* Filters panel */}
-        <FilterSheet
-          isOpen={showFilters}
-          onClose={() => setShowFilters(false)}
-          onClear={clearFilters}
-          hasActiveFilters={hasActiveFilters}
-        >
-          {/* Text search */}
-          <div className="flex flex-col gap-1.5 lg:w-64">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-              Qidiruv
-            </span>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/40 pointer-events-none" />
-              <input
-                type="text"
-                value={filterSearch}
-                onChange={(e) => {
-                  setFilterSearch(e.target.value);
-                  setPage(0);
-                }}
-                placeholder="Tavsif bo'yicha..."
-                className="input input-bordered w-full pl-10 pr-9 h-12"
-                maxLength={100}
-              />
-              {filterSearch && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterSearch('');
-                    setPage(0);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 btn btn-ghost btn-sm btn-square"
-                  aria-label="Qidiruvni tozalash"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Date range picker */}
-          <div className="flex flex-col gap-1.5 lg:w-64">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-              Davr
-            </span>
-            <DateRangePicker
-              value={datePreset}
-              customRange={customDateRange}
-              onChange={(preset, range) => {
-                setDatePreset(preset);
-                if (range) setCustomDateRange(range);
-                setPage(0);
-              }}
-            />
-          </div>
-
-          {/* Account filter */}
-          <Select
-            value={filterAccountId}
-            onChange={(val) => {
-              setFilterAccountId(val ? Number(val) : undefined);
-              setPage(0);
-            }}
-            options={[
-              { value: '', label: 'Barcha hisoblar' },
-              ...accounts.map((a) => ({ value: a.id, label: a.name })),
-            ]}
-            placeholder="Barcha hisoblar"
-            className="lg:w-44"
-          />
-
-          {/* Category filter */}
-          <Select
-            value={filterCategoryId}
-            onChange={(val) => {
-              setFilterCategoryId(val ? Number(val) : undefined);
-              setPage(0);
-            }}
-            options={[
-              { value: '', label: 'Barcha kategoriyalar' },
-              ...categories.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-            placeholder="Barcha kategoriyalar"
-            className="lg:w-44"
-          />
-
-          {/* Member filter */}
-          <Select
-            value={filterMemberId}
-            onChange={(val) => {
-              setFilterMemberId(val ? Number(val) : undefined);
-              setPage(0);
-            }}
-            options={[
-              { value: '', label: "Barcha a'zolar" },
-              ...members.map((m) => ({ value: m.id, label: m.fullName })),
-            ]}
-            placeholder="Barcha a'zolar"
-            className="lg:w-44"
-          />
-        </FilterSheet>
-
-        {/* Data Table */}
-        <DataTable
-          data={isMobile ? allItems : transactions}
-          columns={columns}
-          keyExtractor={(t) => t.id}
-          loading={loading}
-          emptyIcon={<ArrowLeftRight className="h-12 w-12" />}
-          emptyTitle="Tranzaksiyalar topilmadi"
-          emptyDescription="Filtrlarni o'zgartirib ko'ring yoki yangi tranzaksiya qo'shing"
-          currentPage={page}
-          totalPages={totalPages}
-          totalElements={totalElements}
-          pageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={handlePageSizeChange}
-          onLoadMore={handleLoadMore}
-          hasMore={page < totalPages - 1}
-          loadingMore={loadingMore}
-          onRowClick={(t) => navigate(`/transactions/${t.id}`)}
+        <TransactionsTable
+          data={data.isMobile ? data.allItems : data.transactions}
+          loading={data.loading}
+          page={data.page}
+          totalPages={data.totalPages}
+          totalElements={data.totalElements}
+          pageSize={data.pageSize}
+          onPageChange={data.setPage}
+          onPageSizeChange={data.handlePageSizeChange}
+          onLoadMore={data.handleLoadMore}
+          loadingMore={data.loadingMore}
           highlightId={highlightId}
           onHighlightComplete={clearHighlight}
-          renderMobileCard={(t) => {
-            const meta = TYPE_META[t.type];
-            const Icon = meta.icon;
-            const isReversed = t.status === 'REVERSED';
-            return (
-              <div
-                className={clsx(
-                  'flex items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-3',
-                  isReversed && 'opacity-60'
-                )}
-              >
-                <span className={clsx('grid h-11 w-11 flex-none place-items-center rounded-2xl', meta.tile)}>
-                  <Icon className="h-5 w-5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-semibold">{t.categoryName || meta.label}</p>
-                    <span className={clsx('flex-none text-sm font-bold tabular-nums', meta.color)}>
-                      {meta.sign}{formatCurrency(t.amount)}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs text-base-content/55">
-                      {t.accountName}
-                      {t.type === 'TRANSFER' && t.toAccountName ? ` → ${t.toAccountName}` : ''}
-                      {' · '}
-                      {formatDate(t.transactionDate)}
-                    </p>
-                    {isReversed && <span className="badge badge-warning badge-xs flex-none">Storno</span>}
-                  </div>
-                  {(t.description || t.familyMemberName) && (
-                    <p className="mt-0.5 truncate text-xs text-base-content/60">
-                      {[t.familyMemberName, t.description].filter(Boolean).join(' · ')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          }}
+          onRowClick={(t) => navigate(`/transactions/${t.id}`)}
+          onEdit={handleOpenEdit}
+          onDelete={handleOpenDelete}
+          selectedIds={data.selectedIds}
+          onToggleSelect={data.toggleSelect}
         />
       </div>
 
@@ -783,160 +185,40 @@ export function TransactionsPage() {
         onClose={handleCloseForm}
         onSuccess={handleFormSuccess}
         editingTransaction={editingTransaction}
-        accounts={accounts}
-        categories={categories}
-        members={members}
+        accounts={data.accounts}
+        categories={data.categories}
+        members={data.members}
       />
 
       {/* Delete Confirmation Modal */}
-      <ModalPortal isOpen={showDeleteModal && !!deletingTransaction} onClose={handleCloseDelete}>
-        {deletingTransaction && (
-          <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
-            <div className="p-4 sm:p-6">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="h-10 w-10 rounded-full bg-error/10 flex items-center justify-center">
-                  <Trash2 className="h-5 w-5 text-error" />
-                </div>
-                <button className="btn btn-ghost btn-sm btn-square" onClick={handleCloseDelete}>
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <h3 className="text-lg font-semibold mb-2">Tranzaksiyani storno qilish</h3>
-              <p className="text-sm text-base-content/60 mb-1">
-                Quyidagi tranzaksiyani storno qilishni xohlaysizmi?
-              </p>
-              <div className="surface-soft rounded-lg p-3 mb-4">
-                <div className="flex items-center justify-between">
-                  {renderTypeBadge(deletingTransaction.type)}
-                  <span className="font-semibold">
-                    {formatCurrency(deletingTransaction.amount)}
-                  </span>
-                </div>
-                <div className="text-sm text-base-content/60 mt-1">
-                  {deletingTransaction.accountName} &middot;{' '}
-                  {formatDate(deletingTransaction.transactionDate)}
-                </div>
-                {deletingTransaction.description && (
-                  <div className="text-xs text-base-content/50 mt-1">
-                    {deletingTransaction.description}
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-warning/80 mb-4">
-                Storno qilish teskari tranzaksiya yaratadi. Asl tranzaksiya saqlanib qoladi.
-              </p>
-
-              <div className="flex justify-end gap-2">
-                <button
-                  className="btn btn-ghost"
-                  onClick={handleCloseDelete}
-                  disabled={submitting}
-                >
-                  Bekor qilish
-                </button>
-                <button
-                  className="btn btn-warning"
-                  onClick={handleDelete}
-                  disabled={submitting}
-                >
-                  {submitting && <span className="loading loading-spinner loading-sm" />}
-                  Storno qilish
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </ModalPortal>
+      <TransactionDeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={handleCloseDelete}
+        transaction={deletingTransaction}
+        submitting={submitting}
+        onConfirm={handleDelete}
+      />
 
       {/* Bulk Reverse Modal */}
-      <ModalPortal isOpen={showBulkReverseModal} onClose={() => setShowBulkReverseModal(false)}>
-        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
-          <div className="p-4 sm:p-6">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                <Trash2 className="h-5 w-5 text-warning" />
-              </div>
-              <button
-                className="btn btn-ghost btn-sm btn-square"
-                onClick={() => setShowBulkReverseModal(false)}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">
-              {selectedIds.size} ta tranzaksiyani storno qilish
-            </h3>
-            <p className="text-sm text-base-content/60 mb-4">
-              Tanlangan barcha tranzaksiyalar uchun teskari operatsiya yaratiladi.
-              Bu amalni qaytarib bo'lmaydi.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn btn-ghost"
-                onClick={() => setShowBulkReverseModal(false)}
-                disabled={bulkProcessing}
-              >
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-warning"
-                onClick={handleBulkReverseSubmit}
-                disabled={bulkProcessing}
-              >
-                {bulkProcessing && <span className="loading loading-spinner loading-sm" />}
-                Storno qilish
-              </button>
-            </div>
-          </div>
-        </div>
-      </ModalPortal>
+      <BulkReverseConfirmModal
+        isOpen={showBulkReverseModal}
+        onClose={() => setShowBulkReverseModal(false)}
+        selectedCount={data.selectedIds.size}
+        processing={bulkProcessing}
+        onConfirm={handleBulkReverseSubmit}
+      />
 
       {/* Bulk Categorize Modal */}
-      <ModalPortal isOpen={showBulkCategorizeModal} onClose={() => setShowBulkCategorizeModal(false)}>
-        <div className="w-full max-w-sm bg-base-100 rounded-2xl shadow-2xl">
-          <div className="p-4 sm:p-6">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <h3 className="text-lg font-semibold">
-                {selectedIds.size} ta tranzaksiyaga kategoriya o'rnatish
-              </h3>
-              <button
-                className="btn btn-ghost btn-sm btn-square"
-                onClick={() => setShowBulkCategorizeModal(false)}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="mb-4">
-              <Select
-                label="Yangi kategoriya"
-                value={bulkCategoryId}
-                onChange={(val) => setBulkCategoryId(val ? Number(val) : undefined)}
-                options={categories.map((c) => ({ value: c.id, label: c.name }))}
-                placeholder="Kategoriyani tanlang"
-                required
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn btn-ghost"
-                onClick={() => setShowBulkCategorizeModal(false)}
-                disabled={bulkProcessing}
-              >
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleBulkCategorizeSubmit}
-                disabled={bulkProcessing || !bulkCategoryId}
-              >
-                {bulkProcessing && <span className="loading loading-spinner loading-sm" />}
-                Saqlash
-              </button>
-            </div>
-          </div>
-        </div>
-      </ModalPortal>
+      <BulkCategorizeModal
+        isOpen={showBulkCategorizeModal}
+        onClose={() => setShowBulkCategorizeModal(false)}
+        selectedCount={data.selectedIds.size}
+        categories={data.categories}
+        categoryId={bulkCategoryId}
+        onCategoryChange={setBulkCategoryId}
+        processing={bulkProcessing}
+        onConfirm={handleBulkCategorizeSubmit}
+      />
     </div>
   );
 }
