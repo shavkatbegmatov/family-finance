@@ -37,7 +37,6 @@ import { PermissionCode } from '../../hooks/usePermission';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type {
   Account,
-  ApiResponse,
   FamilyMember,
   FinanceCategory,
   Transaction,
@@ -131,8 +130,7 @@ export function TransactionDetailPage() {
       setAccounts(accountsRes.data.data);
       setCategories(categoriesRes.data.data.content);
       setMembers(
-        (membersRes.data as ApiResponse<FamilyMember[]>).data ??
-          (membersRes.data as FamilyMember[])
+        membersRes.data.data ?? (membersRes.data as unknown as FamilyMember[])
       );
       setAllTags(tagsRes.data.data);
     } catch {

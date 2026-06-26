@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { familyMembersApi } from '../api/family-members.api';
-import type { FamilyMember, ApiResponse } from '../types';
+import type { FamilyMember } from '../types';
 import type { ComboBoxOption } from '../components/ui/ComboBox';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -24,7 +24,7 @@ export function useFamilyMemberOptions(params?: UseFamilyMemberOptionsParams) {
     queryKey: ['family-members', 'list'],
     queryFn: async () => {
       const res = await familyMembersApi.getList();
-      return (res.data as ApiResponse<FamilyMember[]>).data ?? res.data ?? [];
+      return res.data.data ?? res.data ?? [];
     },
   });
 

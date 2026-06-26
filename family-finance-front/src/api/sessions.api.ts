@@ -1,4 +1,5 @@
 import api from './axios';
+import type { ApiResponse } from '../types';
 
 export interface Session {
   id: number;
@@ -22,7 +23,7 @@ class SessionsApi {
 
   async validateCurrentSession(): Promise<boolean> {
     try {
-      const response = await api.get<{ success: boolean; data: { valid: boolean } }>(
+      const response = await api.get<ApiResponse<{ valid: boolean }>>(
         `${this.BASE_URL}/validate`
       );
       return response.data.data.valid;
@@ -37,7 +38,7 @@ class SessionsApi {
   }
 
   async getActiveSessions(): Promise<Session[]> {
-    const response = await api.get<{ success: boolean; data: Session[] }>(
+    const response = await api.get<ApiResponse<Session[]>>(
       this.BASE_URL
     );
     return response.data.data;
@@ -50,7 +51,7 @@ class SessionsApi {
   }
 
   async revokeAllOtherSessions(): Promise<RevokeAllResponse> {
-    const response = await api.delete<{ success: boolean; data: RevokeAllResponse }>(
+    const response = await api.delete<ApiResponse<RevokeAllResponse>>(
       `${this.BASE_URL}/revoke-all`
     );
     return response.data.data;

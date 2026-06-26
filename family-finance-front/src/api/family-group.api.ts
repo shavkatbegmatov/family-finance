@@ -56,9 +56,9 @@ export interface FamilyGroupInviteCandidate {
 }
 
 export const familyGroupApi = {
-    getMyGroup: () => api.get<FamilyGroupResponse>('/v1/family-groups/my'),
+    getMyGroup: () => api.get<ApiResponse<FamilyGroupResponse>>('/v1/family-groups/my'),
 
-    addMember: (username: string) => api.post<void>('/v1/family-groups/members', { username }),
+    addMember: (username: string) => api.post<ApiResponse<void>>('/v1/family-groups/members', { username }),
 
     searchInviteCandidates: async (search?: string, size: number = 12): Promise<FamilyGroupInviteCandidate[]> => {
         const response = await api.get<ApiResponse<FamilyGroupInviteCandidate[]>>('/v1/family-groups/invite-candidates', {
@@ -70,9 +70,9 @@ export const familyGroupApi = {
         return response.data.data;
     },
 
-    removeMember: (memberId: number) => api.delete<void>(`/v1/family-groups/members/${memberId}`),
+    removeMember: (memberId: number) => api.delete<ApiResponse<void>>(`/v1/family-groups/members/${memberId}`),
 
-    changeAddress: (data: FamilyAddressRequest) => api.post<void>('/v1/family-groups/address', data),
+    changeAddress: (data: FamilyAddressRequest) => api.post<ApiResponse<void>>('/v1/family-groups/address', data),
 
-    getAddressHistory: () => api.get<FamilyAddressHistoryDto[]>('/v1/family-groups/address-history'),
+    getAddressHistory: () => api.get<ApiResponse<FamilyAddressHistoryDto[]>>('/v1/family-groups/address-history'),
 };

@@ -4,12 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, UserPlus, Trash2, Users, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { familyGroupApi } from '../../api/family-group.api';
-import type { FamilyGroupMemberDto, FamilyGroupResponse } from '../../api/family-group.api';
+import type { FamilyGroupMemberDto } from '../../api/family-group.api';
 import { useAuthStore } from '../../store/authStore';
 import { ModalPortal } from '../../components/common/Modal';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { InviteFamilyMemberModal } from '../../components/family/modals/InviteFamilyMemberModal';
-import type { ApiResponse } from '../../types';
 import { formatPhoneDisplay } from '../../utils/phone';
 import { getApiErrorMessage } from '../../utils/apiError';
 
@@ -32,7 +31,7 @@ export function FamilyGroupSettings() {
         queryKey: ['myFamilyGroup'],
         queryFn: async () => {
             const res = await familyGroupApi.getMyGroup();
-            return (res.data as unknown as ApiResponse<FamilyGroupResponse>).data;
+            return res.data.data;
         },
     });
 
@@ -64,7 +63,7 @@ export function FamilyGroupSettings() {
         queryKey: ['addressHistory'],
         queryFn: async () => {
             const res = await familyGroupApi.getAddressHistory();
-            return (res.data as unknown as ApiResponse<AddressHistoryItem[]>).data;
+            return res.data.data;
         },
         enabled: isHistoryModalOpen,
     });

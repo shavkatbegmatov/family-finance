@@ -8,7 +8,6 @@ import type {
   CategoryReport,
   MemberReport,
   CategoryType,
-  ApiResponse,
 } from '../types';
 
 /** Daromad/Xarajat BarChart elementi — fill original ReportsPage bilan AYNAN. */
@@ -65,7 +64,7 @@ export function useReportsData(
     queryKey: ['reports-income-expense', fromDate, toDate, activeScopeId],
     queryFn: async (): Promise<IncomeExpenseReport> => {
       const res = await familyReportsApi.getIncomeExpense(fromDate, toDate);
-      return (res.data as ApiResponse<IncomeExpenseReport>).data;
+      return res.data.data;
     },
     enabled: activeTab === 'income-expense' && hasRange,
   });
@@ -75,7 +74,7 @@ export function useReportsData(
     queryKey: ['reports-category', categoryType, fromDate, toDate, activeScopeId],
     queryFn: async (): Promise<CategoryReport[]> => {
       const res = await familyReportsApi.getCategoryReport(categoryType, fromDate, toDate);
-      return (res.data as ApiResponse<CategoryReport[]>).data;
+      return res.data.data;
     },
     enabled: activeTab === 'category' && hasRange,
   });
@@ -85,7 +84,7 @@ export function useReportsData(
     queryKey: ['reports-member', fromDate, toDate, activeScopeId],
     queryFn: async (): Promise<MemberReport[]> => {
       const res = await familyReportsApi.getMemberReport(fromDate, toDate);
-      return (res.data as ApiResponse<MemberReport[]>).data;
+      return res.data.data;
     },
     enabled: activeTab === 'member' && hasRange,
   });

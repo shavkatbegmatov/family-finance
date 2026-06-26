@@ -1,4 +1,5 @@
 import api from './axios';
+import type { ApiResponse, PagedResponse } from '../types';
 
 export interface LoginAttempt {
   id: number;
@@ -26,7 +27,7 @@ export interface LoginActivityFilters {
 class LoginActivityApi {
   private readonly BASE_URL = '/v1/login-activity';
 
-  async getLoginActivity(filters: LoginActivityFilters = {}) {
+  async getLoginActivity(filters: LoginActivityFilters = {}): Promise<PagedResponse<LoginAttempt>> {
     const params = new URLSearchParams();
     if (filters.username) params.append('username', filters.username);
     if (filters.status) params.append('status', filters.status);
@@ -36,12 +37,14 @@ class LoginActivityApi {
     params.append('page', String(filters.page || 0));
     params.append('size', String(filters.size || 20));
 
-    const response = await api.get(`${this.BASE_URL}?${params}`);
+    const response = await api.get<ApiResponse<PagedResponse<LoginAttempt>>>(`${this.BASE_URL}?${params}`);
     return response.data.data;
   }
 
-  async getMyLoginHistory(page: number = 0, size: number = 20) {
-    const response = await api.get(`${this.BASE_URL}/my-history?page=${page}&size=${size}`);
+  async getMyLoginHistory(page: number = 0, size: number = 20): Promise<PagedResponse<LoginAttempt>> {
+    const response = await api.get<ApiResponse<PagedResponse<LoginAttempt>>>(
+      `${this.BASE_URL}/my-history?page=${page}&size=${size}`
+    );
     return response.data.data;
   }
 }

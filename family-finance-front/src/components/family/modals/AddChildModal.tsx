@@ -66,7 +66,7 @@ export function AddChildModal({
     if (!singleParentPersonId) return null;
     const { familyUnitApi } = await import('../../../api/family-unit.api');
     const res = await familyUnitApi.createFamilyUnit({ partner1Id: singleParentPersonId });
-    return (res.data as { data: { id: number } }).data.id;
+    return res.data.data.id;
   };
 
   const handleSubmit = async () => {

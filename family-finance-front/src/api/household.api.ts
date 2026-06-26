@@ -1,4 +1,5 @@
 import api from './axios';
+import type { ApiResponse } from '../types';
 
 export interface HouseholdMemberSummary {
     id: number;
@@ -34,5 +35,5 @@ export interface HouseholdDashboardResponse {
 }
 
 export const householdApi = {
-    getDashboard: () => api.get('/v1/family-groups/my/dashboard'),
+    getDashboard: () => api.get<ApiResponse<HouseholdDashboardResponse>>('/v1/family-groups/my/dashboard'),
 };

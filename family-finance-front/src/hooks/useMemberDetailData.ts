@@ -9,7 +9,6 @@ import { useActiveScopeId } from './useScopeChange';
 import type {
   MemberFinancialSummary,
   Transaction,
-  ApiResponse,
   PagedResponse,
 } from '../types';
 
@@ -57,7 +56,7 @@ export function useMemberDetailData(memberId: number, activeTab: MemberDetailTab
     queryKey: ['member-financial-summary', memberId, activeScopeId],
     queryFn: async (): Promise<MemberFinancialSummary> => {
       const res = await familyMembersApi.getFinancialSummary(memberId);
-      return (res.data as ApiResponse<MemberFinancialSummary>).data;
+      return res.data.data;
     },
   });
 

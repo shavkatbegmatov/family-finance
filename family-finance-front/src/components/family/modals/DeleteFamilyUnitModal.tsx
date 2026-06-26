@@ -3,8 +3,6 @@ import { Trash2 } from 'lucide-react';
 import { ModalPortal } from '../../common/Modal';
 import { useDeleteFamilyUnit } from '../../../hooks/useFamilyTreeQueries';
 import { familyUnitApi } from '../../../api/family-unit.api';
-import type { FamilyUnitDto } from '../../../types';
-import type { ApiResponse } from '../../../types';
 
 interface DeleteFamilyUnitModalProps {
   isOpen: boolean;
@@ -26,7 +24,7 @@ export function DeleteFamilyUnitModal({
   useEffect(() => {
     if (isOpen && familyUnitId) {
       familyUnitApi.getFamilyUnit(familyUnitId).then((res) => {
-        const fu = (res.data as ApiResponse<FamilyUnitDto>).data;
+        const fu = res.data.data;
         setPartnerNames(fu.partners.map((p) => p.fullName).join(' & '));
         setChildCount(fu.children.length);
       });

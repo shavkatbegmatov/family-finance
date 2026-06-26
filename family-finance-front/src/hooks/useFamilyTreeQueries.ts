@@ -2,10 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { familyUnitApi } from '../api/family-unit.api';
 import { familyMembersApi } from '../api/family-members.api';
 import type {
-  TreeResponse,
-  HouseholdTreeResponse,
-  FamilyUnitDto,
-  RelationshipResult,
   CreateFamilyUnitRequest,
   UpdateFamilyUnitRequest,
   AddPartnerRequest,
@@ -13,7 +9,7 @@ import type {
   AddParentsRequest,
   AddSpouseRequest,
 } from '../types';
-import type { FamilyMember, FamilyMemberRequest, UpdateSelfRequest, ApiResponse } from '../types';
+import type { FamilyMemberRequest, UpdateSelfRequest } from '../types';
 import toast from 'react-hot-toast';
 import { getApiErrorMessage } from '../utils/apiError';
 
@@ -46,7 +42,7 @@ export function useTreeQuery(personId?: number, depth = 5) {
     queryKey: familyTreeKeys.tree(personId, depth),
     queryFn: async () => {
       const res = await familyUnitApi.getTree(personId, depth);
-      return (res.data as ApiResponse<TreeResponse>).data;
+      return res.data.data;
     },
     retry: false,
     placeholderData: (previousData) => previousData,
@@ -58,7 +54,7 @@ export function useHouseholdTreeQuery() {
     queryKey: familyTreeKeys.households(),
     queryFn: async () => {
       const res = await familyUnitApi.getHouseholdTree();
-      return (res.data as ApiResponse<HouseholdTreeResponse>).data;
+      return res.data.data;
     },
     retry: false,
     placeholderData: (previousData) => previousData,
@@ -70,7 +66,7 @@ export function useLabeledTreeQuery(personId: number, viewerId: number, depth = 
     queryKey: familyTreeKeys.labeledTree(personId, viewerId, depth),
     queryFn: async () => {
       const res = await familyUnitApi.getLabeledTree(personId, viewerId, depth);
-      return (res.data as ApiResponse<TreeResponse>).data;
+      return res.data.data;
     },
     enabled: !!personId && !!viewerId,
     placeholderData: (previousData) => previousData,
@@ -82,7 +78,7 @@ export function useRelationshipQuery(viewerId: number, targetId: number) {
     queryKey: familyTreeKeys.relationship(viewerId, targetId),
     queryFn: async () => {
       const res = await familyUnitApi.getRelationship(viewerId, targetId);
-      return (res.data as ApiResponse<RelationshipResult>).data;
+      return res.data.data;
     },
     enabled: !!viewerId && !!targetId && viewerId !== targetId,
   });
@@ -93,7 +89,7 @@ export function useActivePersonsQuery() {
     queryKey: familyTreeKeys.activePersons(),
     queryFn: async () => {
       const res = await familyUnitApi.getAllActivePersons();
-      return (res.data as ApiResponse<FamilyMember[]>).data;
+      return res.data.data;
     },
   });
 }
@@ -103,7 +99,7 @@ export function usePersonQuery(personId: number | null) {
     queryKey: [...familyTreeKeys.all, 'person', personId] as const,
     queryFn: async () => {
       const res = await familyUnitApi.getPerson(personId!);
-      return (res.data as ApiResponse<FamilyMember>).data;
+      return res.data.data;
     },
     enabled: !!personId,
   });
@@ -114,7 +110,7 @@ export function useFamilyUnitsByPersonQuery(personId: number) {
     queryKey: familyTreeKeys.byPerson(personId),
     queryFn: async () => {
       const res = await familyUnitApi.getByPerson(personId);
-      return (res.data as ApiResponse<FamilyUnitDto[]>).data;
+      return res.data.data;
     },
     enabled: !!personId,
   });

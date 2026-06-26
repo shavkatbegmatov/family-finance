@@ -6,9 +6,8 @@ import { DateInput } from '../../ui/DateInput';
 import { useUpdateFamilyUnit } from '../../../hooks/useFamilyTreeQueries';
 import { MARRIAGE_TYPES, FAMILY_UNIT_STATUSES } from '../../../config/constants';
 import { familyUnitApi } from '../../../api/family-unit.api';
-import type { MarriageType, FamilyUnitStatus, FamilyUnitDto } from '../../../types';
+import type { MarriageType, FamilyUnitStatus } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
-import type { ApiResponse } from '../../../types';
 
 interface EditFamilyUnitModalProps {
   isOpen: boolean;
@@ -46,7 +45,7 @@ export function EditFamilyUnitModal({
       familyUnitApi
         .getFamilyUnit(familyUnitId)
         .then((res) => {
-          const fu = (res.data as ApiResponse<FamilyUnitDto>).data;
+          const fu = res.data.data;
           setMarriageType(fu.marriageType);
           setStatus(fu.status);
           setMarriageDate(fu.marriageDate || '');
