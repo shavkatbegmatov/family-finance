@@ -15,8 +15,10 @@ context path **`/api`**. See root `../CLAUDE.md` and `../docs/architecture.md` f
   `src/main/resources/application-dev.yml` (`DB_HOST/PORT/NAME/SCHEMA` env vars).
 - Hibernate dialect `org.hibernate.dialect.PostgreSQLDialect`, `ddl-auto=validate`
   (schema changes ONLY via Flyway). Timezone `Asia/Tashkent`. Swagger at `/api/swagger-ui.html`.
-- Needs env: `JWT_SECRET` (base64), `CARD_ENCRYPTION_KEY` (AES), DB creds. There are **no
-  automated tests** — verification is `compile` + manual.
+- Needs env: `JWT_SECRET` (base64), `CARD_ENCRYPTION_KEY` (AES), DB creds. **Tests (G6):** JUnit5
+  unit (`PasswordPolicyTest`, `TransactionCurrencyValidationTest`, `JwtTokenProviderTest`) +
+  Testcontainers integration (`AuthSessionIntegrationTest`, `FlywayMigrationIntegrationTest` — real PG,
+  CI'da) — `./mvnw test`.
 
 ## Package layout (under `uz/familyfinance/api/`)
 
@@ -37,8 +39,8 @@ config/  scheduler/  util/  annotation/  exception/
 - **DTOs:** suffix `*Request` / `*Response`, split into `dto/request` & `dto/response`.
 - **Permissions:** guard mutations with `@RequiresPermission({PermissionCode.X}, requireAll=…)`;
   AOP `PermissionAspect` enforces via `PermissionService`. (Codes: see `enums/PermissionCode`.)
-- **Flyway:** new schema = new file `src/main/resources/db/migration/V46__*.sql` (latest is
-  **V45**). Never edit an applied migration.
+- **Flyway:** new schema = new file `src/main/resources/db/migration/V49__*.sql` (latest is
+  **V48**, D1a transactions scope_id). Never edit an applied migration.
 - **Nullable `String` in JPQL:** wrap `CAST(:param AS string)` — otherwise Hibernate binds
   `bytea` and `lower(bytea)` fails.
 - **Auditing:** entities implement `Auditable` (`getEntityName`, `toAuditMap`,

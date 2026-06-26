@@ -30,10 +30,12 @@ npm run build     # tsc -b && vite build  (type-check + bundle)
 npm run lint      # ESLint
 ```
 
-> **There are NO real automated tests** (no `src/test`, no `*.test.*`). "Verify" means:
-> `./mvnw clean compile`, `npm run build`/`tsc`, `npm run lint`, and **manual preview**
-> (front :5178 ↔ back :8098, demo login `admin / admin123`). See `docs/architecture.md` for
-> the preview/health-check flow.
+> **Automated tests (G6, 2026-06):** Backend JUnit5 unit (`PasswordPolicyTest`,
+> `TransactionCurrencyValidationTest`, `JwtTokenProviderTest`) + Testcontainers integration
+> (`AuthSessionIntegrationTest`, `FlywayMigrationIntegrationTest` — real PG, CI'da). Frontend Vitest
+> (`src/__tests__`: `password.test`, `hibp.test` — 20 test). "Verify" = `./mvnw clean compile`/`test`,
+> `npm run build`/`tsc`/`lint`/`test`, + **manual preview** (front :5178 ↔ back :8098,
+> demo login `admin / admin123`). See `docs/architecture.md` for the preview/health-check flow.
 
 ## Architecture invariants (see `@docs/architecture.md` for full detail)
 
