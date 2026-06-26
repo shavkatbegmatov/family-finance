@@ -1,343 +1,54 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  UserCog,
-  Search,
-  Eye,
-  Edit2,
-  Key,
-  Shield,
-  Power,
-  X,
-  Copy,
-  AlertTriangle,
-  Check,
-  AtSign,
-  Link2,
-  Unlink2,
-  ArrowRightLeft,
-  UserCheck,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import { usersApi } from '../../api/users.api';
-import { rolesApi } from '../../api/roles.api';
-import { familyMembersApi } from '../../api/family-members.api';
-import { ModalPortal } from '../../components/common/Modal';
+import { useState } from 'react';
+import { UserCog, Search } from 'lucide-react';
 import { ExportButtons } from '../../components/common/ExportButtons';
-import { PermissionCode, usePermission } from '../../hooks/usePermission';
+import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { pointParticipantApi } from '../../api/points.api';
-import type { CredentialsInfo, Role, FamilyMember } from '../../types';
-import type { UserDetail, UpdateUserRequest, ChangeUsernameRequest } from '../../api/users.api';
-import { PersonBadges, SuggestionsBanner, type Suggestion } from '../../components/persons';
-import { Users as UsersIcon, Trophy } from 'lucide-react';
-import { formatPhoneDisplay } from '../../utils/phone';
-import { formatDateTime } from '../../config/constants';
-import { getApiErrorMessage, toastApiError } from '../../utils/apiError';
-
-type ModalType = 'view' | 'edit' | 'password' | 'roles' | 'username' | 'family-link' | null;
-
-const USERNAME_REGEX = /^[a-z][a-z0-9._]{2,49}$/;
+import { SuggestionsBanner } from '../../components/persons';
+import { useUsersData, type UsersModalType } from '../../hooks/useUsersData';
+import { UserTable } from '../../components/users/UserTable';
+import { UserMobileCard } from '../../components/users/UserMobileCard';
+import { ViewUserModal } from '../../components/users/ViewUserModal';
+import { EditUserModal } from '../../components/users/EditUserModal';
+import { LinkFamilyMemberModal } from '../../components/users/LinkFamilyMemberModal';
+import { PasswordResetModal } from '../../components/users/PasswordResetModal';
+import { RoleAssignmentModal } from '../../components/users/RoleAssignmentModal';
+import { ChangeUsernameModal } from '../../components/users/ChangeUsernameModal';
+import type { UserDetail } from '../../api/users.api';
 
 export function UsersPage() {
-  const queryClient = useQueryClient();
-  const { hasPermission } = usePermission();
-  const canManagePoints = hasPermission(PermissionCode.POINTS_MANAGE);
-
-  // Search & filter state
-  const [search, setSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [page, setPage] = useState(0);
-  const pageSize = 20;
-
   // Modal state
-  const [modalType, setModalType] = useState<ModalType>(null);
+  const [modalType, setModalType] = useState<UsersModalType>(null);
   const [selectedUser, setSelectedUser] = useState<UserDetail | null>(null);
 
-  // Edit form state
-  const [editForm, setEditForm] = useState<UpdateUserRequest>({
-    fullName: '',
-    email: '',
-    phone: '',
-  });
-
-  // Password reset state
-  const [credentials, setCredentials] = useState<CredentialsInfo | null>(null);
-
-  // Role modal state
-  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
-
-  // Username change state
-  const [newUsername, setNewUsername] = useState('');
-  const [usernameError, setUsernameError] = useState('');
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
-  const [isUsernameAvailable, setIsUsernameAvailable] = useState<boolean | null>(null);
-  const [showUsernameConfirm, setShowUsernameConfirm] = useState(false);
-
-  // Edit preview state
-  const [showEditPreview, setShowEditPreview] = useState(false);
-  const [editPreviewData, setEditPreviewData] = useState<UpdateUserRequest | null>(null);
-
-  // Family link state
+  // Family link state — hook hosila transfer mantig'i uchun shu qiymatlarni o'qiydi
   const [selectedFamilyMemberId, setSelectedFamilyMemberId] = useState<number | null>(null);
   const [familySearch, setFamilySearch] = useState('');
   const [familyLinkReason, setFamilyLinkReason] = useState('');
   const [familyUnlinkReason, setFamilyUnlinkReason] = useState('');
 
-  // ========================
-  // Debounced username availability check
-  // ========================
+  const closeModal = () => {
+    setModalType(null);
+    setSelectedUser(null);
+    setSelectedFamilyMemberId(null);
+    setFamilySearch('');
+    setFamilyLinkReason('');
+    setFamilyUnlinkReason('');
+  };
 
-  useEffect(() => {
-    if (!newUsername || newUsername === selectedUser?.username) {
-      setIsUsernameAvailable(null);
-      setUsernameError('');
-      return;
-    }
-
-    // Client-side validation first
-    if (newUsername.length < 3) {
-      setUsernameError('Kamida 3 belgi');
-      setIsUsernameAvailable(null);
-      return;
-    }
-    if (!USERNAME_REGEX.test(newUsername)) {
-      setUsernameError('Faqat kichik harflar, raqamlar, nuqta va pastki chiziq');
-      setIsUsernameAvailable(null);
-      return;
-    }
-
-    setUsernameError('');
-    setIsCheckingUsername(true);
-
-    const timer = setTimeout(async () => {
-      try {
-        const available = await usersApi.checkUsername(newUsername);
-        setIsUsernameAvailable(available);
-        if (!available) {
-          setUsernameError('Bu username allaqachon band');
-        }
-      } catch {
-        setUsernameError('Tekshirishda xatolik');
-      } finally {
-        setIsCheckingUsername(false);
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [newUsername, selectedUser?.username]);
-
-  // ========================
-  // Queries
-  // ========================
-
-  const activeParam = activeFilter === 'all' ? undefined : activeFilter === 'active';
-
-  const { data: usersPage, isLoading } = useQuery({
-    queryKey: ['users', search, activeFilter, page],
-    queryFn: () => usersApi.search({ search: search || undefined, active: activeParam, page, size: pageSize }),
+  const data = useUsersData({
+    modalType,
+    selectedUser,
+    selectedFamilyMemberId,
+    familyLinkReason,
+    familySearch,
+    closeModal,
   });
 
-  /** Joriy sahifadagi userlar bo'yicha capability bo'shliqlari — banner uchun. */
-  const userSuggestions = useMemo<Suggestion[]>(() => {
-    if (!usersPage?.content) return [];
-    const active = usersPage.content.filter((u) => u.active);
-    const withoutFamily = active.filter((u) => !u.linkedFamilyMemberId).length;
-    const withoutPoints = active.filter((u) => u.linkedFamilyMemberId && !u.pointParticipantId).length;
-
-    const list: Suggestion[] = [];
-    if (withoutFamily > 0) {
-      list.push({
-        key: 'users-without-family',
-        icon: UsersIcon,
-        tone: 'warning',
-        title: `${withoutFamily} ta foydalanuvchi oila a'zosiga bog'lanmagan`,
-        description: 'Bog\'lash uchun ism yonidagi xira "👥+" belgini bosing — oila a\'zolari ro\'yxati ochiladi.',
-      });
-    }
-    if (withoutPoints > 0 && canManagePoints) {
-      list.push({
-        key: 'users-without-points',
-        icon: Trophy,
-        tone: 'info',
-        title: `${withoutPoints} ta foydalanuvchi ball tizimida emas`,
-        description: 'Ishtirokchi sifatida qo\'shish uchun ism yonidagi xira "🏆+" belgini bosing.',
-      });
-    }
-    return list;
-  }, [usersPage, canManagePoints]);
-
-  const { data: userDetails, isLoading: isLoadingDetails } = useQuery({
-    queryKey: ['user-detail', selectedUser?.id],
-    queryFn: () => usersApi.getById(selectedUser!.id),
-    enabled: !!selectedUser && (modalType === 'view' || modalType === 'roles'),
-  });
-
-  const { data: allRoles } = useQuery({
-    queryKey: ['roles-all'],
-    queryFn: () => rolesApi.getAll(),
-    enabled: modalType === 'roles',
-  });
-
-  const { data: familyMembersData, isLoading: isLoadingFamilyMembers } = useQuery({
-    queryKey: ['family-members-link-candidates'],
-    queryFn: () => familyMembersApi.getList(),
-    enabled: modalType === 'family-link',
-  });
-
-  // ========================
-  // Mutations
-  // ========================
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateUserRequest }) =>
-      usersApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Foydalanuvchi yangilandi');
-      closeModal();
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const resetPasswordMutation = useMutation({
-    mutationFn: usersApi.resetPassword,
-    onSuccess: (data) => {
-      setCredentials(data);
-  
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const activateMutation = useMutation({
-    mutationFn: usersApi.activate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Foydalanuvchi aktivlashtirildi');
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const deactivateMutation = useMutation({
-    mutationFn: usersApi.deactivate,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success("Foydalanuvchi o'chirildi");
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const assignRoleMutation = useMutation({
-    mutationFn: ({ roleId, userId }: { roleId: number; userId: number }) =>
-      rolesApi.assignToUser(roleId, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-detail', selectedUser?.id] });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Rol biriktirildi');
-      setSelectedRoleId(null);
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const removeRoleMutation = useMutation({
-    mutationFn: ({ roleId, userId }: { roleId: number; userId: number }) =>
-      rolesApi.removeFromUser(roleId, userId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-detail', selectedUser?.id] });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Rol olib tashlandi');
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const changeUsernameMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ChangeUsernameRequest }) =>
-      usersApi.changeUsername(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success("Username o'zgartirildi. Foydalanuvchi qayta kirishi kerak.");
-      closeModal();
-    },
-    onError: (error) => toastApiError(error, 'Xato yuz berdi'),
-  });
-
-  const linkFamilyMemberMutation = useMutation({
-    mutationFn: ({ id, familyMemberId, reason }: { id: number; familyMemberId: number; reason?: string }) =>
-      usersApi.linkFamilyMember(id, { familyMemberId, reason, forceTransfer: true }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-detail', selectedUser?.id] });
-      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
-      queryClient.invalidateQueries({ queryKey: ['familyTree'] });
-      queryClient.invalidateQueries({ queryKey: ['family-members-link-candidates'] });
-      toast.success("Bog'lanish muvaffaqiyatli yangilandi");
-      closeModal();
-    },
-    onError: (error) => toastApiError(error, 'Bog\'lashda xatolik yuz berdi'),
-  });
-
-  const unlinkFamilyMemberMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
-      usersApi.unlinkFamilyMember(id, { reason }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['user-detail', selectedUser?.id] });
-      queryClient.invalidateQueries({ queryKey: ['familyMembers'] });
-      queryClient.invalidateQueries({ queryKey: ['familyTree'] });
-      queryClient.invalidateQueries({ queryKey: ['family-members-link-candidates'] });
-      toast.success("Bog'lanish uzildi");
-      closeModal();
-    },
-    onError: (error) => toastApiError(error, 'Bog\'lanishni uzishda xatolik yuz berdi'),
-  });
-
-  /**
-   * Tezkor amal: foydalanuvchining oila a'zosini ball tizimiga qo'shish.
-   * Faqat user.linkedFamilyMemberId bo'lganda mavjud.
-   * Ism sifatida user.fullName ishlatiladi; admin keyinroq ishtirokchi sahifasida tahrirlashi mumkin.
-   */
-  const quickAddParticipantMutation = useMutation({
-    mutationFn: (targetUser: UserDetail) =>
-      pointParticipantApi.create({
-        firstName: targetUser.fullName,
-        familyMemberId: targetUser.linkedFamilyMemberId!,
-      }),
-    onSuccess: (_data, targetUser) => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success(`${targetUser.fullName} ball tizimiga qo'shildi`);
-    },
-    onError: (error) => toast.error(getApiErrorMessage(error, "Ball tizimiga qo'shishda xatolik")),
-  });
-
-  // ========================
-  // Handlers
-  // ========================
-
-  const openModal = (type: ModalType, user: UserDetail) => {
+  const openModal = (type: UsersModalType, user: UserDetail) => {
     setSelectedUser(user);
     setModalType(type);
-    setCredentials(null);
-
-    setSelectedRoleId(null);
-
-    if (type === 'edit') {
-      setEditForm({
-        fullName: user.fullName,
-        email: user.email || '',
-        phone: user.phone || '',
-      });
-      setShowEditPreview(false);
-      setEditPreviewData(null);
-    }
-
-    if (type === 'username') {
-      setNewUsername(user.username);
-      setUsernameError('');
-      setIsUsernameAvailable(null);
-      setShowUsernameConfirm(false);
-    }
+    data.setSelectedRoleId(null);
 
     if (type === 'family-link') {
       setSelectedFamilyMemberId(user.linkedFamilyMemberId ?? null);
@@ -347,199 +58,48 @@ export function UsersPage() {
     }
   };
 
-  const closeModal = () => {
-    setModalType(null);
-    setSelectedUser(null);
-    setCredentials(null);
-    setSelectedRoleId(null);
-    setNewUsername('');
-    setUsernameError('');
-    setIsUsernameAvailable(null);
-    setShowUsernameConfirm(false);
-    setShowEditPreview(false);
-    setEditPreviewData(null);
-    setSelectedFamilyMemberId(null);
-    setFamilySearch('');
-    setFamilyLinkReason('');
-    setFamilyUnlinkReason('');
-  };
-
-  const handleEditApply = () => {
-    setEditPreviewData({ ...editForm });
-    setShowEditPreview(true);
-  };
-
-  const handleUpdate = () => {
-    if (!selectedUser) return;
-    updateMutation.mutate({ id: selectedUser.id, data: editForm });
-  };
-
-  const handleResetPassword = () => {
-    if (!selectedUser) return;
-    resetPasswordMutation.mutate(selectedUser.id);
-  };
-
-  const handleChangeUsername = () => {
-    if (!selectedUser || !isUsernameAvailable || newUsername === selectedUser.username) return;
-    if (!showUsernameConfirm) {
-      setShowUsernameConfirm(true);
-      return;
-    }
-    changeUsernameMutation.mutate({
-      id: selectedUser.id,
-      data: { newUsername },
-    });
-  };
-
-  const handleToggleActive = (user: UserDetail) => {
-    if (user.active) {
-      deactivateMutation.mutate(user.id);
-    } else {
-      activateMutation.mutate(user.id);
-    }
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Nusxalandi');
-  };
-
-  const handleLinkFamilyMember = () => {
-    if (!selectedUser || !selectedFamilyMemberId) return;
-
-    linkFamilyMemberMutation.mutate({
-      id: selectedUser.id,
-      familyMemberId: selectedFamilyMemberId,
-      reason: familyLinkReason.trim() || undefined,
-    });
-  };
-
-  const handleUnlinkFamilyMember = () => {
-    if (!selectedUser) return;
-
-    const reason = familyUnlinkReason.trim();
-    if (reason.length < 10) {
-      toast.error("Bog'lanishni uzish uchun kamida 10 belgilik sabab kiriting");
-      return;
-    }
-
-    unlinkFamilyMemberMutation.mutate({
-      id: selectedUser.id,
-      reason,
-    });
-  };
-
-  const handleExport = (format: 'excel' | 'pdf') => {
-    usersApi.export.exportData(format, {
-      search: search || undefined,
-      active: activeParam,
-    });
-  };
-
-  // Pagination
-  const totalPages = usersPage?.totalPages || 0;
-
-  // Available roles for assignment (exclude already assigned)
-  const assignedRoleCodes = new Set(userDetails?.roleDetails?.map(r => r.code) || []);
-  const availableRoles = (allRoles || []).filter((r: Role) => !assignedRoleCodes.has(r.code) && r.isActive);
-
-  const familyMembers = ((familyMembersData?.data?.data ?? []) as FamilyMember[])
-    .sort((a, b) => a.fullName.localeCompare(b.fullName, 'uz'));
-
-  const filteredFamilyMembers = familyMembers.filter((member) => {
-    const keyword = familySearch.trim().toLowerCase();
-    if (!keyword) {
-      return true;
-    }
-    return (
-      member.fullName.toLowerCase().includes(keyword) ||
-      member.firstName.toLowerCase().includes(keyword) ||
-      (member.lastName ?? '').toLowerCase().includes(keyword)
-    );
-  });
-
-  const selectedFamilyMember = familyMembers.find((member) => member.id === selectedFamilyMemberId);
-  const selectedIsCurrentMember = Boolean(
-    selectedUser?.linkedFamilyMemberId &&
-    selectedFamilyMemberId &&
-    selectedUser.linkedFamilyMemberId === selectedFamilyMemberId
-  );
-  const targetLinkedToAnotherUser = Boolean(
-    selectedFamilyMember?.userId &&
-    selectedFamilyMember.userId !== selectedUser?.id
-  );
-  const willTransfer =
-    Boolean(selectedUser?.linkedFamilyMemberId && !selectedIsCurrentMember && selectedFamilyMemberId) ||
-    targetLinkedToAnotherUser;
-  const linkReasonRequired = willTransfer;
-  const linkReason = familyLinkReason.trim();
-  const isLinkReasonValid = !linkReasonRequired || linkReason.length >= 10;
-  const canSubmitLink = Boolean(
-    selectedUser &&
-    selectedFamilyMemberId &&
-    !selectedIsCurrentMember &&
-    isLinkReasonValid &&
-    !linkFamilyMemberMutation.isPending
-  );
-
-  // Foydalanuvchi amal tugmalari — jadval va mobil kartada qayta ishlatiladi
-  const renderUserActions = (user: UserDetail) => (
-    <>
-      <PermissionGate permission={PermissionCode.USERS_VIEW}>
-        <button className="btn btn-ghost btn-sm" title="Ko'rish" onClick={() => openModal('view', user)}>
-          <Eye className="h-3.5 w-3.5" />
-        </button>
-      </PermissionGate>
-      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-sm" title="Tahrirlash" onClick={() => openModal('edit', user)}>
-          <Edit2 className="h-3.5 w-3.5" />
-        </button>
-      </PermissionGate>
-      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-sm" title="Oila a'zosini biriktirish" onClick={() => openModal('family-link', user)}>
-          <Link2 className="h-3.5 w-3.5" />
-        </button>
-      </PermissionGate>
-      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-sm" title="Username o'zgartirish" onClick={() => openModal('username', user)}>
-          <AtSign className="h-3.5 w-3.5" />
-        </button>
-      </PermissionGate>
-      <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-        <button className="btn btn-ghost btn-sm" title="Parolni tiklash" onClick={() => openModal('password', user)}>
-          <Key className="h-3.5 w-3.5" />
-        </button>
-      </PermissionGate>
-      <PermissionGate permission={PermissionCode.USERS_CHANGE_ROLE}>
-        <button className="btn btn-ghost btn-sm" title="Rollar" onClick={() => openModal('roles', user)}>
-          <Shield className="h-3.5 w-3.5" />
-        </button>
-      </PermissionGate>
-      {user.active ? (
-        <PermissionGate permission={PermissionCode.USERS_DELETE}>
-          <button
-            className="btn btn-ghost btn-sm text-error"
-            title="O'chirish"
-            onClick={() => handleToggleActive(user)}
-            disabled={deactivateMutation.isPending}
-          >
-            <Power className="h-3.5 w-3.5" />
-          </button>
-        </PermissionGate>
-      ) : (
-        <PermissionGate permission={PermissionCode.USERS_UPDATE}>
-          <button
-            className="btn btn-ghost btn-sm text-success"
-            title="Faollashtirish"
-            onClick={() => handleToggleActive(user)}
-            disabled={activateMutation.isPending}
-          >
-            <Power className="h-3.5 w-3.5" />
-          </button>
-        </PermissionGate>
-      )}
-    </>
-  );
+  const {
+    canManagePoints,
+    search,
+    setSearch,
+    activeFilter,
+    setActiveFilter,
+    page,
+    setPage,
+    pageSize,
+    usersPage,
+    isLoading,
+    userSuggestions,
+    userDetails,
+    isLoadingDetails,
+    credentials,
+    selectedRoleId,
+    setSelectedRoleId,
+    totalPages,
+    availableRoles,
+    filteredFamilyMembers,
+    isLoadingFamilyMembers,
+    willTransfer,
+    linkReasonRequired,
+    canSubmitLink,
+    updateMutation,
+    resetPasswordMutation,
+    activateMutation,
+    deactivateMutation,
+    assignRoleMutation,
+    removeRoleMutation,
+    changeUsernameMutation,
+    linkFamilyMemberMutation,
+    unlinkFamilyMemberMutation,
+    quickAddParticipantMutation,
+    handleUpdate,
+    handleResetPassword,
+    handleChangeUsername,
+    handleToggleActive,
+    handleLinkFamilyMember,
+    handleUnlinkFamilyMember,
+    handleExport,
+  } = data;
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -606,130 +166,29 @@ export function UsersPage() {
           {/* Mobil: foydalanuvchi kartalari */}
           <div className="space-y-2 lg:hidden">
             {usersPage.content.map((user) => (
-              <div key={user.id} className="card-native p-3">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 flex-none place-items-center rounded-full bg-primary/12 text-sm font-bold text-primary">
-                    {user.fullName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-semibold">{user.fullName}</p>
-                      {user.active ? (
-                        <span className="badge badge-success badge-sm flex-none">Faol</span>
-                      ) : (
-                        <span className="badge badge-error badge-sm flex-none">Nofaol</span>
-                      )}
-                    </div>
-                    <p className="truncate text-xs text-base-content/50">
-                      @{user.username}
-                      {user.linkedFamilyMemberName ? ` · ${user.linkedFamilyMemberName}` : ''}
-                    </p>
-                    <PersonBadges
-                      hasUser
-                      hasFamilyMember={!!user.linkedFamilyMemberId}
-                      hasParticipant={!!user.pointParticipantId}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-                <div className="scrollbar-hide mt-2 flex items-center gap-0.5 overflow-x-auto border-t border-base-200 pt-2">
-                  {renderUserActions(user)}
-                </div>
-              </div>
+              <UserMobileCard
+                key={user.id}
+                user={user}
+                onOpenModal={openModal}
+                onToggleActive={handleToggleActive}
+                deactivatePending={deactivateMutation.isPending}
+                activatePending={activateMutation.isPending}
+              />
             ))}
           </div>
 
           {/* Desktop: jadval */}
-          <div className="hidden overflow-x-auto rounded-xl border border-base-200 lg:block">
-          <table className="table table-zebra">
-            <thead>
-              <tr className="bg-base-200/50">
-                <th className="w-12">#</th>
-                <th>Foydalanuvchi</th>
-                <th className="hidden md:table-cell">Email</th>
-                <th className="hidden lg:table-cell">Telefon</th>
-                <th className="hidden lg:table-cell">Bog'langan a'zo</th>
-                <th className="hidden sm:table-cell">Rollar</th>
-                <th>Holati</th>
-                <th className="text-center">Amallar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usersPage.content.map((user, index) => (
-                <tr key={user.id} className="hover">
-                  <td className="text-base-content/50">
-                    {page * pageSize + index + 1}
-                  </td>
-                  <td>
-                    <div>
-                      <div className="font-medium">{user.fullName}</div>
-                      <div className="text-xs text-base-content/50">@{user.username}</div>
-                      <PersonBadges
-                        hasUser
-                        hasFamilyMember={!!user.linkedFamilyMemberId}
-                        hasParticipant={!!user.pointParticipantId}
-                        userTooltip={`Tizimga kira oladi: @${user.username}`}
-                        participantTooltip={user.pointParticipantNickname ? `Ball tizimida: @${user.pointParticipantNickname}` : undefined}
-                        onAddParticipant={
-                          canManagePoints && user.active && user.linkedFamilyMemberId && !user.pointParticipantId
-                            ? () => quickAddParticipantMutation.mutate(user)
-                            : undefined
-                        }
-                        onAddFamilyMember={
-                          !user.linkedFamilyMemberId ? () => openModal('family-link', user) : undefined
-                        }
-                        className="mt-1"
-                      />
-                    </div>
-                  </td>
-                  <td className="hidden text-sm md:table-cell">
-                    {user.email || <span className="text-base-content/30">-</span>}
-                  </td>
-                  <td className="hidden text-sm lg:table-cell">
-                    {user.phone ? formatPhoneDisplay(user.phone) : <span className="text-base-content/30">-</span>}
-                  </td>
-                  <td className="hidden text-sm lg:table-cell">
-                    {user.linkedFamilyMemberName ? (
-                      <div className="flex items-center gap-2">
-                        <span className="badge badge-success badge-sm">Biriktirilgan</span>
-                        <span className="truncate max-w-[170px]" title={user.linkedFamilyMemberName}>
-                          {user.linkedFamilyMemberName}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="badge badge-ghost badge-sm">Biriktirilmagan</span>
-                    )}
-                  </td>
-                  <td className="hidden sm:table-cell">
-                    {user.rolesText ? (
-                      <div className="flex flex-wrap gap-1">
-                        {user.rolesText.split(', ').map((role) => (
-                          <span key={role} className="badge badge-ghost badge-sm">
-                            {role}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-base-content/30">-</span>
-                    )}
-                  </td>
-                  <td>
-                    {user.active ? (
-                      <span className="badge badge-success badge-sm gap-1">Faol</span>
-                    ) : (
-                      <span className="badge badge-error badge-sm gap-1">Nofaol</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-center gap-1">
-                      {renderUserActions(user)}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
+          <UserTable
+            users={usersPage.content}
+            page={page}
+            pageSize={pageSize}
+            canManagePoints={canManagePoints}
+            onOpenModal={openModal}
+            onToggleActive={handleToggleActive}
+            onQuickAddParticipant={(user) => quickAddParticipantMutation.mutate(user)}
+            deactivatePending={deactivateMutation.isPending}
+            activatePending={activateMutation.isPending}
+          />
         </>
       )}
 
@@ -779,757 +238,76 @@ export function UsersPage() {
         </div>
       )}
 
-      {/* ======================== */}
-      {/* View Modal */}
-      {/* ======================== */}
-      <ModalPortal isOpen={modalType === 'view'} onClose={closeModal}>
-        <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-lg p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="mb-4 text-lg font-bold">Foydalanuvchi tafsilotlari</h3>
+      {/* ======================== Modals ======================== */}
+      <ViewUserModal
+        isOpen={modalType === 'view'}
+        onClose={closeModal}
+        userDetails={userDetails}
+        isLoading={isLoadingDetails}
+      />
 
-            {isLoadingDetails ? (
-              <div className="flex justify-center py-8">
-                <span className="loading loading-spinner" />
-              </div>
-            ) : userDetails ? (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-base-content/50">Username</span>
-                    <p className="font-medium">@{userDetails.username}</p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">To'liq ism</span>
-                    <p className="font-medium">{userDetails.fullName}</p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">Email</span>
-                    <p className="font-medium">{userDetails.email || '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">Telefon</span>
-                    <p className="font-medium">{formatPhoneDisplay(userDetails.phone) || '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">Holat</span>
-                    <p>
-                      {userDetails.active ? (
-                        <span className="badge badge-success badge-sm">Faol</span>
-                      ) : (
-                        <span className="badge badge-error badge-sm">Nofaol</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">Parol o'zgartirilishi kerak</span>
-                    <p>{userDetails.mustChangePassword ? 'Ha' : 'Yo\'q'}</p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">Yaratuvchi</span>
-                    <p className="font-medium">{userDetails.createdByUsername || '-'}</p>
-                  </div>
-                  <div>
-                    <span className="text-base-content/50">Oila guruhi</span>
-                    <p className="font-medium">{userDetails.familyGroupName || '-'}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-base-content/50">Bog'langan oila a'zosi</span>
-                    <p className="font-medium">
-                      {userDetails.linkedFamilyMemberName ? (
-                        <span className="inline-flex items-center gap-2">
-                          <span className="badge badge-success badge-sm">Biriktirilgan</span>
-                          {userDetails.linkedFamilyMemberName}
-                        </span>
-                      ) : (
-                        <span className="badge badge-ghost badge-sm">Biriktirilmagan</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
+      <EditUserModal
+        isOpen={modalType === 'edit'}
+        onClose={closeModal}
+        user={selectedUser}
+        onSave={handleUpdate}
+        isSaving={updateMutation.isPending}
+      />
 
-                {/* Roles */}
-                <div>
-                  <span className="text-sm text-base-content/50">Rollar</span>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {userDetails.roleDetails?.length ? (
-                      userDetails.roleDetails.map((role) => (
-                        <span key={role.id} className="badge badge-primary badge-sm">{role.name}</span>
-                      ))
-                    ) : (
-                      <span className="text-sm text-base-content/60">Rollar biriktirilmagan</span>
-                    )}
-                  </div>
-                </div>
+      <LinkFamilyMemberModal
+        isOpen={modalType === 'family-link'}
+        onClose={closeModal}
+        selectedUser={selectedUser}
+        filteredFamilyMembers={filteredFamilyMembers}
+        isLoadingFamilyMembers={isLoadingFamilyMembers}
+        familySearch={familySearch}
+        onFamilySearchChange={setFamilySearch}
+        selectedFamilyMemberId={selectedFamilyMemberId}
+        onSelectFamilyMember={setSelectedFamilyMemberId}
+        familyLinkReason={familyLinkReason}
+        onFamilyLinkReasonChange={setFamilyLinkReason}
+        familyUnlinkReason={familyUnlinkReason}
+        onFamilyUnlinkReasonChange={setFamilyUnlinkReason}
+        willTransfer={willTransfer}
+        linkReasonRequired={linkReasonRequired}
+        canSubmitLink={canSubmitLink}
+        onLink={handleLinkFamilyMember}
+        onUnlink={() => handleUnlinkFamilyMember(familyUnlinkReason)}
+        linkPending={linkFamilyMemberMutation.isPending}
+        unlinkPending={unlinkFamilyMemberMutation.isPending}
+      />
 
-                {/* Timestamps */}
-                <div className="grid grid-cols-2 gap-3 border-t border-base-200 pt-3 text-xs text-base-content/50">
-                  <div>
-                    <span>Yaratilgan:</span>{' '}
-                    {userDetails.createdAt ? formatDateTime(userDetails.createdAt) : '-'}
-                  </div>
-                  <div>
-                    <span>Parol o'zgartirilgan:</span>{' '}
-                    {userDetails.passwordChangedAt
-                      ? formatDateTime(userDetails.passwordChangedAt)
-                      : '-'}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </ModalPortal>
+      <PasswordResetModal
+        isOpen={modalType === 'password'}
+        onClose={closeModal}
+        selectedUser={selectedUser}
+        credentials={credentials}
+        onReset={handleResetPassword}
+        isResetting={resetPasswordMutation.isPending}
+      />
 
-      {/* ======================== */}
-      {/* Edit Modal */}
-      {/* ======================== */}
-      <ModalPortal isOpen={modalType === 'edit'} onClose={closeModal}>
-        <div className="modal modal-open" onClick={closeModal}>
-          <div
-            className={`modal-box p-4 transition-all duration-300 sm:p-6 ${showEditPreview ? '!max-w-2xl' : 'max-w-md'}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="mb-4 text-lg font-bold">
-              Foydalanuvchini tahrirlash
-            </h3>
+      <RoleAssignmentModal
+        isOpen={modalType === 'roles'}
+        onClose={closeModal}
+        selectedUser={selectedUser}
+        userDetails={userDetails}
+        isLoadingDetails={isLoadingDetails}
+        availableRoles={availableRoles}
+        selectedRoleId={selectedRoleId}
+        onSelectRole={setSelectedRoleId}
+        onAssignRole={(roleId, userId) => assignRoleMutation.mutate({ roleId, userId })}
+        onRemoveRole={(roleId, userId) => removeRoleMutation.mutate({ roleId, userId })}
+        assignPending={assignRoleMutation.isPending}
+        removePending={removeRoleMutation.isPending}
+      />
 
-            <div className={`flex gap-4 ${showEditPreview ? 'flex-row' : 'flex-col'}`}>
-              {/* Form fields */}
-              <div className={showEditPreview ? 'w-1/2' : 'w-full'}>
-                <div className="space-y-3">
-                  <div>
-                    <label className="label">
-                      <span className="label-text">To'liq ism *</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="input input-bordered input-sm w-full"
-                      value={editForm.fullName}
-                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">
-                      <span className="label-text">Email</span>
-                    </label>
-                    <input
-                      type="email"
-                      className="input input-bordered input-sm w-full"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">
-                      <span className="label-text">Telefon</span>
-                    </label>
-                    <input
-                      type="tel"
-                      className="input input-bordered input-sm w-full"
-                      value={editForm.phone}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Preview panel */}
-              {showEditPreview && editPreviewData && selectedUser && (
-                <div className="w-1/2 border-l border-base-200 pl-4 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-base-content/50">
-                      Solishtirish
-                    </span>
-                    <button
-                      className="btn btn-ghost btn-xs btn-square"
-                      onClick={() => setShowEditPreview(false)}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Username (o'zgarmaydi) */}
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-base-200/50">
-                    <div className="h-8 w-8 rounded-full bg-primary/15 text-primary flex items-center justify-center text-sm font-bold flex-shrink-0">
-                      {(editPreviewData.fullName || selectedUser.fullName).charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-sm font-mono text-base-content/60">@{selectedUser.username}</span>
-                  </div>
-
-                  {/* Diff table */}
-                  <div className="rounded-xl border border-base-200 bg-base-100 overflow-hidden text-sm">
-                    {/* Headers */}
-                    <div className="grid grid-cols-2 border-b border-base-200">
-                      <div className="px-3 py-1.5 bg-error/10 text-center">
-                        <span className="text-xs font-semibold text-error/80 uppercase tracking-wide">Eski</span>
-                      </div>
-                      <div className="px-3 py-1.5 bg-success/10 text-center border-l border-base-200">
-                        <span className="text-xs font-semibold text-success/80 uppercase tracking-wide">Yangi</span>
-                      </div>
-                    </div>
-
-                    {[
-                      { label: 'Ism', old: selectedUser.fullName, new: editPreviewData.fullName || '' },
-                      { label: 'Email', old: selectedUser.email || '-', new: editPreviewData.email || '-' },
-                      { label: 'Telefon', old: selectedUser.phone || '-', new: editPreviewData.phone || '-' },
-                    ].map(({ label, old: oldVal, new: newVal }) => {
-                      const changed = oldVal !== newVal;
-                      return (
-                        <div
-                          key={label}
-                          className={`grid grid-cols-2 border-b border-base-200 last:border-0 ${changed ? 'bg-warning/5' : ''}`}
-                        >
-                          <div className={`px-3 py-2 ${changed ? 'bg-error/5' : ''}`}>
-                            <p className="text-xs text-base-content/60 mb-0.5">{label}</p>
-                            <p className={`truncate ${changed ? 'line-through text-base-content/60' : ''}`}>{oldVal}</p>
-                          </div>
-                          <div className={`px-3 py-2 border-l border-base-200 ${changed ? 'bg-success/5' : ''}`}>
-                            <p className="text-xs text-base-content/60 mb-0.5">{label}</p>
-                            <p className={`truncate ${changed ? 'font-medium text-success' : ''}`}>{newVal}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {selectedUser.rolesText && (
-                    <div className="flex flex-wrap gap-1">
-                      {selectedUser.rolesText.split(', ').map((role) => (
-                        <span key={role} className="badge badge-primary badge-sm">{role}</span>
-                      ))}
-                    </div>
-                  )}
-
-                  <p className="text-xs text-base-content/60 text-center">
-                    Bu faqat ko'rinish - hali saqlanmagan
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="modal-action">
-              <button className="btn btn-ghost btn-sm" onClick={closeModal}>
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-outline btn-secondary btn-sm hidden sm:inline-flex"
-                onClick={handleEditApply}
-                disabled={!editForm.fullName.trim()}
-              >
-                <Eye className="h-3.5 w-3.5" />
-                Apply
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleUpdate}
-                disabled={!editForm.fullName.trim() || updateMutation.isPending}
-              >
-                {updateMutation.isPending ? (
-                  <span className="loading loading-spinner loading-xs" />
-                ) : null}
-                Saqlash
-              </button>
-            </div>
-          </div>
-        </div>
-      </ModalPortal>
-
-      {/* ======================== */}
-      {/* Family Link Modal */}
-      {/* ======================== */}
-      <ModalPortal isOpen={modalType === 'family-link'} onClose={closeModal}>
-        <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-2xl p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="mb-2 text-lg font-bold">Oila a'zosiga bog'lash</h3>
-            <p className="text-sm text-base-content/60 mb-4">
-              {selectedUser?.fullName} (@{selectedUser?.username}) uchun bog'lanishni boshqaring
-            </p>
-
-            <div className="space-y-4">
-              <div className="rounded-xl border border-base-200 bg-base-200/40 p-3">
-                <p className="text-xs uppercase tracking-wide text-base-content/50">Joriy holat</p>
-                {selectedUser?.linkedFamilyMemberName ? (
-                  <p className="mt-1 flex items-center gap-2 text-sm font-medium">
-                    <UserCheck className="h-4 w-4 text-success" />
-                    {selectedUser.linkedFamilyMemberName}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-sm text-base-content/60">Biriktirilmagan</p>
-                )}
-              </div>
-
-              <div>
-                <label className="label">
-                  <span className="label-text">Oila a'zosini qidirish</span>
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/40" />
-                  <input
-                    type="text"
-                    className="input input-bordered w-full pl-9"
-                    placeholder="Ism bo'yicha qidiring..."
-                    value={familySearch}
-                    onChange={(e) => setFamilySearch(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-base-200">
-                {isLoadingFamilyMembers ? (
-                  <div className="flex justify-center py-8">
-                    <span className="loading loading-spinner" />
-                  </div>
-                ) : filteredFamilyMembers.length === 0 ? (
-                  <p className="p-4 text-sm text-base-content/50">Mos oila a'zosi topilmadi</p>
-                ) : (
-                  <div className="max-h-64 overflow-auto">
-                    {filteredFamilyMembers.map((member) => {
-                      const linkedToAnotherUser = member.userId && member.userId !== selectedUser?.id;
-                      const isCurrentMember = selectedUser?.linkedFamilyMemberId === member.id;
-                      const isSelected = selectedFamilyMemberId === member.id;
-
-                      return (
-                        <button
-                          key={member.id}
-                          type="button"
-                          className={`w-full border-b border-base-200 p-3 text-left last:border-b-0 ${
-                            isSelected ? 'bg-primary/10' : 'hover:bg-base-200/40'
-                          }`}
-                          onClick={() => setSelectedFamilyMemberId(member.id)}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-medium">{member.fullName}</p>
-                              <p className="text-xs text-base-content/50">{member.role}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {isCurrentMember && (
-                                <span className="badge badge-info badge-sm">Joriy</span>
-                              )}
-                              {linkedToAnotherUser && (
-                                <span className="badge badge-warning badge-sm">Band</span>
-                              )}
-                              {!linkedToAnotherUser && !isCurrentMember && (
-                                <span className="badge badge-success badge-sm">Bo'sh</span>
-                              )}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {willTransfer && (
-                <div className="alert alert-warning">
-                  <ArrowRightLeft className="h-4 w-4" />
-                  <span>
-                    Transfer bajariladi: avvalgi bog'lanish uzilib, yangi oila a'zosiga biriktiriladi.
-                  </span>
-                </div>
-              )}
-
-              {linkReasonRequired && (
-                <div>
-                  <label className="label">
-                    <span className="label-text">Transfer sababi (kamida 10 belgi) *</span>
-                  </label>
-                  <textarea
-                    className="textarea textarea-bordered w-full"
-                    rows={3}
-                    value={familyLinkReason}
-                    onChange={(e) => setFamilyLinkReason(e.target.value)}
-                    placeholder="Nega qayta bog'lanayotganini yozing..."
-                  />
-                  {familyLinkReason.trim().length > 0 && familyLinkReason.trim().length < 10 && (
-                    <p className="mt-1 text-xs text-error">Kamida 10 belgi kiriting</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="modal-action mt-6">
-              <button className="btn btn-ghost btn-sm" onClick={closeModal}>
-                Bekor qilish
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleLinkFamilyMember}
-                disabled={!canSubmitLink}
-              >
-                {linkFamilyMemberMutation.isPending ? (
-                  <span className="loading loading-spinner loading-xs" />
-                ) : (
-                  <Link2 className="h-3.5 w-3.5" />
-                )}
-                Bog'lash
-              </button>
-            </div>
-
-            {selectedUser?.linkedFamilyMemberId && (
-              <div className="mt-5 border-t border-base-200 pt-4">
-                <h4 className="text-sm font-semibold text-error">Bog'lanishni uzish</h4>
-                <p className="text-xs text-base-content/60 mt-1">
-                  Bu amal uchun sabab majburiy va audit logga yoziladi.
-                </p>
-                <textarea
-                  className="textarea textarea-bordered textarea-sm w-full mt-3"
-                  rows={2}
-                  value={familyUnlinkReason}
-                  onChange={(e) => setFamilyUnlinkReason(e.target.value)}
-                  placeholder="Bog'lanishni uzish sababini yozing (kamida 10 belgi)"
-                />
-                <div className="mt-3 flex justify-end">
-                  <button
-                    className="btn btn-outline btn-error btn-sm"
-                    onClick={handleUnlinkFamilyMember}
-                    disabled={unlinkFamilyMemberMutation.isPending}
-                  >
-                    {unlinkFamilyMemberMutation.isPending ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : (
-                      <Unlink2 className="h-3.5 w-3.5" />
-                    )}
-                    Bog'lanishni uzish
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </ModalPortal>
-
-      {/* ======================== */}
-      {/* Password Reset Modal */}
-      {/* ======================== */}
-      <ModalPortal isOpen={modalType === 'password'} onClose={closeModal}>
-        <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-md p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="mb-4 text-lg font-bold">Parolni tiklash</h3>
-
-            {credentials ? (
-              /* Show credentials after reset */
-              <div className="space-y-4">
-                <div className="alert alert-warning">
-                  <AlertTriangle className="h-4 w-4" />
-                  <span>Bu parol faqat bir marta ko'rsatiladi!</span>
-                </div>
-
-                <div className="rounded-lg bg-base-200 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-base-content/50">Username</span>
-                      <p className="font-mono font-bold">{credentials.username}</p>
-                    </div>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => copyToClipboard(credentials.username)}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-base-content/50">Yangi parol</span>
-                      <p className="font-mono font-bold text-primary">
-                        {credentials.temporaryPassword}
-                      </p>
-                    </div>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => copyToClipboard(credentials.temporaryPassword)}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <p className="text-xs text-base-content/60">{credentials.message}</p>
-
-                <div className="modal-action">
-                  <button className="btn btn-primary btn-sm" onClick={closeModal}>
-                    Yopish
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Confirmation before reset */
-              <div className="space-y-4">
-                <p className="text-sm">
-                  <strong>{selectedUser?.fullName}</strong> (@{selectedUser?.username})
-                  ning parolini tiklashni xohlaysizmi?
-                </p>
-                <p className="text-xs text-base-content/60">
-                  Yangi vaqtinchalik parol yaratiladi. Foydalanuvchi keyingi kirishda parolni o'zgartirishi kerak bo'ladi.
-                </p>
-
-                <div className="modal-action">
-                  <button className="btn btn-ghost btn-sm" onClick={closeModal}>
-                    Bekor qilish
-                  </button>
-                  <button
-                    className="btn btn-warning btn-sm"
-                    onClick={handleResetPassword}
-                    disabled={resetPasswordMutation.isPending}
-                  >
-                    {resetPasswordMutation.isPending ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : (
-                      <Key className="h-3.5 w-3.5" />
-                    )}
-                    Parolni tiklash
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </ModalPortal>
-
-      {/* ======================== */}
-      {/* Role Assignment Modal */}
-      {/* ======================== */}
-      <ModalPortal isOpen={modalType === 'roles'} onClose={closeModal}>
-        <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-md p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="mb-4 text-lg font-bold">
-              Rollar boshqarish - {selectedUser?.fullName}
-            </h3>
-
-            {isLoadingDetails ? (
-              <div className="flex justify-center py-8">
-                <span className="loading loading-spinner" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Current roles */}
-                <div>
-                  <span className="text-sm font-medium text-base-content/60">Mavjud rollar</span>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {userDetails?.roleDetails?.length ? (
-                      userDetails.roleDetails.map((role) => (
-                        <div key={role.id} className="badge badge-primary gap-1 pr-1">
-                          {role.name}
-                          <button
-                            className="btn btn-ghost btn-xs btn-circle"
-                            onClick={() =>
-                              removeRoleMutation.mutate({
-                                roleId: role.id,
-                                userId: selectedUser!.id,
-                              })
-                            }
-                            disabled={removeRoleMutation.isPending}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-sm text-base-content/60">Rollar biriktirilmagan</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Assign new role */}
-                {availableRoles.length > 0 && (
-                  <div className="border-t border-base-200 pt-4">
-                    <span className="text-sm font-medium text-base-content/60">Yangi rol biriktirish</span>
-                    <div className="mt-2 flex gap-2">
-                      <select
-                        className="select select-bordered select-sm flex-1"
-                        value={selectedRoleId || ''}
-                        onChange={(e) => setSelectedRoleId(Number(e.target.value) || null)}
-                      >
-                        <option value="">Rol tanlang...</option>
-                        {availableRoles.map((role: Role) => (
-                          <option key={role.id} value={role.id}>
-                            {role.name} ({role.code})
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        className="btn btn-primary btn-sm"
-                        disabled={!selectedRoleId || assignRoleMutation.isPending}
-                        onClick={() => {
-                          if (selectedRoleId && selectedUser) {
-                            assignRoleMutation.mutate({
-                              roleId: selectedRoleId,
-                              userId: selectedUser.id,
-                            });
-                          }
-                        }}
-                      >
-                        {assignRoleMutation.isPending ? (
-                          <span className="loading loading-spinner loading-xs" />
-                        ) : (
-                          <Check className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="modal-action">
-              <button className="btn btn-ghost btn-sm" onClick={closeModal}>
-                Yopish
-              </button>
-            </div>
-          </div>
-        </div>
-      </ModalPortal>
-      {/* ======================== */}
-      {/* Change Username Modal */}
-      {/* ======================== */}
-      <ModalPortal isOpen={modalType === 'username'} onClose={closeModal}>
-        <div className="modal modal-open" onClick={closeModal}>
-          <div className="modal-box max-w-md p-4 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <button className="btn btn-ghost btn-sm btn-circle absolute right-2 top-2" onClick={closeModal}>
-              <X className="h-4 w-4" />
-            </button>
-            <h3 className="mb-4 text-lg font-bold">Username o'zgartirish</h3>
-
-            {showUsernameConfirm ? (
-              /* Confirmation step */
-              <div className="space-y-4">
-                <div className="alert alert-warning">
-                  <AlertTriangle className="h-4 w-4" />
-                  <div>
-                    <p className="font-semibold">Diqqat!</p>
-                    <p className="text-sm">
-                      Username o'zgartirilgandan so'ng <strong>{selectedUser?.fullName}</strong>ning
-                      barcha faol sessiyalari tugatiladi va qayta tizimga kirishi kerak bo'ladi.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-base-200 p-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base-content/50">Joriy:</span>
-                    <span className="font-mono font-medium">@{selectedUser?.username}</span>
-                  </div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-base-content/50">Yangi:</span>
-                    <span className="font-mono font-medium text-primary">@{newUsername}</span>
-                  </div>
-                </div>
-
-                <div className="modal-action">
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowUsernameConfirm(false)}>
-                    Orqaga
-                  </button>
-                  <button
-                    className="btn btn-warning btn-sm"
-                    onClick={handleChangeUsername}
-                    disabled={changeUsernameMutation.isPending}
-                  >
-                    {changeUsernameMutation.isPending ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : null}
-                    Tasdiqlash
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Input step */
-              <div className="space-y-4">
-                <p className="text-sm">
-                  <strong>{selectedUser?.fullName}</strong> (
-                  <span className="font-mono">@{selectedUser?.username}</span>) uchun
-                  yangi username kiriting.
-                </p>
-
-                <div>
-                  <label className="label">
-                    <span className="label-text">Yangi username *</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/40">@</span>
-                    <input
-                      type="text"
-                      className={`input input-bordered input-sm w-full pl-8 ${
-                        usernameError
-                          ? 'input-error'
-                          : isUsernameAvailable === true
-                            ? 'input-success'
-                            : ''
-                      }`}
-                      placeholder="yangi.username"
-                      value={newUsername}
-                      onChange={(e) => setNewUsername(e.target.value.toLowerCase().trim())}
-                      maxLength={50}
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {isCheckingUsername && (
-                        <span className="loading loading-spinner loading-xs" />
-                      )}
-                      {!isCheckingUsername && isUsernameAvailable === true && (
-                        <Check className="h-4 w-4 text-success" />
-                      )}
-                      {!isCheckingUsername && isUsernameAvailable === false && (
-                        <X className="h-4 w-4 text-error" />
-                      )}
-                    </div>
-                  </div>
-                  {usernameError && (
-                    <p className="mt-1 text-xs text-error">{usernameError}</p>
-                  )}
-                  {!usernameError && isUsernameAvailable === true && (
-                    <p className="mt-1 text-xs text-success">Username mavjud</p>
-                  )}
-                </div>
-
-                <div className="space-y-1 text-xs text-base-content/50">
-                  <p>Qoidalar:</p>
-                  <ul className="list-disc pl-4">
-                    <li>Kamida 3 ta belgi</li>
-                    <li>Faqat kichik lotin harflari, raqamlar, nuqta va pastki chiziq</li>
-                    <li>Harf bilan boshlanishi shart</li>
-                  </ul>
-                </div>
-
-                <div className="modal-action">
-                  <button className="btn btn-ghost btn-sm" onClick={closeModal}>
-                    Bekor qilish
-                  </button>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={handleChangeUsername}
-                    disabled={
-                      !newUsername.trim() ||
-                      newUsername === selectedUser?.username ||
-                      !!usernameError ||
-                      isCheckingUsername ||
-                      isUsernameAvailable !== true
-                    }
-                  >
-                    Davom etish
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </ModalPortal>
+      <ChangeUsernameModal
+        isOpen={modalType === 'username'}
+        onClose={closeModal}
+        user={selectedUser}
+        onConfirm={handleChangeUsername}
+        isSaving={changeUsernameMutation.isPending}
+      />
     </div>
   );
 }
-
-
