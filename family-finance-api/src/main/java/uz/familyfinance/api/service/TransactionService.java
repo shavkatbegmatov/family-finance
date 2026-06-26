@@ -221,51 +221,30 @@ public class TransactionService {
         }
 
         // Double-Entry mantiq
-        Account debitAccount;
-        Account creditAccount;
-
-        switch (request.getType()) {
-            case INCOME:
-                debitAccount = account; // Pul tushayotgan hisob
-                creditAccount = accountService.findTransitAccount(account.getCurrency(), true);
-                break;
-            case EXPENSE:
-                debitAccount = accountService.findTransitAccount(account.getCurrency(), false);
-                creditAccount = account; // Pul chiqayotgan hisob
-                break;
-            case TRANSFER:
-                if (request.getToAccountId() == null) {
-                    throw new BadRequestException("O'tkazma uchun qabul qiluvchi hisob kerak");
-                }
-                Account toAccount = accountRepository.findById(request.getToAccountId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
-                // O'tkazmada qabul qiluvchi hisobga ham yozish huquqi tekshiriladi
-                if (enforceAccess) {
-                    accountService.assertCanModify(toAccount);
-                }
-                ensureAccountActive(toAccount);
-                ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
-                transaction.setToAccount(toAccount);
-                debitAccount = toAccount;   // Pul tushayotgan hisob
-                creditAccount = account;     // Pul chiqayotgan hisob
-                break;
-            default:
-                throw new BadRequestException("Noto'g'ri tranzaksiya turi: " + request.getType());
+        // TRANSFER'da qabul qiluvchi hisobning yuklash + tekshiruvlari (huquq, faollik,
+        // valyuta) bu yerda — chunki ular CREATE oqimiga xos (enforceAccess, majburiy
+        // toAccount). Debit/credit aniqlash va balans qo'llash umumiy helper'larga chiqarilgan.
+        Account toAccount = null;
+        if (request.getType() == TransactionType.TRANSFER) {
+            if (request.getToAccountId() == null) {
+                throw new BadRequestException("O'tkazma uchun qabul qiluvchi hisob kerak");
+            }
+            toAccount = accountRepository.findById(request.getToAccountId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+            // O'tkazmada qabul qiluvchi hisobga ham yozish huquqi tekshiriladi
+            if (enforceAccess) {
+                accountService.assertCanModify(toAccount);
+            }
+            ensureAccountActive(toAccount);
+            ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
+            transaction.setToAccount(toAccount);
         }
 
-        // Balance before snapshot
-        transaction.setDebitAccount(debitAccount);
-        transaction.setCreditAccount(creditAccount);
-        transaction.setBalanceBeforeDebit(debitAccount.getBalance());
-        transaction.setBalanceBeforeCredit(creditAccount.getBalance());
+        DebitCredit dc = resolveDebitCredit(request.getType(), account, toAccount,
+                "Noto'g'ri tranzaksiya turi: " + request.getType());
 
-        // Balanslarni yangilash
-        accountRepository.addToBalance(debitAccount.getId(), request.getAmount());
-        accountRepository.addToBalance(creditAccount.getId(), request.getAmount().negate());
-
-        // Balance after snapshot
-        transaction.setBalanceAfterDebit(debitAccount.getBalance().add(request.getAmount()));
-        transaction.setBalanceAfterCredit(creditAccount.getBalance().subtract(request.getAmount()));
+        // Snapshot + balanslarni qo'llash (CREATE va UPDATE'da bir xil mantiq)
+        applyDebitCredit(transaction, dc, request.getAmount());
 
         // Eski balance update (backward compatibility)
         // account va toAccount balanslar allaqachon debit/credit orqali yangilangan
@@ -287,7 +266,7 @@ public class TransactionService {
 
         log.info("Tranzaksiya yaratildi: {} {} (debit: {}, credit: {})",
                 request.getType(), request.getAmount(),
-                debitAccount.getAccCode(), creditAccount.getAccCode());
+                dc.debit().getAccCode(), dc.credit().getAccCode());
 
         return toResponse(saved);
     }
@@ -345,47 +324,27 @@ public class TransactionService {
         }
 
         // Yangi double-entry mantiq
-        Account debitAccount;
-        Account creditAccount;
-
-        switch (request.getType()) {
-            case INCOME:
-                debitAccount = account;
-                creditAccount = accountService.findTransitAccount(account.getCurrency(), true);
-                break;
-            case EXPENSE:
-                debitAccount = accountService.findTransitAccount(account.getCurrency(), false);
-                creditAccount = account;
-                break;
-            case TRANSFER:
-                Account toAccount = null;
-                if (request.getToAccountId() != null) {
-                    toAccount = accountRepository.findById(request.getToAccountId())
-                            .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
-                    ensureAccountActive(toAccount); // D4: qabul qiluvchi hisob ham faol bo'lishi shart
-                    ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
-                    existing.setToAccount(toAccount);
-                } else {
-                    existing.setToAccount(null);
-                }
-                debitAccount = toAccount != null ? toAccount : account;
-                creditAccount = account;
-                break;
-            default:
-                throw new BadRequestException("Noto'g'ri tranzaksiya turi");
+        // TRANSFER'da qabul qiluvchi hisob ixtiyoriy (null bo'lsa o'tkazma → o'ziga
+        // "self" debit) — bu UPDATE oqimiga xos, shu sabab bu yerda. Debit/credit
+        // aniqlash va balans qo'llash CREATE bilan umumiy helper'larda.
+        Account toAccount = null;
+        if (request.getType() == TransactionType.TRANSFER) {
+            if (request.getToAccountId() != null) {
+                toAccount = accountRepository.findById(request.getToAccountId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                ensureAccountActive(toAccount); // D4: qabul qiluvchi hisob ham faol bo'lishi shart
+                ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
+                existing.setToAccount(toAccount);
+            } else {
+                existing.setToAccount(null);
+            }
         }
 
-        existing.setDebitAccount(debitAccount);
-        existing.setCreditAccount(creditAccount);
-        existing.setBalanceBeforeDebit(debitAccount.getBalance());
-        existing.setBalanceBeforeCredit(creditAccount.getBalance());
+        DebitCredit dc = resolveDebitCredit(request.getType(), account, toAccount,
+                "Noto'g'ri tranzaksiya turi");
 
-        // Yangi balanslarni qo'llash
-        accountRepository.addToBalance(debitAccount.getId(), request.getAmount());
-        accountRepository.addToBalance(creditAccount.getId(), request.getAmount().negate());
-
-        existing.setBalanceAfterDebit(debitAccount.getBalance().add(request.getAmount()));
-        existing.setBalanceAfterCredit(creditAccount.getBalance().subtract(request.getAmount()));
+        // Snapshot + yangi balanslarni qo'llash (CREATE va UPDATE'da bir xil mantiq)
+        applyDebitCredit(existing, dc, request.getAmount());
 
         Transaction savedExisting = transactionRepository.save(existing);
 
@@ -558,6 +517,69 @@ public class TransactionService {
                 }
                 break;
         }
+    }
+
+    /**
+     * Double-Entry debit/credit juftligi (immutable holder).
+     */
+    private record DebitCredit(Account debit, Account credit) {}
+
+    /**
+     * Tranzaksiya turiga ko'ra debit/credit hisoblarni aniqlaydi — CREATE va UPDATE
+     * oqimlari uchun yagona manba (DRY). Natija ikkala oqimda ham AYNAN bir xil:
+     * <ul>
+     *   <li>INCOME:   debit = foydalanuvchi hisobi, credit = daromad tranziti</li>
+     *   <li>EXPENSE:  debit = xarajat tranziti, credit = foydalanuvchi hisobi</li>
+     *   <li>TRANSFER: debit = qabul qiluvchi hisob (yo'q bo'lsa o'ziga), credit = jo'natuvchi</li>
+     * </ul>
+     * TRANSFER'da {@code toAccount} aniqlash/tekshirish chaqiruvchida bajariladi
+     * (CREATE va UPDATE'da farq qiladi); bu yerda faqat juftlik tanlanadi.
+     *
+     * @param toAccount TRANSFER qabul qiluvchi hisob; {@code null} bo'lsa debit = jo'natuvchi
+     *                  ({@code account}) — UPDATE'dagi "self-transfer" holatiga mos
+     * @param invalidTypeMessage INCOME/EXPENSE/TRANSFER'dan boshqa tur uchun xato matni
+     *                           (chaqiruvchining asl matnini AYNAN saqlash uchun)
+     */
+    private DebitCredit resolveDebitCredit(TransactionType type, Account account, Account toAccount,
+                                           String invalidTypeMessage) {
+        switch (type) {
+            case INCOME:
+                return new DebitCredit(account, // Pul tushayotgan hisob
+                        accountService.findTransitAccount(account.getCurrency(), true));
+            case EXPENSE:
+                return new DebitCredit(
+                        accountService.findTransitAccount(account.getCurrency(), false),
+                        account); // Pul chiqayotgan hisob
+            case TRANSFER:
+                Account debit = toAccount != null ? toAccount : account; // Pul tushayotgan hisob
+                return new DebitCredit(debit, account); // credit = pul chiqayotgan (jo'natuvchi)
+            default:
+                throw new BadRequestException(invalidTypeMessage);
+        }
+    }
+
+    /**
+     * Tranzaksiyaga debit/credit snapshot'larini yozadi va hisob balanslarini qo'llaydi.
+     * CREATE va UPDATE oqimlarida AYNAN bir xil ketma-ketlik (DRY): debit += amount,
+     * credit -= amount; before/after balanslar saqlab qolinadi.
+     */
+    private void applyDebitCredit(Transaction tx, DebitCredit dc, BigDecimal amount) {
+        Account debitAccount = dc.debit();
+        Account creditAccount = dc.credit();
+
+        // Balance before snapshot
+        tx.setDebitAccount(debitAccount);
+        tx.setCreditAccount(creditAccount);
+        tx.setBalanceBeforeDebit(debitAccount.getBalance());
+        tx.setBalanceBeforeCredit(creditAccount.getBalance());
+
+        // Balanslarni yangilash
+        accountRepository.addToBalance(debitAccount.getId(), amount);
+        accountRepository.addToBalance(creditAccount.getId(), amount.negate());
+
+        // Balance after snapshot
+        tx.setBalanceAfterDebit(debitAccount.getBalance().add(amount));
+        tx.setBalanceAfterCredit(creditAccount.getBalance().subtract(amount));
     }
 
     /**

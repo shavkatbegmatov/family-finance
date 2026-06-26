@@ -41,6 +41,7 @@ public class MembershipService {
     private final UserRepository userRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final ScopeContextService scopeContext;
+    private final ScopeMembershipService scopeMembershipService;
 
     // ====================================================================
     // Read
@@ -294,24 +295,16 @@ public class MembershipService {
                 });
     }
 
+    /**
+     * Invite (kod orqali qo'shilish) uchun upsert: yo'q bo'lsa ACTIVE yaratadi, INACTIVE/PENDING
+     * bo'lsa ACTIVE'ga o'tkazib {@code joinedAt}'ni yangilaydi, ACTIVE bo'lsa tegmaydi.
+     *
+     * <p>DRY: yagona upsert mantig'i {@link ScopeMembershipService#addMembershipIfAbsent} da.
+     * Bu yerda {@code refreshJoinedAtOnReactivate=true} — qayta qo'shilishda {@code joinedAt}
+     * yangilanadi (eski xulq AYNAN saqlanadi).</p>
+     */
     private ScopeMembership ensureMembership(Scope scope, User user, ScopeRole role) {
-        return membershipRepository.findByScopeIdAndUserId(scope.getId(), user.getId())
-                .map(existing -> {
-                    if (existing.getStatus() != MembershipStatus.ACTIVE) {
-                        existing.setStatus(MembershipStatus.ACTIVE);
-                        existing.setRole(role);
-                        existing.setJoinedAt(java.time.LocalDateTime.now());
-                        return membershipRepository.save(existing);
-                    }
-                    return existing;
-                })
-                .orElseGet(() -> membershipRepository.save(ScopeMembership.builder()
-                        .scope(scope)
-                        .user(user)
-                        .role(role)
-                        .status(MembershipStatus.ACTIVE)
-                        .joinedAt(java.time.LocalDateTime.now())
-                        .build()));
+        return scopeMembershipService.addMembershipIfAbsent(scope, user, role, true);
     }
 
     /**
