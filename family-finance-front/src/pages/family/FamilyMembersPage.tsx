@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import toast from 'react-hot-toast';
 import {
@@ -30,7 +31,7 @@ import { ModalPortal } from '../../components/common/Modal';
 import { ExportButtons } from '../../components/common/ExportButtons';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionCode, usePermission } from '../../hooks/usePermission';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { FamilyTreeView } from '../../components/family/FamilyTreeView';
 import {
@@ -70,23 +71,57 @@ export function FamilyMembersPage() {
   const { hasPermission } = usePermission();
   const canManagePoints = hasPermission(PermissionCode.POINTS_MANAGE);
   const [activeTab, setActiveTab] = useState<'list' | 'tree'>('list');
-  const [members, setMembers] = useState<FamilyMember[]>([]);
-  const allMembersRef = useRef<FamilyMember[]>([]);
-  const [allMembers, setAllMembers] = useState<FamilyMember[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
   const mobileSentinelRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [pageSizeMode, setPageSizeMode] = useState<'auto' | number>('auto');
   const [autoPageSize, setAutoPageSize] = useState(20);
   const [autoViewportHeight, setAutoViewportHeight] = useState<number | null>(null);
-  const [totalElements, setTotalElements] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Effective page size — auto rejimda hisoblangan, aks holda tanlangan
   const pageSize = pageSizeMode === 'auto' ? autoPageSize : pageSizeMode;
   const previousPageSizeRef = useRef(pageSize);
-  const latestMembersRequestRef = useRef(0);
+
+  // ---------- Data (react-query) ----------
+  // Desktop: sahifa; Mobile: infinite scroll — UX bir xil. Scope queryKey'da (D8 migratsiyasi).
+  // Faqat 'list' tabida yuklanadi (tree tabi useFamilyTreeQueries'ni ishlatadi).
+  const queryClient = useQueryClient();
+  const activeScopeId = useActiveScopeId();
+  const isListTab = activeTab === 'list';
+
+  const desktopQuery = useQuery({
+    queryKey: ['family-members', activeScopeId, page, pageSize, searchQuery],
+    queryFn: async (): Promise<PagedResponse<FamilyMember>> =>
+      (await familyMembersApi.getAll(page, pageSize, searchQuery || undefined)).data.data,
+    enabled: isListTab && !isMobile,
+  });
+  const mobileQuery = useInfiniteQuery({
+    queryKey: ['family-members-infinite', activeScopeId, pageSize, searchQuery],
+    queryFn: async ({ pageParam }): Promise<PagedResponse<FamilyMember>> =>
+      (await familyMembersApi.getAll(pageParam, pageSize, searchQuery || undefined)).data.data,
+    enabled: isListTab && isMobile,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const pages = Math.ceil(lastPage.totalElements / Math.max(pageSize, 1));
+      return allPages.length < pages ? allPages.length : undefined;
+    },
+  });
+
+  const members = desktopQuery.data?.content ?? [];
+  const allMembers = mobileQuery.data?.pages.flatMap((p) => p.content) ?? [];
+  const totalElements =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalElements : desktopQuery.data?.totalElements) ?? 0;
+  const loading = isMobile ? mobileQuery.isLoading : desktopQuery.isLoading;
+  const loadingMore = mobileQuery.isFetchingNextPage;
+
+  useEffect(() => {
+    if (desktopQuery.isError || mobileQuery.isError) toast.error("Oila a'zolarini yuklashda xatolik");
+  }, [desktopQuery.isError, mobileQuery.isError]);
+
+  const invalidateMembers = () => {
+    void queryClient.invalidateQueries({ queryKey: ['family-members'] });
+    void queryClient.invalidateQueries({ queryKey: ['family-members-infinite'] });
+  };
 
   // Jadvalning aylanuvchi (scrollable) container'ini o'lchaymiz
   const tableAreaRef = useRef<HTMLDivElement>(null);
@@ -212,47 +247,10 @@ export function FamilyMembersPage() {
 
   // ==================== DATA LOADING ====================
 
-  const loadMembers = useCallback(async () => {
-    const requestId = ++latestMembersRequestRef.current;
-
-    if (isMobile && page > 0) setLoadingMore(true);
-
-    try {
-      const res = await familyMembersApi.getAll(page, pageSize, searchQuery || undefined);
-      if (requestId !== latestMembersRequestRef.current) return;
-
-      const data = res.data.data as PagedResponse<FamilyMember>;
-      setMembers(data.content);
-      setTotalElements(data.totalElements);
-
-      if (isMobile && page > 0) {
-        const newAll = [...allMembersRef.current, ...data.content];
-        allMembersRef.current = newAll;
-        setAllMembers(newAll);
-      } else {
-        allMembersRef.current = data.content;
-        setAllMembers(data.content);
-      }
-    } catch {
-      if (requestId !== latestMembersRequestRef.current) return;
-      toast.error("Oila a'zolarini yuklashda xatolik");
-    } finally {
-      if (requestId === latestMembersRequestRef.current) {
-        setLoading(false);
-        setLoadingMore(false);
-      }
-    }
-  }, [page, pageSize, searchQuery, isMobile]);
-
+  // Qidiruv/scope o'zgarsa desktop sahifani boshiga qaytaramiz (mobile queryKey o'zi reset bo'ladi)
   useEffect(() => {
-    if (activeTab !== 'list') return;
-    void loadMembers();
-  }, [activeTab, loadMembers]);
-
-  // Phase 3: aktiv scope o'zgarganda oila a'zolarini qayta yuklash
-  useScopeChangeEffect(() => {
-    void loadMembers();
-  });
+    setPage(0);
+  }, [searchQuery, activeScopeId]);
 
   // page size o'zgarganda joriy element atrofidagi sahifani saqlab qolish
   useLayoutEffect(() => {
@@ -267,14 +265,14 @@ export function FamilyMembersPage() {
   }, [pageSize]);
 
   // Mobile infinite scroll
-  const totalPages = Math.ceil(totalElements / pageSize);
-  const hasMore = page < totalPages - 1;
+  const totalPages = Math.ceil(totalElements / Math.max(pageSize, 1));
+  const hasMore = isMobile ? (mobileQuery.hasNextPage ?? false) : page < totalPages - 1;
 
   const handleLoadMore = useCallback(() => {
-    if (hasMore && !loadingMore) {
-      setPage((p) => p + 1);
+    if (mobileQuery.hasNextPage && !mobileQuery.isFetchingNextPage) {
+      void mobileQuery.fetchNextPage();
     }
-  }, [hasMore, loadingMore]);
+  }, [mobileQuery]);
 
   useEffect(() => {
     if (!isMobile || !mobileSentinelRef.current) return;
@@ -290,11 +288,6 @@ export function FamilyMembersPage() {
     return () => observer.disconnect();
   }, [isMobile, hasMore, loadingMore, handleLoadMore]);
 
-  // Reset allMembers when searchQuery changes
-  useEffect(() => {
-    allMembersRef.current = [];
-    setAllMembers([]);
-  }, [searchQuery]);
 
   // ==================== MODAL ====================
 
@@ -353,7 +346,7 @@ export function FamilyMembersPage() {
         }
       }
       handleCloseModal();
-      void loadMembers();
+      invalidateMembers();
     } catch {
       toast.error("Oila a'zosini saqlashda xatolik");
     } finally {
@@ -437,11 +430,12 @@ export function FamilyMembersPage() {
         familyMemberId: member.id,
       });
       toast.success(`${member.fullName} ball tizimiga qo'shildi`);
-      void loadMembers();
+      void queryClient.invalidateQueries({ queryKey: ['family-members'] });
+      void queryClient.invalidateQueries({ queryKey: ['family-members-infinite'] });
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Ball tizimiga qo'shishda xatolik"));
     }
-  }, [loadMembers]);
+  }, [queryClient]);
 
   const handleCopyToClipboard = async (text: string, field: string) => {
     try {
@@ -460,7 +454,7 @@ export function FamilyMembersPage() {
     try {
       await familyMembersApi.delete(deletingMemberId);
       setDeletingMemberId(null);
-      void loadMembers();
+      invalidateMembers();
     } catch {
       toast.error("Oila a'zosini o'chirishda xatolik");
     }
@@ -1435,7 +1429,7 @@ export function FamilyMembersPage() {
       <AddPersonWizard
         isOpen={showWizard}
         onClose={() => setShowWizard(false)}
-        onCreated={() => { void loadMembers(); }}
+        onCreated={() => invalidateMembers()}
       />
     </div>
   );
