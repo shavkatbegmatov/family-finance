@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   Wallet, CreditCard, PiggyBank, Smartphone, Landmark, Receipt,
@@ -11,14 +12,14 @@ import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { accountsApi } from '../../api/accounts.api';
 import type {
-  Account, AccountType, AccountStatus, AccountFilters, CurrencyBalance,
+  Account, AccountType, AccountStatus, AccountFilters, CurrencyBalance, PagedResponse,
 } from '../../types';
 import {
   formatCurrency, formatCompactCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
 } from '../../config/constants';
 import { DataTable, type Column } from '../../components/ui/DataTable';
 import { useIsMobile } from '../../hooks/useMediaQuery';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import { Select } from '../../components/ui/Select';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
@@ -286,20 +287,6 @@ export function AccountsPage() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  // Data
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const allItemsRef = useRef<Account[]>([]);
-  const [allItems, setAllItems] = useState<Account[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [totalElements, setTotalElements] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-
-  // KPI
-  const [balances, setBalances] = useState<CurrencyBalance[]>([]);
-  const [kpiLoading, setKpiLoading] = useState(true);
-
   // Tabs, View & Filters
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -323,90 +310,73 @@ export function AccountsPage() {
   // Data fetching
   // -----------------------------------------------------------------------
 
-  const fetchTotalBalance = useCallback(async () => {
-    try {
-      setKpiLoading(true);
-      const res = await accountsApi.getTotalBalance();
-      setBalances(res.data.data ?? []);
-    } catch {
-      // silently fail
-    } finally {
-      setKpiLoading(false);
-    }
-  }, []);
+  // ---------- Data (react-query) ----------
+  // Desktop: sahifa-asosli; Mobile: infinite scroll — UX bir xil. Scope queryKey'da (D8 migratsiyasi).
+  const queryClient = useQueryClient();
+  const activeScopeId = useActiveScopeId();
 
-  const fetchAccounts = useCallback(async () => {
-    if (isMobile && page > 0) setLoadingMore(true);
-    else setLoading(true);
-    try {
-      let content: Account[];
-      let elems: number;
-      let pages: number;
-
-      if (activeTab === 'my') {
-        const res = await accountsApi.getMy(page, pageSize);
-        const data = res.data;
-        content = data.data.content;
-        elems = data.data.totalElements;
-        pages = data.data.totalPages;
-      } else {
-        const filters: AccountFilters = { page, size: pageSize };
-        if (search) filters.search = search;
-        if (filterType) filters.accountType = filterType;
-        if (filterStatus) filters.status = filterStatus;
-
-        const res = await accountsApi.getAll(filters);
-        const data = res.data;
-        content = data.data.content;
-        elems = data.data.totalElements;
-        pages = data.data.totalPages;
-      }
-
-      setAccounts(content);
-      setTotalElements(elems);
-      setTotalPages(pages);
-
-      if (isMobile && page > 0) {
-        const newAll = [...allItemsRef.current, ...content];
-        allItemsRef.current = newAll;
-        setAllItems(newAll);
-      } else {
-        allItemsRef.current = content;
-        setAllItems(content);
-      }
-    } catch {
-      toast.error('Hisoblarni yuklashda xatolik');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      setInitialLoading(false);
-    }
-  }, [activeTab, page, pageSize, search, filterType, filterStatus, isMobile]);
-
-  const handleLoadMore = useCallback(() => {
-    if (page < totalPages - 1 && !loadingMore) {
-      setPage((p) => p + 1);
-    }
-  }, [page, totalPages, loadingMore]);
-
-  useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);
-
-  useEffect(() => {
-    fetchTotalBalance();
-  }, [fetchTotalBalance]);
-
-  // Phase 3: aktiv scope o'zgarganda hisoblar va umumiy balansni qayta yuklash
-  useScopeChangeEffect(() => {
-    fetchAccounts();
-    fetchTotalBalance();
+  // Umumiy balans (KPI)
+  const { data: balances = [], isLoading: kpiLoading } = useQuery({
+    queryKey: ['accounts-balance', activeScopeId],
+    queryFn: async (): Promise<CurrencyBalance[]> => (await accountsApi.getTotalBalance()).data.data ?? [],
   });
 
-  // Reset page on filter change
+  // Bitta sahifani yuklovchi (activeTab 'my' -> getMy, aks holda filtrlangan getAll)
+  const fetchAccountsPage = async (pageParam: number): Promise<PagedResponse<Account>> => {
+    if (activeTab === 'my') {
+      return (await accountsApi.getMy(pageParam, pageSize)).data.data;
+    }
+    const filters: AccountFilters = { page: pageParam, size: pageSize };
+    if (search) filters.search = search;
+    if (filterType) filters.accountType = filterType;
+    if (filterStatus) filters.status = filterStatus;
+    return (await accountsApi.getAll(filters)).data.data;
+  };
+
+  const desktopQuery = useQuery({
+    queryKey: ['accounts', activeScopeId, activeTab, page, pageSize, search, filterType, filterStatus],
+    queryFn: () => fetchAccountsPage(page),
+    enabled: !isMobile,
+  });
+  const mobileQuery = useInfiniteQuery({
+    queryKey: ['accounts-infinite', activeScopeId, activeTab, pageSize, search, filterType, filterStatus],
+    queryFn: ({ pageParam }) => fetchAccountsPage(pageParam),
+    enabled: isMobile,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      allPages.length < lastPage.totalPages ? allPages.length : undefined,
+  });
+
+  const accounts = desktopQuery.data?.content ?? [];
+  const allItems = mobileQuery.data?.pages.flatMap((p) => p.content) ?? [];
+  const totalPages =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalPages : desktopQuery.data?.totalPages) ?? 0;
+  const totalElements =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalElements : desktopQuery.data?.totalElements) ?? 0;
+  const initialLoading = isMobile ? mobileQuery.isLoading : desktopQuery.isLoading;
+  const loading = initialLoading;
+  const loadingMore = mobileQuery.isFetchingNextPage;
+
+  useEffect(() => {
+    if (desktopQuery.isError || mobileQuery.isError) toast.error('Hisoblarni yuklashda xatolik');
+  }, [desktopQuery.isError, mobileQuery.isError]);
+
+  const handleLoadMore = useCallback(() => {
+    if (mobileQuery.hasNextPage && !mobileQuery.isFetchingNextPage) {
+      void mobileQuery.fetchNextPage();
+    }
+  }, [mobileQuery]);
+
+  const invalidateAccounts = () => {
+    void queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    void queryClient.invalidateQueries({ queryKey: ['accounts-infinite'] });
+    void queryClient.invalidateQueries({ queryKey: ['accounts-balance'] });
+  };
+
+  // Filter/scope o'zgarsa desktop sahifani boshiga qaytaramiz
   useEffect(() => {
     setPage(0);
-  }, [search, filterType, filterStatus, activeTab]);
+  }, [search, filterType, filterStatus, activeTab, activeScopeId]);
 
   // -----------------------------------------------------------------------
   // Computed KPI values
@@ -424,8 +394,7 @@ export function AccountsPage() {
   // -----------------------------------------------------------------------
 
   const handleRefresh = () => {
-    fetchAccounts();
-    fetchTotalBalance();
+    invalidateAccounts();
   };
 
   const openCreate = () => {
@@ -439,8 +408,7 @@ export function AccountsPage() {
   };
 
   const handleModalSuccess = () => {
-    fetchAccounts();
-    fetchTotalBalance();
+    invalidateAccounts();
   };
 
   const clearFilters = () => {
