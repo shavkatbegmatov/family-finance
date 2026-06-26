@@ -12,7 +12,6 @@ import { familyMembersApi } from '../../api/family-members.api';
 import { TransactionFormModal } from './TransactionFormModal';
 import type {
   Account,
-  ApiResponse,
   FamilyMember,
   FinanceCategory,
 } from '../../types';
@@ -54,8 +53,7 @@ export function QuickEntryFab() {
       setAccounts(accountsRes.data.data);
       setCategories(categoriesRes.data.data.content);
       setMembers(
-        (membersRes.data as ApiResponse<FamilyMember[]>).data ??
-          (membersRes.data as FamilyMember[])
+        membersRes.data.data ?? (membersRes.data as unknown as FamilyMember[])
       );
       setRefDataLoaded(true);
     } catch {

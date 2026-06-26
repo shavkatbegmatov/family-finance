@@ -19,7 +19,6 @@ import type {
   Account,
   FinanceCategory,
   FamilyMember,
-  ApiResponse,
   PagedResponse,
 } from '../types';
 
@@ -93,7 +92,7 @@ export function useTransactionsData() {
     queryKey: ['members-ref', activeScopeId],
     queryFn: async (): Promise<FamilyMember[]> => {
       const res = await familyMembersApi.getList();
-      return (res.data as ApiResponse<FamilyMember[]>).data ?? (res.data as FamilyMember[]);
+      return res.data.data ?? (res.data as unknown as FamilyMember[]);
     },
   });
 

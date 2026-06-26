@@ -14,7 +14,6 @@ import type {
 import type {
   FamilyMember,
   FamilyMemberRequest,
-  ApiResponse,
 } from '../types';
 import type { InlineMemberFormState } from '../components/points/pointsParticipantsHelpers';
 
@@ -197,7 +196,7 @@ export function usePointsParticipantsData() {
         birthDate: formState.birthDate || undefined,
       };
       const res = await familyMembersApi.create(payload);
-      return (res.data as ApiResponse<FamilyMember>).data;
+      return res.data.data;
     },
     onSuccess: async (created) => {
       // Dropdown qayta o'qisin (original mantiq)
