@@ -1,20 +1,14 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit2, UserX, Link as LinkIcon, Users, X, Sparkles, UserPlus } from 'lucide-react';
-import clsx from 'clsx';
-import { pointParticipantApi, pointBalanceApi } from '../../api/points.api';
-import { familyMembersApi } from '../../api/family-members.api';
-import type {
-  PointParticipant, PointParticipantRequest, PointBalance,
-} from '../../types/points.types';
-import type { FamilyMember, FamilyMemberRequest, Gender, ApiResponse } from '../../types';
+import { Plus, Users, Sparkles } from 'lucide-react';
 import { usePermission } from '../../hooks/usePermission';
-import { ModalPortal } from '../../components/common/Modal';
-import { ComboBox } from '../../components/ui/ComboBox';
 import { useFamilyMemberOptions } from '../../hooks/useFamilyMemberOptions';
-import { AddPersonWizard, PersonBadges } from '../../components/persons';
-import { getApiErrorMessage } from '../../utils/apiError';
+import { usePointsParticipantsData } from '../../hooks/usePointsParticipantsData';
+import { AddPersonWizard } from '../../components/persons';
+import { ParticipantCard } from '../../components/points/ParticipantCard';
+import { ParticipantFormModal } from '../../components/points/ParticipantFormModal';
+import { LinkMemberModal } from '../../components/points/LinkMemberModal';
+import { InlineMemberModal } from '../../components/points/InlineMemberModal';
 import {
   PointsEmptyState,
   PointsLoadingState,
@@ -22,279 +16,130 @@ import {
   PointsPermissionState,
   PointsSectionCard,
 } from '../../components/points/ui';
+import type { PointParticipant, PointParticipantRequest } from '../../types/points.types';
+import type { InlineMemberFormState } from '../../components/points/pointsParticipantsHelpers';
+import { LINK_REASON_MIN_LENGTH } from '../../components/points/pointsParticipantsHelpers';
 
-interface ParticipantFormState {
-  firstName: string;
-  lastName: string;
-  nickname: string;
-  birthDate: string;
-}
-
-const emptyForm: ParticipantFormState = {
-  firstName: '',
-  lastName: '',
-  nickname: '',
-  birthDate: '',
-};
-
+/**
+ * Ball ishtirokchilari sahifasi (orchestrator). Ma'lumot/mutation'lar
+ * {@link usePointsParticipantsData} hook'ida (react-query, D8 migratsiyasi); bu
+ * komponent faqat UI holati (modal/tanlash) va kompozitsiyani boshqaradi —
+ * grid (ParticipantCard) + form/link/inline modal'lar + AddPersonWizard.
+ */
 export function PointsParticipantsPage() {
   const { canManagePoints, canViewPoints } = usePermission();
 
-  const [participants, setParticipants] = useState<PointParticipant[]>([]);
-  const [balances, setBalances] = useState<Record<number, PointBalance>>({});
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    participants,
+    loading,
+    balances,
+    linkParticipantId,
+    setLinkParticipantId,
+    linkMemberId,
+    setLinkMemberId,
+    selectedParticipant,
+    memberLinkedToAnotherParticipant,
+    selectedIsCurrentMember,
+    linkReasonRequired,
+    createMutation,
+    updateMutation,
+    deactivateMutation,
+    linkMutation,
+    unlinkMutation,
+    inlineMemberMutation,
+    invalidateParticipants,
+  } = usePointsParticipantsData();
 
-  // Modal state
+  // ---------- UI holati (modal/tanlash) ----------
+  // Add/Edit modal
   const [showModal, setShowModal] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<PointParticipant | null>(null);
-  const [form, setForm] = useState<ParticipantFormState>(emptyForm);
 
   // Link member modal
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [linkParticipantId, setLinkParticipantId] = useState<number | null>(null);
-  const [linkMemberId, setLinkMemberId] = useState<number | undefined>(undefined);
-  const [linkReason, setLinkReason] = useState('');
-  const [unlinkReason, setUnlinkReason] = useState('');
-  const [linkSubmitting, setLinkSubmitting] = useState(false);
-  const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
 
   // Wizard ("Yangi shaxs qo'shish")
   const [showWizard, setShowWizard] = useState(false);
 
   // Inline member creation (link modal ichidan)
-  const queryClient = useQueryClient();
   const [showInlineMemberModal, setShowInlineMemberModal] = useState(false);
-  const [inlineMemberForm, setInlineMemberForm] = useState({
-    firstName: '',
-    lastName: '',
-    gender: '' as Gender | '',
-    birthDate: '',
-  });
-  const [inlineMemberSubmitting, setInlineMemberSubmitting] = useState(false);
 
-  const selectedParticipant = useMemo(
-    () => participants.find((p) => p.id === linkParticipantId) ?? null,
-    [participants, linkParticipantId],
-  );
+  // Oila a'zosi dropdown opsiyalari — tanlangan ishtirokchi (yoki birinchi)ning
+  // familyGroupId bo'yicha. Original mantiq AYNAN.
   const currentFamilyGroupId = selectedParticipant?.familyGroupId ?? participants[0]?.familyGroupId;
   const { options: memberOptions } = useFamilyMemberOptions({ familyGroupId: currentFamilyGroupId });
 
-  const memberLinkedToAnotherParticipant = useMemo(() => {
-    if (!linkMemberId || !linkParticipantId) return null;
-    return (
-      participants.find((p) => p.familyMemberId === linkMemberId && p.id !== linkParticipantId) ?? null
-    );
-  }, [participants, linkMemberId, linkParticipantId]);
+  const submitting = createMutation.isPending || updateMutation.isPending;
 
-  const participantChangingMember = Boolean(
-    selectedParticipant?.familyMemberId &&
-    linkMemberId &&
-    selectedParticipant.familyMemberId !== linkMemberId,
-  );
-  const selectedIsCurrentMember = Boolean(
-    selectedParticipant?.familyMemberId &&
-    linkMemberId &&
-    selectedParticipant.familyMemberId === linkMemberId,
-  );
-
-  const linkReasonRequired = Boolean(memberLinkedToAnotherParticipant || participantChangingMember);
-  const canSubmitLink = Boolean(
-    linkParticipantId &&
-    linkMemberId &&
-    !selectedIsCurrentMember &&
-    (!linkReasonRequired || linkReason.trim().length >= 10) &&
-    !linkSubmitting,
-  );
-
-  const loadParticipants = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await pointParticipantApi.getAll();
-      const parts: PointParticipant[] = res.data?.data ?? res.data ?? [];
-      setParticipants(parts);
-
-      // Load balances
-      const balMap: Record<number, PointBalance> = {};
-      const results = await Promise.all(
-        parts.filter((p) => p.isActive).map((p) =>
-          pointBalanceApi.get(p.id).catch(() => null)
-        )
-      );
-      results.forEach((r) => {
-        if (r) {
-          const bal: PointBalance = r.data?.data ?? r.data;
-          if (bal) balMap[bal.participantId] = bal;
-        }
-      });
-      setBalances(balMap);
-    } catch {
-      toast.error("Ishtirokchilarni yuklashda xatolik");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadParticipants();
-  }, [loadParticipants]);
-
+  // ---------- Add/Edit modal handlers ----------
   const openCreateModal = () => {
     setEditingParticipant(null);
-    setForm(emptyForm);
     setShowModal(true);
   };
 
   const openEditModal = (p: PointParticipant) => {
     setEditingParticipant(p);
-    setForm({
-      firstName: p.firstName,
-      lastName: p.lastName ?? '',
-      nickname: p.nickname ?? '',
-      birthDate: p.birthDate ?? '',
-    });
     setShowModal(true);
   };
 
-  const handleSubmit = async () => {
-    if (!form.firstName.trim()) {
-      toast.error("Ism majburiy");
-      return;
-    }
-    try {
-      setSubmitting(true);
-      const req: PointParticipantRequest = {
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim() || undefined,
-        nickname: form.nickname.trim() || undefined,
-        birthDate: form.birthDate || undefined,
-      };
-      if (editingParticipant) {
-        await pointParticipantApi.update(editingParticipant.id, req);
-        toast.success("Ishtirokchi yangilandi");
-      } else {
-        await pointParticipantApi.create(req);
-        toast.success("Ishtirokchi qo'shildi");
-      }
-      setShowModal(false);
-      loadParticipants();
-    } catch {
-      toast.error("Saqlashda xatolik");
-    } finally {
-      setSubmitting(false);
+  const handleSubmit = (payload: PointParticipantRequest) => {
+    if (editingParticipant) {
+      updateMutation.mutate(
+        { id: editingParticipant.id, req: payload },
+        { onSuccess: () => setShowModal(false) },
+      );
+    } else {
+      createMutation.mutate(payload, { onSuccess: () => setShowModal(false) });
     }
   };
 
-  const handleDeactivate = async (id: number) => {
+  // ---------- Deactivate ----------
+  const handleDeactivate = (id: number) => {
     if (!confirm("Ishtirokchini o'chirishni tasdiqlaysizmi?")) return;
-    try {
-      await pointParticipantApi.deactivate(id);
-      toast.success("Ishtirokchi o'chirildi");
-      loadParticipants();
-    } catch {
-      toast.error("O'chirishda xatolik");
-    }
+    deactivateMutation.mutate(id);
   };
 
-  const handleLinkMember = async () => {
-    if (!linkParticipantId || !linkMemberId) return;
-    if (linkReasonRequired && linkReason.trim().length < 10) {
-      toast.error("Qayta bog'lash uchun sabab kamida 10 belgi bo'lishi kerak");
-      return;
-    }
-    try {
-      setLinkSubmitting(true);
-      await pointParticipantApi.linkMember(linkParticipantId, {
-        familyMemberId: linkMemberId,
-        reason: linkReason.trim() || undefined,
-        forceTransfer: true,
-      });
-      toast.success(linkReasonRequired ? "Bog'lanish qayta yangilandi" : "Oila a'zosiga bog'landi");
-      closeLinkModal();
-      loadParticipants();
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Bog'lashda xatolik"));
-    } finally {
-      setLinkSubmitting(false);
-    }
-  };
-
-  /**
-   * Inline modal'da yangi FamilyMember yaratadi, ro'yxatni yangilaydi va
-   * dropdown'da uni avtomatik tanlaydi. Link modal'idan chiqish shart emas.
-   */
-  const openInlineMemberModal = useCallback(() => {
-    setInlineMemberForm({ firstName: '', lastName: '', gender: '', birthDate: '' });
-    setShowInlineMemberModal(true);
-  }, []);
-
-  const closeInlineMemberModal = useCallback(() => {
-    setShowInlineMemberModal(false);
-  }, []);
-
-  const handleCreateInlineMember = useCallback(async () => {
-    if (!inlineMemberForm.firstName.trim()) {
-      toast.error('Ism majburiy');
-      return;
-    }
-    try {
-      setInlineMemberSubmitting(true);
-      const payload: FamilyMemberRequest = {
-        firstName: inlineMemberForm.firstName.trim(),
-        lastName: inlineMemberForm.lastName.trim() || undefined,
-        gender: inlineMemberForm.gender || undefined,
-        birthDate: inlineMemberForm.birthDate || undefined,
-      };
-      const res = await familyMembersApi.create(payload);
-      const created = (res.data as ApiResponse<FamilyMember>).data;
-      // Dropdown qayta o'qisin
-      await queryClient.invalidateQueries({ queryKey: ['family-members', 'list'] });
-      // Yangi a'zo avtomatik tanlanadi
-      setLinkMemberId(created.id);
-      toast.success(`${created.fullName} qo'shildi va tanlandi`);
-      closeInlineMemberModal();
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Oila a'zosini qo'shishda xatolik"));
-    } finally {
-      setInlineMemberSubmitting(false);
-    }
-  }, [inlineMemberForm, queryClient, closeInlineMemberModal]);
-
-  const handleUnlinkMember = async () => {
-    if (!linkParticipantId) return;
-    if (unlinkReason.trim().length < 10) {
-      toast.error("Bog'lanishni uzish uchun sabab kamida 10 belgi bo'lishi kerak");
-      return;
-    }
-    try {
-      setUnlinkSubmitting(true);
-      await pointParticipantApi.unlinkMember(linkParticipantId, { reason: unlinkReason.trim() });
-      toast.success("Bog'lanish uzildi");
-      closeLinkModal();
-      loadParticipants();
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, "Bog'lanishni uzishda xatolik"));
-    } finally {
-      setUnlinkSubmitting(false);
-    }
+  // ---------- Link modal handlers ----------
+  const openLinkModal = (participant: PointParticipant) => {
+    setLinkParticipantId(participant.id);
+    setLinkMemberId(participant.familyMemberId);
+    setShowLinkModal(true);
   };
 
   const closeLinkModal = () => {
     setShowLinkModal(false);
     setLinkParticipantId(null);
     setLinkMemberId(undefined);
-    setLinkReason('');
-    setUnlinkReason('');
-    setLinkSubmitting(false);
-    setUnlinkSubmitting(false);
   };
 
-  const openLinkModal = (participant: PointParticipant) => {
-    setLinkParticipantId(participant.id);
-    setLinkMemberId(participant.familyMemberId);
-    setLinkReason('');
-    setUnlinkReason('');
-    setShowLinkModal(true);
+  const handleLinkMember = (reason: string | undefined) => {
+    if (!linkParticipantId || !linkMemberId) return;
+    if (linkReasonRequired && (reason ?? '').trim().length < LINK_REASON_MIN_LENGTH) {
+      toast.error("Qayta bog'lash uchun sabab kamida 10 belgi bo'lishi kerak");
+      return;
+    }
+    linkMutation.mutate(
+      { id: linkParticipantId, familyMemberId: linkMemberId, reason, reasonRequired: linkReasonRequired },
+      { onSuccess: closeLinkModal },
+    );
+  };
+
+  const handleUnlinkMember = (reason: string) => {
+    if (!linkParticipantId) return;
+    if (reason.trim().length < LINK_REASON_MIN_LENGTH) {
+      toast.error("Bog'lanishni uzish uchun sabab kamida 10 belgi bo'lishi kerak");
+      return;
+    }
+    unlinkMutation.mutate({ id: linkParticipantId, reason: reason.trim() }, { onSuccess: closeLinkModal });
+  };
+
+  // ---------- Inline member handlers ----------
+  const handleCreateInlineMember = (form: InlineMemberFormState) => {
+    if (!form.firstName.trim()) {
+      toast.error('Ism majburiy');
+      return;
+    }
+    inlineMemberMutation.mutate(form, { onSuccess: () => setShowInlineMemberModal(false) });
   };
 
   if (!canViewPoints) {
@@ -343,387 +188,64 @@ export function PointsParticipantsPage() {
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {participants.map((p) => {
-                const bal = balances[p.id];
-                return (
-                  <div
-                    key={p.id}
-                    className={clsx(
-                      'points-card-hover surface-soft rounded-xl p-4',
-                      !p.isActive && 'opacity-55'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="avatar placeholder">
-                        <div className="bg-primary text-primary-content rounded-full w-12 h-12">
-                          <span className="text-lg font-bold">
-                            {p.firstName.charAt(0)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{p.displayName}</p>
-                        {p.nickname && (
-                          <p className="text-xs text-base-content/50">@{p.nickname}</p>
-                        )}
-                        {p.familyMemberName && (
-                          <p className="text-xs text-info">{p.familyMemberName}</p>
-                        )}
-                        <PersonBadges
-                          hasUser={!!p.familyMemberUserId}
-                          hasFamilyMember={!!p.familyMemberId}
-                          hasParticipant
-                          userTooltip={p.familyMemberUsername ? `Tizimga kira oladi: @${p.familyMemberUsername}` : undefined}
-                          participantTooltip={p.nickname ? `Ball tizimida: @${p.nickname}` : 'Ball tizimida qatnashadi'}
-                          className="mt-1.5"
-                        />
-                      </div>
-                      {!p.isActive && (
-                        <span className="badge badge-error badge-xs">Nofaol</span>
-                      )}
-                    </div>
-
-                    {bal && (
-                      <div className="grid grid-cols-3 gap-2 mt-3 text-center text-sm">
-                        <div className="bg-base-100/85 rounded-lg p-2">
-                          <p className="text-xs text-base-content/60">Balans</p>
-                          <p className="font-bold text-primary">
-                            {bal.currentBalance.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="bg-base-100/85 rounded-lg p-2">
-                          <p className="text-xs text-base-content/60">Topilgan</p>
-                          <p className="font-bold text-success">
-                            {bal.totalEarned.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="bg-base-100/85 rounded-lg p-2">
-                          <p className="text-xs text-base-content/60">Streak</p>
-                          <p className="font-bold text-warning">{bal.currentStreak}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {canManagePoints && p.isActive && (
-                      <div className="card-actions justify-end mt-3">
-                        <button
-                          className="btn btn-ghost btn-xs gap-1"
-                          onClick={() => openLinkModal(p)}
-                        >
-                          <LinkIcon className="h-3 w-3" />
-                          {p.familyMemberId ? "Bog'lanish" : "Bog'lash"}
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-xs gap-1"
-                          onClick={() => openEditModal(p)}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                          Tahrirlash
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-xs text-error gap-1"
-                          onClick={() => handleDeactivate(p.id)}
-                        >
-                          <UserX className="h-3 w-3" />
-                          O'chirish
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+              {participants.map((p) => (
+                <ParticipantCard
+                  key={p.id}
+                  participant={p}
+                  balance={balances[p.id]}
+                  canManage={canManagePoints}
+                  onLink={openLinkModal}
+                  onEdit={openEditModal}
+                  onDeactivate={handleDeactivate}
+                />
+              ))}
             </div>
           )}
         </PointsSectionCard>
       )}
 
       {/* Add/Edit Modal */}
-      <ModalPortal isOpen={showModal} onClose={() => setShowModal(false)}>
-        <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">
-              {editingParticipant ? "Ishtirokchini tahrirlash" : "Yangi ishtirokchi"}
-            </h3>
-            <button className="btn btn-ghost btn-sm btn-square" onClick={() => setShowModal(false)}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="form-control">
-              <label className="label"><span className="label-text">Ism *</span></label>
-              <input
-                type="text"
-                className="input input-bordered"
-                value={form.firstName}
-                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                placeholder="Ism"
-              />
-            </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text">Familiya</span></label>
-              <input
-                type="text"
-                className="input input-bordered"
-                value={form.lastName}
-                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                placeholder="Familiya"
-              />
-            </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text">Laqab</span></label>
-              <input
-                type="text"
-                className="input input-bordered"
-                value={form.nickname}
-                onChange={(e) => setForm({ ...form, nickname: e.target.value })}
-                placeholder="Laqab"
-              />
-            </div>
-            <div className="form-control">
-              <label className="label"><span className="label-text">Tug'ilgan sana</span></label>
-              <input
-                type="date"
-                className="input input-bordered"
-                value={form.birthDate}
-                onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-6">
-            <button className="btn btn-ghost btn-sm" onClick={() => setShowModal(false)}>
-              Bekor qilish
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting && <span className="loading loading-spinner loading-xs" />}
-              {editingParticipant ? 'Yangilash' : "Qo'shish"}
-            </button>
-          </div>
-        </div>
-      </ModalPortal>
+      <ParticipantFormModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        participant={editingParticipant}
+        submitting={submitting}
+        onSubmit={handleSubmit}
+      />
 
       {/* Link Member Modal */}
-      <ModalPortal isOpen={showLinkModal} onClose={closeLinkModal}>
-        <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Oila a'zosiga bog'lash</h3>
-              <p className="text-xs text-base-content/60 mt-1">
-                {selectedParticipant?.displayName ?? "Ishtirokchi tanlanmagan"}
-              </p>
-            </div>
-            <button className="btn btn-ghost btn-sm btn-square" onClick={closeLinkModal}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-xl border border-base-200 bg-base-200/30 p-3 text-sm">
-              {selectedParticipant?.familyMemberName ? (
-                <>
-                  <p className="text-base-content/60">Hozir bog'langan:</p>
-                  <p className="font-medium text-info">{selectedParticipant.familyMemberName}</p>
-                </>
-              ) : (
-                <p className="text-base-content/60">Hozircha oila a'zosiga bog'lanmagan</p>
-              )}
-            </div>
-
-            <div className="form-control">
-              <div className="flex items-center justify-between mb-1">
-                <span className="label-text">Oila a'zosini tanlang</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs gap-1"
-                  onClick={openInlineMemberModal}
-                  title="Ro'yxatda yo'q? Tezda yangi a'zo yarating"
-                >
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Yangi a'zo
-                </button>
-              </div>
-              <ComboBox
-                value={linkMemberId}
-                onChange={(val) => setLinkMemberId(val as number | undefined)}
-                options={memberOptions}
-                placeholder="Oila a'zosini tanlang..."
-                searchPlaceholder="Ism yoki familiya bo'yicha qidiring..."
-                allowClear
-                size="md"
-              />
-              {selectedIsCurrentMember && (
-                <p className="mt-1 text-xs text-base-content/60">
-                  Tanlangan oila a'zosi allaqachon shu ishtirokchiga bog'langan.
-                </p>
-              )}
-            </div>
-
-            {memberLinkedToAnotherParticipant && (
-              <div className="alert alert-warning text-sm">
-                <span>
-                  Tanlangan a'zo hozir <strong>{memberLinkedToAnotherParticipant.displayName}</strong> ga bog'langan.
-                  Davom etsangiz bog'lanish transfer qilinadi.
-                </span>
-              </div>
-            )}
-
-            {linkReasonRequired && (
-              <div>
-                <label className="label">
-                  <span className="label-text">Qayta bog'lash sababi (kamida 10 belgi) *</span>
-                </label>
-                <textarea
-                  className="textarea textarea-bordered w-full"
-                  rows={3}
-                  value={linkReason}
-                  onChange={(e) => setLinkReason(e.target.value)}
-                  placeholder="Nega bog'lanish o'zgartirilayotganini yozing..."
-                />
-                {linkReason.trim().length > 0 && linkReason.trim().length < 10 && (
-                  <p className="mt-1 text-xs text-error">Kamida 10 belgi kiriting</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 mt-6">
-            <button className="btn btn-ghost btn-sm" onClick={closeLinkModal}>
-              Bekor qilish
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleLinkMember}
-              disabled={!canSubmitLink}
-            >
-              {linkSubmitting && <span className="loading loading-spinner loading-xs" />}
-              Bog'lash
-            </button>
-          </div>
-
-          {selectedParticipant?.familyMemberId && (
-            <div className="mt-5 border-t border-base-200 pt-4">
-              <h4 className="text-sm font-semibold text-error">Bog'lanishni uzish</h4>
-              <p className="text-xs text-base-content/60 mt-1">
-                Ushbu amal audit logga yoziladi.
-              </p>
-              <textarea
-                className="textarea textarea-bordered textarea-sm w-full mt-3"
-                rows={2}
-                value={unlinkReason}
-                onChange={(e) => setUnlinkReason(e.target.value)}
-                placeholder="Bog'lanishni uzish sababini yozing (kamida 10 belgi)"
-              />
-              {unlinkReason.trim().length > 0 && unlinkReason.trim().length < 10 && (
-                <p className="mt-1 text-xs text-error">Kamida 10 belgi kiriting</p>
-              )}
-              <div className="mt-3 flex justify-end">
-                <button
-                  className="btn btn-outline btn-error btn-sm"
-                  onClick={handleUnlinkMember}
-                  disabled={unlinkSubmitting}
-                >
-                  {unlinkSubmitting && <span className="loading loading-spinner loading-xs" />}
-                  Bog'lanishni uzish
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </ModalPortal>
+      <LinkMemberModal
+        isOpen={showLinkModal}
+        onClose={closeLinkModal}
+        selectedParticipant={selectedParticipant}
+        linkMemberId={linkMemberId}
+        onLinkMemberChange={setLinkMemberId}
+        memberOptions={memberOptions}
+        memberLinkedToAnotherParticipant={memberLinkedToAnotherParticipant}
+        selectedIsCurrentMember={selectedIsCurrentMember}
+        linkReasonRequired={linkReasonRequired}
+        onLink={handleLinkMember}
+        onUnlink={handleUnlinkMember}
+        linkPending={linkMutation.isPending}
+        unlinkPending={unlinkMutation.isPending}
+        onOpenInlineMember={() => setShowInlineMemberModal(true)}
+      />
 
       {/* "Yangi shaxs qo'shish" wizard — to'liq (User + FamilyMember + Participant) */}
       <AddPersonWizard
         isOpen={showWizard}
         onClose={() => setShowWizard(false)}
-        onCreated={loadParticipants}
+        onCreated={() => invalidateParticipants()}
         defaultType="CHILD"
       />
 
       {/* Link modal ichidan chaqirilgan inline "Yangi a'zo" modal — minimal maydonlar bilan */}
-      <ModalPortal isOpen={showInlineMemberModal} onClose={closeInlineMemberModal}>
-        <div className="bg-base-100 rounded-2xl shadow-2xl w-full max-w-md p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Tezkor: yangi oila a'zosi</h3>
-              <p className="text-xs text-base-content/60 mt-1">
-                Yaratilgach, dropdown'da avtomatik tanlanadi
-              </p>
-            </div>
-            <button className="btn btn-ghost btn-sm btn-square" onClick={closeInlineMemberModal}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            <div className="form-control">
-              <label className="label py-1"><span className="label-text">Ism *</span></label>
-              <input
-                type="text"
-                className="input input-bordered"
-                value={inlineMemberForm.firstName}
-                onChange={(e) => setInlineMemberForm((p) => ({ ...p, firstName: e.target.value }))}
-                placeholder="Anvar"
-                autoFocus
-                maxLength={100}
-              />
-            </div>
-            <div className="form-control">
-              <label className="label py-1"><span className="label-text">Familiya</span></label>
-              <input
-                type="text"
-                className="input input-bordered"
-                value={inlineMemberForm.lastName}
-                onChange={(e) => setInlineMemberForm((p) => ({ ...p, lastName: e.target.value }))}
-                placeholder="Karimov"
-                maxLength={100}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="form-control">
-                <label className="label py-1"><span className="label-text">Jinsi</span></label>
-                <select
-                  className="select select-bordered"
-                  value={inlineMemberForm.gender}
-                  onChange={(e) => setInlineMemberForm((p) => ({ ...p, gender: e.target.value as Gender | '' }))}
-                >
-                  <option value="">Tanlang...</option>
-                  <option value="MALE">Erkak</option>
-                  <option value="FEMALE">Ayol</option>
-                </select>
-              </div>
-              <div className="form-control">
-                <label className="label py-1"><span className="label-text">Tug'ilgan sana</span></label>
-                <input
-                  type="date"
-                  className="input input-bordered"
-                  value={inlineMemberForm.birthDate}
-                  onChange={(e) => setInlineMemberForm((p) => ({ ...p, birthDate: e.target.value }))}
-                  max={new Date().toISOString().slice(0, 10)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-5">
-            <button className="btn btn-ghost btn-sm" onClick={closeInlineMemberModal} disabled={inlineMemberSubmitting}>
-              Bekor qilish
-            </button>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={handleCreateInlineMember}
-              disabled={!inlineMemberForm.firstName.trim() || inlineMemberSubmitting}
-            >
-              {inlineMemberSubmitting && <span className="loading loading-spinner loading-xs" />}
-              Yaratish va tanlash
-            </button>
-          </div>
-        </div>
-      </ModalPortal>
+      <InlineMemberModal
+        isOpen={showInlineMemberModal}
+        onClose={() => setShowInlineMemberModal(false)}
+        submitting={inlineMemberMutation.isPending}
+        onSubmit={handleCreateInlineMember}
+      />
     </PointsPageShell>
   );
 }
