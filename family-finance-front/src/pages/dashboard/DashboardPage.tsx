@@ -1,62 +1,35 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useState, useCallback, useMemo } from 'react';
 import {
   Wallet,
   TrendingUp,
   TrendingDown,
   PiggyBank,
   Target,
-  HandMetal,
   ArrowLeftRight,
-  BarChart3,
-  Eye,
-  EyeOff,
-  ArrowDownLeft,
-  ArrowUpRight,
-  X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import clsx from 'clsx';
-import { useQuickEntryStore } from '../../store/quickEntryStore';
 import { usePermission, PermissionCode } from '../../hooks/usePermission';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart as RechartsPie,
-  Pie,
-  Cell,
-  Legend,
-} from 'recharts';
-import { familyDashboardApi } from '../../api/family-dashboard.api';
-import { useActiveScopeId } from '../../hooks/useScopeChange';
-import { formatCurrency, formatCompactCurrency, formatDate, MONTHS_UZ } from '../../config/constants';
-import type {
-  CurrencyBalance,
-  FamilyDashboardStats,
-  FamilyChartData,
-  Transaction,
-  MonthlyTrendItem,
-  BudgetProgressItem,
-} from '../../types';
-import { useNotificationsStore } from '../../store/notificationsStore';
-import { InsightCard, type InsightTone } from '../../components/common/InsightCard';
+import { formatCurrency, formatCompactCurrency, MONTHS_UZ } from '../../config/constants';
+import type { CurrencyBalance } from '../../types';
 import { RefreshingPill } from '../../components/common/RefreshingPill';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { OnboardingChecklist } from '../../components/dashboard/OnboardingChecklist';
-import {
-  BUDGET_THRESHOLDS,
-  BUDGET_TONE_BG,
-  CHART_COLORS,
-  getBudgetTone,
-  getChartColor,
-} from '../../config/chartColors';
+import { useDashboardData } from '../../hooks/useDashboardData';
+import { useTrendCalculations } from '../../hooks/useTrendCalculations';
+import { useDashboardInsights } from '../../hooks/useDashboardInsights';
+import { KPICard } from '../../components/dashboard/KPICard';
+import { MobileBalanceHero } from '../../components/dashboard/MobileHeroCard';
+import { MobileQuickActions } from '../../components/dashboard/MobileQuickActions';
+import { IncomeExpenseTrendChart } from '../../components/dashboard/IncomeExpenseTrendChart';
+import { RANGE_LABELS, type ChartRange } from '../../components/dashboard/chartRange';
+import { ExpenseByCategoryChart } from '../../components/dashboard/ExpenseByCategoryChart';
+import { BudgetProgressCard, SavingsProgressCard } from '../../components/dashboard/BudgetProgressCards';
+import { SecondaryStats } from '../../components/dashboard/SecondaryStats';
+import { RecentTransactionsCard } from '../../components/dashboard/RecentTransactionsCard';
+import { InsightCardsTop, InsightCardsExtra } from '../../components/dashboard/InsightCards';
+
+const HIDE_BALANCE_KEY = 'ff-hide-balance';
 
 /** D7: balansni valyutasi bilan formatlaydi (UZS -> "so'm", boshqa valyuta -> kod). */
 function formatBalance(b?: CurrencyBalance): string {
@@ -64,496 +37,52 @@ function formatBalance(b?: CurrencyBalance): string {
   return `${formatCompactCurrency(b.amount)} ${b.currency === 'UZS' ? "so'm" : b.currency}`;
 }
 
-// Insight thresholds
-const TREND_NEUTRAL_THRESHOLD = 1; // % — bundan kichik o'zgarish trend ko'rsatilmaydi
-const SAVINGS_RATE_GOOD = 20; // %
-const SAVINGS_RATE_LOW = 5; // %
-
-// Chart range options
-type ChartRange = '3m' | '6m' | '12m';
-const RANGE_LABELS: Record<ChartRange, { short: string; long: string; months: number }> = {
-  '3m': { short: '3 oy', long: 'Oxirgi 3 oy', months: 3 },
-  '6m': { short: '6 oy', long: 'Oxirgi 6 oy', months: 6 },
-  '12m': { short: '12 oy', long: 'Oxirgi 12 oy', months: 12 },
-};
-
-interface TrendInfo {
-  dir: 'up' | 'down' | 'flat';
-  value: string;
-}
-
-// Foiz farqi (oldingi davrga nisbatan)
-function calcTrend(current: number, previous: number): TrendInfo | null {
-  if (!previous || previous === 0) return null;
-  const diff = ((current - previous) / Math.abs(previous)) * 100;
-  if (Math.abs(diff) < TREND_NEUTRAL_THRESHOLD) {
-    return { dir: 'flat', value: `${diff.toFixed(1)}%` };
-  }
-  return {
-    dir: diff > 0 ? 'up' : 'down',
-    value: `${Math.abs(diff).toFixed(1)}%`,
-  };
-}
-
-// KPI karta komponenti — trend indicator bilan
-function KPICard({
-  title,
-  value,
-  icon: Icon,
-  color = 'primary',
-  trend,
-  trendGoodDirection = 'up',
-  subtitle,
-  className,
-  style,
-}: {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  color?: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'secondary';
-  trend?: TrendInfo | null;
-  trendGoodDirection?: 'up' | 'down';
-  subtitle?: string;
-  className?: string;
-  style?: CSSProperties;
-}) {
-  const colorMap = {
-    primary: 'bg-primary/10 text-primary border-primary/20',
-    success: 'bg-success/10 text-success border-success/20',
-    warning: 'bg-warning/10 text-warning border-warning/20',
-    error: 'bg-error/10 text-error border-error/20',
-    info: 'bg-info/10 text-info border-info/20',
-    secondary: 'bg-secondary/10 text-secondary border-secondary/20',
-  };
-
-  const trendIsGood = trend && trend.dir !== 'flat' && trend.dir === trendGoodDirection;
-  const trendIsBad = trend && trend.dir !== 'flat' && trend.dir !== trendGoodDirection;
-
+/** Birinchi yuklash skeleton'i. */
+function DashboardSkeleton() {
   return (
-    <div
-      className={clsx(
-        'surface-card group relative overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg',
-        className
-      )}
-      style={style}
-    >
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-base-content/60">{title}</p>
-            <p className="mt-2 text-2xl font-bold tracking-tight lg:text-3xl">{value}</p>
-            <div className="mt-2 flex items-center gap-2 text-xs">
-              {trend ? (
-                <span
-                  className={clsx(
-                    'inline-flex items-center gap-0.5 font-semibold',
-                    trendIsGood && 'text-success',
-                    trendIsBad && 'text-error',
-                    trend.dir === 'flat' && 'text-base-content/50'
-                  )}
-                >
-                  {trend.dir === 'up' && '↑'}
-                  {trend.dir === 'down' && '↓'}
-                  {trend.dir === 'flat' && '→'}
-                  {' '}{trend.value}
-                </span>
-              ) : (
-                <span className="text-base-content/40">—</span>
-              )}
-              {subtitle && (
-                <span className="text-base-content/50 truncate">{subtitle}</span>
-              )}
-            </div>
-          </div>
-          <div
-            className={clsx(
-              'grid h-12 w-12 flex-none place-items-center rounded-2xl border',
-              colorMap[color]
-            )}
-          >
-            <Icon className="h-6 w-6" />
-          </div>
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="skeleton h-8 w-48" />
+          <div className="skeleton mt-2 h-4 w-64" />
         </div>
       </div>
-    </div>
-  );
-}
-
-// Chart Card komponenti
-function ChartCard({
-  title,
-  icon: Icon,
-  children,
-  action,
-  className,
-}: {
-  title: string;
-  icon?: React.ElementType;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={clsx('surface-card overflow-hidden', className)}>
-      <div className="flex items-center justify-between gap-3 border-b border-base-200 px-4 py-4 lg:px-5">
-        <h3 className="flex items-center gap-2 font-semibold">
-          {Icon && <Icon className="h-5 w-5 text-primary" />}
-          {title}
-        </h3>
-        {action}
-      </div>
-      <div className="p-4 lg:p-5">{children}</div>
-    </div>
-  );
-}
-
-// Recharts tooltip types
-interface TooltipPayloadEntry {
-  name: string;
-  value: number;
-  color: string;
-}
-
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: TooltipPayloadEntry[];
-  label?: string;
-}
-
-// Custom Tooltip
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="rounded-xl border border-base-200 bg-base-100 p-3 shadow-lg">
-        <p className="mb-2 font-medium">{label}</p>
-        {payload.map((entry: TooltipPayloadEntry, index: number) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {formatCurrency(entry.value)}
-          </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="surface-card p-4 lg:p-5">
+            <div className="skeleton h-4 w-24" />
+            <div className="skeleton mt-3 h-8 w-32" />
+            <div className="skeleton mt-3 h-6 w-20" />
+          </div>
         ))}
       </div>
-    );
-  }
-  return null;
-};
-
-// Transaction type helpers
-const transactionTypeConfig: Record<string, { label: string; color: string; sign: string }> = {
-  INCOME: { label: 'Daromad', color: 'text-success', sign: '+' },
-  EXPENSE: { label: 'Xarajat', color: 'text-error', sign: '-' },
-  TRANSFER: { label: "O'tkazma", color: 'text-info', sign: '' },
-};
-
-// Range toggle (chart ustida)
-function RangeToggle({ value, onChange }: { value: ChartRange; onChange: (r: ChartRange) => void }) {
-  return (
-    <div className="flex gap-1 rounded-lg border border-base-200 bg-base-200/50 p-1">
-      {(Object.keys(RANGE_LABELS) as ChartRange[]).map((r) => (
-        <button
-          key={r}
-          type="button"
-          onClick={() => onChange(r)}
-          className={clsx(
-            'rounded-md px-2.5 py-1 text-xs font-medium transition',
-            value === r
-              ? 'bg-base-100 text-base-content shadow-sm'
-              : 'text-base-content/60 hover:text-base-content'
-          )}
-        >
-          {RANGE_LABELS[r].short}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// Generate dashboard insights from data
-interface DashboardInsight {
-  id: string;
-  tone: InsightTone;
-  title: string;
-  message: React.ReactNode;
-}
-
-function generateInsights({
-  stats,
-  monthlyTrend,
-  expenseTrend,
-  incomeTrend,
-}: {
-  stats: FamilyDashboardStats | null;
-  monthlyTrend: MonthlyTrendItem[];
-  expenseTrend: TrendInfo | null;
-  incomeTrend: TrendInfo | null;
-}): DashboardInsight[] {
-  const insights: DashboardInsight[] = [];
-
-  // 1. Xarajat trend insight
-  if (expenseTrend && expenseTrend.dir !== 'flat') {
-    if (expenseTrend.dir === 'down') {
-      insights.push({
-        id: 'expense-down',
-        tone: 'positive',
-        title: 'Xarajat kamaydi',
-        message: (
-          <>
-            Bu oy xarajat o'tgan oyga nisbatan{' '}
-            <span className="font-semibold text-success">{expenseTrend.value}</span> kam.
-            Ajoyib natija!
-          </>
-        ),
-      });
-    } else if (expenseTrend.dir === 'up') {
-      insights.push({
-        id: 'expense-up',
-        tone: 'warning',
-        title: 'Xarajat oshdi',
-        message: (
-          <>
-            Bu oy xarajat o'tgan oyga nisbatan{' '}
-            <span className="font-semibold text-warning">{expenseTrend.value}</span> ko'paydi.
-            Kategoriyalarni tekshirib ko'ring.
-          </>
-        ),
-      });
-    }
-  }
-
-  // 2. Daromad trend insight
-  if (incomeTrend && incomeTrend.dir === 'up') {
-    insights.push({
-      id: 'income-up',
-      tone: 'positive',
-      title: 'Daromad oshdi',
-      message: (
-        <>
-          Daromad o'tgan oyga nisbatan{' '}
-          <span className="font-semibold text-success">{incomeTrend.value}</span> ko'paydi.
-        </>
-      ),
-    });
-  }
-
-  // 3. Jamg'arish darajasi (savings rate)
-  if (stats && stats.totalIncome > 0) {
-    const savingsRate = ((stats.totalIncome - stats.totalExpense) / stats.totalIncome) * 100;
-    if (savingsRate >= SAVINGS_RATE_GOOD) {
-      insights.push({
-        id: 'savings-good',
-        tone: 'positive',
-        title: 'Yaxshi jamg\'arish',
-        message: (
-          <>
-            Bu oy daromadingizning{' '}
-            <span className="font-semibold text-success">{savingsRate.toFixed(0)}%</span>{' '}
-            qismini tejadingiz. Maqsadlaringizga yaqinlashyapsiz.
-          </>
-        ),
-      });
-    } else if (savingsRate < SAVINGS_RATE_LOW && savingsRate >= 0) {
-      insights.push({
-        id: 'savings-low',
-        tone: 'warning',
-        title: 'Jamg\'arish kam',
-        message: (
-          <>
-            Bu oy faqat{' '}
-            <span className="font-semibold text-warning">{savingsRate.toFixed(0)}%</span>{' '}
-            tejadingiz. Maqsad — kamida {SAVINGS_RATE_GOOD}%.
-          </>
-        ),
-      });
-    } else if (savingsRate < 0) {
-      insights.push({
-        id: 'overspent',
-        tone: 'negative',
-        title: 'Daromaddan ko\'p sarflandi',
-        message: (
-          <>
-            Bu oyda xarajat daromaddan{' '}
-            <span className="font-semibold text-error">
-              {formatCurrency(stats.totalExpense - stats.totalIncome)}
-            </span>{' '}
-            ortiq. Byudjetni qayta ko'rib chiqing.
-          </>
-        ),
-      });
-    }
-  }
-
-  // 4. Byudjet ogohlantirishi
-  if (stats?.budgetProgress?.length) {
-    const overBudget = stats.budgetProgress.filter((b) => b.percentage > 100);
-    const nearBudget = stats.budgetProgress.filter(
-      (b) => b.percentage > BUDGET_THRESHOLDS.warning && b.percentage <= 100
-    );
-    if (overBudget.length > 0) {
-      insights.push({
-        id: 'budget-over',
-        tone: 'negative',
-        title: 'Byudjetdan oshib ketdi',
-        message: (
-          <>
-            <span className="font-semibold text-error">{overBudget.length} ta kategoriya</span>{' '}
-            byudjetdan oshib ketdi: {overBudget.slice(0, 2).map((b) => b.categoryName).join(', ')}
-            {overBudget.length > 2 && ` va boshqalar`}.
-          </>
-        ),
-      });
-    } else if (nearBudget.length > 0) {
-      insights.push({
-        id: 'budget-near',
-        tone: 'warning',
-        title: 'Byudjet chegarasiga yaqin',
-        message: (
-          <>
-            <span className="font-semibold text-warning">{nearBudget.length} ta kategoriya</span>{' '}
-            byudjetning {BUDGET_THRESHOLDS.warning}% dan ko'pini ishlatdi.
-          </>
-        ),
-      });
-    }
-  }
-
-  // 5. Eng katta xarajat trend yo'q bo'lganda fallback
-  if (insights.length === 0 && monthlyTrend.length === 0) {
-    insights.push({
-      id: 'no-data',
-      tone: 'neutral',
-      title: 'Ma\'lumot to\'planmoqda',
-      message: 'Bir necha tranzaksiya qo\'shilgandan keyin shaxsiylashgan tavsiyalar paydo bo\'ladi.',
-    });
-  }
-
-  return insights;
-}
-
-// ── Mobil: hero balans kartasi ichidagi statistik plitka ──
-function HeroStat({
-  label,
-  value,
-  hidden,
-  icon: Icon,
-}: {
-  label: string;
-  value: number;
-  hidden: boolean;
-  icon: React.ElementType;
-}) {
-  return (
-    <div className="rounded-2xl bg-white/12 px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-white/75">
-        <Icon className="h-3.5 w-3.5" />
-        <span className="text-xs font-medium leading-tight">{label}</span>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="surface-card p-4 lg:p-5">
+            <div className="skeleton h-4 w-24" />
+            <div className="skeleton mt-3 h-8 w-32" />
+          </div>
+        ))}
       </div>
-      <p className="mt-1 truncate text-[15px] font-bold tabular-nums text-white">
-        {hidden ? '••••••' : formatCompactCurrency(value)}
-        {!hidden && <span className="ml-0.5 text-xs font-medium text-white/70">so'm</span>}
-      </p>
-    </div>
-  );
-}
-
-// ── Mobil: gradient hero balans kartasi (fintech uslubi) ──
-function MobileBalanceHero({
-  balance,
-  income,
-  expense,
-  hidden,
-  onToggleHidden,
-  monthLabel,
-}: {
-  balance: number;
-  income: number;
-  expense: number;
-  hidden: boolean;
-  onToggleHidden: () => void;
-  monthLabel: string;
-}) {
-  return (
-    <div className="hero-card rounded-3xl p-5">
-      <div className="relative flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white/85">
-          <Wallet className="h-4 w-4" />
-          <span className="text-[13px] font-medium">Umumiy balans</span>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="surface-card p-4 lg:col-span-2 lg:p-5">
+          <div className="skeleton h-72 w-full" />
         </div>
-        <button
-          type="button"
-          onClick={onToggleHidden}
-          className="tap-sm grid h-8 w-8 place-items-center rounded-full bg-white/15 text-white"
-          aria-label={hidden ? "Balansni ko'rsatish" : 'Balansni yashirish'}
-        >
-          {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
+        <div className="surface-card p-4 lg:p-5">
+          <div className="skeleton h-72 w-full" />
+        </div>
       </div>
-
-      <p className="relative mt-2.5 font-display text-[30px] font-extrabold leading-none tracking-tight tabular-nums text-white">
-        {hidden ? '••• ••• •••' : formatCurrency(balance)}
-      </p>
-      <p className="relative mt-1.5 text-xs text-white/70">
-        {monthLabel ? `${monthLabel} · barcha hisoblar` : 'barcha hisoblar'}
-      </p>
-
-      <div className="relative mt-4 grid grid-cols-2 gap-2.5">
-        <HeroStat label="Bu oy daromad" value={income} hidden={hidden} icon={ArrowDownLeft} />
-        <HeroStat label="Bu oy xarajat" value={expense} hidden={hidden} icon={ArrowUpRight} />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="surface-card p-4 lg:p-5">
+          <div className="skeleton h-48 w-full" />
+        </div>
+        <div className="surface-card p-4 lg:p-5">
+          <div className="skeleton h-48 w-full" />
+        </div>
       </div>
     </div>
   );
 }
-
-// ── Mobil: tezkor amallar qatori ──
-interface QuickAction {
-  key: string;
-  label: string;
-  icon: React.ElementType;
-  tile: string;
-  to?: string;
-  onClick?: () => void;
-}
-
-function MobileQuickActions({ canCreate }: { canCreate: boolean }) {
-  const openQuickEntry = useQuickEntryStore((s) => s.open);
-
-  const actions: QuickAction[] = [
-    ...(canCreate
-      ? [
-          { key: 'exp', label: 'Xarajat', icon: TrendingDown, tile: 'bg-error/10 text-error', onClick: () => openQuickEntry('EXPENSE') },
-          { key: 'inc', label: 'Daromad', icon: TrendingUp, tile: 'bg-success/10 text-success', onClick: () => openQuickEntry('INCOME') },
-        ]
-      : []),
-    { key: 'acc', label: 'Hisoblar', icon: Wallet, tile: 'bg-primary/10 text-primary', to: '/accounts' },
-    { key: 'rep', label: 'Hisobot', icon: BarChart3, tile: 'bg-info/10 text-info', to: '/reports' },
-    { key: 'bud', label: 'Byudjet', icon: Target, tile: 'bg-secondary/10 text-secondary', to: '/budget' },
-    { key: 'sav', label: "Jamg'arma", icon: PiggyBank, tile: 'bg-success/10 text-success', to: '/savings' },
-  ].slice(0, 4);
-
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {actions.map((a) => {
-        const inner = (
-          <>
-            <span className={clsx('grid h-[52px] w-full place-items-center rounded-2xl', a.tile)}>
-              <a.icon className="h-[22px] w-[22px]" />
-            </span>
-            <span className="text-xs font-medium leading-tight text-base-content/70">{a.label}</span>
-          </>
-        );
-        return a.to ? (
-          <Link key={a.key} to={a.to} className="tap-sm flex flex-col items-center gap-1.5">
-            {inner}
-          </Link>
-        ) : (
-          <button key={a.key} type="button" onClick={a.onClick} className="tap-sm flex flex-col items-center gap-1.5">
-            {inner}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-const HIDE_BALANCE_KEY = 'ff-hide-balance';
 
 export function DashboardPage() {
   const [chartRange, setChartRange] = useState<ChartRange>('6m');
@@ -561,7 +90,6 @@ export function DashboardPage() {
   const [hideBalance, setHideBalance] = useState<boolean>(
     () => typeof window !== 'undefined' && localStorage.getItem(HIDE_BALANCE_KEY) === '1'
   );
-  const { notifications } = useNotificationsStore();
   const { hasPermission } = usePermission();
   const canCreateTransaction = hasPermission(PermissionCode.TRANSACTIONS_CREATE);
 
@@ -574,47 +102,10 @@ export function DashboardPage() {
   }, []);
 
   // ---------- Data (react-query) ----------
-  // Aktiv scope queryKey'da — scope almashganda avtomatik refetch (eski
-  // useScopeChangeEffect + manual loadData o'rniga; D8 migratsiyasi).
-  const queryClient = useQueryClient();
-  const activeScopeId = useActiveScopeId();
+  const { stats, charts, recentTransactions, initialLoading, refreshing } = useDashboardData();
 
-  const statsQuery = useQuery({
-    queryKey: ['dashboard-stats', activeScopeId],
-    queryFn: async (): Promise<FamilyDashboardStats> => (await familyDashboardApi.getStats()).data.data,
-  });
-  const chartsQuery = useQuery({
-    queryKey: ['dashboard-charts', activeScopeId],
-    queryFn: async (): Promise<FamilyChartData> => (await familyDashboardApi.getCharts()).data.data,
-  });
-  const recentQuery = useQuery({
-    queryKey: ['dashboard-recent', activeScopeId],
-    queryFn: async (): Promise<Transaction[]> => (await familyDashboardApi.getRecentTransactions()).data.data,
-  });
-
-  const stats = statsQuery.data ?? null;
-  const charts = chartsQuery.data ?? null;
-  const recentTransactions = recentQuery.data ?? [];
-  const initialLoading = statsQuery.isLoading || chartsQuery.isLoading || recentQuery.isLoading;
-  const refreshing =
-    !initialLoading && (statsQuery.isFetching || chartsQuery.isFetching || recentQuery.isFetching);
-
-  // Xulqni saqlash: yuklash xatosida toast (eski try/catch o'rniga)
-  useEffect(() => {
-    if (statsQuery.isError || chartsQuery.isError || recentQuery.isError) {
-      toast.error("Ma'lumotlarni yuklashda xatolik");
-    }
-  }, [statsQuery.isError, chartsQuery.isError, recentQuery.isError]);
-
-  // Real-time bildirishnoma kelganda dashboard'ni yangilash
-  useEffect(() => {
-    if (notifications.length > 0) {
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-charts'] });
-      void queryClient.invalidateQueries({ queryKey: ['dashboard-recent'] });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifications.length]);
+  // Joriy oy vs oldingi oy trendlari + sof jamg'arish trendi
+  const { incomeTrend, expenseTrend, savingsTrend } = useTrendCalculations(charts);
 
   // Range bo'yicha trend formatlash (oxirgi N oy)
   const formattedMonthlyTrend = useMemo(() => {
@@ -629,40 +120,13 @@ export function DashboardPage() {
     });
   }, [charts?.monthlyTrend, chartRange]);
 
-  // Joriy oy vs oldingi oy trendlari (oxirgi 2 oy asosida)
-  const { incomeTrend, expenseTrend } = useMemo(() => {
-    const trend = charts?.monthlyTrend || [];
-    if (trend.length < 2) {
-      return { incomeTrend: null, expenseTrend: null };
-    }
-    const current = trend[trend.length - 1];
-    const previous = trend[trend.length - 2];
-    return {
-      incomeTrend: calcTrend(current.income, previous.income),
-      expenseTrend: calcTrend(current.expense, previous.expense),
-    };
-  }, [charts?.monthlyTrend]);
-
-  // Net savings trend
-  const savingsTrend = useMemo(() => {
-    const trend = charts?.monthlyTrend || [];
-    if (trend.length < 2) return null;
-    const current = trend[trend.length - 1];
-    const previous = trend[trend.length - 2];
-    return calcTrend(current.income - current.expense, previous.income - previous.expense);
-  }, [charts?.monthlyTrend]);
-
   // Insightlar — ma'lumotdan avtomatik xulosa
-  const insights = useMemo(
-    () =>
-      generateInsights({
-        stats,
-        monthlyTrend: charts?.monthlyTrend || [],
-        expenseTrend,
-        incomeTrend,
-      }),
-    [stats, charts?.monthlyTrend, expenseTrend, incomeTrend]
-  );
+  const insights = useDashboardInsights({
+    stats,
+    monthlyTrend: charts?.monthlyTrend || [],
+    expenseTrend,
+    incomeTrend,
+  });
 
   // Kategoriya bo'yicha filterlangan tranzaksiyalar
   const filteredTransactions = useMemo(() => {
@@ -671,49 +135,7 @@ export function DashboardPage() {
   }, [recentTransactions, categoryFilter]);
 
   if (initialLoading) {
-    return (
-      <div className="space-y-4 lg:space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="skeleton h-8 w-48" />
-            <div className="skeleton mt-2 h-4 w-64" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="surface-card p-4 lg:p-5">
-              <div className="skeleton h-4 w-24" />
-              <div className="skeleton mt-3 h-8 w-32" />
-              <div className="skeleton mt-3 h-6 w-20" />
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <div key={i} className="surface-card p-4 lg:p-5">
-              <div className="skeleton h-4 w-24" />
-              <div className="skeleton mt-3 h-8 w-32" />
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="surface-card p-4 lg:col-span-2 lg:p-5">
-            <div className="skeleton h-72 w-full" />
-          </div>
-          <div className="surface-card p-4 lg:p-5">
-            <div className="skeleton h-72 w-full" />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="surface-card p-4 lg:p-5">
-            <div className="skeleton h-48 w-full" />
-          </div>
-          <div className="surface-card p-4 lg:p-5">
-            <div className="skeleton h-48 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Joriy oy nomi (subtitle uchun)
@@ -764,19 +186,7 @@ export function DashboardPage() {
       />
 
       {/* Insights — AI tipida avtomatik xulosalar (max 2 ta birinchi navbatda) */}
-      {insights.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {insights.slice(0, 2).map((insight, i) => (
-            <InsightCard
-              key={insight.id}
-              tone={insight.tone}
-              title={insight.title}
-              message={insight.message}
-              style={{ '--i': i } as CSSProperties}
-            />
-          ))}
-        </div>
-      )}
+      <InsightCardsTop insights={insights} />
 
       {/* KPI Cards (desktop) — endi trend indicator bilan. Mobilda hero karta o'rnini bosadi. */}
       <div className="hidden gap-4 lg:grid lg:grid-cols-4">
@@ -825,359 +235,40 @@ export function DashboardPage() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="surface-soft rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-warning/10 p-2">
-              <HandMetal className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-xs text-base-content/60">Berilgan qarzlar</p>
-              <p className="font-bold">{formatCurrency(stats?.totalDebtsGiven || 0)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="surface-soft rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-error/10 p-2">
-              <HandMetal className="h-5 w-5 text-error" />
-            </div>
-            <div>
-              <p className="text-xs text-base-content/60">Olingan qarzlar</p>
-              <p className="font-bold text-error">{formatCurrency(stats?.totalDebtsTaken || 0)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SecondaryStats stats={stats} />
 
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Income vs Expense Trend - Takes 2 columns + range toggle */}
-        <ChartCard
-          title="Daromad vs Xarajat"
-          icon={TrendingUp}
-          className="lg:col-span-2"
-          action={<RangeToggle value={chartRange} onChange={setChartRange} />}
-        >
-          <div className="h-72">
-            {formattedMonthlyTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={formattedMonthlyTrend}>
-                  <defs>
-                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={CHART_COLORS.error} stopOpacity={0.3} />
-                      <stop offset="95%" stopColor={CHART_COLORS.error} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-                  <XAxis
-                    dataKey="monthLabel"
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => formatCompactCurrency(value)}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'currentColor', strokeOpacity: 0.2, strokeWidth: 1 }} />
-                  <Area
-                    type="monotone"
-                    dataKey="income"
-                    name="Daromad"
-                    stroke={CHART_COLORS.success}
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorIncome)"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="expense"
-                    name="Xarajat"
-                    stroke={CHART_COLORS.error}
-                    strokeWidth={2}
-                    strokeDasharray="4 3"
-                    fillOpacity={1}
-                    fill="url(#colorExpense)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-base-content/50">
-                Ma'lumot yetarli emas
-              </div>
-            )}
-          </div>
-        </ChartCard>
+        <IncomeExpenseTrendChart
+          data={formattedMonthlyTrend}
+          range={chartRange}
+          onRangeChange={setChartRange}
+        />
 
         {/* Expense by Category - Pie Chart with click filter */}
-        <ChartCard
-          title="Xarajat kategoriyalari"
-          icon={Target}
-          action={
-            categoryFilter && (
-              <button
-                type="button"
-                onClick={() => setCategoryFilter(null)}
-                className="inline-flex items-center gap-1 rounded-full bg-base-200 px-2.5 py-1 text-xs text-base-content/70 hover:bg-base-300"
-              >
-                <X className="h-3 w-3" />
-                {categoryFilter}
-              </button>
-            )
-          }
-        >
-          <div className="h-72">
-            {charts?.expenseByCategory && charts.expenseByCategory.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPie>
-                  <Pie
-                    data={charts.expenseByCategory}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="amount"
-                    nameKey="name"
-                    label={({ name, percentage }: { name?: string; percentage?: number }) =>
-                      (percentage ?? 0) > 5 ? `${name} ${(percentage ?? 0).toFixed(0)}%` : ''
-                    }
-                    labelLine={false}
-                    onClick={(entry) => {
-                      const name = (entry as { name?: string }).name;
-                      setCategoryFilter((cur) => (cur === name ? null : (name ?? null)));
-                    }}
-                    cursor="pointer"
-                  >
-                    {charts.expenseByCategory.map((entry, index) => {
-                      const isActive = !categoryFilter || categoryFilter === entry.name;
-                      return (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color || getChartColor(index)}
-                          fillOpacity={isActive ? 1 : 0.3}
-                        />
-                      );
-                    })}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Legend />
-                </RechartsPie>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-base-content/50">
-                Ma'lumot mavjud emas
-              </div>
-            )}
-          </div>
-        </ChartCard>
+        <ExpenseByCategoryChart
+          data={charts?.expenseByCategory}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+        />
       </div>
 
       {/* Budget & Savings Progress */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Budget Progress */}
-        <ChartCard title="Byudjet bajarilishi" icon={Target}>
-          {stats?.budgetProgress && stats.budgetProgress.length > 0 ? (
-            <div className="space-y-4">
-              {stats.budgetProgress.map((item: BudgetProgressItem, index: number) => {
-                const percentage = Math.min(item.percentage, 100);
-                const isOver = item.percentage > 100;
-                return (
-                  <div key={index}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.categoryName}</span>
-                      <span className={clsx('text-xs', isOver ? 'text-error font-semibold' : 'text-base-content/60')}>
-                        {formatCompactCurrency(item.spentAmount)} / {formatCompactCurrency(item.budgetAmount)}
-                        <span className="ml-1">({item.percentage.toFixed(0)}%)</span>
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-base-200">
-                      <div
-                        className={clsx(
-                          'h-full rounded-full transition-all duration-500',
-                          BUDGET_TONE_BG[getBudgetTone(item.percentage)]
-                        )}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex h-32 items-center justify-center text-base-content/50">
-              Byudjet belgilanmagan
-            </div>
-          )}
-        </ChartCard>
-
-        {/* Savings Progress */}
-        <ChartCard title="Jamg'arma maqsadlari" icon={PiggyBank}>
-          {stats?.savingsProgress && stats.savingsProgress.length > 0 ? (
-            <div className="space-y-4">
-              {stats.savingsProgress.map((item, index) => {
-                const percentage = Math.min(item.percentage, 100);
-                const isComplete = item.percentage >= 100;
-                return (
-                  <div key={index}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.goalName}</span>
-                      <span className={clsx('text-xs', isComplete ? 'text-success font-semibold' : 'text-base-content/60')}>
-                        {formatCompactCurrency(item.currentAmount)} / {formatCompactCurrency(item.targetAmount)}
-                        <span className="ml-1">({item.percentage.toFixed(0)}%)</span>
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-base-200">
-                      <div
-                        className={clsx(
-                          'h-full rounded-full transition-all duration-500',
-                          isComplete ? 'bg-success' : item.percentage > 60 ? 'bg-info' : 'bg-primary'
-                        )}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex h-32 items-center justify-center text-base-content/50">
-              Jamg'arma maqsadlari yo'q
-            </div>
-          )}
-        </ChartCard>
+        <BudgetProgressCard stats={stats} />
+        <SavingsProgressCard stats={stats} />
       </div>
 
       {/* Qo'shimcha insightlar (agar ikkitadan ko'p bo'lsa, qolganlarini ko'rsatish) */}
-      {insights.length > 2 && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {insights.slice(2).map((insight) => (
-            <InsightCard
-              key={insight.id}
-              tone={insight.tone}
-              title={insight.title}
-              message={insight.message}
-              compact
-            />
-          ))}
-        </div>
-      )}
+      <InsightCardsExtra insights={insights} />
 
       {/* Recent Transactions */}
-      <ChartCard
-        title="Oxirgi tranzaksiyalar"
-        icon={ArrowLeftRight}
-        action={
-          categoryFilter && (
-            <button
-              type="button"
-              onClick={() => setCategoryFilter(null)}
-              className="inline-flex items-center gap-1 rounded-full bg-base-200 px-2.5 py-1 text-xs text-base-content/70 hover:bg-base-300"
-            >
-              <X className="h-3 w-3" />
-              filter: {categoryFilter}
-            </button>
-          )
-        }
-      >
-        {filteredTransactions.length > 0 ? (
-          <>
-            {/* Desktop table */}
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="table table-sm w-full">
-                <thead>
-                  <tr>
-                    <th>Sana</th>
-                    <th>Turi</th>
-                    <th>Kategoriya</th>
-                    <th>Izoh</th>
-                    <th className="text-right">Summa</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTransactions.slice(0, 5).map((tx) => {
-                    const config = transactionTypeConfig[tx.type] || { label: tx.type, color: '', sign: '' };
-                    return (
-                      <tr key={tx.id} className="hover">
-                        <td className="whitespace-nowrap text-sm text-base-content/70">
-                          {formatDate(tx.transactionDate)}
-                        </td>
-                        <td>
-                          <span
-                            className={clsx(
-                              'badge badge-sm',
-                              tx.type === 'INCOME' && 'badge-success badge-outline',
-                              tx.type === 'EXPENSE' && 'badge-error badge-outline',
-                              tx.type === 'TRANSFER' && 'badge-info badge-outline'
-                            )}
-                          >
-                            {config.label}
-                          </span>
-                        </td>
-                        <td className="text-sm">{tx.categoryName || '—'}</td>
-                        <td className="max-w-[200px] truncate text-sm text-base-content/60">
-                          {tx.description || '—'}
-                        </td>
-                        <td className={clsx('text-right font-semibold whitespace-nowrap', config.color)}>
-                          {config.sign}{formatCurrency(tx.amount)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile card view */}
-            <div className="space-y-2 lg:hidden">
-              {filteredTransactions.slice(0, 5).map((tx) => {
-                const config = transactionTypeConfig[tx.type] || { label: tx.type, color: '', sign: '' };
-                return (
-                  <div key={tx.id} className="rounded-xl border border-base-200 p-3">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={clsx(
-                          'badge badge-sm',
-                          tx.type === 'INCOME' && 'badge-success badge-outline',
-                          tx.type === 'EXPENSE' && 'badge-error badge-outline',
-                          tx.type === 'TRANSFER' && 'badge-info badge-outline'
-                        )}
-                      >
-                        {config.label}
-                      </span>
-                      <span className="text-xs text-base-content/50">
-                        {formatDate(tx.transactionDate)}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-sm font-medium">{tx.categoryName || '—'}</p>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="max-w-[60%] truncate text-xs text-base-content/50">
-                        {tx.description || '—'}
-                      </span>
-                      <span className={clsx('font-semibold', config.color)}>
-                        {config.sign}{formatCurrency(tx.amount)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div className="flex h-32 items-center justify-center text-base-content/50">
-            {categoryFilter
-              ? `"${categoryFilter}" kategoriyasi bo'yicha tranzaksiya yo'q`
-              : 'Tranzaksiyalar mavjud emas'}
-          </div>
-        )}
-      </ChartCard>
+      <RecentTransactionsCard
+        transactions={filteredTransactions}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+      />
 
       {/* Quick Links (desktop) — mobilda yuqoridagi tezkor amallar o'rnini bosadi */}
       <div className="hidden surface-card p-5 lg:block">
