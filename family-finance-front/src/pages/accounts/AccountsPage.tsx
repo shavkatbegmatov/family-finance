@@ -1,583 +1,29 @@
 import type { CSSProperties } from 'react';
-import { useCallback, useEffect, useState } from 'react';
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  Wallet, CreditCard, PiggyBank, Smartphone, Landmark, Receipt,
-  Plus, RefreshCw, Eye, Edit2, Search, Banknote,
-  LayoutGrid, LayoutList, TrendingUp, TrendingDown, ArrowRightLeft,
-  Filter, X,
+  Wallet, Plus, RefreshCw,
+  TrendingUp, TrendingDown, ArrowRightLeft,
 } from 'lucide-react';
 import clsx from 'clsx';
-import toast from 'react-hot-toast';
-import { accountsApi } from '../../api/accounts.api';
-import type {
-  Account, AccountType, AccountStatus, AccountFilters, CurrencyBalance, PagedResponse,
-} from '../../types';
-import {
-  formatCurrency, formatCompactCurrency, ACCOUNT_TYPES, ACCOUNT_STATUSES,
-} from '../../config/constants';
-import { DataTable, type Column } from '../../components/ui/DataTable';
-import { useIsMobile } from '../../hooks/useMediaQuery';
-import { useActiveScopeId } from '../../hooks/useScopeChange';
-import { Select } from '../../components/ui/Select';
+import type { Account } from '../../types';
+import { formatCompactCurrency } from '../../config/constants';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { DEFAULT_ENTITY_COLOR } from '../../config/chartColors';
+import { useAccountsData } from '../../hooks/useAccountsData';
+import { formatBalance } from '../../components/accounts/accountsHelpers';
+import { AccountsKpiCard } from '../../components/accounts/AccountsKpiCard';
+import { AccountsSkeleton } from '../../components/accounts/AccountsSkeleton';
+import { AccountsListView } from '../../components/accounts/AccountsListView';
 import { AccountFormModal } from './AccountFormModal';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const ACCOUNT_ICON_MAP: Record<string, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
-  CASH: Banknote,
-  BANK_CARD: CreditCard,
-  SAVINGS: PiggyBank,
-  E_WALLET: Smartphone,
-  TERM_DEPOSIT: Landmark,
-  CREDIT: Receipt,
-};
-
-function getAccountIcon(type: AccountType) {
-  return ACCOUNT_ICON_MAP[type] ?? Wallet;
-}
-
-const STATUS_CONFIG: Record<string, { label: string; badge: string; dot: string }> = {
-  ACTIVE: { label: 'Faol', badge: 'badge-success', dot: 'bg-success' },
-  FROZEN: { label: 'Muzlatilgan', badge: 'badge-warning', dot: 'bg-warning' },
-  CLOSED: { label: 'Yopilgan', badge: 'badge-error', dot: 'bg-error' },
-};
-
-function getStatusBadge(status?: AccountStatus) {
-  const s = status || 'ACTIVE';
-  const info = STATUS_CONFIG[s];
-  if (!info) return <span className="badge badge-ghost badge-sm">{s}</span>;
-  return <span className={`badge ${info.badge} badge-sm`}>{info.label}</span>;
-}
-
-const ACCESS_ROLE_MAP: Record<string, { label: string; badge: string }> = {
-  OWNER: { label: 'Egasi', badge: 'badge-primary' },
-  CO_OWNER: { label: 'Hamkor', badge: 'badge-secondary' },
-  VIEWER: { label: 'Kuzatuvchi', badge: 'badge-ghost' },
-  FAMILY_MEMBER: { label: 'Oilaviy', badge: 'badge-info' },
-};
-
-function getAccessRoleBadge(role?: string) {
-  if (!role) return <span className="text-xs text-base-content/30">&mdash;</span>;
-  const info = ACCESS_ROLE_MAP[role];
-  if (!info) return <span className="badge badge-ghost badge-sm">{role}</span>;
-  return <span className={`badge ${info.badge} badge-sm`}>{info.label}</span>;
-}
-
-// ---------------------------------------------------------------------------
-// KPI Card
-// ---------------------------------------------------------------------------
-
-/** D7: balansni valyutasi bilan formatlaydi (UZS -> "so'm", boshqa valyuta -> kod). */
-function formatBalance(b?: CurrencyBalance): string {
-  if (!b) return "0 so'm";
-  const label = b.currency === 'UZS' ? "so'm" : b.currency;
-  return `${formatCompactCurrency(b.amount)} ${label}`;
-}
-
-function KPICard({
-  title, value, subtitle, icon: Icon, color = 'primary', style,
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-  icon: React.ElementType;
-  color?: 'primary' | 'success' | 'error' | 'info' | 'warning';
-  style?: CSSProperties;
-}) {
-  const colorMap = {
-    primary: 'bg-primary/10 text-primary border-primary/20',
-    success: 'bg-success/10 text-success border-success/20',
-    error: 'bg-error/10 text-error border-error/20',
-    info: 'bg-info/10 text-info border-info/20',
-    warning: 'bg-warning/10 text-warning border-warning/20',
-  };
-
-  return (
-    <div
-      className="surface-card group relative overflow-hidden transition duration-300 hover:-translate-y-0.5 hover:shadow-lg"
-      style={style}
-    >
-      <div className="p-4 lg:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-base-content/60 lg:text-sm">{title}</p>
-            <p className="mt-1.5 truncate text-lg font-bold tracking-tight lg:mt-2 lg:text-2xl">{value}</p>
-            {subtitle && <p className="mt-0.5 truncate text-xs text-base-content/50">{subtitle}</p>}
-          </div>
-          <div className={clsx('grid h-10 w-10 flex-shrink-0 place-items-center rounded-2xl border lg:h-12 lg:w-12', colorMap[color])}>
-            <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Account Grid Card
-// ---------------------------------------------------------------------------
-
-function AccountGridCard({
-  account, onView, onEdit, canEdit,
-}: {
-  account: Account;
-  onView: () => void;
-  onEdit: () => void;
-  canEdit: boolean;
-}) {
-  const Icon = getAccountIcon(account.type);
-  const color = account.color || DEFAULT_ENTITY_COLOR;
-  const statusInfo = STATUS_CONFIG[account.status || 'ACTIVE'];
-
-  return (
-    <div
-      className="surface-card group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer"
-      onClick={onView}
-    >
-      {/* Color accent bar */}
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-[inherit]" style={{ backgroundColor: color }} />
-
-      <div className="p-5 pt-6">
-        {/* Header: Icon + Status */}
-        <div className="flex items-start justify-between mb-4">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-2xl border transition-transform duration-300 group-hover:scale-105"
-            style={{ backgroundColor: `${color}12`, borderColor: `${color}25` }}
-          >
-            <Icon className="h-6 w-6" style={{ color }} />
-          </div>
-          <div className="flex items-center gap-2">
-            {statusInfo && (
-              <div className="flex items-center gap-1.5 text-xs">
-                <div className={clsx('h-2 w-2 rounded-full', statusInfo.dot)} />
-                <span className="text-base-content/60">{statusInfo.label}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Name + Type */}
-        <div className="mb-4">
-          <h3 className="font-semibold text-base truncate">{account.name}</h3>
-          <p className="text-xs text-base-content/50 mt-0.5">
-            {ACCOUNT_TYPES[account.type]?.label ?? account.type}
-            {account.accCodeFormatted && (
-              <span className="ml-1.5 font-mono">&middot; {account.accCodeFormatted}</span>
-            )}
-          </p>
-        </div>
-
-        {/* Balance */}
-        <div className="surface-soft rounded-xl p-3 mb-3">
-          <p className="text-xs text-base-content/50 mb-1">Joriy saldo</p>
-          <p className={clsx(
-            'text-xl font-bold tracking-tight tabular-nums',
-            account.balance >= 0 ? 'text-base-content' : 'text-error'
-          )}>
-            {formatCurrency(account.balance)}
-          </p>
-          {account.currency && account.currency !== 'UZS' && (
-            <p className="text-xs text-base-content/60 mt-0.5">{account.currency}</p>
-          )}
-        </div>
-
-        {/* Footer: Role + Actions */}
-        <div className="flex items-center justify-between">
-          {getAccessRoleBadge(account.myAccessRole)}
-          <div className="flex items-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-            <button
-              className="btn btn-ghost btn-xs btn-square"
-              onClick={(e) => { e.stopPropagation(); onView(); }}
-              title="Batafsil"
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </button>
-            {canEdit && (
-              <button
-                className="btn btn-ghost btn-xs btn-square"
-                onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                title="Tahrirlash"
-              >
-                <Edit2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Skeleton Loading
-// ---------------------------------------------------------------------------
-
-function AccountsSkeleton() {
-  return (
-    <div className="space-y-4 lg:space-y-6">
-      {/* Header skeleton */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="skeleton h-8 w-48" />
-          <div className="skeleton mt-2 h-4 w-64" />
-        </div>
-        <div className="flex gap-2">
-          <div className="skeleton h-9 w-9" />
-          <div className="skeleton h-9 w-32" />
-        </div>
-      </div>
-
-      {/* KPI skeletons */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="surface-card p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="skeleton h-4 w-24" />
-                <div className="skeleton mt-3 h-8 w-32" />
-              </div>
-              <div className="skeleton h-12 w-12 rounded-2xl" />
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Filters skeleton */}
-      <div className="flex gap-3">
-        <div className="skeleton h-12 flex-1" />
-        <div className="skeleton h-12 w-44" />
-        <div className="skeleton h-12 w-40" />
-      </div>
-
-      {/* Grid skeleton */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="surface-card p-5 pt-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="skeleton h-12 w-12 rounded-2xl" />
-              <div className="skeleton h-5 w-16" />
-            </div>
-            <div className="skeleton h-5 w-3/4 mb-1" />
-            <div className="skeleton h-3 w-1/2 mb-4" />
-            <div className="skeleton h-20 w-full rounded-xl mb-3" />
-            <div className="skeleton h-5 w-20" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-type TabType = 'all' | 'my';
-type ViewMode = 'grid' | 'table';
 
 export function AccountsPage() {
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const data = useAccountsData();
 
-  // Tabs, View & Filters
-  const [activeTab, setActiveTab] = useState<TabType>('all');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(20);
-  const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState<AccountType | undefined>(undefined);
-  const [filterStatus, setFilterStatus] = useState<AccountStatus | undefined>(undefined);
-  const [showFilters, setShowFilters] = useState(false);
+  const viewAccount = (account: Account) => navigate(`/accounts/${account.id}`);
 
-  // Modal
-  const [showModal, setShowModal] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-
-  // Highlight
-  const [highlightId, setHighlightId] = useState<number | null>(null);
-
-  const hasActiveFilters = !!filterType || !!filterStatus || !!search;
-
-  // -----------------------------------------------------------------------
-  // Data fetching
-  // -----------------------------------------------------------------------
-
-  // ---------- Data (react-query) ----------
-  // Desktop: sahifa-asosli; Mobile: infinite scroll — UX bir xil. Scope queryKey'da (D8 migratsiyasi).
-  const queryClient = useQueryClient();
-  const activeScopeId = useActiveScopeId();
-
-  // Umumiy balans (KPI)
-  const { data: balances = [], isLoading: kpiLoading } = useQuery({
-    queryKey: ['accounts-balance', activeScopeId],
-    queryFn: async (): Promise<CurrencyBalance[]> => (await accountsApi.getTotalBalance()).data.data ?? [],
-  });
-
-  // Bitta sahifani yuklovchi (activeTab 'my' -> getMy, aks holda filtrlangan getAll)
-  const fetchAccountsPage = async (pageParam: number): Promise<PagedResponse<Account>> => {
-    if (activeTab === 'my') {
-      return (await accountsApi.getMy(pageParam, pageSize)).data.data;
-    }
-    const filters: AccountFilters = { page: pageParam, size: pageSize };
-    if (search) filters.search = search;
-    if (filterType) filters.accountType = filterType;
-    if (filterStatus) filters.status = filterStatus;
-    return (await accountsApi.getAll(filters)).data.data;
-  };
-
-  const desktopQuery = useQuery({
-    queryKey: ['accounts', activeScopeId, activeTab, page, pageSize, search, filterType, filterStatus],
-    queryFn: () => fetchAccountsPage(page),
-    enabled: !isMobile,
-  });
-  const mobileQuery = useInfiniteQuery({
-    queryKey: ['accounts-infinite', activeScopeId, activeTab, pageSize, search, filterType, filterStatus],
-    queryFn: ({ pageParam }) => fetchAccountsPage(pageParam),
-    enabled: isMobile,
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, allPages) =>
-      allPages.length < lastPage.totalPages ? allPages.length : undefined,
-  });
-
-  const accounts = desktopQuery.data?.content ?? [];
-  const allItems = mobileQuery.data?.pages.flatMap((p) => p.content) ?? [];
-  const totalPages =
-    (isMobile ? mobileQuery.data?.pages[0]?.totalPages : desktopQuery.data?.totalPages) ?? 0;
-  const totalElements =
-    (isMobile ? mobileQuery.data?.pages[0]?.totalElements : desktopQuery.data?.totalElements) ?? 0;
-  const initialLoading = isMobile ? mobileQuery.isLoading : desktopQuery.isLoading;
-  const loading = initialLoading;
-  const loadingMore = mobileQuery.isFetchingNextPage;
-
-  useEffect(() => {
-    if (desktopQuery.isError || mobileQuery.isError) toast.error('Hisoblarni yuklashda xatolik');
-  }, [desktopQuery.isError, mobileQuery.isError]);
-
-  const handleLoadMore = useCallback(() => {
-    if (mobileQuery.hasNextPage && !mobileQuery.isFetchingNextPage) {
-      void mobileQuery.fetchNextPage();
-    }
-  }, [mobileQuery]);
-
-  const invalidateAccounts = () => {
-    void queryClient.invalidateQueries({ queryKey: ['accounts'] });
-    void queryClient.invalidateQueries({ queryKey: ['accounts-infinite'] });
-    void queryClient.invalidateQueries({ queryKey: ['accounts-balance'] });
-  };
-
-  // Filter/scope o'zgarsa desktop sahifani boshiga qaytaramiz
-  useEffect(() => {
-    setPage(0);
-  }, [search, filterType, filterStatus, activeTab, activeScopeId]);
-
-  // -----------------------------------------------------------------------
-  // Computed KPI values
-  // -----------------------------------------------------------------------
-
-  const activeAccounts = accounts.filter((a) => a.status === 'ACTIVE' || !a.status);
-  const frozenAccounts = accounts.filter((a) => a.status === 'FROZEN');
-  const incomeAccounts = accounts.filter((a) => a.balance > 0);
-  const expenseAccounts = accounts.filter((a) => a.balance < 0);
-  const positiveSum = incomeAccounts.reduce((sum, a) => sum + a.balance, 0);
-  const negativeSum = Math.abs(expenseAccounts.reduce((sum, a) => sum + a.balance, 0));
-
-  // -----------------------------------------------------------------------
-  // Handlers
-  // -----------------------------------------------------------------------
-
-  const handleRefresh = () => {
-    invalidateAccounts();
-  };
-
-  const openCreate = () => {
-    setEditingAccount(null);
-    setShowModal(true);
-  };
-
-  const openEdit = (account: Account) => {
-    setEditingAccount(account);
-    setShowModal(true);
-  };
-
-  const handleModalSuccess = () => {
-    invalidateAccounts();
-  };
-
-  const clearFilters = () => {
-    setFilterType(undefined);
-    setFilterStatus(undefined);
-    setSearchInput('');
-    setSearch('');
-  };
-
-  // Debounced search
-  const [searchInput, setSearchInput] = useState('');
-  useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput), 400);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  // -----------------------------------------------------------------------
-  // Table columns
-  // -----------------------------------------------------------------------
-
-  const columns: Column<Account>[] = [
-    {
-      key: 'name',
-      header: 'Hisob',
-      sortable: true,
-      className: 'w-[220px] max-w-[220px]',
-      render: (item) => {
-        const Icon = getAccountIcon(item.type);
-        const color = item.color || DEFAULT_ENTITY_COLOR;
-        return (
-          <div className="flex items-center gap-3">
-            <div
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border"
-              style={{ backgroundColor: `${color}12`, borderColor: `${color}25` }}
-            >
-              <Icon className="h-4 w-4" style={{ color }} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium truncate">{item.name}</p>
-              <p className="text-xs text-base-content/50">
-                {ACCOUNT_TYPES[item.type]?.label ?? item.type}
-                {item.currency && item.currency !== 'UZS' ? ` \u00b7 ${item.currency}` : ''}
-              </p>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'balance',
-      header: 'Joriy saldo',
-      sortable: true,
-      className: 'text-right',
-      headerClassName: 'text-right',
-      render: (item) => (
-        <span className={clsx(
-          'font-semibold tabular-nums',
-          item.balance < 0 && 'text-error'
-        )}>
-          {formatCurrency(item.balance)}
-        </span>
-      ),
-    },
-    {
-      key: 'accCode',
-      header: 'Kod',
-      className: 'w-52 min-w-[208px]',
-      render: (item) => (
-        item.accCodeFormatted || item.accCode ? (
-          <span className="badge badge-ghost font-mono text-sm whitespace-nowrap px-2.5 py-2.5">
-            {item.accCodeFormatted || item.accCode}
-          </span>
-        ) : (
-          <span className="text-base-content/30">&mdash;</span>
-        )
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Holat',
-      className: 'w-28',
-      render: (item) => getStatusBadge(item.status),
-    },
-    {
-      key: 'myAccessRole',
-      header: 'Ruxsat',
-      className: 'w-28',
-      render: (item) => getAccessRoleBadge(item.myAccessRole),
-    },
-    {
-      key: 'actions',
-      header: '',
-      className: 'w-24',
-      resizable: false,
-      render: (item) => (
-        <div className="flex items-center gap-1 justify-end">
-          <button
-            className="btn btn-ghost btn-xs btn-square"
-            onClick={(e) => { e.stopPropagation(); navigate(`/accounts/${item.id}`); }}
-            title="Batafsil"
-          >
-            <Eye className="h-3.5 w-3.5" />
-          </button>
-          <PermissionGate permission={PermissionCode.ACCOUNTS_UPDATE}>
-            <button
-              className="btn btn-ghost btn-xs btn-square"
-              onClick={(e) => { e.stopPropagation(); openEdit(item); }}
-              title="Tahrirlash"
-            >
-              <Edit2 className="h-3.5 w-3.5" />
-            </button>
-          </PermissionGate>
-        </div>
-      ),
-    },
-  ];
-
-  // -----------------------------------------------------------------------
-  // Mobile card
-  // -----------------------------------------------------------------------
-
-  const renderMobileCard = (item: Account) => {
-    const Icon = getAccountIcon(item.type);
-    const color = item.color || DEFAULT_ENTITY_COLOR;
-    const statusInfo = STATUS_CONFIG[item.status || 'ACTIVE'];
-
-    return (
-      <div
-        className="flex items-center gap-3 rounded-2xl border border-base-200 bg-base-100 p-3"
-        onClick={() => navigate(`/accounts/${item.id}`)}
-      >
-        <span
-          className="grid h-11 w-11 flex-none place-items-center rounded-2xl border"
-          style={{ backgroundColor: `${color}14`, borderColor: `${color}28` }}
-        >
-          <Icon className="h-5 w-5" style={{ color }} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1.5">
-              {statusInfo && <span className={clsx('h-2 w-2 flex-none rounded-full', statusInfo.dot)} />}
-              <p className="truncate text-sm font-semibold">{item.name}</p>
-            </div>
-            <span
-              className={clsx(
-                'flex-none text-sm font-bold tabular-nums',
-                item.balance < 0 && 'text-error'
-              )}
-            >
-              {formatCurrency(item.balance)}
-            </span>
-          </div>
-          <div className="mt-0.5 flex items-center justify-between gap-2">
-            <p className="min-w-0 truncate text-xs text-base-content/55">
-              {ACCOUNT_TYPES[item.type]?.label ?? item.type}
-              {item.accCodeFormatted ? ` \u00b7 ${item.accCodeFormatted}` : ''}
-            </p>
-            <span className="flex-none">{getAccessRoleBadge(item.myAccessRole)}</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // -----------------------------------------------------------------------
-  // Render
-  // -----------------------------------------------------------------------
-
-  if (initialLoading) {
+  if (data.initialLoading) {
     return <AccountsSkeleton />;
   }
 
@@ -591,14 +37,14 @@ export function AccountsPage() {
           <>
             <button
               className="tap-sm grid h-10 w-10 place-items-center rounded-xl border border-base-200 text-base-content/60"
-              onClick={handleRefresh}
+              onClick={data.handleRefresh}
               title="Yangilash"
               aria-label="Yangilash"
             >
-              <RefreshCw className={clsx('h-4 w-4', loading && 'animate-spin')} />
+              <RefreshCw className={clsx('h-4 w-4', data.loading && 'animate-spin')} />
             </button>
             <PermissionGate permission={PermissionCode.ACCOUNTS_CREATE}>
-              <button className="btn btn-primary btn-sm gap-1.5" onClick={openCreate}>
+              <button className="btn btn-primary btn-sm gap-1.5" onClick={data.openCreate}>
                 <Plus className="h-4 w-4" />
                 Yangi hisob
               </button>
@@ -609,330 +55,84 @@ export function AccountsPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-        <KPICard
+        <AccountsKpiCard
           title="Umumiy balans"
-          value={kpiLoading ? '...' : formatBalance(balances[0])}
-          subtitle={!kpiLoading && balances.length > 1
-            ? balances.slice(1).map(formatBalance).join(' · ')
+          value={data.kpiLoading ? '...' : formatBalance(data.balances[0])}
+          subtitle={!data.kpiLoading && data.balances.length > 1
+            ? data.balances.slice(1).map(formatBalance).join(' · ')
             : undefined}
           icon={Wallet}
           color="primary"
           style={{ '--i': 0 } as CSSProperties}
         />
-        <KPICard
+        <AccountsKpiCard
           title="Faol hisoblar"
-          value={`${activeAccounts.length} ta`}
+          value={`${data.activeAccounts.length} ta`}
           icon={TrendingUp}
           color="success"
           style={{ '--i': 1 } as CSSProperties}
         />
-        <KPICard
+        <AccountsKpiCard
           title="Ijobiy saldo"
-          value={formatCompactCurrency(positiveSum) + " so'm"}
+          value={formatCompactCurrency(data.positiveSum) + " so'm"}
           icon={ArrowRightLeft}
           color="info"
           style={{ '--i': 2 } as CSSProperties}
         />
-        <KPICard
-          title={frozenAccounts.length > 0 ? 'Muzlatilgan' : 'Salbiy saldo'}
-          value={frozenAccounts.length > 0
-            ? `${frozenAccounts.length} ta`
-            : (negativeSum > 0 ? formatCompactCurrency(negativeSum) + " so'm" : "0 so'm")
+        <AccountsKpiCard
+          title={data.frozenAccounts.length > 0 ? 'Muzlatilgan' : 'Salbiy saldo'}
+          value={data.frozenAccounts.length > 0
+            ? `${data.frozenAccounts.length} ta`
+            : (data.negativeSum > 0 ? formatCompactCurrency(data.negativeSum) + " so'm" : "0 so'm")
           }
-          icon={frozenAccounts.length > 0 ? TrendingDown : TrendingDown}
-          color={frozenAccounts.length > 0 ? 'warning' : 'error'}
+          icon={data.frozenAccounts.length > 0 ? TrendingDown : TrendingDown}
+          color={data.frozenAccounts.length > 0 ? 'warning' : 'error'}
           style={{ '--i': 3 } as CSSProperties}
         />
       </div>
 
-      {/* Tabs + View Toggle + Filters */}
-      <div className="surface-card overflow-hidden">
-        {/* Tab bar */}
-        <div className="flex items-center justify-between border-b border-base-200 px-5 py-3">
-          <div className="flex items-center gap-1">
-            <button
-              className={clsx(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                activeTab === 'all'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-base-content/60 hover:bg-base-200/50'
-              )}
-              onClick={() => setActiveTab('all')}
-            >
-              Barcha hisoblar
-            </button>
-            <button
-              className={clsx(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                activeTab === 'my'
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-base-content/60 hover:bg-base-200/50'
-              )}
-              onClick={() => setActiveTab('my')}
-            >
-              Mening hisoblarim
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Filter toggle */}
-            {activeTab === 'all' && (
-              <button
-                className={clsx(
-                  'btn btn-ghost btn-sm btn-square',
-                  showFilters && 'bg-primary/10 text-primary'
-                )}
-                onClick={() => setShowFilters(!showFilters)}
-                title="Filterlar"
-              >
-                <Filter className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* View mode toggle */}
-            <div className="hidden sm:flex items-center gap-0.5 rounded-lg bg-base-200/50 p-0.5">
-              <button
-                className={clsx(
-                  'p-1.5 rounded-md transition-colors',
-                  viewMode === 'grid' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/40 hover:text-base-content/60'
-                )}
-                onClick={() => setViewMode('grid')}
-                title="Grid ko'rinish"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                className={clsx(
-                  'p-1.5 rounded-md transition-colors',
-                  viewMode === 'table' ? 'bg-base-100 shadow-sm text-primary' : 'text-base-content/40 hover:text-base-content/60'
-                )}
-                onClick={() => setViewMode('table')}
-                title="Jadval ko'rinish"
-              >
-                <LayoutList className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Account count */}
-            <span className="hidden sm:inline text-sm text-base-content/50">
-              {totalElements} ta hisob
-            </span>
-          </div>
-        </div>
-
-        {/* Filters bar */}
-        {activeTab === 'all' && showFilters && (
-          <div className="flex flex-col sm:flex-row gap-3 px-5 py-3 bg-base-200/30 border-b border-base-200">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/40" />
-              <input
-                type="text"
-                className="w-full h-10 rounded-lg border border-base-300/50 bg-base-100 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary/30"
-                placeholder="Qidirish (nom yoki kod)..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-            </div>
-            {/* Type filter */}
-            <div className="w-full sm:w-44">
-              <Select
-                placeholder="Hisob turi"
-                value={filterType || ''}
-                onChange={(val) => setFilterType(val ? val as AccountType : undefined)}
-                options={[
-                  { value: '', label: 'Barchasi' },
-                  ...Object.values(ACCOUNT_TYPES).map((t) => ({ value: t.value, label: t.label })),
-                ]}
-              />
-            </div>
-            {/* Status filter */}
-            <div className="w-full sm:w-40">
-              <Select
-                placeholder="Holat"
-                value={filterStatus || ''}
-                onChange={(val) => setFilterStatus(val ? val as AccountStatus : undefined)}
-                options={[
-                  { value: '', label: 'Barchasi' },
-                  ...Object.values(ACCOUNT_STATUSES).map((s) => ({ value: s.value, label: s.label })),
-                ]}
-              />
-            </div>
-            {/* Clear filters */}
-            {hasActiveFilters && (
-              <button
-                className="btn btn-ghost btn-sm gap-1 self-center"
-                onClick={clearFilters}
-              >
-                <X className="h-3.5 w-3.5" />
-                Tozalash
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Active filter chips */}
-        {activeTab === 'all' && hasActiveFilters && !showFilters && (
-          <div className="flex items-center gap-2 px-5 py-2 border-b border-base-200 bg-base-200/20">
-            <span className="text-xs text-base-content/50">Filterlar:</span>
-            {search && (
-              <span className="badge badge-sm badge-outline gap-1">
-                "{search}"
-                <button className="-m-1 p-1" onClick={() => { setSearchInput(''); setSearch(''); }}>
-                  <X className="h-4 w-4" />
-                </button>
-              </span>
-            )}
-            {filterType && (
-              <span className="badge badge-sm badge-outline gap-1">
-                {ACCOUNT_TYPES[filterType]?.label}
-                <button className="-m-1 p-1" onClick={() => setFilterType(undefined)}>
-                  <X className="h-4 w-4" />
-                </button>
-              </span>
-            )}
-            {filterStatus && (
-              <span className="badge badge-sm badge-outline gap-1">
-                {ACCOUNT_STATUSES[filterStatus]?.label}
-                <button className="-m-1 p-1" onClick={() => setFilterStatus(undefined)}>
-                  <X className="h-4 w-4" />
-                </button>
-              </span>
-            )}
-            <button className="text-xs text-primary hover:underline ml-1" onClick={clearFilters}>
-              Barchasini tozalash
-            </button>
-          </div>
-        )}
-
-        {/* Content — mobilda doim kompakt ro'yxat (grid emas) */}
-        <div className="p-3 lg:p-5">
-          {viewMode === 'grid' && !isMobile ? (
-            <>
-              {loading ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="surface-soft rounded-xl p-5 pt-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="skeleton h-12 w-12 rounded-2xl" />
-                        <div className="skeleton h-5 w-16" />
-                      </div>
-                      <div className="skeleton h-5 w-3/4 mb-1" />
-                      <div className="skeleton h-3 w-1/2 mb-4" />
-                      <div className="skeleton h-20 w-full rounded-xl mb-3" />
-                      <div className="skeleton h-5 w-20" />
-                    </div>
-                  ))}
-                </div>
-              ) : accounts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="grid h-16 w-16 place-items-center rounded-2xl bg-base-200/50 mb-4">
-                    <Wallet className="h-8 w-8 text-base-content/20" />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-1">Hisob topilmadi</h3>
-                  <p className="text-sm text-base-content/50 max-w-sm">
-                    {hasActiveFilters
-                      ? "Filterlarni o'zgartirib ko'ring yoki tozalang"
-                      : "Yangi hisob yaratish uchun tugmani bosing"
-                    }
-                  </p>
-                  {hasActiveFilters && (
-                    <button className="btn btn-ghost btn-sm mt-3" onClick={clearFilters}>
-                      Filterlarni tozalash
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    <PermissionGate
-                      permission={PermissionCode.ACCOUNTS_UPDATE}
-                      fallback={
-                        <>
-                          {accounts.map((account) => (
-                            <AccountGridCard
-                              key={account.id}
-                              account={account}
-                              onView={() => navigate(`/accounts/${account.id}`)}
-                              onEdit={() => openEdit(account)}
-                              canEdit={false}
-                            />
-                          ))}
-                        </>
-                      }
-                    >
-                      {accounts.map((account) => (
-                        <AccountGridCard
-                          key={account.id}
-                          account={account}
-                          onView={() => navigate(`/accounts/${account.id}`)}
-                          onEdit={() => openEdit(account)}
-                          canEdit={true}
-                        />
-                      ))}
-                    </PermissionGate>
-                  </div>
-
-                  {/* Grid pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 mt-6">
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        disabled={page === 0}
-                        onClick={() => setPage(page - 1)}
-                      >
-                        Oldingi
-                      </button>
-                      <span className="text-sm text-base-content/60">
-                        {page + 1} / {totalPages}
-                      </span>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        disabled={page >= totalPages - 1}
-                        onClick={() => setPage(page + 1)}
-                      >
-                        Keyingi
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          ) : (
-            <DataTable<Account>
-              data={isMobile ? allItems : accounts}
-              columns={columns}
-              keyExtractor={(item) => item.id}
-              loading={loading}
-              totalElements={totalElements}
-              totalPages={totalPages}
-              currentPage={page}
-              pageSize={pageSize}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => { setPageSize(size); setPage(0); }}
-              onLoadMore={handleLoadMore}
-              hasMore={page < totalPages - 1}
-              loadingMore={loadingMore}
-              onRowClick={(item) => navigate(`/accounts/${item.id}`)}
-              renderMobileCard={renderMobileCard}
-              emptyIcon={<Wallet className="h-12 w-12 text-base-content/20" />}
-              emptyTitle="Hisob topilmadi"
-              emptyDescription="Filterlarni o'zgartirib ko'ring yoki yangi hisob yarating"
-              highlightId={highlightId}
-              onHighlightComplete={() => setHighlightId(null)}
-              tableId="accounts"
-              resizable
-            />
-          )}
-        </div>
-      </div>
+      {/* Tabs + View Toggle + Filters + List */}
+      <AccountsListView
+        isMobile={data.isMobile}
+        activeTab={data.activeTab}
+        onTabChange={data.setActiveTab}
+        viewMode={data.viewMode}
+        onViewModeChange={data.setViewMode}
+        searchInput={data.searchInput}
+        onSearchInputChange={data.setSearchInput}
+        search={data.search}
+        onSearchClear={() => { data.setSearchInput(''); data.setSearch(''); }}
+        filterType={data.filterType}
+        onFilterTypeChange={data.setFilterType}
+        filterStatus={data.filterStatus}
+        onFilterStatusChange={data.setFilterStatus}
+        showFilters={data.showFilters}
+        onToggleFilters={() => data.setShowFilters(!data.showFilters)}
+        hasActiveFilters={data.hasActiveFilters}
+        onClearFilters={data.clearFilters}
+        accounts={data.accounts}
+        allItems={data.allItems}
+        totalElements={data.totalElements}
+        totalPages={data.totalPages}
+        page={data.page}
+        pageSize={data.pageSize}
+        loading={data.loading}
+        loadingMore={data.loadingMore}
+        highlightId={data.highlightId}
+        onHighlightComplete={() => data.setHighlightId(null)}
+        onPageChange={data.setPage}
+        onPageSizeChange={(size) => { data.setPageSize(size); data.setPage(0); }}
+        onLoadMore={data.handleLoadMore}
+        onView={viewAccount}
+        onEdit={data.openEdit}
+      />
 
       {/* Modal */}
       <AccountFormModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSuccess={handleModalSuccess}
-        editingAccount={editingAccount}
+        isOpen={data.showModal}
+        onClose={() => data.setShowModal(false)}
+        onSuccess={data.handleModalSuccess}
+        editingAccount={data.editingAccount}
       />
     </div>
   );
