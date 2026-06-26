@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   HandMetal,
@@ -36,7 +37,7 @@ import { RefreshingPill } from '../../components/common/RefreshingPill';
 import { PermissionCode } from '../../hooks/usePermission';
 import { PermissionGate } from '../../components/common/PermissionGate';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { useScopeChangeEffect } from '../../hooks/useScopeChange';
+import { useActiveScopeId } from '../../hooks/useScopeChange';
 import type {
   FamilyDebt,
   FamilyDebtRequest,
@@ -58,29 +59,16 @@ export function DebtsPage() {
   const isMobile = useIsMobile();
 
   const [activeTab, setActiveTab] = useState<TabType>('all');
-  const [debts, setDebts] = useState<FamilyDebt[]>([]);
-  const allItemsRef = useRef<FamilyDebt[]>([]);
-  const [allItems, setAllItems] = useState<FamilyDebt[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
 
   // Filters
   const [typeFilter, setTypeFilter] = useState<DebtType | ''>('');
   const [statusFilter, setStatusFilter] = useState<DebtStatus | ''>('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Summary
-  const [summary, setSummary] = useState<DebtSummary>({ totalGiven: 0, totalTaken: 0 });
-
-  // Selected debt & detail panel
+  // Selected debt & detail panel (to'lovlar useQuery enabled bilan auto-yuklanadi)
   const [selectedDebt, setSelectedDebt] = useState<FamilyDebt | null>(null);
-  const [payments, setPayments] = useState<DebtPayment[]>([]);
-  const [loadingPayments, setLoadingPayments] = useState(false);
 
   // Add/Edit modal
   const [showDebtModal, setShowDebtModal] = useState(false);
@@ -93,7 +81,6 @@ export function DebtsPage() {
     dueDate: '',
     description: '',
   });
-  const [submittingDebt, setSubmittingDebt] = useState(false);
 
   // Payment modal
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -102,7 +89,6 @@ export function DebtsPage() {
     paymentDate: getTashkentToday(),
     note: '',
   });
-  const [submittingPayment, setSubmittingPayment] = useState(false);
 
   // Delete confirmation
   const [deletingDebtId, setDeletingDebtId] = useState<number | null>(null);
@@ -240,88 +226,118 @@ export function DebtsPage() {
     setPage(0);
   };
 
-  // ==================== DATA LOADING ====================
+  // ==================== DATA (react-query) ====================
+  // Desktop: sahifa-asosli (useQuery); Mobile: cheksiz scroll (useInfiniteQuery) — UX bir xil saqlanadi.
+  // Aktiv scope queryKey'da — almashganda avtomatik refetch (D8 migratsiyasi).
+  const queryClient = useQueryClient();
+  const activeScopeId = useActiveScopeId();
 
-  const loadDebts = useCallback(async (isInitial = false) => {
-    if (isInitial) { /* keep initialLoading true */ }
-    else if (isMobile && page > 0) setLoadingMore(true);
-    else setRefreshing(true);
-    try {
-      const res = await familyDebtsApi.getAll(
-        page,
-        pageSize,
-        effectiveType,
-        effectiveStatus,
-        searchQuery || undefined
-      );
-      const data = res.data.data as PagedResponse<FamilyDebt>;
-      setDebts(data.content);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
+  const desktopQuery = useQuery({
+    queryKey: ['debts', activeScopeId, page, pageSize, effectiveType, effectiveStatus, searchQuery],
+    queryFn: async (): Promise<PagedResponse<FamilyDebt>> =>
+      (await familyDebtsApi.getAll(page, pageSize, effectiveType, effectiveStatus, searchQuery || undefined)).data.data,
+    enabled: !isMobile,
+  });
 
-      if (isMobile && page > 0) {
-        const newAll = [...allItemsRef.current, ...data.content];
-        allItemsRef.current = newAll;
-        setAllItems(newAll);
-      } else {
-        allItemsRef.current = data.content;
-        setAllItems(data.content);
-      }
-    } catch {
-      toast.error('Qarzlarni yuklashda xatolik');
-    } finally {
-      setInitialLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  }, [page, pageSize, effectiveType, effectiveStatus, searchQuery, isMobile]);
+  const mobileQuery = useInfiniteQuery({
+    queryKey: ['debts-infinite', activeScopeId, pageSize, effectiveType, effectiveStatus, searchQuery],
+    queryFn: async ({ pageParam }): Promise<PagedResponse<FamilyDebt>> =>
+      (await familyDebtsApi.getAll(pageParam, pageSize, effectiveType, effectiveStatus, searchQuery || undefined)).data.data,
+    enabled: isMobile,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      allPages.length < lastPage.totalPages ? allPages.length : undefined,
+  });
+
+  const debts = desktopQuery.data?.content ?? [];
+  const allItems = mobileQuery.data?.pages.flatMap((p) => p.content) ?? [];
+  const totalPages =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalPages : desktopQuery.data?.totalPages) ?? 0;
+  const totalElements =
+    (isMobile ? mobileQuery.data?.pages[0]?.totalElements : desktopQuery.data?.totalElements) ?? 0;
+  const initialLoading = isMobile ? mobileQuery.isLoading : desktopQuery.isLoading;
+  const refreshing = isMobile
+    ? mobileQuery.isFetching && !mobileQuery.isFetchingNextPage
+    : desktopQuery.isFetching;
+  const loadingMore = mobileQuery.isFetchingNextPage;
+
+  useEffect(() => {
+    if (desktopQuery.isError || mobileQuery.isError) toast.error('Qarzlarni yuklashda xatolik');
+  }, [desktopQuery.isError, mobileQuery.isError]);
 
   const handleLoadMore = useCallback(() => {
-    if (page < totalPages - 1 && !loadingMore) {
-      setPage((p) => p + 1);
+    if (mobileQuery.hasNextPage && !mobileQuery.isFetchingNextPage) {
+      void mobileQuery.fetchNextPage();
     }
-  }, [page, totalPages, loadingMore]);
+  }, [mobileQuery]);
 
-  const loadSummary = useCallback(async () => {
-    try {
-      const summaryRes = await familyDebtsApi.getSummary();
-      const data = summaryRes.data.data as DebtSummary;
-      setSummary(data);
-    } catch {
-      toast.error('Qarz xulosasini yuklashda xatolik');
-    }
-  }, []);
-
-  const loadDebtPayments = useCallback(async (debtId: number) => {
-    setLoadingPayments(true);
-    try {
-      const paymentsRes = await familyDebtsApi.getPayments(debtId);
-      const data = paymentsRes.data.data as DebtPayment[];
-      setPayments(Array.isArray(data) ? data : []);
-    } catch {
-      toast.error("To'lovlarni yuklashda xatolik");
-      setPayments([]);
-    } finally {
-      setLoadingPayments(false);
-    }
-  }, []);
-
+  // Filter/scope o'zgarsa desktop sahifani boshiga qaytaramiz (mobile queryKey o'zi reset bo'ladi)
   useEffect(() => {
-    loadDebts(true);
-    void loadSummary();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setPage(0);
+  }, [effectiveType, effectiveStatus, searchQuery, activeScopeId]);
 
-  useEffect(() => {
-    void loadDebts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, effectiveType, effectiveStatus, searchQuery]);
-
-  // Phase 3: aktiv scope o'zgarganda qarzlarni qayta yuklash
-  useScopeChangeEffect(() => {
-    void loadDebts(true);
-    void loadSummary();
+  // Xulosa (summary)
+  const { data: summary = { totalGiven: 0, totalTaken: 0 } } = useQuery({
+    queryKey: ['debts-summary', activeScopeId],
+    queryFn: async (): Promise<DebtSummary> => (await familyDebtsApi.getSummary()).data.data,
   });
+
+  // Tanlangan qarz to'lovlari (detail panel — selectedDebt o'zgarsa auto-yuklanadi)
+  const { data: payments = [], isFetching: loadingPayments } = useQuery({
+    queryKey: ['debt-payments', selectedDebt?.id],
+    queryFn: async (): Promise<DebtPayment[]> => {
+      const data = (await familyDebtsApi.getPayments(selectedDebt!.id)).data.data;
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: selectedDebt !== null,
+  });
+
+  // ---------- Mutations ----------
+  const invalidateDebtLists = () => {
+    void queryClient.invalidateQueries({ queryKey: ['debts'] });
+    void queryClient.invalidateQueries({ queryKey: ['debts-infinite'] });
+    void queryClient.invalidateQueries({ queryKey: ['debts-summary'] });
+  };
+
+  const debtSaveMutation = useMutation({
+    mutationFn: (vars: { id?: number; payload: FamilyDebtRequest }) =>
+      vars.id ? familyDebtsApi.update(vars.id, vars.payload) : familyDebtsApi.create(vars.payload),
+    onSuccess: () => {
+      invalidateDebtLists();
+      setShowDebtModal(false);
+      setEditingDebt(null);
+    },
+    onError: () => toast.error('Qarzni saqlashda xatolik'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => familyDebtsApi.delete(id),
+    onSuccess: (_data, id) => {
+      invalidateDebtLists();
+      if (selectedDebt?.id === id) setSelectedDebt(null);
+      setDeletingDebtId(null);
+    },
+    onError: () => toast.error("Qarzni o'chirishda xatolik"),
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: (vars: { debtId: number; payload: DebtPaymentRequest }) =>
+      familyDebtsApi.addPayment(vars.debtId, vars.payload),
+    onSuccess: async (_data, vars) => {
+      invalidateDebtLists();
+      void queryClient.invalidateQueries({ queryKey: ['debt-payments', vars.debtId] });
+      setShowPaymentModal(false);
+      // Detail summasi yangilanishi uchun selectedDebt'ni qayta o'qiymiz
+      if (selectedDebt?.id === vars.debtId) {
+        const updated = (await familyDebtsApi.getById(vars.debtId)).data.data;
+        setSelectedDebt(updated);
+      }
+    },
+    onError: () => toast.error("To'lov qo'shishda xatolik"),
+  });
+
+  const submittingDebt = debtSaveMutation.isPending;
+  const submittingPayment = paymentMutation.isPending;
 
   // ==================== DEBT MODAL ====================
 
@@ -356,41 +372,16 @@ export function DebtsPage() {
     setEditingDebt(null);
   };
 
-  const handleSubmitDebt = async () => {
+  const handleSubmitDebt = () => {
     if (!debtForm.personName.trim() || debtForm.amount <= 0) return;
-    setSubmittingDebt(true);
-    try {
-      if (editingDebt) {
-        await familyDebtsApi.update(editingDebt.id, debtForm);
-      } else {
-        await familyDebtsApi.create(debtForm);
-      }
-      handleCloseDebtModal();
-      void loadDebts();
-      void loadSummary();
-    } catch {
-      toast.error('Qarzni saqlashda xatolik');
-    } finally {
-      setSubmittingDebt(false);
-    }
+    debtSaveMutation.mutate({ id: editingDebt?.id, payload: debtForm });
   };
 
   // ==================== DELETE ====================
 
-  const handleDeleteDebt = async () => {
+  const handleDeleteDebt = () => {
     if (!deletingDebtId) return;
-    try {
-      await familyDebtsApi.delete(deletingDebtId);
-      setDeletingDebtId(null);
-      if (selectedDebt?.id === deletingDebtId) {
-        setSelectedDebt(null);
-        setPayments([]);
-      }
-      void loadDebts();
-      void loadSummary();
-    } catch {
-      toast.error("Qarzni o'chirishda xatolik");
-    }
+    deleteMutation.mutate(deletingDebtId);
   };
 
   // ==================== PAYMENT MODAL ====================
@@ -408,36 +399,20 @@ export function DebtsPage() {
     setShowPaymentModal(false);
   };
 
-  const handleSubmitPayment = async () => {
+  const handleSubmitPayment = () => {
     if (!selectedDebt || paymentForm.amount <= 0) return;
-    setSubmittingPayment(true);
-    try {
-      await familyDebtsApi.addPayment(selectedDebt.id, paymentForm);
-      handleClosePaymentModal();
-      void loadDebts();
-      void loadSummary();
-      // Refresh detail
-      const updatedRes = await familyDebtsApi.getById(selectedDebt.id);
-      const updatedDebt = updatedRes.data.data as FamilyDebt;
-      setSelectedDebt(updatedDebt);
-      loadDebtPayments(selectedDebt.id);
-    } catch {
-      toast.error("To'lov qo'shishda xatolik");
-    } finally {
-      setSubmittingPayment(false);
-    }
+    paymentMutation.mutate({ debtId: selectedDebt.id, payload: paymentForm });
   };
 
   // ==================== DETAIL PANEL ====================
 
   const handleSelectDebt = (debt: FamilyDebt) => {
+    // to'lovlar useQuery (enabled) selectedDebt o'zgarishida auto-yuklanadi
     setSelectedDebt(debt);
-    loadDebtPayments(debt.id);
   };
 
   const handleCloseDetail = () => {
     setSelectedDebt(null);
-    setPayments([]);
   };
 
   const paidPercentage = selectedDebt
