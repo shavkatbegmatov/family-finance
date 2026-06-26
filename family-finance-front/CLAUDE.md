@@ -19,17 +19,21 @@ npm run cap:sync  # build + cap sync android   (APK: npm run apk:debug)
 ## src/ structure
 
 ```
-api/         axios instance (axios.ts) + per-domain modules (*.api.ts)
+api/         axios instance (axios.ts) + per-domain modules (*.api.ts) — `ApiResponse<T>`/`PagedResponse<T>` generic
 components/  ui/ (inputs, table)  common/ (modals, gates)  layout/  scope/  family/  points/
-pages/       route-level containers (dashboard/, transactions/, accounts/, family/, scope/, ...)
+             per-domain (D10 bo'lingan sahifalar): accounts/ transactions/ debts/ savings/ reports/ dashboard/ users/ roles/ household/
+pages/       route-level **orchestrator** containers (dashboard/, transactions/, accounts/, family/, scope/, ...)
 router/      index.tsx — react-router v6 createBrowserRouter, lazy pages, ProtectedRoute
 store/       Zustand stores
-hooks/       usePermission, useSwitchScope, useScopeChange, useFocusTrap, ...
+hooks/       usePermission, useSwitchScope, useScopeChange (`useActiveScopeId`), useFocusTrap;
+             **data hooks** (react-query): use<Domain>Data — useAccountsData, useTransactionsData,
+             useDebtsData, useDashboardData, useSavingsData, useUsersData, useRolesData,
+             useReportsData, useMemberDetailData, usePointsParticipantsData, useFamilyMembersData
 services/    websocket.ts (STOMP/SockJS realtime — notificationsStore ishlatadi)
-types/       scope.types, family-tree.types, persons.types, index
+types/       scope.types, family-tree.types, persons.types, index (`ApiResponse<T>`, `PagedResponse<T>`)
 config/      constants.ts (ACCOUNT_TYPES, GENDERS, MONTHS_UZ, SUPPORT_EMAIL, formatters),
              chartColors.ts (brend chart palitra + BUDGET_THRESHOLDS)
-data/        changelog.ts          utils/  password.ts, ...        i18n/  locales/
+data/        changelog.ts          utils/  password.ts, hibp.ts, apiError.ts, ...        i18n/  locales/
 ```
 
 ## State (Zustand) & auth
@@ -47,14 +51,25 @@ data/        changelog.ts          utils/  password.ts, ...        i18n/  locale
 - Response interceptor: **401 → `/v1/auth/refresh-token`**, queue in-flight requests, retry;
   **403 → toast**. Scope context travels inside the JWT (no `X-Active-Scope-Id` header).
 - Domain modules: `scopes.api`, `accounts.api`, `transactions.api`, `family-unit.api`,
-  `budgets.api`, `users.api`, `roles.api`, `points.api`, ...
+  `budgets.api`, `users.api`, `roles.api`, `points.api`, ... — barchasi `ApiResponse<T>` generic.
+
+## Data fetching (react-query — D8/D10 standart)
+
+- **Pattern:** har route-sahifa **data hook** ishlatadi (`hooks/use<Domain>Data.ts`):
+  `useQuery`/`useMutation` + filter/pagination state; sahifa = **orchestrator** (render + modal holat).
+- **Scope-aware queryKey:** `['<domain>', activeScopeId, ...filters]` (`useActiveScopeId`'dan) →
+  scope almashganda **avtomatik refetch**. Eski `useScopeChangeEffect`/`SCOPE_CHANGED_EVENT` o'rnida.
+- **Pagination:** murakkab ro'yxatlar desktop `useQuery(page)` + mobile `useInfiniteQuery` (2 query, UX bir xil).
+- **Mutation → invalidate:** `queryClient.invalidateQueries({ queryKey: ['<domain>'] })`. Global
+  `MutationCache.onError` YO'Q — har mutation o'z `onError`'ida `toastApiError` (double-toast oldini olish).
 
 ## Multi-scope UI (fully implemented)
 
 `components/scope/ScopeSwitcher.tsx` (header dropdown, grouped by clan), `hooks/useSwitchScope.ts`
 (also used by family-tree `HouseholdNode`), `hooks/useScopeChange.ts` (legacy pages react to
 `SCOPE_CHANGED_EVENT`), `api/scopes.api.ts`, `store/scopeStore.ts`, `types/scope.types.ts`.
-Switching scope updates JWT + authStore + invalidates React Query.
+Switching scope updates JWT + authStore + invalidates React Query (data hook'lar `activeScopeId`
+queryKey orqali avtomatik refetch — yangi sahifalar `useScopeChangeEffect` ishlatmaydi).
 
 ## Reusable UI
 
@@ -72,8 +87,9 @@ Switching scope updates JWT + authStore + invalidates React Query.
 - **Styling:** Tailwind v3.4 + daisyUI v4 themes `family` (light) / `family-dark`, defined in
   `tailwind.config.js`. **daisyUI colors are `oklch`** — for WebGL/three.js use hard-coded hex,
   never parse theme color via `getComputedStyle` (V1.6.5 bug; see `graph3d/color/useGraphTheme`).
-- **Password policy single source:** `utils/password.ts` (`PASSWORD_MIN_LENGTH=6`,
-  `isPasswordStrong`, `evaluatePasswordStrength`, `generateStrongPassword`).
+- **Password policy single source:** `utils/password.ts` (`PASSWORD_MIN_LENGTH=10`,
+  `isPasswordStrong`, `evaluatePasswordStrength`, `generateStrongPassword`). HIBP k-anonymity
+  ogohlantirish: `utils/hibp.ts`. Backend ham `PASSWORD_MIN_LENGTH=10` (`util/PasswordPolicy.java`) — sinxron bo'lishi shart.
 - **Permissions:** `hooks/usePermission.ts` + `PermissionGate`.
 - **Page layout standard (MUST):** page root `space-y-4 lg:space-y-6`; page title ONLY via
   `components/layout/PageHeader` (renders `h1.section-title`, hidden on mobile — the sticky
