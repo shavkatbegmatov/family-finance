@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.22',
+        date: '2026-06-27 14:02',
+        title: "Oila taklif kodi bilan ro'yxatdan o'tish tuzatildi",
+        features: [],
+        fixes: [
+            "Ro'yxatdan o'tish sahifasida oila taklif kodini kiritganda \"Sessioningiz tugadi\" xatosi chiqib, kod tekshirilmasdi — endi login qilmagan holatda ham kod to'g'ri tekshiriladi va oila nomi ko'rsatiladi.",
+        ],
+    },
+    {
         version: '1.7.21',
         date: '2026-06-21 14:00',
         title: "Chiqishda keshni tozalash (xavfsizlik)",

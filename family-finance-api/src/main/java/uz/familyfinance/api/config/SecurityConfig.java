@@ -51,6 +51,9 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         // WebSocket endpoint (JWT token interceptor'da tekshiriladi)
                         .requestMatchers("/v1/ws/**").permitAll()
+                        // Taklif kodi preview — login qilmagan user (registratsiya) ham
+                        // ko'ra oladi; faqat nom + turi qaytadi, sezgir narsa yo'q
+                        .requestMatchers(HttpMethod.GET, "/v1/scopes/lookup").permitAll()
 
                         // All other requests require authentication
                         // Permissions checked at method level via @RequiresPermission
