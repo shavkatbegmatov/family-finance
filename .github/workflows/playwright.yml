@@ -1,0 +1,118 @@
+name: Playwright Smoke (manual, non-blocking)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# G7 — Playwright READ-ONLY smoke testi (login → bosh sahifa → scope switcher
+# → a11y skan). ATAYLAB NON-BLOCKING:
+#
+#   * Faqat `workflow_dispatch` — PR/push'da AVTOMATIK ISHLAMAYDI, shuning uchun
+#     hech qachon branch-protection required check bo'lib merge'ni BLOKLAMAYDI.
+#   * Mavjud `ci.yml` (frontend-ci / backend-ci / build-and-push) ga TEGMAYDI —
+#     bu butunlay alohida workflow.
+#   * Qo'shimcha himoya: butun job `continue-on-error: true` — kutilmagan infra
+#     nosozligi ham yashil holatni buzmaydi.
+#
+# Ishga tushirish: GitHub → Actions → "Playwright Smoke (manual, non-blocking)"
+# → Run workflow. PostgreSQL + backend docker-compose bilan ko'tariladi
+# (backend porti host:8098 ga override orqali ochiladi), keyin Playwright
+# frontend dev serverni (`npm run dev`, :5178) o'zi ko'tarib smoke yuradi.
+# Dev server /api ni :8098 ga proxy qiladi.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: playwright-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: E2E Smoke (READ-ONLY)
+    runs-on: ubuntu-latest
+    # NON-BLOCKING kafolati: bu job qizil bo'lsa ham hech narsani bloklamaydi.
+    continue-on-error: true
+    timeout-minutes: 25
+    env:
+      # docker-compose.dev.yml talab qiladigan sirlar — bu FAQAT efemer CI
+      # konteyneri uchun dummy qiymatlar (prod sir EMAS, lokal smoke only).
+      DB_NAME: family_finance_db
+      DB_USERNAME: family_finance_user
+      DB_PASSWORD: ci_smoke_pw
+      JWT_SECRET: ci-smoke-jwt-secret-please-change-only-for-ci-0123456789abcdef
+      CARD_ENCRYPTION_KEY: ci-smoke-card-key-0123456789abcdef0123456789abcdef
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: family-finance-front/package-lock.json
+
+      # ── Backend portini hostga ochish uchun compose override ──
+      # Asosiy docker-compose.dev.yml backend'da `ports` yo'q (faqat ichki).
+      # Dev frontend proxy (:8098) uchun host portini ochamiz.
+      - name: Compose override yozish (backend portini ochish)
+        run: |
+          cat > docker-compose.ci.yml <<'YAML'
+          services:
+            backend:
+              ports:
+                - "8098:8098"
+          YAML
+
+      # ── DB + backend'ni ko'tarish (frontend'siz — uni Playwright o'zi ko'taradi) ──
+      - name: Backend + DB ni ko'tarish (docker compose)
+        run: |
+          docker compose -f docker-compose.dev.yml -f docker-compose.ci.yml \
+            up -d --build db backend
+
+      - name: Backend sog'lig'ini kutish (:8098)
+        run: |
+          echo "Backend ko'tarilishini kutish..."
+          for i in $(seq 1 48); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:8098/api/actuator/health || echo 000)
+            echo "urinish $i: backend=$code"
+            [ "$code" = "200" ] && echo "Backend tayyor." && exit 0
+            sleep 5
+          done
+          echo "::warning::Backend 200 qaytarmadi — smoke baribir urinib ko'radi (non-blocking)."
+        continue-on-error: true
+
+      # ── Frontend deps + Playwright brauzeri ──
+      - name: Frontend deps (npm ci)
+        working-directory: family-finance-front
+        run: npm ci
+
+      - name: Playwright chromium o'rnatish
+        working-directory: family-finance-front
+        run: npx playwright install --with-deps chromium
+
+      # ── Smoke ── (Playwright `npm run dev` ni webServer sifatida o'zi ko'taradi)
+      - name: Playwright smoke (READ-ONLY)
+        working-directory: family-finance-front
+        env:
+          CI: 'true'
+        run: npm run e2e
+
+      - name: Playwright hisobotini yuklash (artefakt)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: family-finance-front/playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Konteyner loglari (debug, har holatda)
+        if: ${{ always() }}
+        run: |
+          echo "===== compose ps ====="
+          docker compose -f docker-compose.dev.yml -f docker-compose.ci.yml ps || true
+          echo "===== backend logs ====="
+          docker compose -f docker-compose.dev.yml -f docker-compose.ci.yml logs backend 2>&1 | tail -120 || true
+        continue-on-error: true

@@ -11,7 +11,8 @@
     "cap:sync": "npm run build && cap sync android",
     "cap:open": "cap open android",
     "apk:debug": "npm run cap:sync && cd android && gradlew.bat assembleDebug",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
@@ -45,8 +46,11 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@capacitor/cli": "^8.4.0",
     "@eslint/js": "^9.9.0",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^20.19.0",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
     "@types/sockjs-client": "^1.5.4",
