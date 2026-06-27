@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'dev-dist', 'android', 'node_modules', 'coverage', 'testCalcTree.js'],
+    ignores: ['dist', 'dev-dist', 'android', 'node_modules', 'coverage', 'testCalcTree.js', 'e2e', 'playwright-report', 'test-results'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

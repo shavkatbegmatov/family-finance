@@ -117,3 +117,10 @@ package-lock.json
 # Test artefaktlari
 test-results/
 *.FullName
+
+# Playwright (e2e smoke — G7)
+family-finance-front/test-results/
+family-finance-front/playwright-report/
+family-finance-front/playwright/.cache/
+family-finance-front/blob-report/
+docker-compose.ci.yml

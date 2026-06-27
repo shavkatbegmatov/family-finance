@@ -1,0 +1,17 @@
+{
+  "//": "Playwright e2e testlari uchun ALOHIDA tsconfig — asosiy `tsc -b` (vite build) bu papkani EXCLUDE qiladi, build buzilmasin. Playwright o'z transformeri bilan ishlaydi; bu config faqat IDE/tip-tekshiruv qulayligi uchun.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": ["**/*.ts", "../playwright.config.ts"]
+}
