@@ -70,7 +70,7 @@ export function AddChildModal({
   };
 
   const handleSubmit = async () => {
-    if (!isPersonDraftValid(person)) return;
+    if (!isPersonDraftValid(person, { genderRequired: true })) return;
 
     try {
       // 1) Farzand shaxsini aniqlash (mavjud yoki yangi yaratish)
@@ -138,7 +138,13 @@ export function AddChildModal({
           </div>
 
           <div className="mt-4 space-y-4">
-            <PersonPicker value={person} onChange={setPerson} personOptions={personOptions} />
+            <PersonPicker
+              value={person}
+              onChange={setPerson}
+              personOptions={personOptions}
+              genderRequired
+              genderLabels={{ MALE: "O'g'il", FEMALE: 'Qiz' }}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
@@ -168,7 +174,7 @@ export function AddChildModal({
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting || !isPersonDraftValid(person)}
+              disabled={isSubmitting || !isPersonDraftValid(person, { genderRequired: true })}
             >
               {isSubmitting && <span className="loading loading-spinner loading-sm" />}
               Qo&apos;shish

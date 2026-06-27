@@ -18,6 +18,7 @@ import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.FamilyRole;
+import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.enums.MembershipStatus;
 import uz.familyfinance.api.enums.Role;
 import uz.familyfinance.api.enums.ScopeRole;
@@ -139,7 +140,8 @@ public class AuthService {
      */
     private void provisionInitialScopeFor(User user, RegisterRequest request) {
         String displayName = buildDisplayName(request);
-        provisionScopeAndFamilyGroup(user, displayName, request.getFirstName(), request.getLastName());
+        provisionScopeAndFamilyGroup(user, displayName, request.getFirstName(), request.getLastName(),
+                request.getGender());
     }
 
     /**
@@ -201,6 +203,7 @@ public class AuthService {
                     .firstName(request.getFirstName())
                     .lastName(request.getLastName())
                     .phone(request.getPhone())
+                    .gender(request.getGender())
                     .role(FamilyRole.OTHER)
                     .user(user)
                     .familyGroup(familyGroup)
@@ -252,7 +255,7 @@ public class AuthService {
             firstName = parts[0];
             lastName = parts[1];
         }
-        provisionScopeAndFamilyGroup(user, displayName, firstName, lastName);
+        provisionScopeAndFamilyGroup(user, displayName, firstName, lastName, null);
         log.info("Auto-provisioned scope for legacy user: {}", user.getUsername());
     }
 
@@ -297,7 +300,7 @@ public class AuthService {
      * Asosiy scope provisioning mantig'i — register va auto-provision ikkalasida ishlatiladi.
      */
     private void provisionScopeAndFamilyGroup(User user, String displayName,
-                                               String firstName, String lastName) {
+                                               String firstName, String lastName, Gender gender) {
 
         // 1) FamilyGroup
         FamilyGroup familyGroup = FamilyGroup.builder()
@@ -361,6 +364,7 @@ public class AuthService {
                     .firstName(firstName != null ? firstName : displayName)
                     .lastName(lastName)
                     .phone(user.getPhone())
+                    .gender(gender)
                     .role(FamilyRole.OTHER)
                     .user(user)
                     .familyGroup(familyGroup)

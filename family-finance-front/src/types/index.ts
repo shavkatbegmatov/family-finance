@@ -40,6 +40,7 @@ export interface RegisterRequest {
   confirmPassword: string;
   email?: string;
   phone?: string;
+  gender: Gender;
   /**
    * Ixtiyoriy: Mavjud oila taklif kodi. Bo'lsa — user shu oilaga MEMBER bo'lib qo'shiladi,
    * bo'lmasa — yangi oila yaratiladi (auto-provisioning).

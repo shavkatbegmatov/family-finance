@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.7.23',
+        date: '2026-06-27 16:46',
+        title: "Jins majburiy — shajara izchilligi",
+        features: [],
+        fixes: [
+            "Ro'yxatdan o'tishda endi jins (erkak/ayol) majburiy tanlanadi — shajara daraxti to'g'ri qurilishi uchun.",
+            "Shajarada farzand qo'shishda jins majburiy (o'g'il/qiz), turmush o'rtoq qo'shishda esa jins avtomatik qarama-qarshi qilib belgilanadi — bir xil jinsli noto'g'ri juftliklar oldini oladi.",
+        ],
+    },
+    {
         version: '1.7.22',
         date: '2026-06-27 14:02',
         title: "Oila taklif kodi bilan ro'yxatdan o'tish tuzatildi",
