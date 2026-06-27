@@ -114,6 +114,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}-api:latest
             ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-api:v1.7.21
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -125,6 +126,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}-front:latest
             ${{ env.IMAGE_PREFIX }}-front:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-front:v1.7.21
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
           build-args: |
