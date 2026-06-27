@@ -1,5 +1,5 @@
 import api from './axios';
-import type { ApiResponse, ChangePasswordRequest, JwtResponse, LoginRequest, RegisterRequest, User } from '../types';
+import type { ApiResponse, ChangePasswordRequest, JwtResponse, LoginRequest, RegisterRequest, TelegramCompleteRequest, TelegramStatusResponse, User } from '../types';
 
 export const authApi = {
   register: async (data: RegisterRequest): Promise<User> => {
@@ -32,5 +32,24 @@ export const authApi = {
 
   changePassword: async (data: ChangePasswordRequest): Promise<void> => {
     await api.post<ApiResponse<void>>('/v1/auth/change-password', data);
+  },
+
+  // ===== Telegram deep-link auth (Blok B) =====
+
+  telegramInit: async (): Promise<{ requestId: string }> => {
+    const response = await api.post<ApiResponse<{ requestId: string }>>('/v1/auth/telegram/init');
+    return response.data.data;
+  },
+
+  telegramStatus: async (requestId: string): Promise<TelegramStatusResponse> => {
+    const response = await api.get<ApiResponse<TelegramStatusResponse>>('/v1/auth/telegram/status', {
+      params: { requestId },
+    });
+    return response.data.data;
+  },
+
+  telegramComplete: async (data: TelegramCompleteRequest): Promise<JwtResponse> => {
+    const response = await api.post<ApiResponse<JwtResponse>>('/v1/auth/telegram/complete', data);
+    return response.data.data;
   },
 };

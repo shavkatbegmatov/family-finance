@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.8.0',
+        date: '2026-06-27 21:01',
+        title: "Telegram orqali kirish va ro'yxatdan o'tish",
+        features: [
+            "Endi Telegram orqali bir bosishda ro'yxatdan o'tish va kirish mumkin — parolni eslab qolish shart emas. Kirish yoki Ro'yxatdan o'tish sahifasidagi \"Telegram orqali kirish\" tugmasini bosing, botda \"Start\"ni bosing va avtomatik kiring.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.7.23',
         date: '2026-06-27 16:46',
         title: "Jins majburiy — shajara izchilligi",

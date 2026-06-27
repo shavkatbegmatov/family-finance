@@ -10,10 +10,12 @@ import {
   Sparkles,
   Home,
   Users,
+  Send,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { scopesApi } from '../../api/scopes.api';
+import { TelegramAuthModal } from '../../components/auth/TelegramAuthModal';
 import { GENDERS } from '../../config/constants';
 import { EmailInput } from '../../components/ui/EmailInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -26,6 +28,7 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
   const navigate = useNavigate();
 
   const {
@@ -399,6 +402,21 @@ export function RegisterPage() {
               </button>
             </form>
 
+            {/* yoki — Telegram orqali ro'yxatdan o'tish (deep-link) */}
+            <div className="my-4 flex items-center gap-3 text-xs text-base-content/40">
+              <span className="h-px flex-1 bg-base-200" />
+              yoki
+              <span className="h-px flex-1 bg-base-200" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setTelegramOpen(true)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#229ED9]/40 bg-[#229ED9]/10 text-[15px] font-semibold text-[#229ED9]"
+            >
+              <Send className="h-5 w-5" />
+              Telegram orqali ro&apos;yxatdan o&apos;tish
+            </button>
+
             <div className="mt-6 text-center text-xs text-base-content/60">
               Hisobingiz bormi?{' '}
               <Link to="/login" className="link link-primary">
@@ -408,6 +426,8 @@ export function RegisterPage() {
           </div>
         </div>
       </div>
+
+      <TelegramAuthModal isOpen={telegramOpen} onClose={() => setTelegramOpen(false)} />
     </div>
   );
 }
