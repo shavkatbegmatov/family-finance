@@ -30,7 +30,8 @@ public class User extends BaseEntity implements Auditable {
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
-    @Column(nullable = false)
+    /** Telegram orqali kirgan user parolsiz bo'lishi mumkin — shu sabab nullable (V49). */
+    @Column
     private String password;
 
     @Column(name = "full_name", nullable = false, length = 100)
@@ -84,6 +85,23 @@ public class User extends BaseEntity implements Auditable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "primary_scope_id")
     private Scope primaryScope;
+
+    // ===== Telegram auth (V49) =====
+
+    /** Telegram user ID — bot deep-link orqali tasdiqlangan. NULL = oddiy (LOCAL) user. */
+    @Column(name = "telegram_id")
+    private Long telegramId;
+
+    @Column(name = "telegram_username", length = 100)
+    private String telegramUsername;
+
+    /** Asosiy autentifikatsiya provayderi: {@code LOCAL} yoki {@code TELEGRAM}. */
+    @Column(name = "auth_provider", nullable = false, length = 20)
+    @Builder.Default
+    private String authProvider = "LOCAL";
+
+    @Column(name = "telegram_linked_at")
+    private LocalDateTime telegramLinkedAt;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))

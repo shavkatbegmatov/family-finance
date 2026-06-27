@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.LoginRequest;
 import uz.familyfinance.api.dto.request.RegisterRequest;
+import uz.familyfinance.api.dto.request.TelegramCompleteRequest;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.UserResponse;
 import uz.familyfinance.api.entity.*;
@@ -423,7 +424,6 @@ public class AuthService {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            Long userId = userDetails.getUser().getId();
 
             // Auto-provision: eski user'larga ham CLAN+HOUSEHOLD scope yaratamiz
             // agar mavjud bo'lmasa. Bu seamless UX ta'minlaydi — bir kelin
@@ -434,47 +434,14 @@ public class AuthService {
                 log.warn("ensureUserHasScope login paytida muvaffaqiyatsiz: {}", ex.getMessage());
             }
 
-            // Generate token with permissions
-            String accessToken = tokenProvider.generateStaffTokenWithPermissions(
-                    userDetails.getUsername(),
-                    userId,
-                    userDetails.getRoleCodes(),
-                    userDetails.getPermissions()
-            );
-            String refreshToken = tokenProvider.generateStaffRefreshToken(userDetails.getUsername(), userId);
+            // Token + session + JwtResponse — parol-login va Telegram auth uchun umumiy (DRY)
+            JwtResponse response = buildJwtResponseForUser(userDetails.getUser(), ipAddress, userAgent);
 
-            // Create session in database. Session umri refresh token bilan teng (24 soat),
-            // access token (1 soat) bilan emas — aks holda session refresh tokendan oldin o'lib,
-            // keyingi refresh paytida "revoked" deb hisoblanib refresh loop'iga sabab bo'lardi.
-            LocalDateTime expiresAt = LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration));
-            Session session = sessionService.createSession(
-                userDetails.getUser(),
-                accessToken,
-                refreshToken,
-                ipAddress,
-                userAgent,
-                expiresAt
-            );
-
-            // Log successful login attempt
+            // Log successful login attempt (session token hash bo'yicha topiladi)
+            Session session = sessionService.getSessionByToken(response.getAccessToken()).orElse(null);
             loginAttemptService.logSuccessfulAttempt(username, ipAddress, userAgent, session);
 
-            // Check if user must change password
-            Boolean mustChangePassword = Boolean.TRUE.equals(userDetails.getUser().getMustChangePassword());
-
-            // Resolve familyMemberId
-            Long familyMemberId = familyMemberRepository.findByUserId(userId)
-                    .map(FamilyMember::getId)
-                    .orElse(null);
-
-            return JwtResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .user(UserResponse.from(userDetails.getUser(), familyMemberId))
-                    .permissions(userDetails.getPermissions())
-                    .roles(userDetails.getRoleCodes())
-                    .requiresPasswordChange(mustChangePassword)
-                    .build();
+            return response;
 
         } catch (BadCredentialsException e) {
             // Log failed login attempt
@@ -563,5 +530,97 @@ public class AuthService {
                 .orElse(null);
 
         return UserResponse.from(user, familyMemberId);
+    }
+
+    // ====================================================================
+    // Telegram auth — login bilan umumiy token/session, va yangi user yaratish
+    // ====================================================================
+
+    /**
+     * Berilgan user uchun access+refresh token yaratadi, DB Session ochadi va to'liq JwtResponse
+     * quradi. Parol-login ({@link #login}) va Telegram auth ikkalasi shuni ishlatadi (DRY).
+     * User roles+permissions bilan yuklangan bo'lishi kerak (CustomUserDetails LAZY'ni o'qiydi).
+     */
+    @Transactional
+    public JwtResponse buildJwtResponseForUser(User user, String ipAddress, String userAgent) {
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String accessToken = tokenProvider.generateStaffTokenWithPermissions(
+                userDetails.getUsername(), user.getId(), userDetails.getRoleCodes(), userDetails.getPermissions());
+        String refreshToken = tokenProvider.generateStaffRefreshToken(userDetails.getUsername(), user.getId());
+
+        LocalDateTime expiresAt = LocalDateTime.now().plus(Duration.ofMillis(refreshExpiration));
+        sessionService.createSession(user, accessToken, refreshToken, ipAddress, userAgent, expiresAt);
+
+        Long familyMemberId = familyMemberRepository.findByUserId(user.getId())
+                .map(FamilyMember::getId).orElse(null);
+
+        return JwtResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .user(UserResponse.from(user, familyMemberId))
+                .permissions(userDetails.getPermissions())
+                .roles(userDetails.getRoleCodes())
+                .requiresPasswordChange(Boolean.TRUE.equals(user.getMustChangePassword()))
+                .build();
+    }
+
+    /**
+     * Telegram orqali yangi user yaratadi (parolsiz, gender bilan). Scope provisioning'ni
+     * (invite code yoki yangi clan+household) mavjud register oqimi orqali qayta ishlatadi.
+     */
+    @Transactional
+    public User createTelegramUser(TelegramAuthRequest req, TelegramCompleteRequest request) {
+        RoleEntity memberRole = roleRepository.findByCode("MEMBER")
+                .orElseThrow(() -> new ResourceNotFoundException("Rol topilmadi: MEMBER"));
+
+        // Mavjud scope-provisioning logikasini qayta ishlatish uchun pseudo RegisterRequest
+        RegisterRequest reg = new RegisterRequest();
+        reg.setFirstName(request.getFirstName());
+        reg.setLastName(request.getLastName());
+        reg.setGender(request.getGender());
+        reg.setInviteCode(request.getInviteCode());
+
+        User user = User.builder()
+                .username(generateUniqueTelegramUsername(req))
+                .password(null) // Telegram user parolsiz (V49 nullable)
+                .fullName(reg.getFullName())
+                .role(Role.MEMBER)
+                .active(true)
+                .mustChangePassword(false)
+                .telegramId(req.getTelegramId())
+                .telegramUsername(req.getTelegramUsername())
+                .authProvider("TELEGRAM")
+                .telegramLinkedAt(LocalDateTime.now())
+                .build();
+        user.getRoles().add(memberRole);
+        user = userRepository.save(user);
+
+        String code = request.getInviteCode() != null ? request.getInviteCode().trim() : "";
+        if (!code.isEmpty()) {
+            joinExistingScopeByCode(user, code, reg);
+        } else {
+            provisionInitialScopeFor(user, reg);
+        }
+
+        auditLogService.log("User", user.getId(), "USER_REGISTERED", null,
+                String.format("Telegram orqali ro'yxatdan o'tdi: %s", user.getUsername()), null);
+        log.info("New Telegram user registered: {} (telegramId={})", user.getUsername(), req.getTelegramId());
+        return user;
+    }
+
+    /** Telegram @username yoki {@code tg<id>}'dan noyob lokal username yasaydi. */
+    private String generateUniqueTelegramUsername(TelegramAuthRequest req) {
+        String base = req.getTelegramUsername() != null && !req.getTelegramUsername().isBlank()
+                ? req.getTelegramUsername().toLowerCase().replaceAll("[^a-z0-9._-]", "")
+                : "tg" + req.getTelegramId();
+        if (base.length() < 3) {
+            base = "tg" + req.getTelegramId();
+        }
+        String candidate = base;
+        int suffix = 0;
+        while (userRepository.existsByUsername(candidate)) {
+            candidate = base + (++suffix);
+        }
+        return candidate;
     }
 }
