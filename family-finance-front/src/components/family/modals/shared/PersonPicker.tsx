@@ -29,8 +29,14 @@ export const emptyPersonDraft: PersonDraft = {
 };
 
 /** Forma yuborishga tayyormi — barcha modallarda submit shartini izchil baholaydi. */
-export function isPersonDraftValid(draft: PersonDraft): boolean {
-  return draft.mode === 'existing' ? !!draft.personId : !!draft.firstName.trim();
+export function isPersonDraftValid(
+  draft: PersonDraft,
+  opts?: { genderRequired?: boolean },
+): boolean {
+  if (draft.mode === 'existing') return !!draft.personId;
+  if (!draft.firstName.trim()) return false;
+  if (opts?.genderRequired && !draft.gender) return false;
+  return true;
 }
 
 const MAX_BIRTH_DATE = new Date().toISOString().slice(0, 10);
@@ -46,6 +52,12 @@ interface PersonPickerProps {
   namePlaceholder?: string;
   /** Berilsa — forma o'rniga qulflangan (mavjud, o'zgartirib bo'lmas) kartochka ko'rsatiladi. */
   lockedName?: string | null;
+  /** "Yangi shaxs" rejimida jinsni majburiy qiladi (label '*' + isPersonDraftValid). */
+  genderRequired?: boolean;
+  /** Berilsa — jins shu qiymatga qulflanadi (masalan turmush o'rtoqning qarama-qarshi jinsi). */
+  genderLocked?: Gender;
+  /** Jins variantlari yorliqlarini almashtiradi (masalan farzand uchun O'g'il/Qiz). */
+  genderLabels?: { MALE: string; FEMALE: string };
 }
 
 /**
@@ -61,6 +73,9 @@ export function PersonPicker({
   nameLabel = 'Ism',
   namePlaceholder = 'Ism',
   lockedName,
+  genderRequired = false,
+  genderLocked,
+  genderLabels,
 }: PersonPickerProps) {
   const patch = (partial: Partial<PersonDraft>) => onChange({ ...value, ...partial });
 
@@ -79,7 +94,8 @@ export function PersonPicker({
 
   const genderOptions: SelectOption[] = [
     { value: '', label: 'Tanlanmagan' },
-    ...Object.entries(GENDERS).map(([key, { label }]) => ({ value: key, label })),
+    { value: 'MALE', label: genderLabels?.MALE ?? GENDERS.MALE.label },
+    { value: 'FEMALE', label: genderLabels?.FEMALE ?? GENDERS.FEMALE.label },
   ];
 
   return (
@@ -139,11 +155,12 @@ export function PersonPicker({
                 placeholder="Otasining ismi"
               />
               <Select
-                label="Jinsi"
-                value={value.gender || undefined}
+                label={genderRequired || genderLocked ? 'Jinsi *' : 'Jinsi'}
+                value={(genderLocked ?? value.gender) || undefined}
                 onChange={(val) => patch({ gender: val as Gender })}
                 options={genderOptions}
-                placeholder="Tanlang..."
+                disabled={!!genderLocked}
+                placeholder={genderRequired ? 'Majburiy — tanlang' : 'Tanlang...'}
               />
             </>
           )}

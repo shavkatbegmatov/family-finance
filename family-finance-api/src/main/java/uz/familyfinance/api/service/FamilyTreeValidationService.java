@@ -6,6 +6,7 @@ import uz.familyfinance.api.entity.FamilyChild;
 import uz.familyfinance.api.entity.FamilyMember;
 import uz.familyfinance.api.entity.FamilyPartner;
 import uz.familyfinance.api.entity.FamilyUnit;
+import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.enums.LineageType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ConflictException;
@@ -108,7 +109,30 @@ public class FamilyTreeValidationService {
      */
     public void validatePartnerPair(Long person1Id, Long person2Id) {
         validateNotSelfPartnership(person1Id, person2Id);
+        validateOppositeGender(person1Id, person2Id);
         validateDuplicateMarriage(person1Id, person2Id);
+    }
+
+    /**
+     * Turmush o'rtoqlar qarama-qarshi jinsda bo'lishi shart. Jinsi belgilanmagan a'zoga
+     * turmush o'rtoq qo'shilsa — avval jinsni belgilash talab qilinadi. DRY: barcha partner
+     * amallari {@link #validatePartnerPair} orqali shu tekshiruvdan o'tadi.
+     */
+    public void validateOppositeGender(Long person1Id, Long person2Id) {
+        Gender g1 = loadGender(person1Id);
+        Gender g2 = loadGender(person2Id);
+        if (g1 == null || g2 == null) {
+            throw new BadRequestException("Turmush o'rtoqlarning jinsi belgilangan bo'lishi shart");
+        }
+        if (g1 == g2) {
+            throw new ConflictException("Turmush o'rtoqlar qarama-qarshi jinsda bo'lishi kerak");
+        }
+    }
+
+    private Gender loadGender(Long personId) {
+        return familyMemberRepository.findById(personId)
+                .map(FamilyMember::getGender)
+                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
     }
 
     /**

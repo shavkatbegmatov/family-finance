@@ -14,6 +14,7 @@ import {
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { scopesApi } from '../../api/scopes.api';
+import { GENDERS } from '../../config/constants';
 import { EmailInput } from '../../components/ui/EmailInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
@@ -42,6 +43,7 @@ export function RegisterPage() {
 
   const password = watch('password', '');
   const inviteCode = watch('inviteCode', '');
+  const gender = watch('gender');
 
   // Invite code preview: real-time scope ma'lumotini ko'rsatish
   const [codePreview, setCodePreview] = useState<{
@@ -194,6 +196,33 @@ export function RegisterPage() {
                   )}
                 </label>
               </div>
+
+              {/* Jins — majburiy (shajara izchilligi uchun) */}
+              <Controller
+                name="gender"
+                control={control}
+                rules={{ required: 'Jins tanlanishi shart' }}
+                render={({ field, fieldState }) => (
+                  <div className="form-control">
+                    <span className="label-text text-sm">Jins *</span>
+                    <div className="mt-1 grid grid-cols-2 gap-3">
+                      {(['MALE', 'FEMALE'] as const).map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => field.onChange(g)}
+                          className={`btn ${field.value === g ? 'btn-primary' : 'btn-outline'}`}
+                        >
+                          {GENDERS[g].label}
+                        </button>
+                      ))}
+                    </div>
+                    {fieldState.error && (
+                      <span className="mt-1 text-xs text-error">{fieldState.error.message}</span>
+                    )}
+                  </div>
+                )}
+              />
 
               {/* Username */}
               <label className="form-control">
@@ -357,7 +386,7 @@ export function RegisterPage() {
               <button
                 type="submit"
                 className="btn btn-primary w-full"
-                disabled={loading || !isPasswordStrong(password)}
+                disabled={loading || !isPasswordStrong(password) || !gender}
               >
                 {loading ? (
                   <span className="loading loading-spinner" />
