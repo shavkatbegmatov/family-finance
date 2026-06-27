@@ -8,10 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.service.AuditLogService;
+import uz.familyfinance.api.util.RequestContextUtil;
 
 import java.util.Map;
 
@@ -126,8 +125,9 @@ public class AuditEntityListener {
 
         try {
             Long userId = getCurrentUserId();
-            String ipAddress = getClientIpAddress();
-            String userAgent = getUserAgent();
+            HttpServletRequest request = RequestContextUtil.getCurrentRequest();
+            String ipAddress = RequestContextUtil.getClientIpAddress(request);
+            String userAgent = RequestContextUtil.getUserAgent(request);
 
             Map<String, Object> newData = sensitiveDataMasker.mask(
                     auditable.toAuditMap(),
@@ -179,8 +179,9 @@ public class AuditEntityListener {
             }
 
             Long userId = getCurrentUserId();
-            String ipAddress = getClientIpAddress();
-            String userAgent = getUserAgent();
+            HttpServletRequest request = RequestContextUtil.getCurrentRequest();
+            String ipAddress = RequestContextUtil.getClientIpAddress(request);
+            String userAgent = RequestContextUtil.getUserAgent(request);
 
             // Mask sensitive fields in old data
             Map<String, Object> oldData = sensitiveDataMasker.mask(
@@ -231,8 +232,9 @@ public class AuditEntityListener {
             AuditOriginalStateContext.remove(cacheKey);
 
             Long userId = getCurrentUserId();
-            String ipAddress = getClientIpAddress();
-            String userAgent = getUserAgent();
+            HttpServletRequest request = RequestContextUtil.getCurrentRequest();
+            String ipAddress = RequestContextUtil.getClientIpAddress(request);
+            String userAgent = RequestContextUtil.getUserAgent(request);
 
             Map<String, Object> oldData = sensitiveDataMasker.mask(
                     auditable.toAuditMap(),
@@ -280,47 +282,5 @@ public class AuditEntityListener {
         }
 
         return null; // System operation or unauthenticated request
-    }
-
-    /**
-     * Get the client IP address from the HTTP request.
-     * Checks X-Forwarded-For header first (for proxied requests),
-     * then falls back to remote address.
-     *
-     * @return the client IP address, or null if not available
-     */
-    private String getClientIpAddress() {
-        try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                String xForwardedFor = request.getHeader("X-Forwarded-For");
-                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                    return xForwardedFor.split(",")[0].trim();
-                }
-                return request.getRemoteAddr();
-            }
-        } catch (Exception e) {
-            log.debug("Could not get client IP address: {}", e.getMessage());
-        }
-        return null;
-    }
-
-    /**
-     * Get the User-Agent header from the HTTP request.
-     *
-     * @return the User-Agent string, or null if not available
-     */
-    private String getUserAgent() {
-        try {
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null) {
-                HttpServletRequest request = attributes.getRequest();
-                return request.getHeader("User-Agent");
-            }
-        } catch (Exception e) {
-            log.debug("Could not get user agent: {}", e.getMessage());
-        }
-        return null;
     }
 }
