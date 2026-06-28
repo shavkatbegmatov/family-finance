@@ -19,7 +19,7 @@ interface TelegramAuthModalProps {
   onClose: () => void;
 }
 
-type Phase = 'starting' | 'waiting' | 'register' | 'submitting' | 'pin' | 'verifying';
+type Phase = 'starting' | 'waiting' | 'register' | 'submitting' | 'pin' | 'verifying' | 'pin-setup' | 'settingup';
 
 /**
  * Telegram deep-link orqali kirish/ro'yxatdan o'tish modali (2-faktor PIN bilan).
@@ -36,6 +36,7 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
   const [gender, setGender] = useState<Gender | ''>('');
   const [inviteCode, setInviteCode] = useState('');
   const [pin, setPin] = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
   const [password, setPassword] = useState('');
 
   const applyJwt = (jwt: JwtResponse) => {
@@ -62,6 +63,7 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
     setGender('');
     setInviteCode('');
     setPin('');
+    setPinConfirm('');
     setPassword('');
 
     const pollStatus = (id: string) => {
@@ -81,6 +83,10 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
           }
           if (res.status === 'NEEDS_PIN') {
             setPhase('pin');
+            return;
+          }
+          if (res.status === 'NEEDS_PIN_SETUP') {
+            setPhase('pin-setup');
             return;
           }
           if (res.status === 'NEEDS_REGISTRATION') {
@@ -158,6 +164,18 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
     }
   };
 
+  const handleSetupPin = async () => {
+    if (!requestId || pin.length < 4 || pin !== pinConfirm) return;
+    setPhase('settingup');
+    try {
+      const jwt = await authApi.telegramSetupPin({ requestId, pin });
+      applyJwt(jwt);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "PIN o'rnatishda xatolik"));
+      setPhase('pin-setup');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -222,6 +240,49 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
             <p className="text-xs text-base-content/50">
               PIN&apos;ni unutdingizmi? Foydalanuvchi nomi va parol bilan kiring (agar zaxira parol o&apos;rnatgan bo&apos;lsangiz).
             </p>
+          </div>
+        )}
+
+        {(phase === 'pin-setup' || phase === 'settingup') && (
+          <div className="space-y-3 text-center">
+            <Lock className="mx-auto h-8 w-8 text-warning" />
+            <p className="text-sm text-base-content/70">
+              Xavfsizlik uchun kirish <b>PIN-kodini o&apos;rnating</b> (4-6 raqam). Bundan keyin har
+              Telegram kirishda shu PIN so&apos;raladi.
+            </p>
+            <input
+              autoFocus
+              type="password"
+              inputMode="numeric"
+              className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
+              placeholder="Yangi PIN"
+              value={pin}
+              maxLength={6}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            />
+            <input
+              type="password"
+              inputMode="numeric"
+              className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
+              placeholder="PIN tasdiqlash"
+              value={pinConfirm}
+              maxLength={6}
+              onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ''))}
+            />
+            {pinConfirm && pin !== pinConfirm && (
+              <p className="text-xs text-error">PIN-kodlar mos kelmadi</p>
+            )}
+            <button
+              className="btn btn-primary w-full"
+              onClick={handleSetupPin}
+              disabled={phase === 'settingup' || pin.length < 4 || pin !== pinConfirm}
+            >
+              {phase === 'settingup' ? (
+                <span className="loading loading-spinner loading-sm" />
+              ) : (
+                "O'rnatish va kirish"
+              )}
+            </button>
           </div>
         )}
 

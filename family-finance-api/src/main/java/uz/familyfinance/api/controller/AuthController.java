@@ -233,6 +233,25 @@ public class AuthController {
                 .body(ApiResponse.success("PIN tasdiqlandi. Kirish muvaffaqiyatli", response));
     }
 
+    @PostMapping("/telegram/setup-pin")
+    @Operation(summary = "Telegram PIN setup", description = "Eski (PIN'siz) Telegram user birinchi kirishda PIN o'rnatadi")
+    public ResponseEntity<ApiResponse<JwtResponse>> telegramSetupPin(
+            @Valid @RequestBody TelegramVerifyPinRequest request,
+            HttpServletRequest httpRequest) {
+        String ip = getClientIpAddress(httpRequest);
+        if (!loginRateLimiter.allow(ip)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.");
+        }
+        String ua = httpRequest.getHeader("User-Agent");
+        JwtResponse response = telegramAuthService.setupPin(request, ip, ua);
+        ResponseCookie refreshCookie = AuthCookies.refreshCookie(
+                response.getRefreshToken(), Duration.ofMillis(refreshExpiration));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success("PIN o'rnatildi. Kirish muvaffaqiyatli", response));
+    }
+
     @PostMapping("/telegram/set-pin")
     @Operation(summary = "Set Telegram PIN", description = "Telegram kirish PIN-kodini o'rnatish/o'zgartirish (auth talab)")
     public ResponseEntity<ApiResponse<Void>> telegramSetPin(

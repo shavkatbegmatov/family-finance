@@ -33,6 +33,11 @@ public class TelegramStatusResponse {
         return TelegramStatusResponse.builder().status("NEEDS_PIN").build();
     }
 
+    /** Eski (PIN'siz) Telegram user — birinchi kirishda PIN o'rnatishga majbur. */
+    public static TelegramStatusResponse needsPinSetup() {
+        return TelegramStatusResponse.builder().status("NEEDS_PIN_SETUP").build();
+    }
+
     public static TelegramStatusResponse pinLocked(long remainingSeconds) {
         return TelegramStatusResponse.builder()
                 .status("PIN_LOCKED")

@@ -34,7 +34,7 @@ export interface ChangePasswordRequest {
 
 // Telegram deep-link auth (Blok B/C)
 export interface TelegramStatusResponse {
-  status: 'PENDING' | 'AUTHENTICATED' | 'NEEDS_REGISTRATION' | 'NEEDS_PIN' | 'PIN_LOCKED' | 'EXPIRED';
+  status: 'PENDING' | 'AUTHENTICATED' | 'NEEDS_REGISTRATION' | 'NEEDS_PIN' | 'NEEDS_PIN_SETUP' | 'PIN_LOCKED' | 'EXPIRED';
   jwt?: JwtResponse;
   firstName?: string;
   lastName?: string;

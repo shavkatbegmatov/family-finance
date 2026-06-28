@@ -100,14 +100,13 @@ public class TelegramAuthService {
                 if (user == null) {
                     return TelegramStatusResponse.needsRegistration(req.getFirstName(), req.getLastName());
                 }
-                if (user.getTelegramPinHash() != null) {
-                    // 2-faktor: PIN so'raladi. req CONFIRMED qoladi — verifyPin yakunlaydi.
-                    return TelegramStatusResponse.needsPin();
+                if (user.getTelegramPinHash() == null) {
+                    // Eski (PIN'siz, Blok B) Telegram user — birinchi kirishda PIN o'rnatish MAJBURIY
+                    // (avval to'g'ridan-to'g'ri login qilinardi — bu xavfsizlik teshigi edi).
+                    return TelegramStatusResponse.needsPinSetup();
                 }
-                // PIN o'rnatilmagan (edge) — to'g'ridan-to'g'ri login
-                req.setStatus(TelegramAuthStatus.COMPLETED);
-                User loaded = userRepository.findByIdWithRolesAndPermissions(user.getId()).orElse(user);
-                return TelegramStatusResponse.authenticated(authService.buildJwtResponseForUser(loaded, ip, ua));
+                // 2-faktor: PIN so'raladi. req CONFIRMED qoladi — verifyPin yakunlaydi.
+                return TelegramStatusResponse.needsPin();
             }
             default -> {
                 return TelegramStatusResponse.expired();
@@ -169,6 +168,28 @@ public class TelegramAuthService {
         }
 
         // To'g'ri PIN — hisoblagich tozalanadi, login
+        user.setTelegramPinAttempts(0);
+        user.setTelegramPinLockedUntil(null);
+        req.setStatus(TelegramAuthStatus.COMPLETED);
+        User loaded = userRepository.findByIdWithRolesAndPermissions(user.getId()).orElse(user);
+        return authService.buildJwtResponseForUser(loaded, ip, ua);
+    }
+
+    /** Eski (PIN'siz) Telegram user birinchi kirishda PIN o'rnatadi → JWT. */
+    @Transactional
+    public JwtResponse setupPin(TelegramVerifyPinRequest request, String ip, String ua) {
+        TelegramAuthRequest req = requestRepository.findByRequestId(request.getRequestId())
+                .orElseThrow(() -> new ResourceNotFoundException("So'rov topilmadi yoki eskirgan"));
+        if (req.getStatus() != TelegramAuthStatus.CONFIRMED) {
+            throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
+        }
+        User user = userRepository.findByTelegramId(req.getTelegramId())
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+        if (user.getTelegramPinHash() != null) {
+            // PIN allaqachon bor — bu yo'l faqat eski (PIN'siz) userlar uchun; verifyPin ishlatilsin
+            throw new BadRequestException("PIN allaqachon o'rnatilgan");
+        }
+        user.setTelegramPinHash(passwordEncoder.encode(request.getPin()));
         user.setTelegramPinAttempts(0);
         user.setTelegramPinLockedUntil(null);
         req.setStatus(TelegramAuthStatus.COMPLETED);

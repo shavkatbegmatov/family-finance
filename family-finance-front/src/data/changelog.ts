@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.9.1',
+        date: '2026-06-28 20:31',
+        title: "Telegram PIN xavfsizlik tuzatildi",
+        features: [],
+        fixes: [
+            "Telegram orqali kirishda PIN majburiyligi tuzatildi: avval (PIN'siz davrda) ro'yxatdan o'tgan foydalanuvchilar PIN so'ralmasdan kirardi — endi ular birinchi kirishda PIN o'rnatishga majbur, shundan keyin har kirishda PIN so'raladi.",
+        ],
+    },
+    {
         version: '1.9.0',
         date: '2026-06-28 20:09',
         title: "Telegram kirish uchun PIN-kod (xavfsizlik)",
