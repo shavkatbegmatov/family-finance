@@ -2,9 +2,14 @@ package uz.familyfinance.api.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import uz.familyfinance.api.dto.request.SetPinRequest;
 import uz.familyfinance.api.dto.request.TelegramCompleteRequest;
+import uz.familyfinance.api.dto.request.TelegramVerifyPinRequest;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.TelegramStatusResponse;
 import uz.familyfinance.api.entity.TelegramAuthRequest;
@@ -18,6 +23,7 @@ import uz.familyfinance.api.service.telegram.TelegramBotClient;
 import uz.familyfinance.api.service.telegram.TelegramUserInfo;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
@@ -34,9 +40,12 @@ public class TelegramAuthService {
     private final UserRepository userRepository;
     private final AuthService authService;
     private final TelegramBotClient botClient;
+    private final PasswordEncoder passwordEncoder;
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int REQUEST_TTL_MINUTES = 5;
+    private static final int MAX_PIN_ATTEMPTS = 5;
+    private static final int PIN_LOCK_MINUTES = 15;
 
     /** Frontend "Telegram orqali kirish" bosganda — yangi PENDING so'rov, requestId qaytaradi. */
     @Transactional
@@ -88,12 +97,17 @@ public class TelegramAuthService {
             }
             case CONFIRMED -> {
                 User user = userRepository.findByTelegramId(req.getTelegramId()).orElse(null);
-                if (user != null) {
-                    req.setStatus(TelegramAuthStatus.COMPLETED);
-                    User loaded = userRepository.findByIdWithRolesAndPermissions(user.getId()).orElse(user);
-                    return TelegramStatusResponse.authenticated(authService.buildJwtResponseForUser(loaded, ip, ua));
+                if (user == null) {
+                    return TelegramStatusResponse.needsRegistration(req.getFirstName(), req.getLastName());
                 }
-                return TelegramStatusResponse.needsRegistration(req.getFirstName(), req.getLastName());
+                if (user.getTelegramPinHash() != null) {
+                    // 2-faktor: PIN so'raladi. req CONFIRMED qoladi — verifyPin yakunlaydi.
+                    return TelegramStatusResponse.needsPin();
+                }
+                // PIN o'rnatilmagan (edge) — to'g'ridan-to'g'ri login
+                req.setStatus(TelegramAuthStatus.COMPLETED);
+                User loaded = userRepository.findByIdWithRolesAndPermissions(user.getId()).orElse(user);
+                return TelegramStatusResponse.authenticated(authService.buildJwtResponseForUser(loaded, ip, ua));
             }
             default -> {
                 return TelegramStatusResponse.expired();
@@ -118,6 +132,62 @@ public class TelegramAuthService {
 
         User loaded = userRepository.findByIdWithRolesAndPermissions(user.getId()).orElse(user);
         return authService.buildJwtResponseForUser(loaded, ip, ua);
+    }
+
+    /** PIN tekshirish (2-faktor): tasdiqdan keyin to'g'ri PIN → JWT. Lockout User'da saqlanadi. */
+    @Transactional
+    public JwtResponse verifyPin(TelegramVerifyPinRequest request, String ip, String ua) {
+        TelegramAuthRequest req = requestRepository.findByRequestId(request.getRequestId())
+                .orElseThrow(() -> new ResourceNotFoundException("So'rov topilmadi yoki eskirgan"));
+        if (req.getStatus() != TelegramAuthStatus.CONFIRMED) {
+            throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
+        }
+        User user = userRepository.findByTelegramId(req.getTelegramId())
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+
+        // Lockout — User'da (begona yangi init bilan aylanib o'ta olmaydi)
+        if (user.getTelegramPinLockedUntil() != null
+                && user.getTelegramPinLockedUntil().isAfter(LocalDateTime.now())) {
+            long minutes = Duration.between(LocalDateTime.now(), user.getTelegramPinLockedUntil()).toMinutes() + 1;
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "PIN vaqtincha qulflangan. " + minutes + " daqiqadan so'ng urinib ko'ring.");
+        }
+
+        if (user.getTelegramPinHash() == null
+                || !passwordEncoder.matches(request.getPin(), user.getTelegramPinHash())) {
+            int attempts = (user.getTelegramPinAttempts() == null ? 0 : user.getTelegramPinAttempts()) + 1;
+            if (attempts >= MAX_PIN_ATTEMPTS) {
+                user.setTelegramPinAttempts(0);
+                user.setTelegramPinLockedUntil(LocalDateTime.now().plusMinutes(PIN_LOCK_MINUTES));
+                userRepository.save(user);
+                throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                        "Juda ko'p noto'g'ri urinish. PIN " + PIN_LOCK_MINUTES + " daqiqaga qulflandi.");
+            }
+            user.setTelegramPinAttempts(attempts);
+            userRepository.save(user);
+            throw new BadRequestException("PIN noto'g'ri. Qolgan urinish: " + (MAX_PIN_ATTEMPTS - attempts));
+        }
+
+        // To'g'ri PIN — hisoblagich tozalanadi, login
+        user.setTelegramPinAttempts(0);
+        user.setTelegramPinLockedUntil(null);
+        req.setStatus(TelegramAuthStatus.COMPLETED);
+        User loaded = userRepository.findByIdWithRolesAndPermissions(user.getId()).orElse(user);
+        return authService.buildJwtResponseForUser(loaded, ip, ua);
+    }
+
+    /**
+     * Autentifikatsiyalangan user PIN o'rnatadi/o'zgartiradi — PIN unutilgach username+parol
+     * bilan kirib qayta o'rnatish oqimi uchun.
+     */
+    @Transactional
+    public void setPin(Long userId, SetPinRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+        user.setTelegramPinHash(passwordEncoder.encode(request.getPin()));
+        user.setTelegramPinAttempts(0);
+        user.setTelegramPinLockedUntil(null);
+        log.info("Telegram PIN set/updated for user {}", user.getUsername());
     }
 
     private String generateRequestId() {

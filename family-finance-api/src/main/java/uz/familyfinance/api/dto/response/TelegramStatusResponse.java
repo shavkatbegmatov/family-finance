@@ -26,6 +26,20 @@ public class TelegramStatusResponse {
     private String firstName;
     private String lastName;
 
+    /** PIN_LOCKED bo'lganda — qulf tugashiga qancha sekund qolgani. */
+    private Long remainingLockoutSeconds;
+
+    public static TelegramStatusResponse needsPin() {
+        return TelegramStatusResponse.builder().status("NEEDS_PIN").build();
+    }
+
+    public static TelegramStatusResponse pinLocked(long remainingSeconds) {
+        return TelegramStatusResponse.builder()
+                .status("PIN_LOCKED")
+                .remainingLockoutSeconds(remainingSeconds)
+                .build();
+    }
+
     public static TelegramStatusResponse pending() {
         return TelegramStatusResponse.builder().status("PENDING").build();
     }

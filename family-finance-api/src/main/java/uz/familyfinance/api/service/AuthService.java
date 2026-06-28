@@ -580,9 +580,18 @@ public class AuthService {
         reg.setGender(request.getGender());
         reg.setInviteCode(request.getInviteCode());
 
+        // Ixtiyoriy zaxira parol — berilsa policy + HIBP tekshiruvi (register kabi)
+        String rawPassword = request.getPassword();
+        boolean hasPassword = rawPassword != null && !rawPassword.isBlank();
+        if (hasPassword) {
+            PasswordPolicy.validateStrength(rawPassword);
+            pwnedPasswordService.assertNotPwned(rawPassword);
+        }
+
         User user = User.builder()
                 .username(generateUniqueTelegramUsername(req))
-                .password(null) // Telegram user parolsiz (V49 nullable)
+                .password(hasPassword ? passwordEncoder.encode(rawPassword) : null)
+                .telegramPinHash(passwordEncoder.encode(request.getPin())) // 2-faktor PIN
                 .fullName(reg.getFullName())
                 .role(Role.MEMBER)
                 .active(true)
