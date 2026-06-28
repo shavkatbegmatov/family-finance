@@ -58,6 +58,11 @@ export const authApi = {
     return response.data.data;
   },
 
+  telegramSetupPin: async (data: TelegramVerifyPinRequest): Promise<JwtResponse> => {
+    const response = await api.post<ApiResponse<JwtResponse>>('/v1/auth/telegram/setup-pin', data);
+    return response.data.data;
+  },
+
   telegramSetPin: async (pin: string): Promise<void> => {
     await api.post<ApiResponse<void>>('/v1/auth/telegram/set-pin', { pin });
   },
