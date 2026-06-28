@@ -32,12 +32,13 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
-// Telegram deep-link auth (Blok B)
+// Telegram deep-link auth (Blok B/C)
 export interface TelegramStatusResponse {
-  status: 'PENDING' | 'AUTHENTICATED' | 'NEEDS_REGISTRATION' | 'EXPIRED';
+  status: 'PENDING' | 'AUTHENTICATED' | 'NEEDS_REGISTRATION' | 'NEEDS_PIN' | 'PIN_LOCKED' | 'EXPIRED';
   jwt?: JwtResponse;
   firstName?: string;
   lastName?: string;
+  remainingLockoutSeconds?: number;
 }
 
 export interface TelegramCompleteRequest {
@@ -45,7 +46,14 @@ export interface TelegramCompleteRequest {
   firstName: string;
   lastName?: string;
   gender: Gender;
+  pin: string;
+  password?: string;
   inviteCode?: string;
+}
+
+export interface TelegramVerifyPinRequest {
+  requestId: string;
+  pin: string;
 }
 
 export interface RegisterRequest {

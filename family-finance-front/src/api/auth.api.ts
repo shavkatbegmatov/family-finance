@@ -1,5 +1,5 @@
 import api from './axios';
-import type { ApiResponse, ChangePasswordRequest, JwtResponse, LoginRequest, RegisterRequest, TelegramCompleteRequest, TelegramStatusResponse, User } from '../types';
+import type { ApiResponse, ChangePasswordRequest, JwtResponse, LoginRequest, RegisterRequest, TelegramCompleteRequest, TelegramStatusResponse, TelegramVerifyPinRequest, User } from '../types';
 
 export const authApi = {
   register: async (data: RegisterRequest): Promise<User> => {
@@ -51,5 +51,14 @@ export const authApi = {
   telegramComplete: async (data: TelegramCompleteRequest): Promise<JwtResponse> => {
     const response = await api.post<ApiResponse<JwtResponse>>('/v1/auth/telegram/complete', data);
     return response.data.data;
+  },
+
+  telegramVerifyPin: async (data: TelegramVerifyPinRequest): Promise<JwtResponse> => {
+    const response = await api.post<ApiResponse<JwtResponse>>('/v1/auth/telegram/verify-pin', data);
+    return response.data.data;
+  },
+
+  telegramSetPin: async (pin: string): Promise<void> => {
+    await api.post<ApiResponse<void>>('/v1/auth/telegram/set-pin', { pin });
   },
 };

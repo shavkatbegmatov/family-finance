@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Loader2, X } from 'lucide-react';
+import { Send, Loader2, X, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
@@ -19,11 +19,11 @@ interface TelegramAuthModalProps {
   onClose: () => void;
 }
 
-type Phase = 'starting' | 'waiting' | 'register' | 'submitting';
+type Phase = 'starting' | 'waiting' | 'register' | 'submitting' | 'pin' | 'verifying';
 
 /**
- * Telegram deep-link orqali kirish/ro'yxatdan o'tish modali.
- * init → deep-link ochish → status polling → (login | jins bilan ro'yxat formasi).
+ * Telegram deep-link orqali kirish/ro'yxatdan o'tish modali (2-faktor PIN bilan).
+ * init → deep-link → polling → (login | NEEDS_PIN: PIN so'rash | NEEDS_REGISTRATION: forma).
  */
 export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
   const navigate = useNavigate();
@@ -35,6 +35,8 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [inviteCode, setInviteCode] = useState('');
+  const [pin, setPin] = useState('');
+  const [password, setPassword] = useState('');
 
   const applyJwt = (jwt: JwtResponse) => {
     setAuth(
@@ -59,6 +61,8 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
     setRequestId(null);
     setGender('');
     setInviteCode('');
+    setPin('');
+    setPassword('');
 
     const pollStatus = (id: string) => {
       timer = setTimeout(async () => {
@@ -73,6 +77,10 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
           if (cancelled) return;
           if (res.status === 'AUTHENTICATED' && res.jwt) {
             applyJwt(res.jwt);
+            return;
+          }
+          if (res.status === 'NEEDS_PIN') {
+            setPhase('pin');
             return;
           }
           if (res.status === 'NEEDS_REGISTRATION') {
@@ -118,7 +126,7 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
   }, [isOpen]);
 
   const handleRegister = async () => {
-    if (!requestId || !firstName.trim() || !gender) return;
+    if (!requestId || !firstName.trim() || !gender || pin.length < 4) return;
     setPhase('submitting');
     try {
       const jwt = await authApi.telegramComplete({
@@ -126,12 +134,27 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
         gender,
+        pin,
+        password: password.trim() || undefined,
         inviteCode: inviteCode.trim() || undefined,
       });
       applyJwt(jwt);
     } catch (e) {
       toast.error(getApiErrorMessage(e, "Ro'yxatdan o'tishda xatolik"));
       setPhase('register');
+    }
+  };
+
+  const handleVerifyPin = async () => {
+    if (!requestId || pin.length < 4) return;
+    setPhase('verifying');
+    try {
+      const jwt = await authApi.telegramVerifyPin({ requestId, pin });
+      applyJwt(jwt);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'PIN tasdiqlanmadi'));
+      setPin('');
+      setPhase('pin');
     }
   };
 
@@ -172,6 +195,36 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
           </div>
         )}
 
+        {(phase === 'pin' || phase === 'verifying') && (
+          <div className="space-y-3 text-center">
+            <Lock className="mx-auto h-8 w-8 text-primary" />
+            <p className="text-sm text-base-content/70">Xavfsizlik uchun PIN-kodingizni kiriting</p>
+            <input
+              autoFocus
+              type="password"
+              inputMode="numeric"
+              className="input input-bordered w-full text-center text-2xl tracking-[0.5em]"
+              placeholder="••••"
+              value={pin}
+              maxLength={6}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleVerifyPin();
+              }}
+            />
+            <button
+              className="btn btn-primary w-full"
+              onClick={handleVerifyPin}
+              disabled={phase === 'verifying' || pin.length < 4}
+            >
+              {phase === 'verifying' ? <span className="loading loading-spinner loading-sm" /> : 'Kirish'}
+            </button>
+            <p className="text-xs text-base-content/50">
+              PIN&apos;ni unutdingizmi? Foydalanuvchi nomi va parol bilan kiring (agar zaxira parol o&apos;rnatgan bo&apos;lsangiz).
+            </p>
+          </div>
+        )}
+
         {(phase === 'register' || phase === 'submitting') && (
           <div className="space-y-3">
             <p className="text-sm text-base-content/70">
@@ -204,6 +257,26 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
                 ))}
               </div>
             </div>
+            <div>
+              <span className="label-text text-sm">PIN-kod * (kirish uchun, 4-6 raqam)</span>
+              <input
+                type="password"
+                inputMode="numeric"
+                className="input input-bordered mt-1 w-full tracking-[0.3em]"
+                placeholder="••••"
+                value={pin}
+                maxLength={6}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              />
+            </div>
+            <input
+              type="password"
+              className="input input-bordered w-full"
+              placeholder="Zaxira parol (ixtiyoriy — PIN unutilsa)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
             <input
               className="input input-bordered w-full uppercase tracking-wider"
               placeholder="Oila taklif kodi (ixtiyoriy)"
@@ -214,7 +287,7 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
             <button
               className="btn btn-primary w-full"
               onClick={handleRegister}
-              disabled={phase === 'submitting' || !firstName.trim() || !gender}
+              disabled={phase === 'submitting' || !firstName.trim() || !gender || pin.length < 4}
             >
               {phase === 'submitting' ? (
                 <span className="loading loading-spinner loading-sm" />
