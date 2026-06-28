@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.9.0',
+        date: '2026-06-28 20:09',
+        title: "Telegram kirish uchun PIN-kod (xavfsizlik)",
+        features: [
+            "Telegram orqali kirishda endi 4-6 raqamli PIN-kod so'raladi — telefoningiz begona qo'lga tushsa ham, PIN'siz hisobingizga kira olmaydi. Ro'yxatdan o'tishda PIN o'rnatasiz va xohlasangiz zaxira parol qo'shasiz (PIN unutilsa username+parol bilan kirish uchun). PIN'ni Profil sahifasidan o'zgartirish mumkin.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.8.0',
         date: '2026-06-27 21:01',
         title: "Telegram orqali kirish va ro'yxatdan o'tish",
