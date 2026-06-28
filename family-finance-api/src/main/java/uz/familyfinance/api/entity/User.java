@@ -103,6 +103,18 @@ public class User extends BaseEntity implements Auditable {
     @Column(name = "telegram_linked_at")
     private LocalDateTime telegramLinkedAt;
 
+    /** Telegram kirish PIN-kodi (2-faktor) — BCrypt hash. NULL = o'rnatilmagan. */
+    @Column(name = "telegram_pin_hash", length = 100)
+    private String telegramPinHash;
+
+    /** PIN noto'g'ri urinishlar soni — brute-force lockout User'da (requestId emas). */
+    @Column(name = "telegram_pin_attempts", nullable = false)
+    @Builder.Default
+    private Integer telegramPinAttempts = 0;
+
+    @Column(name = "telegram_pin_locked_until")
+    private LocalDateTime telegramPinLockedUntil;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     @Builder.Default

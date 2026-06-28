@@ -17,8 +17,10 @@ import org.springframework.web.server.ResponseStatusException;
 import uz.familyfinance.api.dto.request.ChangePasswordRequest;
 import uz.familyfinance.api.dto.request.LoginRequest;
 import uz.familyfinance.api.dto.request.RegisterRequest;
+import uz.familyfinance.api.dto.request.SetPinRequest;
 import uz.familyfinance.api.dto.request.SwitchScopeRequest;
 import uz.familyfinance.api.dto.request.TelegramCompleteRequest;
+import uz.familyfinance.api.dto.request.TelegramVerifyPinRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.JwtResponse;
 import uz.familyfinance.api.dto.response.SwitchScopeResponse;
@@ -210,6 +212,34 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(ApiResponse.success("Muvaffaqiyatli ro'yxatdan o'tildi", response));
+    }
+
+    @PostMapping("/telegram/verify-pin")
+    @Operation(summary = "Telegram PIN verify", description = "Telegram tasdiqlangach PIN tekshirish (2-faktor)")
+    public ResponseEntity<ApiResponse<JwtResponse>> telegramVerifyPin(
+            @Valid @RequestBody TelegramVerifyPinRequest request,
+            HttpServletRequest httpRequest) {
+        String ip = getClientIpAddress(httpRequest);
+        if (!loginRateLimiter.allow(ip)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.");
+        }
+        String ua = httpRequest.getHeader("User-Agent");
+        JwtResponse response = telegramAuthService.verifyPin(request, ip, ua);
+        ResponseCookie refreshCookie = AuthCookies.refreshCookie(
+                response.getRefreshToken(), Duration.ofMillis(refreshExpiration));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body(ApiResponse.success("PIN tasdiqlandi. Kirish muvaffaqiyatli", response));
+    }
+
+    @PostMapping("/telegram/set-pin")
+    @Operation(summary = "Set Telegram PIN", description = "Telegram kirish PIN-kodini o'rnatish/o'zgartirish (auth talab)")
+    public ResponseEntity<ApiResponse<Void>> telegramSetPin(
+            @Valid @RequestBody SetPinRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        telegramAuthService.setPin(userDetails.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success("PIN o'rnatildi"));
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
