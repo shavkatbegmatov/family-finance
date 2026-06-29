@@ -5,7 +5,7 @@ import { useAddSpouse, useActivePersonsQuery } from '../../../hooks/useFamilyTre
 import { PersonPicker, emptyPersonDraft, isPersonDraftValid } from './shared/PersonPicker';
 import type { PersonDraft } from './shared/PersonPicker';
 import { MarriageFields } from './shared/MarriageFields';
-import type { MarriageType } from '../../../types';
+import type { Gender, MarriageType } from '../../../types';
 import type { SelectOption } from '../../ui/Select';
 
 interface AddSpouseModalProps {
@@ -32,6 +32,16 @@ export function AddSpouseModal({
     .filter((p) => p.id !== personId)
     .map((p) => ({ value: p.id, label: p.fullName }));
 
+  // Nikoh qarama-qarshi jinsda: joriy shaxs jinsi ma'lum bo'lsa, yangi turmush o'rtoq
+  // jinsi teskari qilib qulflanadi; noma'lum bo'lsa — jins majburiy tanlanadi.
+  const currentPerson = activePersons.find((p) => p.id === personId);
+  const oppositeGender: Gender | undefined =
+    currentPerson?.gender === 'MALE'
+      ? 'FEMALE'
+      : currentPerson?.gender === 'FEMALE'
+        ? 'MALE'
+        : undefined;
+
   const resetForm = () => {
     setPerson(emptyPersonDraft);
     setMarriageType('MARRIED');
@@ -48,7 +58,7 @@ export function AddSpouseModal({
   };
 
   const handleSubmit = async () => {
-    if (!isPersonDraftValid(person)) return;
+    if (!isPersonDraftValid(person, { genderRequired: !oppositeGender })) return;
     const isNew = person.mode === 'new';
     try {
       // Atomik: agar shaxsda turmush o'rtoqsiz (yagona ota-ona) nikoh bo'lsa,
@@ -59,7 +69,7 @@ export function AddSpouseModal({
         spouseFirstName: isNew ? person.firstName.trim() : undefined,
         spouseLastName: isNew ? (person.lastName.trim() || undefined) : undefined,
         spouseMiddleName: isNew ? (person.middleName.trim() || undefined) : undefined,
-        spouseGender: isNew ? (person.gender || undefined) : undefined,
+        spouseGender: isNew ? (oppositeGender ?? (person.gender || undefined)) : undefined,
         spouseBirthDate: isNew ? (person.birthDate || undefined) : undefined,
         marriageType,
         marriageDate: marriageDate || undefined,
@@ -91,7 +101,13 @@ export function AddSpouseModal({
           </div>
 
           <div className="mt-4 space-y-4">
-            <PersonPicker value={person} onChange={setPerson} personOptions={personOptions} />
+            <PersonPicker
+              value={person}
+              onChange={setPerson}
+              personOptions={personOptions}
+              genderRequired={!oppositeGender}
+              genderLocked={oppositeGender}
+            />
             <MarriageFields
               marriageType={marriageType}
               onMarriageTypeChange={setMarriageType}
@@ -109,7 +125,7 @@ export function AddSpouseModal({
             <button
               className="btn btn-primary"
               onClick={handleSubmit}
-              disabled={isSubmitting || !isPersonDraftValid(person)}
+              disabled={isSubmitting || !isPersonDraftValid(person, { genderRequired: !oppositeGender })}
             >
               {isSubmitting && <span className="loading loading-spinner loading-sm" />}
               Qo&apos;shish

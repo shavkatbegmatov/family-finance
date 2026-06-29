@@ -8,8 +8,11 @@ import uz.familyfinance.api.dto.request.MembershipInviteRequest;
 import uz.familyfinance.api.dto.request.ScopeCreateRequest;
 import uz.familyfinance.api.dto.request.ScopeRoleUpdateRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
+import uz.familyfinance.api.dto.response.FinancialOverviewResponse;
 import uz.familyfinance.api.dto.response.MembershipResponse;
 import uz.familyfinance.api.dto.response.ScopeResponse;
+import uz.familyfinance.api.security.RequiresSuperAdmin;
+import uz.familyfinance.api.service.AdminOverviewService;
 import uz.familyfinance.api.service.MembershipService;
 import uz.familyfinance.api.service.ScopeService;
 
@@ -30,6 +33,7 @@ public class ScopeController {
 
     private final ScopeService scopeService;
     private final MembershipService membershipService;
+    private final AdminOverviewService adminOverviewService;
 
     // ===== Scope CRUD =====
 
@@ -37,6 +41,20 @@ public class ScopeController {
     @GetMapping("/my")
     public ResponseEntity<ApiResponse<List<ScopeResponse>>> getMyScopes() {
         return ResponseEntity.ok(ApiResponse.success(scopeService.getMyScopes()));
+    }
+
+    /** SUPER_ADMIN — platformadagi barcha scope'lar (oilalar nazorati). */
+    @GetMapping("/all")
+    @RequiresSuperAdmin
+    public ResponseEntity<ApiResponse<List<ScopeResponse>>> getAllScopes() {
+        return ResponseEntity.ok(ApiResponse.success(scopeService.getAllScopes()));
+    }
+
+    /** SUPER_ADMIN — tanlangan oilaning READ-ONLY moliyaviy ko'rinishi (drill-down). */
+    @GetMapping("/{id}/financial-overview")
+    @RequiresSuperAdmin
+    public ResponseEntity<ApiResponse<FinancialOverviewResponse>> getFinancialOverview(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(adminOverviewService.getForScope(id)));
     }
 
     @GetMapping("/{id}")

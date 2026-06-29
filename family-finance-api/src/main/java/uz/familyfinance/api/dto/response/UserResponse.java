@@ -20,6 +20,7 @@ public class UserResponse {
     private Boolean active;
     private Boolean mustChangePassword;
     private Long familyMemberId;
+    private Boolean isSuperAdmin; // platforma operatori — frontend alohida admin UI'ga yo'naltiradi
 
     public static UserResponse from(User user) {
         return from(user, null);
@@ -48,6 +49,7 @@ public class UserResponse {
                 .active(user.getActive())
                 .mustChangePassword(user.getMustChangePassword())
                 .familyMemberId(familyMemberId)
+                .isSuperAdmin(user.getIsSuperAdmin())
                 .build();
     }
 }

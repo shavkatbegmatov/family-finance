@@ -9,6 +9,8 @@ export interface User {
   active: boolean;
   mustChangePassword?: boolean;
   familyMemberId?: number;
+  /** Platforma operatori — login'da alohida admin panel (/admin) ga yo'naltiriladi. */
+  isSuperAdmin?: boolean;
 }
 
 export interface LoginRequest {
@@ -32,6 +34,30 @@ export interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
+// Telegram deep-link auth (Blok B/C)
+export interface TelegramStatusResponse {
+  status: 'PENDING' | 'AUTHENTICATED' | 'NEEDS_REGISTRATION' | 'NEEDS_PIN' | 'NEEDS_PIN_SETUP' | 'PIN_LOCKED' | 'EXPIRED';
+  jwt?: JwtResponse;
+  firstName?: string;
+  lastName?: string;
+  remainingLockoutSeconds?: number;
+}
+
+export interface TelegramCompleteRequest {
+  requestId: string;
+  firstName: string;
+  lastName?: string;
+  gender: Gender;
+  pin: string;
+  password?: string;
+  inviteCode?: string;
+}
+
+export interface TelegramVerifyPinRequest {
+  requestId: string;
+  pin: string;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName?: string;
@@ -40,6 +66,7 @@ export interface RegisterRequest {
   confirmPassword: string;
   email?: string;
   phone?: string;
+  gender: Gender;
   /**
    * Ixtiyoriy: Mavjud oila taklif kodi. Bo'lsa — user shu oilaga MEMBER bo'lib qo'shiladi,
    * bo'lmasa — yangi oila yaratiladi (auto-provisioning).
@@ -647,6 +674,15 @@ export interface BudgetProgressItem {
   budgetAmount: number;
   spentAmount: number;
   percentage: number;
+}
+
+/** SUPER_ADMIN — bitta oilaning read-only moliyaviy ko'rinishi (drill-down). */
+export interface FinancialOverview {
+  scopeId: number;
+  scopeName: string;
+  scopeType: string;
+  stats: FamilyDashboardStats;
+  recentTransactions: Transaction[];
 }
 
 export interface SavingsProgressItem {

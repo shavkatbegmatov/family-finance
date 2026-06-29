@@ -238,15 +238,13 @@ public class ScopeContextService {
 
     /**
      * Boshqarish (manage) mumkin bo'lgan scope ID'lari — OWNER yoki ADMIN.
-     * SUPER_ADMIN bo'lsa hammasi.
+     *
+     * <p>SUPER_ADMIN read-only platforma profili: hech bir scope'ni BOSHQARMAYDI
+     * (yozish/membership). U faqat {@link #getVisibleScopeIds()} orqali ko'radi —
+     * shu sabab bu yerda super-admin bypass'i ATAYIN yo'q.</p>
      */
     @Transactional(readOnly = true)
     public Set<Long> getManageableScopeIds() {
-        if (isSuperAdmin()) {
-            return scopeRepository.findAll().stream()
-                    .map(Scope::getId)
-                    .collect(java.util.stream.Collectors.toSet());
-        }
         Long userId = getCurrentUserId();
         if (userId == null) {
             return Collections.emptySet();
@@ -258,16 +256,24 @@ public class ScopeContextService {
     // Permission checks
     // ====================================================================
 
-    /** Joriy user shu scope'da OWNER yoki ADMIN'mi? */
+    /**
+     * Joriy user shu scope'da OWNER yoki ADMIN'mi?
+     *
+     * <p>SUPER_ADMIN read-only: boshqaruvga ruxsat yo'q — super-admin bypass'i ATAYIN
+     * olib tashlandi (faqat ko'rish — {@link #canViewScope}).</p>
+     */
     public boolean canManageScope(Long scopeId) {
-        if (isSuperAdmin()) return true;
         return getManageableScopeIds().contains(scopeId);
     }
 
-    /** Joriy user shu scope'da kamida MEMBER (yozish huquqi) bormi? */
+    /**
+     * Joriy user shu scope'da kamida MEMBER (yozish huquqi) bormi?
+     *
+     * <p>SUPER_ADMIN read-only: yozishga ruxsat yo'q — super-admin bypass'i ATAYIN
+     * olib tashlandi. Super admin'da scope membership bo'lmagani uchun {@code false}.</p>
+     */
     @Transactional(readOnly = true)
     public boolean canWriteToScope(Long scopeId) {
-        if (isSuperAdmin()) return true;
         Long userId = getCurrentUserId();
         if (userId == null) return false;
         return membershipRepository.findActiveRole(scopeId, userId)

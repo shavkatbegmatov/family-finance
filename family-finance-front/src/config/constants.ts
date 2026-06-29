@@ -88,6 +88,14 @@ export const GENDERS = {
   FEMALE: { label: 'Ayol', value: 'FEMALE' },
 } as const;
 
+// Telegram deep-link auth (Blok B)
+export const TELEGRAM_BOT_USERNAME =
+  import.meta.env.VITE_TELEGRAM_BOT_USERNAME || 'FamilyFinanceAppBot';
+export const telegramDeepLink = (requestId: string): string =>
+  `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${requestId}`;
+export const TELEGRAM_POLL_INTERVAL_MS = 2000;
+export const TELEGRAM_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
 export const RELATIONSHIP_TYPES: Record<string, { label: string; category: string }> = {
   OTA: { label: 'Otam', category: 'parents' },
   ONA: { label: 'Onam', category: 'parents' },

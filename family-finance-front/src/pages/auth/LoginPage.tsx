@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { LogIn, Eye, EyeOff, User as UserIcon, Lock, ShieldCheck } from 'lucide-react';
+import { LogIn, Eye, EyeOff, User as UserIcon, Lock, ShieldCheck, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
+import { TelegramAuthModal } from '../../components/auth/TelegramAuthModal';
 import { consumeIntendedPath, sanitizeInternalPath } from '../../utils/sessionNavigation';
 import { BrandMark } from '../../components/common/BrandLogo';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -13,9 +14,10 @@ import type { LoginRequest } from '../../types';
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { setAuth, isAuthenticated } = useAuthStore();
+  const { setAuth, isAuthenticated, user } = useAuthStore();
   const storedRedirectRef = useRef<string | null>(consumeIntendedPath());
 
   const redirectTo = useMemo(() => {
@@ -51,7 +53,8 @@ export function LoginPage() {
       );
 
       toast.success('Muvaffaqiyatli kirish!');
-      navigate(redirectTo, { replace: true });
+      // Super admin — alohida platforma paneliga; oddiy user — odatdagi yo'l.
+      navigate(response.user.isSuperAdmin ? '/admin' : redirectTo, { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Kirish xatosi'));
     } finally {
@@ -65,7 +68,7 @@ export function LoginPage() {
   };
 
   if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={user?.isSuperAdmin ? '/admin' : redirectTo} replace />;
   }
 
   return (
@@ -162,6 +165,21 @@ export function LoginPage() {
             </button>
           </form>
 
+          {/* yoki — Telegram orqali kirish (deep-link) */}
+          <div className="my-4 flex items-center gap-3 text-xs text-base-content/40">
+            <span className="h-px flex-1 bg-base-200" />
+            yoki
+            <span className="h-px flex-1 bg-base-200" />
+          </div>
+          <button
+            type="button"
+            onClick={() => setTelegramOpen(true)}
+            className="tap flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#229ED9]/40 bg-[#229ED9]/10 text-[15px] font-semibold text-[#229ED9]"
+          >
+            <Send className="h-5 w-5" />
+            Telegram orqali kirish
+          </button>
+
           {/* Demo kirish — FAQAT dev build'da (prod'da admin credentiallarini
               har tashrifchiga ko'rsatish xavfsizlik teshigi edi) */}
           {import.meta.env.DEV && (
@@ -193,6 +211,8 @@ export function LoginPage() {
           </p>
         </div>
       </div>
+
+      <TelegramAuthModal isOpen={telegramOpen} onClose={() => setTelegramOpen(false)} />
     </div>
   );
 }

@@ -114,6 +114,18 @@ public class TransactionService {
     }
 
     /**
+     * Berilgan scope'ning oxirgi 10 tranzaksiyasi — SUPER_ADMIN bitta oilani read-only
+     * ko'rishi uchun ({@code AdminOverviewService}). {@link #getRecent()}'dan farqli: global
+     * emas, aniq scopeId bo'yicha.
+     */
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getRecentForScope(Long scopeId) {
+        return transactionRepository
+                .findTop10ByScope(scopeId, org.springframework.data.domain.PageRequest.of(0, 10))
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    /**
      * Hisob faol (ACTIVE) ekanligini tekshiradi. FROZEN/CLOSED bo'lsa
      * tranzaksiya kiritishni to'sib, tushunarli xatolik qaytaradi.
      */

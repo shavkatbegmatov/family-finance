@@ -12,8 +12,11 @@ import {
   Calendar,
   Users,
   Loader2,
+  Lock,
 } from 'lucide-react';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { TextInput } from '../../components/ui/TextInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { Select } from '../../components/ui/Select';
@@ -33,6 +36,8 @@ interface ProfileInfoTabProps {
 
 export function ProfileInfoTab({ userData, onUserDataChange }: ProfileInfoTabProps) {
   const [editMode, setEditMode] = useState(false);
+  const [pin, setPin] = useState('');
+  const [pinSaving, setPinSaving] = useState(false);
 
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -133,6 +138,20 @@ export function ProfileInfoTab({ userData, onUserDataChange }: ProfileInfoTabPro
         setEditMode(false);
       },
     });
+  };
+
+  const handleSetPin = async () => {
+    if (pin.length < 4) return;
+    setPinSaving(true);
+    try {
+      await authApi.telegramSetPin(pin);
+      toast.success('PIN saqlandi');
+      setPin('');
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, 'PIN saqlashda xatolik'));
+    } finally {
+      setPinSaving(false);
+    }
   };
 
   const isSubmitting = updateSelf.isPending;
@@ -393,6 +412,40 @@ export function ProfileInfoTab({ userData, onUserDataChange }: ProfileInfoTabPro
             value={userData?.role && getRoleLabel(userData.role)}
             bgColor="bg-warning/10"
           />
+        </div>
+      </div>
+
+      {/* Telegram kirish PIN-kodi (2-faktor) */}
+      <div className="surface-card p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold mb-2 flex items-center gap-2">
+          <Lock className="h-5 w-5 text-primary" />
+          Telegram kirish PIN-kodi
+        </h3>
+        <p className="text-sm text-base-content/60 mb-4">
+          Telegram orqali kirishda so&apos;raladigan 4-6 raqamli xavfsizlik kodi. Bu yerda
+          o&apos;rnatishingiz yoki (PIN unutilsa) o&apos;zgartirishingiz mumkin.
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <span className="label-text text-sm">Yangi PIN (4-6 raqam)</span>
+            <input
+              type="password"
+              inputMode="numeric"
+              className="input input-bordered mt-1 w-full"
+              placeholder="••••"
+              value={pin}
+              maxLength={6}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            />
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={handleSetPin}
+            disabled={pinSaving || pin.length < 4}
+          >
+            {pinSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            PIN saqlash
+          </button>
         </div>
       </div>
     </div>

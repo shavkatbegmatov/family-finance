@@ -2,10 +2,12 @@ package uz.familyfinance.api.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uz.familyfinance.api.enums.Gender;
 import uz.familyfinance.api.util.PasswordPolicy;
 
 @Data
@@ -37,6 +39,9 @@ public class RegisterRequest {
 
     @Size(max = 20)
     private String phone;
+
+    @NotNull(message = "Jins tanlanishi shart")
+    private Gender gender;
 
     /**
      * Ixtiyoriy: Oila taklif kodi. Bo'lsa — mavjud scope'ga MEMBER bo'lib qo'shiladi,

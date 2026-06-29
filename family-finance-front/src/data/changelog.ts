@@ -8,6 +8,61 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.10.0',
+        date: '2026-06-29 21:00',
+        title: "Super admin platforma paneli",
+        features: [
+            "Platforma administratori uchun alohida boshqaruv paneli qo'shildi — oilaviy moliyadan to'liq ajratilgan, faqat nazorat (ko'rish) va global sozlamalar uchun. Oddiy foydalanuvchilar uchun hech narsa o'zgarmaydi.",
+        ],
+        fixes: [],
+    },
+    {
+        version: '1.9.1',
+        date: '2026-06-28 20:31',
+        title: "Telegram PIN xavfsizlik tuzatildi",
+        features: [],
+        fixes: [
+            "Telegram orqali kirishda PIN majburiyligi tuzatildi: avval (PIN'siz davrda) ro'yxatdan o'tgan foydalanuvchilar PIN so'ralmasdan kirardi — endi ular birinchi kirishda PIN o'rnatishga majbur, shundan keyin har kirishda PIN so'raladi.",
+        ],
+    },
+    {
+        version: '1.9.0',
+        date: '2026-06-28 20:09',
+        title: "Telegram kirish uchun PIN-kod (xavfsizlik)",
+        features: [
+            "Telegram orqali kirishda endi 4-6 raqamli PIN-kod so'raladi — telefoningiz begona qo'lga tushsa ham, PIN'siz hisobingizga kira olmaydi. Ro'yxatdan o'tishda PIN o'rnatasiz va xohlasangiz zaxira parol qo'shasiz (PIN unutilsa username+parol bilan kirish uchun). PIN'ni Profil sahifasidan o'zgartirish mumkin.",
+        ],
+        fixes: [],
+    },
+    {
+        version: '1.8.0',
+        date: '2026-06-27 21:01',
+        title: "Telegram orqali kirish va ro'yxatdan o'tish",
+        features: [
+            "Endi Telegram orqali bir bosishda ro'yxatdan o'tish va kirish mumkin — parolni eslab qolish shart emas. Kirish yoki Ro'yxatdan o'tish sahifasidagi \"Telegram orqali kirish\" tugmasini bosing, botda \"Start\"ni bosing va avtomatik kiring.",
+        ],
+        fixes: [],
+    },
+    {
+        version: '1.7.23',
+        date: '2026-06-27 16:46',
+        title: "Jins majburiy — shajara izchilligi",
+        features: [],
+        fixes: [
+            "Ro'yxatdan o'tishda endi jins (erkak/ayol) majburiy tanlanadi — shajara daraxti to'g'ri qurilishi uchun.",
+            "Shajarada farzand qo'shishda jins majburiy (o'g'il/qiz), turmush o'rtoq qo'shishda esa jins avtomatik qarama-qarshi qilib belgilanadi — bir xil jinsli noto'g'ri juftliklar oldini oladi.",
+        ],
+    },
+    {
+        version: '1.7.22',
+        date: '2026-06-27 14:02',
+        title: "Oila taklif kodi bilan ro'yxatdan o'tish tuzatildi",
+        features: [],
+        fixes: [
+            "Ro'yxatdan o'tish sahifasida oila taklif kodini kiritganda \"Sessioningiz tugadi\" xatosi chiqib, kod tekshirilmasdi — endi login qilmagan holatda ham kod to'g'ri tekshiriladi va oila nomi ko'rsatiladi.",
+        ],
+    },
+    {
         version: '1.7.21',
         date: '2026-06-21 14:00',
         title: "Chiqishda keshni tozalash (xavfsizlik)",

@@ -39,12 +39,18 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardStatsResponse getStats() {
+        return getStats(scopeContext.getActiveScopeId());
+    }
+
+    /**
+     * Berilgan scope bo'yicha statistika. SUPER_ADMIN bitta oilani read-only ko'rishi uchun
+     * tanlangan scopeId bilan ham chaqiriladi ({@code AdminOverviewService}).
+     */
+    @Transactional(readOnly = true)
+    public DashboardStatsResponse getStats(Long scopeId) {
         LocalDate now = LocalDate.now();
         LocalDateTime monthStart = now.withDayOfMonth(1).atStartOfDay();
         LocalDateTime monthEnd = now.plusMonths(1).withDayOfMonth(1).atStartOfDay().minusSeconds(1);
-
-        // D1-c: scope-aware — transactions/balans endi to'g'ridan aktiv scope_id bo'yicha
-        Long scopeId = scopeContext.getActiveScopeId();
 
         BigDecimal totalIncome = transactionRepository.sumByTypeAndDateRangeAndScope(
                 TransactionType.INCOME, monthStart, monthEnd, scopeId);

@@ -8,7 +8,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        // versionName frontend package.json'dan avtomatik o'qiladi (sinxron bo'lsin)
+        versionName new groovy.json.JsonSlurper().parseText(file('../../package.json').text).version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -20,6 +21,13 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // APK fayl nomi: family-finance-v<versionName>-<buildType>.apk — adashmaslik uchun
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            output.outputFileName = "family-finance-v${variant.versionName}-${variant.buildType.name}.apk"
         }
     }
 }

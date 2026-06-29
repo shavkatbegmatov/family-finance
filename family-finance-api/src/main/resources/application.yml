@@ -5,6 +5,12 @@ spring:
   profiles:
     active: dev
 
+  # Telegram long-polling (25s blok) cleanup cron'ni bloklamasligi uchun 2 scheduler thread.
+  task:
+    scheduling:
+      pool:
+        size: 2
+
   # Timezone - Toshkent vaqti
   jackson:
     time-zone: Asia/Tashkent
@@ -57,10 +63,21 @@ management:
       exposure:
         include: health
 
+# Super Admin seeder — boshlang'ich parol (env'dan). O'rnatilmasa 'superadmin'
+# akkaunti yaratilmaydi (SuperAdminSeeder no-op). Prod'da: SUPER_ADMIN_INITIAL_PASSWORD.
+superadmin:
+  initial-password: ${SUPER_ADMIN_INITIAL_PASSWORD:}
+
 # Card Encryption — default YO'Q (fail-fast); dev fallback application-dev.yml'da
 app:
   card-encryption:
     key: ${CARD_ENCRYPTION_KEY}
+  # Telegram bot (deep-link auth, Blok B). enabled=false bo'lsa long-polling o'chiq
+  # (token yo'q dev/prod'da xavfsiz default). Prod'da: TELEGRAM_ENABLED=true + TELEGRAM_BOT_TOKEN.
+  telegram:
+    enabled: ${TELEGRAM_ENABLED:false}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    bot-username: ${TELEGRAM_BOT_USERNAME:FamilyFinanceAppBot}
 
 # Logging
 logging:

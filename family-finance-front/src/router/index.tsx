@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
+import { AdminLayout } from '../components/layout/AdminLayout';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { PermissionCode } from '../hooks/usePermission';
 import { useAuthStore } from '../store/authStore';
@@ -35,6 +36,11 @@ const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then
 const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage').then(m => ({ default: m.MemberDetailPage })));
 const FamilyGroupSettingsPage = lazy(() => import('../pages/settings/FamilyGroupSettings').then(m => ({ default: m.FamilyGroupSettings })));
 const BanksPage = lazy(() => import('../pages/settings/BanksPage').then(m => ({ default: m.BanksPage })));
+
+// Super Admin panel pages
+const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
+const AdminFamiliesPage = lazy(() => import('../pages/admin/AdminFamiliesPage').then(m => ({ default: m.AdminFamiliesPage })));
+const AdminFamilyDetailPage = lazy(() => import('../pages/admin/AdminFamilyDetailPage').then(m => ({ default: m.AdminFamilyDetailPage })));
 
 // Points layout & pages
 const PointsLayout = lazy(() => import('../components/points/PointsLayout').then(m => ({ default: m.PointsLayout })));
@@ -364,6 +370,56 @@ export const router = createBrowserRouter([
           <LazyRoute><ProfilePage /></LazyRoute>
         ),
         handle: { title: 'Profil' },
+      },
+    ],
+  },
+  {
+    // SUPER_ADMIN platforma paneli — AdminLayout'ning o'zi super-admin guard qiladi
+    // (oddiy user '/' ga qaytariladi). Sahifalar ko'pchiligi oilaviy UI'dagilar bilan
+    // bir xil (super admin'da kerakli VIEW/manage huquqlari bor).
+    path: '/admin',
+    element: <AdminLayout />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      {
+        index: true,
+        element: <LazyRoute><AdminDashboardPage /></LazyRoute>,
+        handle: { title: 'Platforma boshqaruvi' },
+      },
+      {
+        path: 'users',
+        element: <LazyRoute><UsersPage /></LazyRoute>,
+        handle: { title: 'Foydalanuvchilar' },
+      },
+      {
+        path: 'families',
+        element: <LazyRoute><AdminFamiliesPage /></LazyRoute>,
+        handle: { title: 'Oilalar' },
+      },
+      {
+        path: 'families/:scopeId',
+        element: <LazyRoute><AdminFamilyDetailPage /></LazyRoute>,
+        handle: { title: 'Oila tafsiloti' },
+      },
+      {
+        path: 'audit-logs',
+        element: <LazyRoute><AuditLogsPage /></LazyRoute>,
+        handle: { title: 'Audit loglar' },
+      },
+      {
+        path: 'roles',
+        element: <LazyRoute><RolesPage /></LazyRoute>,
+        handle: { title: 'Rollar va huquqlar' },
+      },
+      {
+        path: 'banks',
+        element: <LazyRoute><BanksPage /></LazyRoute>,
+        handle: { title: 'Banklar' },
+      },
+      {
+        path: 'settings',
+        element: <LazyRoute><SettingsPage /></LazyRoute>,
+        handle: { title: 'Tizim sozlamalari' },
       },
     ],
   },

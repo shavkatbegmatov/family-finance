@@ -123,6 +123,11 @@ export function MainLayout() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // SUPER_ADMIN oilaviy UI'da ishlamaydi — alohida platforma paneliga yo'naltiriladi.
+  if (user?.isSuperAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden text-base-content">
       <Sidebar />

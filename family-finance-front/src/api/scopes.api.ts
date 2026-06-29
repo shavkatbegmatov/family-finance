@@ -1,5 +1,5 @@
 import axiosInstance from './axios';
-import type { ApiResponse } from '../types';
+import type { ApiResponse, FinancialOverview } from '../types';
 import type {
   Membership,
   MembershipInviteRequest,
@@ -22,6 +22,14 @@ export const scopesApi = {
   /** Joriy user a'zo bo'lgan barcha scope'lar (ScopeSwitcher uchun). */
   getMyScopes: () =>
     axiosInstance.get<ApiResponse<Scope[]>>('/v1/scopes/my'),
+
+  /** SUPER_ADMIN — platformadagi barcha scope'lar (oilalar nazorati). */
+  getAllScopes: () =>
+    axiosInstance.get<ApiResponse<Scope[]>>('/v1/scopes/all'),
+
+  /** SUPER_ADMIN — tanlangan oilaning read-only moliyaviy ko'rinishi (drill-down). */
+  getFinancialOverview: (scopeId: number) =>
+    axiosInstance.get<ApiResponse<FinancialOverview>>(`/v1/scopes/${scopeId}/financial-overview`),
 
   getById: (id: number) =>
     axiosInstance.get<ApiResponse<Scope>>(`/v1/scopes/${id}`),
