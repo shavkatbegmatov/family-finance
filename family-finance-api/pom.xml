@@ -56,10 +56,12 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Flyway for database migrations -->
+        <!-- Flyway — Spring Boot 4'da STARTER orqali (yalang'och flyway-core endi
+             Flyway auto-config + JPA depends-on tartibini o'rnatmaydi → Hibernate validate
+             Flyway'dan oldin ishlab "missing table" beradi). Starter to'g'ri tartibni tiklaydi. -->
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
