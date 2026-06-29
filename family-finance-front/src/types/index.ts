@@ -9,6 +9,8 @@ export interface User {
   active: boolean;
   mustChangePassword?: boolean;
   familyMemberId?: number;
+  /** Platforma operatori — login'da alohida admin panel (/admin) ga yo'naltiriladi. */
+  isSuperAdmin?: boolean;
 }
 
 export interface LoginRequest {
@@ -672,6 +674,15 @@ export interface BudgetProgressItem {
   budgetAmount: number;
   spentAmount: number;
   percentage: number;
+}
+
+/** SUPER_ADMIN — bitta oilaning read-only moliyaviy ko'rinishi (drill-down). */
+export interface FinancialOverview {
+  scopeId: number;
+  scopeName: string;
+  scopeType: string;
+  stats: FamilyDashboardStats;
+  recentTransactions: Transaction[];
 }
 
 export interface SavingsProgressItem {

@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.10.0',
+        date: '2026-06-29 21:00',
+        title: "Super admin platforma paneli",
+        features: [
+            "Platforma administratori uchun alohida boshqaruv paneli qo'shildi — oilaviy moliyadan to'liq ajratilgan, faqat nazorat (ko'rish) va global sozlamalar uchun. Oddiy foydalanuvchilar uchun hech narsa o'zgarmaydi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.9.1',
         date: '2026-06-28 20:31',
         title: "Telegram PIN xavfsizlik tuzatildi",

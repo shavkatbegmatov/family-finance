@@ -232,6 +232,12 @@ public class AuthService {
         User user = userRepository.findById(userParam.getId()).orElse(null);
         if (user == null) return;
 
+        // SUPER_ADMIN — alohida platforma profili: oilasiz/scope'siz. Unga CLAN+HOUSEHOLD
+        // provisioning QILINMAYDI (login'da activeScopeId=null bo'lib qoladi, nazorat-only UI).
+        if (Boolean.TRUE.equals(user.getIsSuperAdmin())) {
+            return;
+        }
+
         // Oila a'zosiga bog'langan user — uning aktiv scope'i HAR DOIM o'sha a'zo xonadoni
         // bilan mos bo'lishi kerak. Bu, jumladan, eski bug tufayli (admin login ochganda
         // primaryScope o'rnatilmagani sabab) noto'g'ri/bo'sh urug'ga tushib qolgan login'larni
