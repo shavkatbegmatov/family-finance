@@ -191,8 +191,10 @@
         <dependencies>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
+                <!-- 2025.1.2 RestClient.Builder auto-config'ni buzadi (PwnedPasswordService bean
+                     yo'q) — 2025.1.1'da qolamiz (Spring Boot 4 bilan ishlaydi, prod'da tasdiqlangan). -->
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>2025.1.2</version>
+                <version>2025.1.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
