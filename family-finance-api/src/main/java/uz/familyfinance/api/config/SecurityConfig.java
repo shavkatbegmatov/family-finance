@@ -66,8 +66,9 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(staffUserDetailsService);
+        // Spring Security 7: DaoAuthenticationProvider endi UserDetailsService'ni konstruktor
+        // orqali oladi (eski setUserDetailsService(...) olib tashlandi).
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(staffUserDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
