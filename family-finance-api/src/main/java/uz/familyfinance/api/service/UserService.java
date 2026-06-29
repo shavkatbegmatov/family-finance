@@ -487,6 +487,67 @@ public class UserService {
     }
 
     /**
+     * Mavjud foydalanuvchini platforma SUPER_ADMIN'iga tayinlaydi (alohida profil).
+     *
+     * <p>Super admin oilasiz/scope'siz "platforma operatori" — faqat nazorat (read-only) va
+     * global sozlamalar. Tayinlanganda roli {@code SUPER_ADMIN}'ga almashtiriladi va
+     * {@code primaryScope} null'ga o'rnatiladi (oiladan uziladi). Birinchi super admin esa
+     * {@code SuperAdminSeeder} orqali alohida akkaunt sifatida yaratiladi.</p>
+     */
+    @Transactional
+    public UserDetailResponse grantSuperAdmin(Long userId) {
+        User user = userRepository.findByIdWithRolesAndPermissions(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+        if (Boolean.TRUE.equals(user.getIsSuperAdmin())) {
+            throw new BadRequestException("Foydalanuvchi allaqachon super admin");
+        }
+        RoleEntity superAdminRole = roleRepository.findByCode("SUPER_ADMIN")
+                .orElseThrow(() -> new ResourceNotFoundException("Rol topilmadi: SUPER_ADMIN"));
+
+        user.setIsSuperAdmin(true);
+        user.setPrimaryScope(null); // oiladan uzish — alohida platforma profili
+        user.getRoles().clear();
+        user.getRoles().add(superAdminRole);
+        userRepository.save(user);
+
+        User currentUser = getCurrentUser();
+        auditLogService.log("User", userId, "GRANT_SUPER_ADMIN", null,
+                String.format("Super admin tayinlandi: %s", user.getUsername()),
+                currentUser != null ? currentUser.getId() : null);
+        log.info("User granted SUPER_ADMIN: {}", user.getUsername());
+
+        return getUserDetails(userId);
+    }
+
+    /**
+     * SUPER_ADMIN huquqini qaytarib oladi. User keyingi login'da oddiy oqim bo'yicha
+     * ({@code AuthService.ensureUserHasScope}) yangi oila/scope oladi; roli MEMBER'ga tushiriladi.
+     */
+    @Transactional
+    public UserDetailResponse revokeSuperAdmin(Long userId) {
+        User user = userRepository.findByIdWithRolesAndPermissions(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
+        if (!Boolean.TRUE.equals(user.getIsSuperAdmin())) {
+            throw new BadRequestException("Foydalanuvchi super admin emas");
+        }
+        RoleEntity memberRole = roleRepository.findByCode("MEMBER")
+                .orElseThrow(() -> new ResourceNotFoundException("Rol topilmadi: MEMBER"));
+
+        user.setIsSuperAdmin(false);
+        user.getRoles().clear();
+        user.getRoles().add(memberRole);
+        userRepository.save(user);
+
+        User currentUser = getCurrentUser();
+        auditLogService.log("User", userId, "REVOKE_SUPER_ADMIN", null,
+                String.format("Super admin huquqi qaytarib olindi: %s", user.getUsername()),
+                currentUser != null ? currentUser.getId() : null);
+        log.info("User revoked SUPER_ADMIN: {}", user.getUsername());
+
+        return getUserDetails(userId);
+    }
+
+    /**
      * Gets user by ID.
      *
      * @param userId User ID

@@ -30,6 +30,7 @@ import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.security.CustomUserDetails;
 import uz.familyfinance.api.security.RequiresPermission;
+import uz.familyfinance.api.security.RequiresSuperAdmin;
 import uz.familyfinance.api.service.AuditLogService;
 import uz.familyfinance.api.service.PermissionService;
 import uz.familyfinance.api.service.UserService;
@@ -199,6 +200,22 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> activateUser(@PathVariable Long id) {
         userService.activateUser(id);
         return ResponseEntity.ok(ApiResponse.success("Foydalanuvchi aktivlashtirildi"));
+    }
+
+    @PutMapping("/{id}/grant-super-admin")
+    @Operation(summary = "Grant SUPER_ADMIN", description = "Foydalanuvchini platforma super admin'iga tayinlash (oiladan uziladi)")
+    @RequiresSuperAdmin
+    public ResponseEntity<ApiResponse<UserDetailResponse>> grantSuperAdmin(@PathVariable Long id) {
+        UserDetailResponse user = userService.grantSuperAdmin(id);
+        return ResponseEntity.ok(ApiResponse.success("Super admin tayinlandi", user));
+    }
+
+    @PutMapping("/{id}/revoke-super-admin")
+    @Operation(summary = "Revoke SUPER_ADMIN", description = "Super admin huquqini qaytarib olish")
+    @RequiresSuperAdmin
+    public ResponseEntity<ApiResponse<UserDetailResponse>> revokeSuperAdmin(@PathVariable Long id) {
+        UserDetailResponse user = userService.revokeSuperAdmin(id);
+        return ResponseEntity.ok(ApiResponse.success("Super admin huquqi qaytarib olindi", user));
     }
 
     @GetMapping("/{userId}/activity")

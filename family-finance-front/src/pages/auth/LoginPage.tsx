@@ -17,7 +17,7 @@ export function LoginPage() {
   const [telegramOpen, setTelegramOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { setAuth, isAuthenticated } = useAuthStore();
+  const { setAuth, isAuthenticated, user } = useAuthStore();
   const storedRedirectRef = useRef<string | null>(consumeIntendedPath());
 
   const redirectTo = useMemo(() => {
@@ -53,7 +53,8 @@ export function LoginPage() {
       );
 
       toast.success('Muvaffaqiyatli kirish!');
-      navigate(redirectTo, { replace: true });
+      // Super admin — alohida platforma paneliga; oddiy user — odatdagi yo'l.
+      navigate(response.user.isSuperAdmin ? '/admin' : redirectTo, { replace: true });
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Kirish xatosi'));
     } finally {
@@ -67,7 +68,7 @@ export function LoginPage() {
   };
 
   if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={user?.isSuperAdmin ? '/admin' : redirectTo} replace />;
   }
 
   return (

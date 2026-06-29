@@ -68,6 +68,23 @@ public class ScopeService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * SUPER_ADMIN uchun — platformadagi BARCHA scope'lar (nazorat ro'yxati).
+     * Har bir scope'ga faol a'zolar soni qo'shiladi. Faqat {@code @RequiresSuperAdmin}
+     * endpoint'idan chaqiriladi.
+     */
+    @Transactional(readOnly = true)
+    public List<ScopeResponse> getAllScopes() {
+        return scopeRepository.findAll().stream()
+                .map(scope -> {
+                    ScopeResponse r = ScopeResponse.from(scope);
+                    r.setMemberCount(membershipRepository.countByScopeIdAndStatus(
+                            scope.getId(), MembershipStatus.ACTIVE));
+                    return r;
+                })
+                .collect(Collectors.toList());
+    }
+
     @Transactional(readOnly = true)
     public ScopeResponse getById(Long id) {
         Scope scope = findScopeOrThrow(id);
