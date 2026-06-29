@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components -- shared fayl: komponent va yordamchi
+   (helper/constant) eksportlari ataylab birga; Fast Refresh (HMR) bu yerda ahamiyatsiz. */
 import type { CSSProperties } from 'react';
 import {
   Banknote,

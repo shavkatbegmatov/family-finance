@@ -1,3 +1,5 @@
+/* eslint-disable react-refresh/only-export-components -- shared fayl: komponent va yordamchi
+   eksportlar ataylab birga; Fast Refresh (HMR) bu yerda ahamiyatsiz. */
 import { User, Users, CheckCircle2 } from 'lucide-react';
 import { TextInput } from '../../../ui/TextInput';
 import { Select } from '../../../ui/Select';
