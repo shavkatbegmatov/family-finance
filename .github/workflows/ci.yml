@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
           cache: maven
       # `clean test` kompilyatsiya + toza-mantiq birlik testlarini ishga tushiradi.
       # Qizil test merge'ni bloklaydi (Docker image build'i alohida -DskipTests bilan).
@@ -82,7 +82,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
           cache: maven
       - run: chmod +x mvnw && ./mvnw test -Dtest='*IntegrationTest' -DfailIfNoTests=false -q
 
