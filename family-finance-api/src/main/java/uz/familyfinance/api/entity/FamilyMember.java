@@ -80,7 +80,7 @@ public class FamilyMember extends BaseEntity implements Auditable {
     /**
      * Genealogik tenant markeri — bu shaxs qaysi mustaqil shajara daraxtiga tegishli
      * (bir DB'dagi ko'p oila grafi aralashmasligi uchun izolyatsiya). ADR-001: bu MOLIYAVIY
-     * guruh (Group/CLAN) EMAS — sof genealogik tenant (kelajakda {@code tree_id}ga aylanadi).
+     * guruh (GROUP scope) EMAS — sof genealogik tenant (kelajakda {@code tree_id}ga aylanadi).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_group_id")

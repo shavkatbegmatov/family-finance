@@ -95,7 +95,7 @@ public class Account extends BaseEntity implements Auditable {
     private FamilyGroup familyGroup;
 
     /**
-     * Phase 2: yangi scope tuzilmasi (odatda HOUSEHOLD, ba'zan CLAN-level
+     * Phase 2: yangi scope tuzilmasi (odatda HOUSEHOLD, ba'zan GROUP-level
      * umumiy hisoblar uchun). Hozircha nullable — V35 backfill orqali to'lgan.
      * V37 (Phase 2 oxiri) da NOT NULL bo'ladi va eski familyGroup deprecated.
      *

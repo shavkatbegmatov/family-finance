@@ -142,8 +142,8 @@ public class ScopeContextService {
     /**
      * Aktiv scope ga mos asl {@link FamilyGroup} ni qaytaradi.
      *
-     * <p>HOUSEHOLD scope'da bo'lsak, parent CLAN orqali boramiz.
-     * CLAN scope'da bo'lsak, {@code Scope.legacyFamilyGroup} dan o'qiymiz.</p>
+     * <p>HOUSEHOLD scope'da bo'lsak, parent GROUP orqali boramiz.
+     * GROUP scope'da bo'lsak, {@code Scope.legacyFamilyGroup} dan o'qiymiz.</p>
      *
      * <p>Yangi yaratilgan (V34 dan keyin) scope'lar uchun null bo'lishi mumkin —
      * bu vaziyatda chaqiruvchi servis o'zining xato logikasini ishlatadi.</p>
@@ -171,7 +171,7 @@ public class ScopeContextService {
     }
 
     private Optional<FamilyGroup> resolveFamilyGroup(Scope scope) {
-        Scope clanScope = (scope.getType() == ScopeType.CLAN)
+        Scope clanScope = (scope.getType() == ScopeType.GROUP)
                 ? scope
                 : scope.getParentScope();
         if (clanScope == null) {
@@ -181,7 +181,7 @@ public class ScopeContextService {
     }
 
     /**
-     * Joriy aktiv HOUSEHOLD scope. Aktiv scope HOUSEHOLD bo'lsa — o'zi; CLAN bo'lsa —
+     * Joriy aktiv HOUSEHOLD scope. Aktiv scope HOUSEHOLD bo'lsa — o'zi; GROUP bo'lsa —
      * uning birinchi faol HOUSEHOLD'i. Yangi FamilyMember/FamilyUnit'ni xonadonga
      * (byudjet-scope'ga) bog'lash uchun ishlatiladi.
      */
@@ -194,7 +194,7 @@ public class ScopeContextService {
         if (scope.getType() == ScopeType.HOUSEHOLD) {
             return Optional.of(scope);
         }
-        if (scope.getType() == ScopeType.CLAN) {
+        if (scope.getType() == ScopeType.GROUP) {
             return scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
                     scope.getId(), ScopeType.HOUSEHOLD);
         }
@@ -202,14 +202,14 @@ public class ScopeContextService {
     }
 
     /**
-     * Joriy aktiv scope tegishli bo'lgan CLAN (urug'). Aktiv scope CLAN bo'lsa — o'zi;
-     * HOUSEHOLD (yoki boshqa) bo'lsa — uning ota-scope'i (CLAN). Yangi HOUSEHOLD'larni shu
-     * CLAN ostiga joylashtirish uchun ishlatiladi.
+     * Joriy aktiv scope tegishli bo'lgan GROUP (urug'). Aktiv scope GROUP bo'lsa — o'zi;
+     * HOUSEHOLD (yoki boshqa) bo'lsa — uning ota-scope'i (GROUP). Yangi HOUSEHOLD'larni shu
+     * GROUP ostiga joylashtirish uchun ishlatiladi.
      */
     @Transactional(readOnly = true)
-    public Optional<Scope> getActiveClanOptional() {
+    public Optional<Scope> getActiveGroupOptional() {
         return getActiveScopeOptional().map(scope ->
-                scope.getType() == ScopeType.CLAN ? scope : scope.getParentScope());
+                scope.getType() == ScopeType.GROUP ? scope : scope.getParentScope());
     }
 
     // ====================================================================

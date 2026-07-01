@@ -148,7 +148,7 @@ public class UserService {
 
         userRepository.save(user);
 
-        // MUHIM: yangi user'ni oila a'zosi tegishli bo'lgan scope'larga (HOUSEHOLD + parent CLAN)
+        // MUHIM: yangi user'ni oila a'zosi tegishli bo'lgan scope'larga (HOUSEHOLD + parent GROUP)
         // a'zo qilamiz va primaryScope'ni o'rnatamiz. Aks holda u login qilganda
         // AuthService.ensureUserHasScope() primaryScope yo'qligini ko'rib, YANGI bo'sh urug'/xonadon
         // yaratadi va user'ni o'z oilasidan uzib qo'yadi — natijada oila a'zolari ko'rinmaydi.
@@ -213,7 +213,7 @@ public class UserService {
     }
 
     /**
-     * Yangi user'ni oila a'zosi tegishli bo'lgan HOUSEHOLD va parent CLAN scope'lariga a'zo qiladi
+     * Yangi user'ni oila a'zosi tegishli bo'lgan HOUSEHOLD va parent GROUP scope'lariga a'zo qiladi
      * hamda primaryScope'ni HOUSEHOLD'ga o'rnatadi. Bu login paytida noto'g'ri yangi scope
      * provisioning qilinishining oldini oladi.
      */
@@ -233,7 +233,7 @@ public class UserService {
 
     /**
      * Oila a'zosiga mos HOUSEHOLD scope'ni topadi. Member scope'i HOUSEHOLD bo'lsa — o'zi;
-     * CLAN bo'lsa — uning birinchi faol HOUSEHOLD'i. Member scope'i bo'lmasa — login ochayotgan
+     * GROUP bo'lsa — uning birinchi faol HOUSEHOLD'i. Member scope'i bo'lmasa — login ochayotgan
      * adminning aktiv xonadoniga fallback (xuddi shu xonadon a'zosiga login berilmoqda).
      */
     private Scope resolveHouseholdScope(FamilyMember member) {
@@ -247,7 +247,7 @@ public class UserService {
         if (scope.getType() == ScopeType.HOUSEHOLD) {
             return scope;
         }
-        if (scope.getType() == ScopeType.CLAN) {
+        if (scope.getType() == ScopeType.GROUP) {
             return scopeRepository
                     .findFirstByParentScopeIdAndTypeAndIsActiveTrue(scope.getId(), ScopeType.HOUSEHOLD)
                     .orElse(null);

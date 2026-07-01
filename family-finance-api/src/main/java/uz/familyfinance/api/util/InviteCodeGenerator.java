@@ -49,7 +49,7 @@ public class InviteCodeGenerator {
 
     private char prefixFor(ScopeType type) {
         return switch (type) {
-            case CLAN -> 'C';
+            case GROUP -> 'G';
             case HOUSEHOLD -> 'H';
             case PROJECT -> 'P';
             case EVENT -> 'E';

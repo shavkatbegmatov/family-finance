@@ -41,7 +41,7 @@ public interface ScopeRepository extends JpaRepository<Scope, Long> {
      * Berilgan user ko'rishi mumkin bo'lgan barcha scope ID'lari:
      * <ul>
      *   <li>O'zi ACTIVE membership ega bo'lgan scope'lar</li>
-     *   <li>Membership ega bo'lgan HOUSEHOLD'larning parent CLAN'lari ham (parent visibility)</li>
+     *   <li>Membership ega bo'lgan HOUSEHOLD'larning parent GROUP'lari ham (parent visibility)</li>
      * </ul>
      */
     @Query("""

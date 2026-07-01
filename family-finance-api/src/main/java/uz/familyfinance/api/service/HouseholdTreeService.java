@@ -64,7 +64,7 @@ public class HouseholdTreeService {
      *
      * <p>Oddiy (oila a'zosiga bog'langan) user uchun graf "Shaxslar" daraxti bilan
      * IZCHIL quriladi: joriy a'zo bilan genealogik bog'langan barcha oilalar — ota-ona,
-     * bobo-buvi, aka-uka va farzand xonadonlari — ko'rsatiladi (boshqa CLAN'da bo'lsa ham).
+     * bobo-buvi, aka-uka va farzand xonadonlari — ko'rsatiladi (boshqa GROUP'da bo'lsa ham).
      * SUPER_ADMIN yoki hali oila a'zosiga bog'lanmagan user uchun esa scope-membership
      * asosidagi eski ko'rinishga qaytamiz.</p>
      */
