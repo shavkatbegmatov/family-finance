@@ -1,6 +1,6 @@
 # ADR-001: Genealogiya ↔ Moliya decoupling
 
-> **Status:** Qabul qilingan (Accepted) — Faza 1-2 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
+> **Status:** Qabul qilingan (Accepted) — Faza 1-3 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
 > `docs/multi-scope-plan-original.txt`
 
 ## 1. Kontekst
@@ -175,13 +175,22 @@ yangi sxema = yangi Flyway `V49+` (qo'llanilgan migration tahrirlanmaydi).
   `scope_id` allaqachon nullable — `DROP NOT NULL` kerak emas.
 - ⚠️ Eng yuqori migration **V51** edi (CLAUDE.md'dagi "V48" eskirgan) → yangi migration **V52**.
 
-### Faza 3 — `CLAN` → `Group` rebrand (ma'no, struktura emas)
-- `ScopeType.CLAN`ni `GROUP`ga qayta nomlash (yoki nom saqlab, doc/UI matnini o'zgartirish):
-  "urug'" da'vosini olib tashlash.
-- `getActiveClanOptional` → `getActiveGroupOptional`; `getVisibleScopeIds` — "parent CLAN"
-  o'rniga "ajdod GROUP (daraxt bo'ylab)".
-- Frontend: `groupScopesByClan` → `groupScopesByGroup`, ScopeSwitcher yorliqlari.
-- `docs/architecture.md` §1, §6 yangilanadi.
+### Faza 3 — `CLAN` → `GROUP` to'liq rebrand + root household provisioning ✅ BAJARILDI
+Foydalanuvchi tanlovi: to'liq rebrand (enum + DB migration) + auto-provisioning root HOUSEHOLD.
+
+- **3A** (`10dacb94`): `ScopeType.CLAN` → `GROUP` (enum, ~18 backend joy,
+  `getActiveGroupOptional`, `InviteCodeGenerator` prefiks 'C'→'G'); `V53` DB migration
+  (`type='CLAN'`→`'GROUP'` + `chk_scope_type`/`chk_scope_parent` — enum bilan ATOMIK,
+  `@Enumerated(STRING)`). Invite kodlar (`'C...'`) tegilmadi — decode DB lookup orqali.
+- **3B** (`ca075ec2`): frontend TS type `'CLAN'`→`'GROUP'`, `SCOPE_TYPE_META`/`LABEL` key,
+  UI "Urug'"→"Guruh", `groupScopesByGroup`, icon `TreePine`→`Users2`. `npx tsc -b --force` TOZA.
+- **3C** (`acbf0081`): yangi user auto-provisioning `GROUP`+`HOUSEHOLD` → faqat **root
+  HOUSEHOLD** (Group ixtiyoriy); `joinExistingScopeByCode` root household'ni qo'llab-quvvatlaydi
+  (`clan` null-safe). Mavjud eski GROUP scope'lar o'zgarmaydi.
+
+**TEGILMADI (ataylab):** `graph3d` `'clan'` ColorBy (genealogik urug' rangi — moliyaviy GROUP
+emas), `archiveOldClan` API param (JSON kontrakt), `changelog.ts` (tarixiy yozuvlar).
+**Qoldi:** `archiveOldClan` param nomi (internal, keyingi tozalash).
 
 ### Faza 4 — Genealogiyadan `scope`ni butunlay olib tashlash (`V51`)
 - Faza 1-3 prod'da barqaror bo'lgach: `family_members.scope_id` ustuni `DROP`.
