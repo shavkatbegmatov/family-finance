@@ -123,7 +123,7 @@ public class AuthService {
                 null
         );
 
-        log.info("New user registered: {} with new clan/household scopes", user.getUsername());
+        log.info("New user registered: {} with new root household scope", user.getUsername());
 
         return UserResponse.from(user);
     }
@@ -172,23 +172,26 @@ public class AuthService {
                             "Bu urug'da hech qanday faol xonadon topilmadi"));
         } else if (targetScope.getType() == ScopeType.HOUSEHOLD) {
             household = targetScope;
-            clan = targetScope.getParentScope();
-            if (clan == null || clan.getType() != ScopeType.GROUP) {
-                throw new BadRequestException("Xonadon tegishli urug'ga ulanmagan");
+            clan = targetScope.getParentScope();  // null = mustaqil root xonadon (GROUP ixtiyoriy)
+            if (clan != null && clan.getType() != ScopeType.GROUP) {
+                throw new BadRequestException("Xonadon noto'g'ri guruhga ulangan");
             }
         } else {
             throw new BadRequestException(
                     "Ushbu kod orqali ro'yxatdan o'tish faqat GROUP/HOUSEHOLD uchun mumkin");
         }
 
-        FamilyGroup familyGroup = clan.getLegacyFamilyGroup();
+        // Genealogik tenant (legacy) — GROUP bor bo'lsa undan, aks holda root household'dan
+        FamilyGroup familyGroup = (clan != null ? clan : household).getLegacyFamilyGroup();
         if (familyGroup == null) {
             throw new IllegalStateException(
-                    "Tanlangan urug'ning eski oila guruhi yo'q — qo'lda fix talab etiladi");
+                    "Tanlangan scope'ning eski oila guruhi yo'q — qo'lda fix talab etiladi");
         }
 
-        // 1) GROUP'ga MEMBER bo'lib qo'shish (agar yo'q bo'lsa)
-        scopeMembershipService.addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
+        // 1) GROUP'ga MEMBER bo'lib qo'shish (faqat GROUP bor bo'lsa)
+        if (clan != null) {
+            scopeMembershipService.addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
+        }
         // 2) HOUSEHOLD'ga MEMBER bo'lib qo'shish
         scopeMembershipService.addMembershipIfAbsent(household, user, ScopeRole.MEMBER);
 
@@ -213,8 +216,8 @@ public class AuthService {
             familyMemberRepository.save(familyMember);
         }
 
-        log.info("User '{}' joined existing scope via invite code: clan={}, household={}",
-                user.getUsername(), clan.getId(), household.getId());
+        log.info("User '{}' joined existing scope via invite code: group={}, household={}",
+                user.getUsername(), clan != null ? clan.getId() : null, household.getId());
     }
 
     /**
@@ -317,22 +320,11 @@ public class AuthService {
                 .build();
         familyGroup = familyGroupRepository.save(familyGroup);
 
-        // 2) GROUP scope (parent=null) — unique code bilan (taklif uchun)
-        Scope clan = Scope.builder()
-                .type(ScopeType.GROUP)
-                .name(displayName + " urug'i")
-                .ownerUser(user)
-                .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.GROUP))
-                .legacyFamilyGroup(familyGroup)
-                .isActive(true)
-                .build();
-        clan = scopeRepository.save(clan);
-
-        // 3) HOUSEHOLD scope (parent=clan) — unique code bilan
+        // 2) HOUSEHOLD scope — mustaqil ROOT (ADR-001 Faza 3C: GROUP avtomatik YARATILMAYDI;
+        //    foydalanuvchi kerak bo'lsa keyin Group ochib bir nechta xonadonni birlashtiradi).
         Scope household = Scope.builder()
                 .type(ScopeType.HOUSEHOLD)
                 .name(displayName + " xonadoni")
-                .parentScope(clan)
                 .ownerUser(user)
                 .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.HOUSEHOLD))
                 .displayCode(householdCodeGenerator.generate())
@@ -341,21 +333,13 @@ public class AuthService {
                 .build();
         household = scopeRepository.save(household);
 
-        // 4) ScopeMembership x2 (clan + household, ikkalasida ham OWNER)
-        LocalDateTime now = LocalDateTime.now();
-        scopeMembershipRepository.save(ScopeMembership.builder()
-                .scope(clan)
-                .user(user)
-                .role(ScopeRole.OWNER)
-                .status(MembershipStatus.ACTIVE)
-                .joinedAt(now)
-                .build());
+        // 3) ScopeMembership — faqat household (OWNER)
         scopeMembershipRepository.save(ScopeMembership.builder()
                 .scope(household)
                 .user(user)
                 .role(ScopeRole.OWNER)
                 .status(MembershipStatus.ACTIVE)
-                .joinedAt(now)
+                .joinedAt(LocalDateTime.now())
                 .build());
 
         // 5) User ni familyGroup va primaryScope (HOUSEHOLD) ga bog'lash
