@@ -146,7 +146,7 @@ public class ScopeService {
         if (request.getType().requiresParent() && request.getParentScopeId() == null) {
             throw new BadRequestException(request.getType() + " uchun parent scope majburiy");
         }
-        if (!request.getType().requiresParent() && request.getParentScopeId() != null) {
+        if (request.getType().forbidsParent() && request.getParentScopeId() != null) {
             throw new BadRequestException("CLAN scope uchun parent bo'lishi mumkin emas");
         }
         if (request.getEndsAt() != null && request.getStartsAt() != null

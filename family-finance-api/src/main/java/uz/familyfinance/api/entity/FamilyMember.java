@@ -77,14 +77,20 @@ public class FamilyMember extends BaseEntity implements Auditable {
     @JoinColumn(name = "user_id", unique = true)
     private User user;
 
+    /**
+     * Genealogik tenant markeri — bu shaxs qaysi mustaqil shajara daraxtiga tegishli
+     * (bir DB'dagi ko'p oila grafi aralashmasligi uchun izolyatsiya). ADR-001: bu MOLIYAVIY
+     * guruh (Group/CLAN) EMAS — sof genealogik tenant (kelajakda {@code tree_id}ga aylanadi).
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_group_id")
     private FamilyGroup familyGroup;
 
     /**
-     * Phase 2: yangi scope tuzilmasi. Oila a'zosi odatda CLAN darajasida (genealogiya),
-     * lekin moliyaviy kontekstda HOUSEHOLD ham bo'lishi mumkin.
-     * V35 backfill bilan to'lgan. V37 da NOT NULL bo'ladi.
+     * IXTIYORIY moliyaviy ko'prik — bu shaxs qaysi byudjet-xonadonga (HOUSEHOLD scope)
+     * biriktirilgan. ADR-001 decoupling: genealogiya moliyani bilmaydi, shuning uchun bu
+     * avtomatik TO'LDIRILMAYDI (NULL bo'lishi normal). Izolyatsiya {@link #familyGroup}
+     * (genealogik tenant) orqali, scope orqali emas. {@code scope_id} nullable (V39 istisno).
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scope_id")

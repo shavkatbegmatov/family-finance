@@ -32,12 +32,25 @@ public enum ScopeType {
     /** Ulushli mulk — ko'p egali aktiv (birgalikda sotib olingan kvartira/yer/avtomobil). */
     PROPERTY;
 
-    /** Bu tur uchun parent_scope majburiymi? */
+    /**
+     * Bu tur uchun parent_scope MAJBURmi? CLAN (urug'/Group — root) va HOUSEHOLD (mustaqil
+     * xonadon root bo'la oladi — ADR-001 decoupling) uchun yo'q; qolgan turlar
+     * (PROJECT/EVENT/FUND/TRUSTEE/PROPERTY) uchun majburiy.
+     */
     public boolean requiresParent() {
-        return this != CLAN;
+        return this != CLAN && this != HOUSEHOLD;
     }
 
-    /** Bu tur ostida HOUSEHOLD bo'lishi mumkinmi (faqat CLAN)? */
+    /**
+     * Bu tur uchun parent_scope MAN ETILGANmi? Faqat CLAN har doim root (parent = null).
+     * HOUSEHOLD uchun parent ixtiyoriy — {@code requiresParent()} ham {@code forbidsParent()}
+     * ham {@code false}.
+     */
+    public boolean forbidsParent() {
+        return this == CLAN;
+    }
+
+    /** Bu tur ostida HOUSEHOLD bo'lishi mumkinmi (faqat CLAN/Group)? */
     public boolean canContainHousehold() {
         return this == CLAN;
     }

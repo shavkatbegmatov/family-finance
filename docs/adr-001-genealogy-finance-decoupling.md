@@ -1,6 +1,6 @@
 # ADR-001: Genealogiya ↔ Moliya decoupling
 
-> **Status:** Qabul qilingan (Accepted) — Faza 1 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
+> **Status:** Qabul qilingan (Accepted) — Faza 1-2 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
 > `docs/multi-scope-plan-original.txt`
 
 ## 1. Kontekst
@@ -163,12 +163,17 @@ yangi sxema = yangi Flyway `V49+` (qo'llanilgan migration tahrirlanmaydi).
   `FamilyMemberService`dan avtomatik HOUSEHOLD ochish va `.scope(...)` o'rnatish olib tashlandi,
   `createHouseholdForUnit` o'chirildi. Compile CI'da tekshiriladi (lokal Maven TLS bloklangan).
 
-### Faza 2 — Tenant markeri + root household (`V49`)
-- `family_group_id`ni **genealogik tenant** roliga rasmiylashtirish (kelajakda `tree_id`ga
-  rename) — moliyaviy `Group`dan mustaqil izolyatsiya markeri. (`scope_id` allaqachon nullable —
-  `DROP NOT NULL` kerak emas.)
-- `V49`: `ScopeType.requiresParent()` — `HOUSEHOLD` root bo'la olsin (parent ixtiyoriy);
-  DB constraint moslashtirilsin.
+### Faza 2 — Tenant markeri + root household (`V52`) ✅ BAJARILDI
+- ✅ **`HOUSEHOLD` root bo'la oladi:** `ScopeType.requiresParent()` endi CLAN+HOUSEHOLD uchun
+  `false`; yangi `forbidsParent()` faqat CLAN uchun `true`. HOUSEHOLD → ikkalasi `false` =
+  parent **ixtiyoriy** (mustaqil root yoki CLAN/Group ostida). `ScopeService` validatsiyasi
+  `forbidsParent()`ga o'tdi.
+- ✅ **`V52`** (`household_optional_parent`): `chk_scope_parent` DB constraint HOUSEHOLD
+  parent'ini ixtiyoriy qildi — mavjud ma'lumot buzilmaydi (faqat cheklov bo'shatildi, backfill yo'q).
+- ✅ **`family_group_id` = genealogik tenant** sifatida rasmiylashtirildi (`FamilyMember`
+  field commentlari) — moliyaviy `Group`dan mustaqil izolyatsiya markeri (kelajakda `tree_id`).
+  `scope_id` allaqachon nullable — `DROP NOT NULL` kerak emas.
+- ⚠️ Eng yuqori migration **V51** edi (CLAUDE.md'dagi "V48" eskirgan) → yangi migration **V52**.
 
 ### Faza 3 — `CLAN` → `Group` rebrand (ma'no, struktura emas)
 - `ScopeType.CLAN`ni `GROUP`ga qayta nomlash (yoki nom saqlab, doc/UI matnini o'zgartirish):
