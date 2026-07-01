@@ -23,7 +23,7 @@ interface AdminLink {
 
 const CONTROL_LINKS: AdminLink[] = [
   { to: '/admin/users', label: 'Foydalanuvchilar', description: 'Akkauntlar, rol va status', icon: UserCog },
-  { to: '/admin/families', label: 'Oilalar', description: 'Urug\' va xonadonlar nazorati', icon: Users },
+  { to: '/admin/families', label: 'Oilalar', description: 'Guruh va xonadonlar nazorati', icon: Users },
   { to: '/admin/audit-logs', label: 'Audit loglar', description: 'Tizimdagi barcha amallar', icon: FileText },
 ];
 
@@ -42,7 +42,7 @@ export function AdminDashboardPage() {
     queryFn: async () => (await scopesApi.getAllScopes()).data.data,
   });
 
-  const clanCount = (scopes ?? []).filter((s) => s.type === 'CLAN').length;
+  const groupCount = (scopes ?? []).filter((s) => s.type === 'GROUP').length;
   const householdCount = (scopes ?? []).filter((s) => s.type === 'HOUSEHOLD').length;
 
   return (
@@ -60,7 +60,7 @@ export function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Urug'lar" value={clanCount} />
+        <StatCard label="Guruhlar" value={groupCount} />
         <StatCard label="Xonadonlar" value={householdCount} />
         <StatCard label="Jami scope" value={(scopes ?? []).length} />
       </div>

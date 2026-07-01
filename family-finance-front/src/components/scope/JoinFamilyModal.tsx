@@ -105,9 +105,9 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
               )}
               {preview && (
                 <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-                  {preview.type === 'CLAN' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
+                  {preview.type === 'GROUP' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
                   <span>
-                    <strong>{preview.name}</strong> ({preview.type === 'CLAN' ? 'Urug\'' : 'Xonadon'})
+                    <strong>{preview.name}</strong> ({preview.type === 'GROUP' ? 'Guruh' : 'Xonadon'})
                   </span>
                 </div>
               )}

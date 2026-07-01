@@ -6,7 +6,7 @@ import {
   Coins,
   Heart,
   Home,
-  TreePine,
+  Users2,
   type LucideProps,
 } from 'lucide-react';
 import type { ScopeType } from '../../types/scope.types';
@@ -27,12 +27,12 @@ interface ScopeTypeMeta {
  * ScopeSwitcher va boshqa joylarda foydalanish uchun.
  */
 export const SCOPE_TYPE_META: Record<ScopeType, ScopeTypeMeta> = {
-  CLAN: {
-    type: 'CLAN',
-    label: 'Urug\'',
-    icon: TreePine,
+  GROUP: {
+    type: 'GROUP',
+    label: 'Guruh',
+    icon: Users2,
     toneClass: 'text-emerald-500 bg-emerald-500/10',
-    description: 'Katta oila / urug\' — eng yuqori daraja',
+    description: 'Bir nechta xonadon ustidagi ixtiyoriy moliyaviy guruh',
   },
   HOUSEHOLD: {
     type: 'HOUSEHOLD',
@@ -80,7 +80,7 @@ export const SCOPE_TYPE_META: Record<ScopeType, ScopeTypeMeta> = {
 
 /** Tartiblash uchun standart tartib (ScopeSwitcher dropdown'da). */
 export const SCOPE_TYPE_ORDER: ScopeType[] = [
-  'CLAN',
+  'GROUP',
   'HOUSEHOLD',
   'PROJECT',
   'EVENT',
