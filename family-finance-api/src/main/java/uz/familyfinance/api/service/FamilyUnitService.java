@@ -41,8 +41,6 @@ public class FamilyUnitService {
     private final FamilyChildRepository familyChildRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyTreeValidationService validationService;
-    private final ScopeContextService scopeContext;
-    private final HouseholdProvisioningService householdProvisioning;
 
     @Transactional
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
@@ -52,14 +50,12 @@ public class FamilyUnitService {
 
         FamilyMember partner1 = findMember(request.getPartner1Id());
 
-        // Har bir yangi oila o'zining alohida xonadoniga (displayCode) ega bo'ladi
-        Scope household = createHouseholdForUnit(partner1.getFullName());
-
+        // Genealogiya moliyadan mustaqil — yangi nikoh byudjet-xonadonga (scope) avtomatik
+        // bog'lanmaydi. Xonadon kerak bo'lsa alohida biriktiriladi (FamilyUnit.scope ixtiyoriy).
         FamilyUnit saved = familyUnitRepository.save(FamilyUnit.builder()
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
-                .scope(household)
                 .build());
 
         attachPartner(saved, partner1);
@@ -90,13 +86,11 @@ public class FamilyUnitService {
         // Eng muhim tekshiruv — AVVAL (hech narsa yaratishdan oldin). Yetim bog'lanish bo'lsa tozalanadi.
         validationService.validateBiologicalParentUnique(child.getId(), LineageType.BIOLOGICAL);
 
-        // Ota-onaning oilasi uchun alohida xonadon (yangi yaratiladigan ota-ona ham shu xonadonga tegishli)
-        Scope household = createHouseholdForUnit(request.getFatherFirstName());
-
+        // Genealogiya moliyadan mustaqil — ota-ona nikohi byudjet-xonadonga avtomatik bog'lanmaydi.
         FamilyMember father = resolveOrCreateParent(request.getFatherId(), request.getFatherFirstName(),
-                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate(), household);
+                Gender.MALE, FamilyRole.FATHER, request.getFatherBirthDate());
         FamilyMember mother = resolveOrCreateParent(request.getMotherId(), request.getMotherFirstName(),
-                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate(), household);
+                Gender.FEMALE, FamilyRole.MOTHER, request.getMotherBirthDate());
 
         validationService.validatePartnerPair(father.getId(), mother.getId());
 
@@ -104,7 +98,6 @@ public class FamilyUnitService {
                 .marriageType(request.getMarriageType() != null ? request.getMarriageType() : MarriageType.MARRIED)
                 .marriageDate(request.getMarriageDate())
                 .status(FamilyUnitStatus.ACTIVE)
-                .scope(household)
                 .build());
 
         attachPartner(saved, father);
@@ -118,7 +111,7 @@ public class FamilyUnitService {
     }
 
     private FamilyMember resolveOrCreateParent(Long existingId, String firstName, Gender gender,
-                                               FamilyRole role, LocalDate birthDate, Scope household) {
+                                               FamilyRole role, LocalDate birthDate) {
         if (existingId != null) {
             return findMember(existingId);
         }
@@ -127,7 +120,6 @@ public class FamilyUnitService {
                 .gender(gender)
                 .role(role)
                 .birthDate(birthDate)
-                .scope(household)
                 .build();
         return familyMemberRepository.save(parent);
     }
@@ -190,7 +182,7 @@ public class FamilyUnitService {
         if (familyPartnerRepository.countByFamilyUnitId(unit.getId()) >= FamilyTreeValidationService.MAX_PARTNERS_PER_UNIT) {
             return;
         }
-        FamilyMember parent = resolveOrCreateParent(existingId, firstName, gender, role, birthDate, unit.getScope());
+        FamilyMember parent = resolveOrCreateParent(existingId, firstName, gender, role, birthDate);
         attachPartner(unit, parent);
     }
 
@@ -262,17 +254,6 @@ public class FamilyUnitService {
     }
 
     /**
-     * Yangi oila (FamilyUnit) uchun joriy aktiv urug' (CLAN) ostida alohida xonadon yaratadi.
-     * Shu tufayli har bir oila o'z xonadon raqamiga ({@code displayCode}) ega bo'ladi.
-     */
-    private Scope createHouseholdForUnit(String label) {
-        Scope clan = scopeContext.getActiveClanOptional().orElse(null);
-        User owner = scopeContext.getCurrentUser();
-        String name = (label != null && !label.isBlank() ? label.trim() : "Yangi oila") + " xonadoni";
-        return householdProvisioning.createHousehold(clan, name, owner);
-    }
-
-    /**
      * Shaxsga turmush o'rtoq qo'shish. Agar shaxsda turmush o'rtoqsiz (yagona ota-ona)
      * nikoh bo'lsa — turmush o'rtoq O'SHA nikohga qo'shiladi (yangi nikoh yaratilmaydi),
      * shunda farzandlar bir nikohda qoladi va daraxtda to'g'ri ko'rinadi. Aks holda yangi nikoh.
@@ -289,9 +270,7 @@ public class FamilyUnitService {
         if (request.getSpouseId() != null) {
             spouse = findMember(request.getSpouseId());
         } else {
-            // Yangi turmush o'rtoq: mavjud nikoh xonadoniga moslab biriktiramiz (aks holda aktiv xonadon)
-            Scope spouseScope = singleUnit.map(FamilyUnit::getScope)
-                    .orElseGet(() -> scopeContext.getActiveHousehold().orElse(null));
+            // Yangi turmush o'rtoq — sof genealogik shaxs, byudjet-xonadonga bog'lanmaydi.
             spouse = familyMemberRepository.save(FamilyMember.builder()
                     .firstName(request.getSpouseFirstName() != null ? request.getSpouseFirstName().trim() : null)
                     .lastName(request.getSpouseLastName())
@@ -299,7 +278,6 @@ public class FamilyUnitService {
                     .gender(request.getSpouseGender())
                     .role(FamilyRole.OTHER)
                     .birthDate(request.getSpouseBirthDate())
-                    .scope(spouseScope)
                     .build());
         }
 
