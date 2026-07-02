@@ -7,7 +7,7 @@ import { useScopeStore } from '../../store/scopeStore';
 import { scopesApi } from '../../api/scopes.api';
 import type { ApiResponse } from '../../types';
 import type { Scope } from '../../types/scope.types';
-import { SCOPE_TYPE_META } from './scopeTypeMeta';
+import { getScopeTypeMeta } from './scopeTypeMeta';
 import { useSwitchScope } from '../../hooks/useSwitchScope';
 import { groupScopesByGroup, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -188,7 +188,7 @@ function ActiveScopeBadge({ scope }: { scope: Scope | null }) {
   if (!scope) {
     return <span className="text-sm font-medium text-base-content/60">Scope tanlang</span>;
   }
-  const meta = SCOPE_TYPE_META[scope.type];
+  const meta = getScopeTypeMeta(scope.type);
   const Icon = meta.icon;
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -249,10 +249,10 @@ function ScopeOption({
   isSwitching: boolean;
   onClick: () => void;
 }) {
-  const meta = SCOPE_TYPE_META[scope.type];
+  const meta = getScopeTypeMeta(scope.type);
   const Icon = meta.icon;
   const role = scope.currentUserRole;
-  const indent = scope.type === 'GROUP' ? '' : 'ml-3';
+  const indent = meta.type === 'GROUP' ? '' : 'ml-3';
 
   return (
     <button

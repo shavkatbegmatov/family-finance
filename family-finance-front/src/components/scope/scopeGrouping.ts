@@ -1,4 +1,5 @@
 import type { Scope, ScopeRole } from '../../types/scope.types';
+import { getScopeTypeMeta } from './scopeTypeMeta';
 
 /**
  * ScopeSwitcher (desktop dropdown) va MobileScopeSwitcher (bottom-sheet)
@@ -32,6 +33,9 @@ export interface ScopeGroupData {
  * (HOUSEHOLD, PROJECT, EVENT, h.k.) bir guruhda. Guruh'siz scope'lar (PROJECT
  * to'g'ridan-to'g'ri user uchun, ya'ni parentSiz bo'lsa) "Boshqa" guruhida.
  */
+/** Runtime-xavfsiz GROUP tekshiruvi — legacy 'CLAN' (eski backend/localStorage) ham GROUP sanaladi. */
+const isGroupScope = (s: Scope) => getScopeTypeMeta(s.type).type === 'GROUP';
+
 export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
   if (scopes.length === 0) return [];
 
@@ -40,7 +44,7 @@ export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
 
   // Avval barcha GROUP'larni topish
   for (const s of scopes) {
-    if (s.type === 'GROUP') {
+    if (isGroupScope(s)) {
       groupsById.set(s.id, s);
       groups.set(`group-${s.id}`, {
         key: `group-${s.id}`,
@@ -52,7 +56,7 @@ export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
 
   // Keyin qolganlarini parent bo'yicha taqsimlash
   for (const s of scopes) {
-    if (s.type === 'GROUP') continue;
+    if (isGroupScope(s)) continue;
     const parentGroup = s.parentScopeId ? groupsById.get(s.parentScopeId) : null;
     if (parentGroup) {
       const group = groups.get(`group-${parentGroup.id}`)!;

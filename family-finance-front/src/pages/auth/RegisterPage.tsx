@@ -22,6 +22,7 @@ import { PhoneInput } from '../../components/ui/PhoneInput';
 import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter';
 import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { getScopeTypeMeta } from '../../components/scope/scopeTypeMeta';
 import type { RegisterRequest } from '../../types';
 
 export function RegisterPage() {
@@ -374,9 +375,9 @@ export function RegisterPage() {
                 )}
                 {codePreview && (
                   <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-                    {codePreview.type === 'GROUP' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
+                    {getScopeTypeMeta(codePreview.type).type === 'GROUP' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
                     <span>
-                      <strong>{codePreview.name}</strong> ({codePreview.type === 'GROUP' ? 'Guruh' : 'Xonadon'}) ga
+                      <strong>{codePreview.name}</strong> ({getScopeTypeMeta(codePreview.type).type === 'GROUP' ? 'Guruh' : 'Xonadon'}) ga
                       MEMBER bo'lib qo'shilasiz
                     </span>
                   </div>
