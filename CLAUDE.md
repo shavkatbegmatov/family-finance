@@ -1,8 +1,10 @@
 # Family Finance — Project Context
 
 Uzbek **family finance** web app. The core model is **multi-scope**: a person can belong
-to several financial contexts — a *Clan* (urug'), one or more *Households* (xonadon), plus
-projects/events/funds. Monorepo: Spring Boot API + React/Vite SPA.
+to several financial contexts — one or more *Households* (xonadon, mustaqil root bo'la oladi),
+an optional *Group* (bir nechta xonadon ustidagi ixtiyoriy moliyaviy birlashma; eski "Clan"),
+plus projects/events/funds. Genealogiya (qarindoshlik grafi) moliyadan ajratilgan — ADR-001
+(`docs/adr-001-genealogy-finance-decoupling.md`). Monorepo: Spring Boot API + React/Vite SPA.
 
 > **Communication rule (MUST):** Respond to the user in **O'zbek LOTIN** yozuvida. Never mix
 > Cyrillic letters — not even inside a single word (e.g. `qilishni`, not `qilишни`). Check each
@@ -39,9 +41,11 @@ npm run lint      # ESLint
 
 ## Architecture invariants (see `@docs/architecture.md` for full detail)
 
-1. **Everything is scope-aware.** Financial entities (Account, Budget, Debt, SavingsGoal,
-   FamilyMember, FamilyUnit) carry a **`scope_id` (NOT NULL)**. Never query by the legacy
-   `family_group_id` directly.
+1. **Financial data is scope-aware.** Moliyaviy entity'lar (Account, Budget, Debt, SavingsGoal)
+   **`scope_id` (NOT NULL)** bilan yuradi va so'rovlar scope orqali chegaralanadi. Genealogiya
+   (FamilyMember, FamilyUnit) esa ADR-001 bo'yicha ajratilgan: ularning `scope_id`si **nullable
+   ixtiyoriy ko'prik** (avtomatik to'ldirilmaydi); genealogik izolyatsiya `family_group_id`
+   (tenant marker) orqali. Moliyaviy so'rovlarni `family_group_id` bilan qilmang.
 2. **All scoping goes through `ScopeContextService`** — resolve active scope (JWT
    `activeScopeId` → `User.primaryScope` → first ACTIVE membership) and `getVisibleScopeIds()`.
    `FamilyGroup` still exists only as a legacy bridge (`Scope.legacyFamilyGroup`).

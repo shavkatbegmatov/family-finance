@@ -76,7 +76,7 @@ class TransactionScopeIntegrationTest extends AbstractPostgresIntegrationTest {
     void scopePersistsAndLoads() {
         User admin = userRepository.findByUsername("admin").orElseThrow();
         Scope clan = scopeRepository.save(Scope.builder()
-                .type(ScopeType.CLAN).name("D1 test urug'i").ownerUser(admin).build());
+                .type(ScopeType.GROUP).name("D1 test urug'i").ownerUser(admin).build());
         Account account = newAccount("D1 hisob", clan, AccountType.CASH);
 
         Transaction saved = newTransaction(account);

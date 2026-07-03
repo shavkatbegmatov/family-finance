@@ -39,8 +39,9 @@ config/  scheduler/  util/  annotation/  exception/
 - **DTOs:** suffix `*Request` / `*Response`, split into `dto/request` & `dto/response`.
 - **Permissions:** guard mutations with `@RequiresPermission({PermissionCode.X}, requireAll=…)`;
   AOP `PermissionAspect` enforces via `PermissionService`. (Codes: see `enums/PermissionCode`.)
-- **Flyway:** new schema = new file `src/main/resources/db/migration/V49__*.sql` (latest is
-  **V48**, D1a transactions scope_id). Never edit an applied migration.
+- **Flyway:** new schema = new file `src/main/resources/db/migration/V54__*.sql` (latest is
+  **V53**, CLAN→GROUP rebrand; always verify with `ls db/migration` first). Never edit an
+  applied migration.
 - **Nullable `String` in JPQL:** wrap `CAST(:param AS string)` — otherwise Hibernate binds
   `bytea` and `lower(bytea)` fails.
 - **Auditing:** entities implement `Auditable` (`getEntityName`, `toAuditMap`,
