@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.12.1',
+        date: '2026-07-04 17:30',
+        title: "Mustaqil xonadonga taklif kodi bilan qo'shilish",
+        features: [],
+        fixes: [
+            "Guruhsiz (mustaqil) xonadonning taklif kodi orqali qo'shilish endi ishlaydi — avval \"Xonadon tegishli urug'ga ulanmagan\" xatosi chiqardi.",
+            "Boshqa oilaga o'tganda eski bo'sh mustaqil xonadon ham avtomatik arxivlanadi (avval faqat guruhli xonadonlar arxivlanardi).",
+        ],
+    },
+    {
         version: '1.12.0',
         date: '2026-07-04 12:00',
         title: "Guruh va xonadonlar boshqaruvi",

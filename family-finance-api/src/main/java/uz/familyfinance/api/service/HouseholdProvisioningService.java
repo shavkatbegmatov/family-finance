@@ -47,7 +47,6 @@ public class HouseholdProvisioningService {
                 .ownerUser(owner)
                 .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.HOUSEHOLD))
                 .displayCode(householdCodeGenerator.generate())
-                .legacyFamilyGroup(clan != null ? clan.getLegacyFamilyGroup() : null)
                 .isActive(true)
                 .build();
         household = scopeRepository.save(household);

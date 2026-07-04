@@ -22,7 +22,7 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
   const [preview, setPreview] = useState<{ name: string; type: string } | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [archiveOldClan, setArchiveOldClan] = useState(true);
+  const [archiveOldGroup, setArchiveOldGroup] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
     }
     setSubmitting(true);
     try {
-      await scopesApi.joinByCode(code.trim(), archiveOldClan);
+      await scopesApi.joinByCode(code.trim(), archiveOldGroup);
       toast.success(`"${preview.name}" oilaga muvaffaqiyatli qo'shildingiz!`);
       onJoined();
       onClose();
@@ -134,8 +134,8 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
             <label className="flex items-start gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
-                checked={archiveOldClan}
-                onChange={(e) => setArchiveOldClan(e.target.checked)}
+                checked={archiveOldGroup}
+                onChange={(e) => setArchiveOldGroup(e.target.checked)}
                 className="checkbox checkbox-sm mt-0.5"
                 disabled={submitting}
               />

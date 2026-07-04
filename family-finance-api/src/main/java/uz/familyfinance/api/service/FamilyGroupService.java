@@ -135,20 +135,31 @@ public class FamilyGroupService {
      * biriktiradi. Mavjud LEFT/PENDING membership'ni qayta tiklash. Idempotent.
      */
     private void attachUserToScopesOfFamilyGroup(User user, FamilyGroup familyGroup) {
-        // GROUP scope topish
-        uz.familyfinance.api.entity.Scope clan = scopeRepository
-                .findByTypeAndIsActiveTrue(uz.familyfinance.api.enums.ScopeType.GROUP).stream()
-                .filter(s -> s.getLegacyFamilyGroup() != null
-                        && s.getLegacyFamilyGroup().getId().equals(familyGroup.getId()))
-                .findFirst()
+        // ADR-001 F5: fg→scope mapping endi legacy FK emas, EGALIK orqali — fg admin'i
+        // owner bo'lgan scope'lar shu oilaning scope'lari (V34/provisioning invarianti).
+        User admin = familyGroup.getAdmin();
+        if (admin == null) return;
+
+        // 1) Admin egalik qiladigan GROUP (eski V34 modeli) — bo'lsa, unga + birinchi xonadoniga
+        uz.familyfinance.api.entity.Scope group = scopeRepository
+                .findFirstByTypeAndOwnerUserIdAndIsActiveTrue(
+                        uz.familyfinance.api.enums.ScopeType.GROUP, admin.getId())
                 .orElse(null);
-        if (clan == null) return;
+        if (group != null) {
+            attachAsMember(group, user);
+            scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
+                    group.getId(), uz.familyfinance.api.enums.ScopeType.HOUSEHOLD)
+                    .ifPresent(household -> {
+                        attachAsMember(household, user);
+                        user.setPrimaryScope(household);
+                        userRepository.save(user);
+                    });
+            return;
+        }
 
-        attachAsMember(clan, user);
-
-        // HOUSEHOLD scope topish (GROUP ostida)
-        scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
-                clan.getId(), uz.familyfinance.api.enums.ScopeType.HOUSEHOLD)
+        // 2) GROUP yo'q (yangi root-household modeli) — admin xonadonining o'ziga
+        scopeRepository.findFirstByTypeAndOwnerUserIdAndIsActiveTrue(
+                        uz.familyfinance.api.enums.ScopeType.HOUSEHOLD, admin.getId())
                 .ifPresent(household -> {
                     attachAsMember(household, user);
                     user.setPrimaryScope(household);

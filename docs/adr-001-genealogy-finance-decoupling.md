@@ -1,6 +1,6 @@
 # ADR-001: Genealogiya ↔ Moliya decoupling
 
-> **Status:** Qabul qilingan (Accepted) — Faza 1-4 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
+> **Status:** Qabul qilingan (Accepted) — **BARCHA fazalar (1-5) bajarildi** · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
 > `docs/multi-scope-plan-original.txt`
 
 ## 1. Kontekst
@@ -202,8 +202,20 @@ emas), `archiveOldClan` API param (JSON kontrakt), `changelog.ts` (tarixiy yozuv
   (`joinExistingScopeByCode`, `provisionScopeAndFamilyGroup` FamilyMember builder'lari) tozalandi.
 - ✅ `FamilyUnit.scope` saqlanadi (ixtiyoriy ko'prik) — tasdiqlab qolindi.
 
-### Faza 5 — Legacy cleanup (alohida, allaqachon rejada)
-- `Scope.legacyFamilyGroup` va `FamilyGroup` ko'prigini yo'q qilish.
+### Faza 5 — Legacy bridge cleanup (`V55`) ✅ BAJARILDI
+- ✅ **`Scope.legacyFamilyGroup` FK yo'q qilindi** (`V55` DROP + `idx_scopes_legacy_fg`) —
+  moliyaviy Scope genealogik tenant'ga jismonan bog'lanmaydi.
+- ✅ **Tenant resolution endi EGALIK orqali:** `ScopeContextService.resolveFamilyGroup` →
+  `scope.ownerUser.familyGroup` (parent-owner fallback). Points'ning 25+ chaqiruvi
+  (`PointConfigService.getCurrentFamilyGroup` orqali) signature o'zgarishisiz ishlaydi.
+- ✅ `FamilyGroupService` fg→scope mapping egalik orqali (yangi
+  `findFirstByTypeAndOwnerUserIdAndIsActiveTrue`); GROUP'siz (root-household) oilalar ham qamraldi.
+- ✅ `MembershipService.joinByCode`: **root xonadon kodini qo'llaydi** (F3C'da AuthService'da
+  tuzatilgan, bu yerda qolgan bug edi); bo'sh eski ROOT xonadonni ham arxivlaydi.
+- ✅ `archiveOldClan` → `archiveOldGroup` (API: eski APK klientlar uchun legacy kalit fallback).
+- **`FamilyGroup` jadvali QOLADI** — sof genealogik tenant (`family_members.family_group_id`)
+  va Points'ning ichki kaliti; moliyaviy scope'dan to'liq uzildi. Kelajak (ixtiyoriy):
+  `tree_id` rename, Points'ni scope'ga to'liq o'tkazish — alohida loyiha.
 
 ## 7. Rad etilgan variantlar
 

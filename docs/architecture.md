@@ -38,12 +38,14 @@ bride is MEMBER in both her parents' and her husband's households — two member
 > **Rule:** repositories filter `WHERE scope_id IN (:visibleScopeIds)`, never a raw
 > `family_group_id`. New scope-aware queries must go through `ScopeContextService`.
 
-## 2. Legacy bridge (Phase-2 transition, still live)
+## 2. Genealogik tenant (FamilyGroup) — ADR-001 F5'dan keyin
 
-`FamilyGroup` entity still exists. V34 mapped each FamilyGroup → a GROUP-type `Scope` via
-`Scope.legacyFamilyGroup`. Older callers (e.g. `PointConfigService.getCurrentFamilyGroup()`)
-resolve the active Scope back to its legacy FamilyGroup instead of being rewritten — a
-deliberate bridge, not the target state. New code should use scopes directly.
+`FamilyGroup` jadvali sof **genealogik tenant**: `family_members.family_group_id` izolyatsiya
+markeri va Points tizimining ichki kaliti. Moliyaviy `Scope` unga FK **saqlamaydi** (V55 DROP);
+aktiv scope'ning tenant'i EGALIK orqali aniqlanadi — `scope.ownerUser.familyGroup`
+(`ScopeContextService.resolveFamilyGroup`, parent-owner fallback bilan). Eski chaqiruvchilar
+(`PointConfigService.getCurrentFamilyGroup()` va 25+ iste'molchisi) shu resolution orqali
+signature o'zgarishisiz ishlaydi. New code should use scopes directly.
 
 ## 3. Financial scoping
 

@@ -136,17 +136,16 @@ public class ScopeContextService {
     }
 
     // ====================================================================
-    // Legacy family_group bridge (Phase 2 transition helper)
+    // Genealogik tenant (FamilyGroup) resolution
     // ====================================================================
 
     /**
-     * Aktiv scope ga mos asl {@link FamilyGroup} ni qaytaradi.
+     * Aktiv scope tegishli oilaning genealogik tenant'ini ({@link FamilyGroup}) qaytaradi.
      *
-     * <p>HOUSEHOLD scope'da bo'lsak, parent GROUP orqali boramiz.
-     * GROUP scope'da bo'lsak, {@code Scope.legacyFamilyGroup} dan o'qiymiz.</p>
-     *
-     * <p>Yangi yaratilgan (V34 dan keyin) scope'lar uchun null bo'lishi mumkin —
-     * bu vaziyatda chaqiruvchi servis o'zining xato logikasini ishlatadi.</p>
+     * <p>ADR-001 F5: {@code Scope} endi FamilyGroup'ga FK saqlamaydi (V55 DROP) — tenant
+     * scope EGASI orqali aniqlanadi: {@code scope.ownerUser.familyGroup}. Bu V34
+     * migratsiyasi (clan.owner = fg.admin) va provisioning (user o'z fg'i bilan xonadon
+     * egasi) invariantiga tayanadi.</p>
      */
     @Transactional(readOnly = true)
     public Optional<FamilyGroup> getActiveFamilyGroupOptional() {
@@ -154,10 +153,9 @@ public class ScopeContextService {
     }
 
     /**
-     * Aktiv scope ga mos asl FamilyGroup ni qaytaradi yoki xato.
+     * Aktiv scope ga mos genealogik tenant yoki xato.
      *
-     * <p>{@link PointConfigService#getCurrentFamilyGroup()} ning yangi
-     * implementatsiyasi shu metoddan foydalanadi.</p>
+     * <p>{@link PointConfigService#getCurrentFamilyGroup()} shu metoddan foydalanadi.</p>
      */
     @Transactional(readOnly = true)
     public FamilyGroup getActiveFamilyGroup() {
@@ -171,19 +169,18 @@ public class ScopeContextService {
     }
 
     private Optional<FamilyGroup> resolveFamilyGroup(Scope scope) {
-        // Avval scope o'zining legacy mapping'i — root HOUSEHOLD (parent'siz, 3C provisioning)
-        // ham o'z legacyFamilyGroup'iga ega; ilgari faqat parent orqali qidirilib, root
-        // xonadonlarda Points/legacy xizmatlar ishlamay qolardi.
-        if (scope.getLegacyFamilyGroup() != null) {
-            return Optional.of(scope.getLegacyFamilyGroup());
+        // Scope egasining tenant'i; egasida yo'q bo'lsa — parent scope egasiniki
+        // (masalan xonadon egasi tenant'siz texnik akkaunt bo'lsa).
+        FamilyGroup own = scope.getOwnerUser() != null
+                ? scope.getOwnerUser().getFamilyGroup() : null;
+        if (own != null) {
+            return Optional.of(own);
         }
-        Scope groupScope = (scope.getType() == ScopeType.GROUP)
-                ? scope
-                : scope.getParentScope();
-        if (groupScope == null) {
+        Scope parent = scope.getParentScope();
+        if (parent == null || parent.getOwnerUser() == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(groupScope.getLegacyFamilyGroup());
+        return Optional.ofNullable(parent.getOwnerUser().getFamilyGroup());
     }
 
     /**

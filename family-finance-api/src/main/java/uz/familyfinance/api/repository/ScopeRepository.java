@@ -38,6 +38,12 @@ public interface ScopeRepository extends JpaRepository<Scope, Long> {
     Optional<Scope> findFirstByParentScopeIdAndTypeAndIsActiveTrue(Long parentScopeId, ScopeType type);
 
     /**
+     * Berilgan user EGALIK qiladigan birinchi ma'lum tipdagi aktiv scope.
+     * ADR-001 F5: fg→scope mapping legacy FK o'rniga egalik orqali aniqlanadi.
+     */
+    Optional<Scope> findFirstByTypeAndOwnerUserIdAndIsActiveTrue(ScopeType type, Long ownerUserId);
+
+    /**
      * Berilgan user ko'rishi mumkin bo'lgan barcha scope ID'lari:
      * <ul>
      *   <li>O'zi ACTIVE membership ega bo'lgan scope'lar</li>

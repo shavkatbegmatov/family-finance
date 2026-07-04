@@ -190,10 +190,10 @@ public class MembershipService {
 
     /**
      * Login qilingan user invite code orqali boshqa oilaga MEMBER bo'lib qo'shiladi.
-     * <p>Eski auto-yaratilgan clan'i bo'sh va u yagona OWNER bo'lsa — arxivlanadi.</p>
+     * <p>Eski auto-yaratilgan guruh/xonadoni bo'sh va u yagona a'zo bo'lsa — arxivlanadi.</p>
      */
     @Transactional
-    public MembershipResponse joinByCode(String inviteCode, boolean archiveOldClan) {
+    public MembershipResponse joinByCode(String inviteCode, boolean archiveOldGroup) {
         // MUHIM: scopeContext.getCurrentUser() JWT autentifikatsiyada yuklangan
         // DETACHED User qaytaradi — uning LAZY maydonlari (primaryScope, familyGroup)
         // ga kirsak LazyInitializationException bo'ladi. Shu sabab repository'dan
@@ -209,39 +209,44 @@ public class MembershipService {
                 .orElseThrow(() -> new BadRequestException(
                         "Taklif kodi noto'g'ri yoki bekor qilingan: " + inviteCode));
 
-        // GROUP va HOUSEHOLD aniqlash (registratsiyadagi mantiq bilan bir xil)
-        Scope clan;
+        // GROUP va HOUSEHOLD aniqlash (registratsiyadagi mantiq bilan bir xil).
+        // Root xonadon (parent'siz, ADR-001) ham qo'llanadi — group null bo'ladi.
+        Scope group;
         Scope household;
         if (target.getType() == ScopeType.GROUP) {
-            clan = target;
+            group = target;
             household = scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
-                    clan.getId(), ScopeType.HOUSEHOLD)
+                    group.getId(), ScopeType.HOUSEHOLD)
                     .orElseThrow(() -> new BadRequestException(
-                            "Bu urug'da hech qanday faol xonadon topilmadi"));
+                            "Bu guruhda hech qanday faol xonadon topilmadi"));
         } else if (target.getType() == ScopeType.HOUSEHOLD) {
             household = target;
-            clan = target.getParentScope();
-            if (clan == null || clan.getType() != ScopeType.GROUP) {
-                throw new BadRequestException("Xonadon tegishli urug'ga ulanmagan");
+            group = target.getParentScope();  // null = mustaqil root xonadon
+            if (group != null && group.getType() != ScopeType.GROUP) {
+                throw new BadRequestException("Xonadon noto'g'ri guruhga ulangan");
             }
         } else {
             throw new BadRequestException(
                     "Bu kod orqali qo'shilish faqat GROUP/HOUSEHOLD uchun mumkin");
         }
 
-        // Mavjud auto-yaratilgan clan'ni arxivlash (agar so'ralgan bo'lsa)
-        if (archiveOldClan) {
-            archiveUserEmptyOldClan(user);
+        // Mavjud auto-yaratilgan guruh/xonadonni arxivlash (agar so'ralgan bo'lsa)
+        if (archiveOldGroup) {
+            archiveUserEmptyOldScopes(user);
         }
 
-        // GROUP'ga MEMBER bo'lib qo'shish
-        ensureMembership(clan, user, ScopeRole.MEMBER);
+        // GROUP'ga MEMBER bo'lib qo'shish (faqat guruh bor bo'lsa)
+        if (group != null) {
+            ensureMembership(group, user, ScopeRole.MEMBER);
+        }
         // HOUSEHOLD'ga MEMBER bo'lib qo'shish va asosiy ScopeMembership'ni saqlash
         ScopeMembership newHouseholdMembership = ensureMembership(household, user, ScopeRole.MEMBER);
 
-        // User'ning primaryScope va familyGroup ni yangilash
+        // User'ning primaryScope va familyGroup ni yangilash. Genealogik tenant —
+        // xonadon egasining familyGroup'i (ADR-001 F5: legacy FK yo'q).
         user.setPrimaryScope(household);
-        FamilyGroup fg = clan.getLegacyFamilyGroup();
+        FamilyGroup fg = household.getOwnerUser() != null
+                ? household.getOwnerUser().getFamilyGroup() : null;
         if (fg != null) {
             user.setFamilyGroup(fg);
             // MUHIM: user'ning FamilyMember (genealogiya/a'zo) yozuvini ham yangi
@@ -251,8 +256,8 @@ public class MembershipService {
         }
         userRepository.save(user);
 
-        log.info("User {} joined scope via code: clan={}, household={}",
-                user.getUsername(), clan.getId(), household.getId());
+        log.info("User {} joined scope via code: group={}, household={}",
+                user.getUsername(), group != null ? group.getId() : null, household.getId());
 
         return MembershipResponse.from(newHouseholdMembership);
     }
@@ -308,41 +313,42 @@ public class MembershipService {
     }
 
     /**
-     * User o'z auto-yaratilgan eski clan'idan tushib qoladi va u bo'sh qolsa
-     * (faqat o'zi a'zo edi va boshqa transactional ma'lumot yo'q) — clan'ni
-     * arxivlash (is_active=false).
+     * User o'z auto-yaratilgan eski guruh/xonadonidan tushib qoladi va u bo'sh qolsa
+     * (faqat o'zi a'zo edi) — arxivlash (is_active=false). Root xonadon (guruhsiz,
+     * ADR-001 yangi modeli) ham qamrab olinadi.
      */
-    private void archiveUserEmptyOldClan(User user) {
+    private void archiveUserEmptyOldScopes(User user) {
         Scope oldHousehold = user.getPrimaryScope();
         if (oldHousehold == null) return;
 
-        Scope oldClan = oldHousehold.getType() == ScopeType.GROUP
+        // Arxivlash nomzodi: xonadonning guruhi (bo'lsa) yoki xonadonning o'zi (root model)
+        Scope oldTop = oldHousehold.getType() == ScopeType.GROUP
                 ? oldHousehold
-                : oldHousehold.getParentScope();
-        if (oldClan == null || oldClan.getType() != ScopeType.GROUP) return;
+                : (oldHousehold.getParentScope() != null ? oldHousehold.getParentScope() : oldHousehold);
+        if (oldTop.getType() != ScopeType.GROUP && oldTop.getType() != ScopeType.HOUSEHOLD) return;
 
         long otherMembers = membershipRepository
-                .findByScopeIdAndStatus(oldClan.getId(), MembershipStatus.ACTIVE).stream()
+                .findByScopeIdAndStatus(oldTop.getId(), MembershipStatus.ACTIVE).stream()
                 .filter(m -> !m.getUser().getId().equals(user.getId()))
                 .count();
         if (otherMembers > 0) return; // Boshqa a'zolar bor — arxivlamaymiz
 
         // User'ning eski membership'larini LEFT qilamiz
-        membershipRepository.findByScopeIdAndUserId(oldClan.getId(), user.getId())
+        membershipRepository.findByScopeIdAndUserId(oldTop.getId(), user.getId())
                 .ifPresent(m -> { m.setStatus(MembershipStatus.LEFT); membershipRepository.save(m); });
         membershipRepository.findByScopeIdAndUserId(oldHousehold.getId(), user.getId())
                 .ifPresent(m -> { m.setStatus(MembershipStatus.LEFT); membershipRepository.save(m); });
 
         // Scope'larni inactive qilamiz (data o'chmaydi, faqat ko'rinmaydi)
-        oldClan.setIsActive(false);
-        scopeRepository.save(oldClan);
-        if (oldHousehold.getType() != ScopeType.GROUP) {
+        oldTop.setIsActive(false);
+        scopeRepository.save(oldTop);
+        if (!oldTop.getId().equals(oldHousehold.getId())) {
             oldHousehold.setIsActive(false);
             scopeRepository.save(oldHousehold);
         }
 
-        log.info("Archived empty auto-created clan {} (user {} left)",
-                oldClan.getId(), user.getUsername());
+        log.info("Archived empty auto-created scope {} (user {} left)",
+                oldTop.getId(), user.getUsername());
     }
 
     @Transactional
