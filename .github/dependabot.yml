@@ -39,6 +39,10 @@ updates:
       # @types/node runtime'ga mos bo'lishi kerak (CI Node 24) — major'ni qo'lda boshqaramiz
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # Vite major: @vitejs/plugin-react-swc peer'i hali qo'llamaydi (#253 npm ci ERESOLVE) —
+      # plugin vite 8'ni qo'llagach ikkalasi birga ataylab bump qilinadi
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
