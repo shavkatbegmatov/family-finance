@@ -1,4 +1,5 @@
 import type { Scope, ScopeRole } from '../../types/scope.types';
+import { getScopeTypeMeta } from './scopeTypeMeta';
 
 /**
  * ScopeSwitcher (desktop dropdown) va MobileScopeSwitcher (bottom-sheet)
@@ -23,28 +24,31 @@ export const ROLE_TONE: Record<ScopeRole, string> = {
 
 export interface ScopeGroupData {
   key: string;
-  clanName: string | null;
+  groupName: string | null;
   scopes: Scope[];
 }
 
 /**
- * Scope'larni Clan bo'yicha guruhlash. CLAN o'zi va uning bevosita farzandlari
- * (HOUSEHOLD, PROJECT, EVENT, h.k.) bir guruhda. Clan'siz scope'lar (PROJECT
+ * Scope'larni Guruh bo'yicha guruhlash. GROUP o'zi va uning bevosita farzandlari
+ * (HOUSEHOLD, PROJECT, EVENT, h.k.) bir guruhda. Guruh'siz scope'lar (PROJECT
  * to'g'ridan-to'g'ri user uchun, ya'ni parentSiz bo'lsa) "Boshqa" guruhida.
  */
-export function groupScopesByClan(scopes: Scope[]): ScopeGroupData[] {
+/** Runtime-xavfsiz GROUP tekshiruvi — legacy 'CLAN' (eski backend/localStorage) ham GROUP sanaladi. */
+const isGroupScope = (s: Scope) => getScopeTypeMeta(s.type).type === 'GROUP';
+
+export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
   if (scopes.length === 0) return [];
 
   const groups = new Map<string, ScopeGroupData>();
-  const clansById = new Map<number, Scope>();
+  const groupsById = new Map<number, Scope>();
 
-  // Avval barcha CLAN'larni topish
+  // Avval barcha GROUP'larni topish
   for (const s of scopes) {
-    if (s.type === 'CLAN') {
-      clansById.set(s.id, s);
-      groups.set(`clan-${s.id}`, {
-        key: `clan-${s.id}`,
-        clanName: s.name,
+    if (isGroupScope(s)) {
+      groupsById.set(s.id, s);
+      groups.set(`group-${s.id}`, {
+        key: `group-${s.id}`,
+        groupName: s.name,
         scopes: [s],
       });
     }
@@ -52,13 +56,13 @@ export function groupScopesByClan(scopes: Scope[]): ScopeGroupData[] {
 
   // Keyin qolganlarini parent bo'yicha taqsimlash
   for (const s of scopes) {
-    if (s.type === 'CLAN') continue;
-    const parentClan = s.parentScopeId ? clansById.get(s.parentScopeId) : null;
-    if (parentClan) {
-      const group = groups.get(`clan-${parentClan.id}`)!;
+    if (isGroupScope(s)) continue;
+    const parentGroup = s.parentScopeId ? groupsById.get(s.parentScopeId) : null;
+    if (parentGroup) {
+      const group = groups.get(`group-${parentGroup.id}`)!;
       group.scopes.push(s);
     } else {
-      const other = groups.get('other') ?? { key: 'other', clanName: null, scopes: [] };
+      const other = groups.get('other') ?? { key: 'other', groupName: null, scopes: [] };
       other.scopes.push(s);
       groups.set('other', other);
     }

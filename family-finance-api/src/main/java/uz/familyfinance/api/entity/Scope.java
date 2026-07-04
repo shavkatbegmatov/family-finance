@@ -37,7 +37,7 @@ public class Scope extends BaseEntity {
     @Column(nullable = false, length = 150)
     private String name;
 
-    /** Ota-scope — CLAN dan tashqari hammasida majburiy. DB constraint orqali tekshiriladi. */
+    /** Ota-scope — GROUP dan tashqari hammasida majburiy. DB constraint orqali tekshiriladi. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_scope_id")
     private Scope parentScope;
@@ -77,7 +77,7 @@ public class Scope extends BaseEntity {
     private Boolean isActive = true;
 
     /**
-     * V34 da migrated CLAN scope'lar uchun asl FamilyGroup mapping'i.
+     * V34 da migrated GROUP scope'lar uchun asl FamilyGroup mapping'i.
      *
      * <p>Phase 2 davomida eski servislar (PointConfigService.getCurrentFamilyGroup()
      * va undan foydalanuvchilar) shu mapping orqali aktiv scope'ga mos

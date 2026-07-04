@@ -4,30 +4,33 @@ Grounded in the **actual code** (Flyway V45, June 2026), not the original plan. 
 roadmap lives in [`docs/multi-scope-plan-original.txt`](./multi-scope-plan-original.txt) —
 useful history, but the code is ahead of it.
 
-Domain terms: **Clan** = urug' (extended family), **Household** = xonadon (a budget unit).
+Domain terms (ADR-001 decoupling): **Group** = ixtiyoriy moliyaviy aggregation (eski "Clan"/urug'
+da'vosi olib tashlandi — "urug'" endi genealogiya grafidan hosil bo'ladi, jadval emas),
+**Household** = xonadon (byudjet birligi, mustaqil root bo'la oladi). Genealogiya (graf) va moliya
+(daraxt) ajratilgan. To'liq qaror: [`adr-001`](./adr-001-genealogy-finance-decoupling.md).
 
 ## 1. Scope model (multi-scope core)
 
 A single universal `Scope` entity models every context type via a `type` enum + `metadata`
-(JSONB). Hierarchy is `parentScope` (CLAN is the root, `parentScope = null`).
+(JSONB). Hierarchy is `parentScope` (GROUP is the root, `parentScope = null`).
 
 - **`entity/Scope.java`** — `type`, `name`, `parentScope`, `ownerUser`, `uniqueCode`,
   `displayCode`, `metadata` (JSONB), `startsAt`/`endsAt`, `isActive`, **`legacyFamilyGroup`**.
-- **`enums/ScopeType`** — `CLAN, HOUSEHOLD, PROJECT, EVENT, FUND, TRUSTEE, PROPERTY`
+- **`enums/ScopeType`** — `GROUP, HOUSEHOLD, PROJECT, EVENT, FUND, TRUSTEE, PROPERTY`
   (helpers `requiresParent()`, `canContainHousehold()`).
 - **`entity/ScopeMembership.java`** + **`enums/ScopeRole`** (`OWNER, ADMIN, MEMBER, VIEWER,
   GUEST`) + **`enums/MembershipStatus`** (`ACTIVE, LEFT, EXPELLED, PENDING`).
   Unique constraint: one membership per (scope, user).
 
-A user can be a member of scopes across **multiple clans** with different roles (e.g. a bride
-is MEMBER in both her parents' clan and her husband's clan — two membership rows).
+A user can be a member of scopes across **multiple groups/households** with different roles (e.g. a
+bride is MEMBER in both her parents' and her husband's households — two membership rows).
 
 ### `ScopeContextService` — the single source of truth for scoping
 
 - **Active scope resolution (fallback chain):** JWT `activeScopeId` → `User.primaryScope` →
   first ACTIVE membership.
-- `getActiveScope()`, `getActiveHousehold()`, `getActiveClan()`, `getActiveScopeId()`.
-- **Visibility:** `getVisibleScopeIds()` (own ACTIVE memberships + parent CLAN), `canViewScope()`,
+- `getActiveScope()`, `getActiveHousehold()`, `getActiveGroup()`, `getActiveScopeId()`.
+- **Visibility:** `getVisibleScopeIds()` (own ACTIVE memberships + parent GROUP), `canViewScope()`,
   `canWriteToScope()`, `canManageScope()`.
 - **SUPER_ADMIN** (`User.isSuperAdmin`) bypasses membership but every cross-scope access is
   written to the audit log.
@@ -37,7 +40,7 @@ is MEMBER in both her parents' clan and her husband's clan — two membership ro
 
 ## 2. Legacy bridge (Phase-2 transition, still live)
 
-`FamilyGroup` entity still exists. V34 mapped each FamilyGroup → a CLAN-type `Scope` via
+`FamilyGroup` entity still exists. V34 mapped each FamilyGroup → a GROUP-type `Scope` via
 `Scope.legacyFamilyGroup`. Older callers (e.g. `PointConfigService.getCurrentFamilyGroup()`)
 resolve the active Scope back to its legacy FamilyGroup instead of being rewritten — a
 deliberate bridge, not the target state. New code should use scopes directly.
@@ -49,8 +52,8 @@ deliberate bridge, not the target state. New code should use scopes directly.
 | Entity | scope_id |
 |--------|----------|
 | `Account`, `Budget`, `Debt`, `SavingsGoal` | NOT NULL (V35 add → V36 backfill → V39 not-null) |
-| `FamilyMember` | NOT NULL (CLAN scope — genealogy lives at clan level) |
-| `FamilyUnit` | NOT NULL + `display_code` (V40 add → V41 backfill → V42 split shared units) |
+| `FamilyMember` | **nullable** (ADR-001: genealogiya scope'ni bilmaydi; `family_group_id` = genealogik tenant) |
+| `FamilyUnit` | **nullable** ko'prik + `display_code` (V40 add → V41 backfill; ADR-001: avtomatik to'ldirilmaydi) |
 | `Category` | global (no scope) |
 | `Point*` | resolved via legacy bridge during transition |
 
@@ -89,7 +92,7 @@ deliberate bridge, not the target state. New code should use scopes directly.
 - **Soft-delete invariant:** removing a member must not leave orphan `FamilyChild`/
   `FamilyPartner`; validations consider **living** members only.
 - **Tree consistency (V1.6.4):** the "Xonadonlar" (households) and "Shaxslar" (persons) views
-  use the **same genealogical traversal** (not scope-visibility) — a parent in a different CLAN
+  use the **same genealogical traversal** (not scope-visibility) — a parent in a different GROUP
   still appears. Frontend: `components/family/flow/` (2D React-Flow) and
   `components/family/graph3d/` (3D force graph).
 

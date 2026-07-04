@@ -7,9 +7,9 @@ import { useScopeStore } from '../../store/scopeStore';
 import { scopesApi } from '../../api/scopes.api';
 import type { ApiResponse } from '../../types';
 import type { Scope } from '../../types/scope.types';
-import { SCOPE_TYPE_META } from './scopeTypeMeta';
+import { getScopeTypeMeta } from './scopeTypeMeta';
 import { useSwitchScope } from '../../hooks/useSwitchScope';
-import { groupScopesByClan, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
+import { groupScopesByGroup, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
 import { getApiErrorMessage } from '../../utils/apiError';
 
 /**
@@ -29,7 +29,7 @@ interface ScopeSwitcherProps {
 /**
  * Header'da ko'rinadigan ScopeSwitcher dropdown.
  *
- * <p>Foydalanuvchining barcha scope'larini Clan bo'yicha guruhlab ko'rsatadi.
+ * <p>Foydalanuvchining barcha scope'larini Guruh bo'yicha guruhlab ko'rsatadi.
  * Tanlanganda backend'ga `switch-scope` so'rovi yuboradi, yangi JWT olinadi,
  * authStore yangilanadi va sahifa avtomatik refresh bo'ladi (yangi scope
  * konteksti bilan).</p>
@@ -115,8 +115,8 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Scope'larni Clan bo'yicha guruhlash
-  const grouped = useMemo(() => groupScopesByClan(myScopes), [myScopes]);
+  // Scope'larni Guruh bo'yicha guruhlash
+  const grouped = useMemo(() => groupScopesByGroup(myScopes), [myScopes]);
 
   const handleSwitch = async (target: Scope) => {
     await switchScope(target);
@@ -161,7 +161,7 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
           {grouped.map((group) => (
             <ScopeGroup
               key={group.key}
-              clanName={group.clanName}
+              groupName={group.groupName}
               scopes={group.scopes}
               activeScopeId={activeScope?.id ?? null}
               switchingId={switchingId}
@@ -188,7 +188,7 @@ function ActiveScopeBadge({ scope }: { scope: Scope | null }) {
   if (!scope) {
     return <span className="text-sm font-medium text-base-content/60">Scope tanlang</span>;
   }
-  const meta = SCOPE_TYPE_META[scope.type];
+  const meta = getScopeTypeMeta(scope.type);
   const Icon = meta.icon;
   return (
     <div className="flex items-center gap-2 min-w-0">
@@ -206,13 +206,13 @@ function ActiveScopeBadge({ scope }: { scope: Scope | null }) {
 }
 
 function ScopeGroup({
-  clanName,
+  groupName,
   scopes,
   activeScopeId,
   switchingId,
   onSwitch,
 }: {
-  clanName: string | null;
+  groupName: string | null;
   scopes: Scope[];
   activeScopeId: number | null;
   switchingId: number | null;
@@ -220,9 +220,9 @@ function ScopeGroup({
 }) {
   return (
     <div className="py-1">
-      {clanName && (
+      {groupName && (
         <div className="px-3 py-1.5 text-xs font-semibold text-base-content/70">
-          🌳 {clanName}
+          🌳 {groupName}
         </div>
       )}
       {scopes.map((s) => (
@@ -249,10 +249,10 @@ function ScopeOption({
   isSwitching: boolean;
   onClick: () => void;
 }) {
-  const meta = SCOPE_TYPE_META[scope.type];
+  const meta = getScopeTypeMeta(scope.type);
   const Icon = meta.icon;
   const role = scope.currentUserRole;
-  const indent = scope.type === 'CLAN' ? '' : 'ml-3';
+  const indent = meta.type === 'GROUP' ? '' : 'ml-3';
 
   return (
     <button

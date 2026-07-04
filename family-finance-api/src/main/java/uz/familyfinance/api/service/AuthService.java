@@ -105,7 +105,7 @@ public class AuthService {
 
         // YANGI: Scope provisioning ikki yo'l bilan:
         // 1) inviteCode bor bo'lsa — mavjud oilaga MEMBER bo'lib qo'shiladi
-        // 2) inviteCode yo'q bo'lsa — yangi CLAN+HOUSEHOLD yaratiladi (auto-provisioning)
+        // 2) inviteCode yo'q bo'lsa — yangi GROUP+HOUSEHOLD yaratiladi (auto-provisioning)
         String code = request.getInviteCode() != null ? request.getInviteCode().trim() : "";
         if (!code.isEmpty()) {
             joinExistingScopeByCode(user, code, request);
@@ -123,7 +123,7 @@ public class AuthService {
                 null
         );
 
-        log.info("New user registered: {} with new clan/household scopes", user.getUsername());
+        log.info("New user registered: {} with new root household scope", user.getUsername());
 
         return UserResponse.from(user);
     }
@@ -132,8 +132,8 @@ public class AuthService {
      * Yangi ro'yxatdan o'tgan user uchun to'liq scope strukturasini yaratadi:
      * <ol>
      *   <li>FamilyGroup (legacy uyg'unligi uchun)</li>
-     *   <li>CLAN scope (parent=null, owner=user)</li>
-     *   <li>HOUSEHOLD scope (parent=CLAN, owner=user)</li>
+     *   <li>GROUP scope (parent=null, owner=user)</li>
+     *   <li>HOUSEHOLD scope (parent=GROUP, owner=user)</li>
      *   <li>2 ta ScopeMembership: ikkalasida ham OWNER role</li>
      *   <li>User.familyGroup va User.primaryScope (=household) o'rnatiladi</li>
      *   <li>FamilyMember (legacy) — yangi familyGroup'ga biriktiriladi</li>
@@ -148,9 +148,9 @@ public class AuthService {
     /**
      * Mavjud Scope'ga (invite code orqali) user'ni MEMBER bo'lib qo'shadi.
      * <ul>
-     *   <li>Kod prefiksiga ko'ra: C=CLAN, H=HOUSEHOLD, P=PROJECT, EVENT...</li>
-     *   <li>HOUSEHOLD kodi bilan kelsa: HOUSEHOLD'ga MEMBER + parent CLAN'ga ham MEMBER</li>
-     *   <li>CLAN kodi bilan kelsa: CLAN'ga MEMBER + birinchi HOUSEHOLD'ga ham MEMBER (agar bor bo'lsa)</li>
+     *   <li>Kod prefiksiga ko'ra: C=GROUP, H=HOUSEHOLD, P=PROJECT, EVENT...</li>
+     *   <li>HOUSEHOLD kodi bilan kelsa: HOUSEHOLD'ga MEMBER + parent GROUP'ga ham MEMBER</li>
+     *   <li>GROUP kodi bilan kelsa: GROUP'ga MEMBER + birinchi HOUSEHOLD'ga ham MEMBER (agar bor bo'lsa)</li>
      *   <li>User.familyGroup va User.primaryScope (=HOUSEHOLD) o'rnatiladi</li>
      *   <li>FamilyMember (legacy) yaratiladi va familyGroup'ga biriktiriladi</li>
      * </ul>
@@ -161,10 +161,10 @@ public class AuthService {
                 .orElseThrow(() -> new BadRequestException(
                         "Taklif kodi noto'g'ri yoki bekor qilingan: " + inviteCode));
 
-        // CLAN va HOUSEHOLD scope'larini aniqlash
+        // GROUP va HOUSEHOLD scope'larini aniqlash
         Scope clan;
         Scope household;
-        if (targetScope.getType() == ScopeType.CLAN) {
+        if (targetScope.getType() == ScopeType.GROUP) {
             clan = targetScope;
             household = scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
                     clan.getId(), ScopeType.HOUSEHOLD)
@@ -172,23 +172,26 @@ public class AuthService {
                             "Bu urug'da hech qanday faol xonadon topilmadi"));
         } else if (targetScope.getType() == ScopeType.HOUSEHOLD) {
             household = targetScope;
-            clan = targetScope.getParentScope();
-            if (clan == null || clan.getType() != ScopeType.CLAN) {
-                throw new BadRequestException("Xonadon tegishli urug'ga ulanmagan");
+            clan = targetScope.getParentScope();  // null = mustaqil root xonadon (GROUP ixtiyoriy)
+            if (clan != null && clan.getType() != ScopeType.GROUP) {
+                throw new BadRequestException("Xonadon noto'g'ri guruhga ulangan");
             }
         } else {
             throw new BadRequestException(
-                    "Ushbu kod orqali ro'yxatdan o'tish faqat CLAN/HOUSEHOLD uchun mumkin");
+                    "Ushbu kod orqali ro'yxatdan o'tish faqat GROUP/HOUSEHOLD uchun mumkin");
         }
 
-        FamilyGroup familyGroup = clan.getLegacyFamilyGroup();
+        // Genealogik tenant (legacy) — GROUP bor bo'lsa undan, aks holda root household'dan
+        FamilyGroup familyGroup = (clan != null ? clan : household).getLegacyFamilyGroup();
         if (familyGroup == null) {
             throw new IllegalStateException(
-                    "Tanlangan urug'ning eski oila guruhi yo'q — qo'lda fix talab etiladi");
+                    "Tanlangan scope'ning eski oila guruhi yo'q — qo'lda fix talab etiladi");
         }
 
-        // 1) CLAN'ga MEMBER bo'lib qo'shish (agar yo'q bo'lsa)
-        scopeMembershipService.addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
+        // 1) GROUP'ga MEMBER bo'lib qo'shish (faqat GROUP bor bo'lsa)
+        if (clan != null) {
+            scopeMembershipService.addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
+        }
         // 2) HOUSEHOLD'ga MEMBER bo'lib qo'shish
         scopeMembershipService.addMembershipIfAbsent(household, user, ScopeRole.MEMBER);
 
@@ -213,8 +216,8 @@ public class AuthService {
             familyMemberRepository.save(familyMember);
         }
 
-        log.info("User '{}' joined existing scope via invite code: clan={}, household={}",
-                user.getUsername(), clan.getId(), household.getId());
+        log.info("User '{}' joined existing scope via invite code: group={}, household={}",
+                user.getUsername(), clan != null ? clan.getId() : null, household.getId());
     }
 
     /**
@@ -232,7 +235,7 @@ public class AuthService {
         User user = userRepository.findById(userParam.getId()).orElse(null);
         if (user == null) return;
 
-        // SUPER_ADMIN — alohida platforma profili: oilasiz/scope'siz. Unga CLAN+HOUSEHOLD
+        // SUPER_ADMIN — alohida platforma profili: oilasiz/scope'siz. Unga GROUP+HOUSEHOLD
         // provisioning QILINMAYDI (login'da activeScopeId=null bo'lib qoladi, nazorat-only UI).
         if (Boolean.TRUE.equals(user.getIsSuperAdmin())) {
             return;
@@ -281,7 +284,7 @@ public class AuthService {
             return; // xonadon topilmadi — xavfsizlik uchun tegmaymiz
         }
 
-        // Membership'lar (HOUSEHOLD + parent CLAN). Mavjud ACTIVE rol (masalan OWNER) saqlanadi.
+        // Membership'lar (HOUSEHOLD + parent GROUP). Mavjud ACTIVE rol (masalan OWNER) saqlanadi.
         scopeMembershipService.attachToHousehold(household, user, ScopeRole.MEMBER);
 
         boolean changed = false;
@@ -317,22 +320,11 @@ public class AuthService {
                 .build();
         familyGroup = familyGroupRepository.save(familyGroup);
 
-        // 2) CLAN scope (parent=null) — unique code bilan (taklif uchun)
-        Scope clan = Scope.builder()
-                .type(ScopeType.CLAN)
-                .name(displayName + " urug'i")
-                .ownerUser(user)
-                .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.CLAN))
-                .legacyFamilyGroup(familyGroup)
-                .isActive(true)
-                .build();
-        clan = scopeRepository.save(clan);
-
-        // 3) HOUSEHOLD scope (parent=clan) — unique code bilan
+        // 2) HOUSEHOLD scope — mustaqil ROOT (ADR-001 Faza 3C: GROUP avtomatik YARATILMAYDI;
+        //    foydalanuvchi kerak bo'lsa keyin Group ochib bir nechta xonadonni birlashtiradi).
         Scope household = Scope.builder()
                 .type(ScopeType.HOUSEHOLD)
                 .name(displayName + " xonadoni")
-                .parentScope(clan)
                 .ownerUser(user)
                 .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.HOUSEHOLD))
                 .displayCode(householdCodeGenerator.generate())
@@ -341,21 +333,13 @@ public class AuthService {
                 .build();
         household = scopeRepository.save(household);
 
-        // 4) ScopeMembership x2 (clan + household, ikkalasida ham OWNER)
-        LocalDateTime now = LocalDateTime.now();
-        scopeMembershipRepository.save(ScopeMembership.builder()
-                .scope(clan)
-                .user(user)
-                .role(ScopeRole.OWNER)
-                .status(MembershipStatus.ACTIVE)
-                .joinedAt(now)
-                .build());
+        // 3) ScopeMembership — faqat household (OWNER)
         scopeMembershipRepository.save(ScopeMembership.builder()
                 .scope(household)
                 .user(user)
                 .role(ScopeRole.OWNER)
                 .status(MembershipStatus.ACTIVE)
-                .joinedAt(now)
+                .joinedAt(LocalDateTime.now())
                 .build());
 
         // 5) User ni familyGroup va primaryScope (HOUSEHOLD) ga bog'lash
@@ -431,7 +415,7 @@ public class AuthService {
 
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
-            // Auto-provision: eski user'larga ham CLAN+HOUSEHOLD scope yaratamiz
+            // Auto-provision: eski user'larga ham GROUP+HOUSEHOLD scope yaratamiz
             // agar mavjud bo'lmasa. Bu seamless UX ta'minlaydi — bir kelin
             // qoldirmaslik kerak.
             try {

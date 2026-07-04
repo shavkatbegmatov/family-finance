@@ -14,21 +14,21 @@
 --     - demo_singil   (parol: shu)
 --     - demo_yangam   (parol: shu)
 --
---   Har biriga: 1 ta family_group + 1 CLAN + 1 HOUSEHOLD scope + 1 family_member
+--   Har biriga: 1 ta family_group + 1 GROUP + 1 HOUSEHOLD scope + 1 family_member
 --
 --   Hisoblar (qasdan turli xil katta-kichik balanslar):
 --     - Aka oilasi:    naqd 1.5M + karta 5M = ~6.5M so'm
 --     - Singil oilasi: naqd 250K so'm (kambag'al/student)
 --     - Yangam oilasi: naqd 5M + karta 25M + jamg'arma 100M = ~130M so'm (boy)
 --
---   shavkat3 (SUPER_ADMIN) ham har 3 CLAN'ga MEMBER sifatida qo'shiladi —
+--   shavkat3 (SUPER_ADMIN) ham har 3 GROUP'ga MEMBER sifatida qo'shiladi —
 --   shuning uchun ScopeSwitcher'da ko'rinadi va switch qilib turli oilalarni
 --   ko'ra oladi.
 --
 -- ===== Sinab ko'rish =====
 --   1. Bu skriptni ishga tushiring
 --   2. shavkat3 bilan login qiling
---   3. Header'dagi ScopeSwitcher'ni oching → 4+ ta CLAN ko'rasiz
+--   3. Header'dagi ScopeSwitcher'ni oching → 4+ ta GROUP ko'rasiz
 --   4. Aka → Singil → Yangam scope'lariga switch qiling
 --   5. Dashboard'da Umumiy balans har safar boshqa raqam (~6.5M / ~250K / ~130M)
 --
@@ -152,11 +152,11 @@ BEGIN
     RETURNING id INTO v_yangam_fm_id;
 
     -- =========================================
-    -- 4) Scopes (CLAN + HOUSEHOLD har bir oila uchun)
+    -- 4) Scopes (GROUP + HOUSEHOLD har bir oila uchun)
     -- =========================================
     -- Aka
     INSERT INTO scopes (type, name, owner_user_id, unique_code, is_active, legacy_family_group_id, created_at, updated_at, version)
-    VALUES ('CLAN', 'Aka Begmatov urug''i', v_aka_id,
+    VALUES ('GROUP', 'Aka Begmatov urug''i', v_aka_id,
             'CDEMO' || LPAD(v_aka_id::text, 4, '0') || SUBSTR(MD5(RANDOM()::text), 1, 5),
             true, v_aka_fg_id, NOW(), NOW(), 0)
     RETURNING id INTO v_aka_clan_id;
@@ -169,7 +169,7 @@ BEGIN
 
     -- Singil
     INSERT INTO scopes (type, name, owner_user_id, unique_code, is_active, legacy_family_group_id, created_at, updated_at, version)
-    VALUES ('CLAN', 'Singil Karimova urug''i', v_singil_id,
+    VALUES ('GROUP', 'Singil Karimova urug''i', v_singil_id,
             'CDEMO' || LPAD(v_singil_id::text, 4, '0') || SUBSTR(MD5(RANDOM()::text), 1, 5),
             true, v_singil_fg_id, NOW(), NOW(), 0)
     RETURNING id INTO v_singil_clan_id;
@@ -182,7 +182,7 @@ BEGIN
 
     -- Yangam
     INSERT INTO scopes (type, name, owner_user_id, unique_code, is_active, legacy_family_group_id, created_at, updated_at, version)
-    VALUES ('CLAN', 'Yangam Toirova urug''i', v_yangam_id,
+    VALUES ('GROUP', 'Yangam Toirova urug''i', v_yangam_id,
             'CDEMO' || LPAD(v_yangam_id::text, 4, '0') || SUBSTR(MD5(RANDOM()::text), 1, 5),
             true, v_yangam_fg_id, NOW(), NOW(), 0)
     RETURNING id INTO v_yangam_clan_id;
@@ -193,12 +193,12 @@ BEGIN
             true, NOW(), NOW(), 0)
     RETURNING id INTO v_yangam_house_id;
 
-    RAISE NOTICE '  ✓ 6 ta scope yaratildi (3 CLAN + 3 HOUSEHOLD)';
+    RAISE NOTICE '  ✓ 6 ta scope yaratildi (3 GROUP + 3 HOUSEHOLD)';
 
     -- =========================================
     -- 5) Scope memberships
     -- =========================================
-    -- Har demo user o'z CLAN va HOUSEHOLD'ining OWNER'i
+    -- Har demo user o'z GROUP va HOUSEHOLD'ining OWNER'i
     INSERT INTO scope_memberships (scope_id, user_id, role, status, joined_at, created_at, updated_at, version)
     VALUES
         (v_aka_clan_id,   v_aka_id, 'OWNER', 'ACTIVE', NOW(), NOW(), NOW(), 0),
@@ -208,14 +208,14 @@ BEGIN
         (v_yangam_clan_id,  v_yangam_id, 'OWNER', 'ACTIVE', NOW(), NOW(), NOW(), 0),
         (v_yangam_house_id, v_yangam_id, 'OWNER', 'ACTIVE', NOW(), NOW(), NOW(), 0);
 
-    -- shavkat3 (SUPER_ADMIN) — har CLAN'ga MEMBER (ScopeSwitcher'da ko'rsin)
+    -- shavkat3 (SUPER_ADMIN) — har GROUP'ga MEMBER (ScopeSwitcher'da ko'rsin)
     IF v_shavkat_id IS NOT NULL THEN
         INSERT INTO scope_memberships (scope_id, user_id, role, status, joined_at, invited_by_user_id, created_at, updated_at, version)
         VALUES
             (v_aka_clan_id,    v_shavkat_id, 'MEMBER', 'ACTIVE', NOW(), v_aka_id, NOW(), NOW(), 0),
             (v_singil_clan_id, v_shavkat_id, 'MEMBER', 'ACTIVE', NOW(), v_singil_id, NOW(), NOW(), 0),
             (v_yangam_clan_id, v_shavkat_id, 'MEMBER', 'ACTIVE', NOW(), v_yangam_id, NOW(), NOW(), 0);
-        RAISE NOTICE '  ✓ shavkat3 har 3 demo CLAN ga MEMBER sifatida qo''shildi';
+        RAISE NOTICE '  ✓ shavkat3 har 3 demo GROUP ga MEMBER sifatida qo''shildi';
     ELSE
         RAISE NOTICE '  ⚠ shavkat3 topilmadi — qo''shilmadi (demo userlar bilan login qiling)';
     END IF;
@@ -292,9 +292,9 @@ BEGIN
     DELETE FROM scope_memberships WHERE scope_id IN (
         SELECT id FROM scopes WHERE owner_user_id IN (v_aka_id, v_singil_id, v_yangam_id)
     );
-    -- HOUSEHOLD'lardan boshlab (CLAN parent bo'lgani uchun)
+    -- HOUSEHOLD'lardan boshlab (GROUP parent bo'lgani uchun)
     DELETE FROM scopes WHERE type = 'HOUSEHOLD' AND owner_user_id IN (v_aka_id, v_singil_id, v_yangam_id);
-    DELETE FROM scopes WHERE type = 'CLAN' AND owner_user_id IN (v_aka_id, v_singil_id, v_yangam_id);
+    DELETE FROM scopes WHERE type = 'GROUP' AND owner_user_id IN (v_aka_id, v_singil_id, v_yangam_id);
     DELETE FROM family_members WHERE user_id IN (v_aka_id, v_singil_id, v_yangam_id);
     UPDATE users SET family_group_id = NULL, primary_scope_id = NULL
         WHERE id IN (v_aka_id, v_singil_id, v_yangam_id);

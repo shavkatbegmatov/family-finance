@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { scopesApi } from '../../api/scopes.api';
 import { ModalPortal } from '../common/Modal';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { getScopeTypeMeta } from './scopeTypeMeta';
 
 interface JoinFamilyModalProps {
   isOpen: boolean;
@@ -105,9 +106,9 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
               )}
               {preview && (
                 <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-                  {preview.type === 'CLAN' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
+                  {getScopeTypeMeta(preview.type).type === 'GROUP' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
                   <span>
-                    <strong>{preview.name}</strong> ({preview.type === 'CLAN' ? 'Urug\'' : 'Xonadon'})
+                    <strong>{preview.name}</strong> ({getScopeTypeMeta(preview.type).type === 'GROUP' ? 'Guruh' : 'Xonadon'})
                   </span>
                 </div>
               )}

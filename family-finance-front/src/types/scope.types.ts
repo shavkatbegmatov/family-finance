@@ -5,7 +5,7 @@
 
 /** Scope turlari — backend ScopeType.java bilan mos. */
 export type ScopeType =
-  | 'CLAN'
+  | 'GROUP'
   | 'HOUSEHOLD'
   | 'PROJECT'
   | 'EVENT'
@@ -65,7 +65,7 @@ export interface Membership {
 export interface ScopeCreateRequest {
   type: ScopeType;
   name: string;
-  /** CLAN dan tashqari hammasida majburiy. */
+  /** GROUP dan tashqari hammasida majburiy. */
   parentScopeId?: number;
   metadata?: Record<string, unknown>;
   startsAt?: string;

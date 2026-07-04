@@ -285,7 +285,7 @@ export function Header() {
             <SearchCommand />
           </div>
 
-          {/* ScopeSwitcher — aktiv scope (Clan/Xonadon/Loyiha) almashtirish.
+          {/* ScopeSwitcher — aktiv scope (Guruh/Xonadon/Loyiha) almashtirish.
               sm+ da dropdown; <sm da sarlavha ostidagi MobileScopeSwitcher chip ishlaydi.
               E'tibor: bu komponent scope ro'yxatini yuklaydi, shuning uchun barcha
               o'lchamlarda mount bo'lib turishi kerak (faqat CSS bilan yashirinadi). */}

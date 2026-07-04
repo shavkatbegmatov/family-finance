@@ -3,10 +3,10 @@ import { ChevronDown, Crown, Loader2, ShieldCheck, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useScopeStore } from '../../store/scopeStore';
 import type { Scope } from '../../types/scope.types';
-import { SCOPE_TYPE_META } from './scopeTypeMeta';
+import { getScopeTypeMeta } from './scopeTypeMeta';
 import { useSwitchScope } from '../../hooks/useSwitchScope';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { groupScopesByClan, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
+import { groupScopesByGroup, ROLE_LABEL, ROLE_TONE } from './scopeGrouping';
 
 /**
  * Mobil ScopeSwitcher — Header'dagi sahifa sarlavhasi ostida ixcham chip;
@@ -23,7 +23,7 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const trapRef = useFocusTrap(isOpen);
 
-  const grouped = useMemo(() => groupScopesByClan(myScopes), [myScopes]);
+  const grouped = useMemo(() => groupScopesByGroup(myScopes), [myScopes]);
 
   // Esc bosilganda varaqni yopish
   useEffect(() => {
@@ -37,7 +37,7 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
 
   if (!activeScope || myScopes.length === 0) return null;
 
-  const meta = SCOPE_TYPE_META[activeScope.type];
+  const meta = getScopeTypeMeta(activeScope.type);
   const Icon = meta.icon;
 
   const handleSwitch = async (target: Scope) => {
@@ -105,9 +105,9 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
           >
             {grouped.map((group) => (
               <div key={group.key} className="py-1">
-                {group.clanName && (
+                {group.groupName && (
                   <div className="px-3 py-1.5 text-xs font-semibold text-base-content/70">
-                    🌳 {group.clanName}
+                    🌳 {group.groupName}
                   </div>
                 )}
                 {group.scopes.map((s) => (
@@ -140,7 +140,7 @@ function MobileScopeOption({
   isSwitching: boolean;
   onClick: () => void;
 }) {
-  const meta = SCOPE_TYPE_META[scope.type];
+  const meta = getScopeTypeMeta(scope.type);
   const Icon = meta.icon;
   const role = scope.currentUserRole;
 
@@ -151,7 +151,7 @@ function MobileScopeOption({
       disabled={isSwitching || isActive}
       className={clsx(
         'flex min-h-[3rem] w-full items-center gap-3 rounded-xl px-3 py-2 text-left tap-sm',
-        scope.type !== 'CLAN' && 'ml-3 w-[calc(100%-0.75rem)]',
+        meta.type !== 'GROUP' && 'ml-3 w-[calc(100%-0.75rem)]',
         isActive ? 'bg-primary/10 text-primary' : 'active:bg-base-200',
         isSwitching && 'opacity-50',
       )}

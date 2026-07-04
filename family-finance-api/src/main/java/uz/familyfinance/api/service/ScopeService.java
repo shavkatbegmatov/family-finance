@@ -146,8 +146,8 @@ public class ScopeService {
         if (request.getType().requiresParent() && request.getParentScopeId() == null) {
             throw new BadRequestException(request.getType() + " uchun parent scope majburiy");
         }
-        if (!request.getType().requiresParent() && request.getParentScopeId() != null) {
-            throw new BadRequestException("CLAN scope uchun parent bo'lishi mumkin emas");
+        if (request.getType().forbidsParent() && request.getParentScopeId() != null) {
+            throw new BadRequestException("GROUP scope uchun parent bo'lishi mumkin emas");
         }
         if (request.getEndsAt() != null && request.getStartsAt() != null
                 && request.getEndsAt().isBefore(request.getStartsAt())) {
@@ -161,9 +161,9 @@ public class ScopeService {
         }
         Scope parent = findScopeOrThrow(request.getParentScopeId());
 
-        // Faqat CLAN ostida HOUSEHOLD bo'lishi mumkin
-        if (request.getType() == ScopeType.HOUSEHOLD && parent.getType() != ScopeType.CLAN) {
-            throw new BadRequestException("HOUSEHOLD faqat CLAN ostida yaratilishi mumkin");
+        // Faqat GROUP ostida HOUSEHOLD bo'lishi mumkin
+        if (request.getType() == ScopeType.HOUSEHOLD && parent.getType() != ScopeType.GROUP) {
+            throw new BadRequestException("HOUSEHOLD faqat GROUP ostida yaratilishi mumkin");
         }
 
         // Boshqaruv ruxsati tekshiruvi

@@ -6,7 +6,7 @@ import {
   Coins,
   Heart,
   Home,
-  TreePine,
+  Users2,
   type LucideProps,
 } from 'lucide-react';
 import type { ScopeType } from '../../types/scope.types';
@@ -27,12 +27,12 @@ interface ScopeTypeMeta {
  * ScopeSwitcher va boshqa joylarda foydalanish uchun.
  */
 export const SCOPE_TYPE_META: Record<ScopeType, ScopeTypeMeta> = {
-  CLAN: {
-    type: 'CLAN',
-    label: 'Urug\'',
-    icon: TreePine,
+  GROUP: {
+    type: 'GROUP',
+    label: 'Guruh',
+    icon: Users2,
     toneClass: 'text-emerald-500 bg-emerald-500/10',
-    description: 'Katta oila / urug\' — eng yuqori daraja',
+    description: 'Bir nechta xonadon ustidagi ixtiyoriy moliyaviy guruh',
   },
   HOUSEHOLD: {
     type: 'HOUSEHOLD',
@@ -78,9 +78,21 @@ export const SCOPE_TYPE_META: Record<ScopeType, ScopeTypeMeta> = {
   },
 };
 
+/**
+ * Xavfsiz meta lookup — runtime'da `scope.type` TS union kafolatiga ega EMAS:
+ * deploy skew oynasida (backend hali eski) yoki eski persisted localStorage'da
+ * legacy 'CLAN' kelishi mumkin. To'g'ridan-to'g'ri SCOPE_TYPE_META[type] indexlash
+ * unda undefined qaytarib UI'ni crash qildiradi (undefined.icon) — shuning uchun
+ * BARCHA meta o'qishlar shu helper orqali bo'lishi shart.
+ */
+export function getScopeTypeMeta(type: string | null | undefined): ScopeTypeMeta {
+  if (type === 'CLAN') return SCOPE_TYPE_META.GROUP; // legacy alias (eski backend/localStorage)
+  return SCOPE_TYPE_META[type as ScopeType] ?? SCOPE_TYPE_META.HOUSEHOLD;
+}
+
 /** Tartiblash uchun standart tartib (ScopeSwitcher dropdown'da). */
 export const SCOPE_TYPE_ORDER: ScopeType[] = [
-  'CLAN',
+  'GROUP',
   'HOUSEHOLD',
   'PROJECT',
   'EVENT',

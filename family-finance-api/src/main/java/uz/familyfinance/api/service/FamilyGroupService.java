@@ -126,18 +126,18 @@ public class FamilyGroupService {
             familyMemberRepository.save(memberRecord);
         }
 
-        // Scope-aware: target CLAN va HOUSEHOLD'ga ScopeMembership qo'shamiz
+        // Scope-aware: target GROUP va HOUSEHOLD'ga ScopeMembership qo'shamiz
         attachUserToScopesOfFamilyGroup(userToAdd, familyGroup);
     }
 
     /**
-     * Berilgan FamilyGroup'ning CLAN va HOUSEHOLD scope'lariga user'ni MEMBER sifatida
+     * Berilgan FamilyGroup'ning GROUP va HOUSEHOLD scope'lariga user'ni MEMBER sifatida
      * biriktiradi. Mavjud LEFT/PENDING membership'ni qayta tiklash. Idempotent.
      */
     private void attachUserToScopesOfFamilyGroup(User user, FamilyGroup familyGroup) {
-        // CLAN scope topish
+        // GROUP scope topish
         uz.familyfinance.api.entity.Scope clan = scopeRepository
-                .findByTypeAndIsActiveTrue(uz.familyfinance.api.enums.ScopeType.CLAN).stream()
+                .findByTypeAndIsActiveTrue(uz.familyfinance.api.enums.ScopeType.GROUP).stream()
                 .filter(s -> s.getLegacyFamilyGroup() != null
                         && s.getLegacyFamilyGroup().getId().equals(familyGroup.getId()))
                 .findFirst()
@@ -146,7 +146,7 @@ public class FamilyGroupService {
 
         attachAsMember(clan, user);
 
-        // HOUSEHOLD scope topish (CLAN ostida)
+        // HOUSEHOLD scope topish (GROUP ostida)
         scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
                 clan.getId(), uz.familyfinance.api.enums.ScopeType.HOUSEHOLD)
                 .ifPresent(household -> {
@@ -374,7 +374,7 @@ public class FamilyGroupService {
         User user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
 
-        // Lazy provisioning: eski user'lar uchun ham CLAN+HOUSEHOLD avtomatik
+        // Lazy provisioning: eski user'lar uchun ham GROUP+HOUSEHOLD avtomatik
         // yaratiladi. Bu seamless UX ta'minlaydi — F5 yoki re-login kerak emas.
         if (user.getFamilyGroup() == null || user.getPrimaryScope() == null) {
             try {

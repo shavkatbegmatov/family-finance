@@ -209,10 +209,10 @@ public class MembershipService {
                 .orElseThrow(() -> new BadRequestException(
                         "Taklif kodi noto'g'ri yoki bekor qilingan: " + inviteCode));
 
-        // CLAN va HOUSEHOLD aniqlash (registratsiyadagi mantiq bilan bir xil)
+        // GROUP va HOUSEHOLD aniqlash (registratsiyadagi mantiq bilan bir xil)
         Scope clan;
         Scope household;
-        if (target.getType() == ScopeType.CLAN) {
+        if (target.getType() == ScopeType.GROUP) {
             clan = target;
             household = scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
                     clan.getId(), ScopeType.HOUSEHOLD)
@@ -221,12 +221,12 @@ public class MembershipService {
         } else if (target.getType() == ScopeType.HOUSEHOLD) {
             household = target;
             clan = target.getParentScope();
-            if (clan == null || clan.getType() != ScopeType.CLAN) {
+            if (clan == null || clan.getType() != ScopeType.GROUP) {
                 throw new BadRequestException("Xonadon tegishli urug'ga ulanmagan");
             }
         } else {
             throw new BadRequestException(
-                    "Bu kod orqali qo'shilish faqat CLAN/HOUSEHOLD uchun mumkin");
+                    "Bu kod orqali qo'shilish faqat GROUP/HOUSEHOLD uchun mumkin");
         }
 
         // Mavjud auto-yaratilgan clan'ni arxivlash (agar so'ralgan bo'lsa)
@@ -234,7 +234,7 @@ public class MembershipService {
             archiveUserEmptyOldClan(user);
         }
 
-        // CLAN'ga MEMBER bo'lib qo'shish
+        // GROUP'ga MEMBER bo'lib qo'shish
         ensureMembership(clan, user, ScopeRole.MEMBER);
         // HOUSEHOLD'ga MEMBER bo'lib qo'shish va asosiy ScopeMembership'ni saqlash
         ScopeMembership newHouseholdMembership = ensureMembership(household, user, ScopeRole.MEMBER);
@@ -316,10 +316,10 @@ public class MembershipService {
         Scope oldHousehold = user.getPrimaryScope();
         if (oldHousehold == null) return;
 
-        Scope oldClan = oldHousehold.getType() == ScopeType.CLAN
+        Scope oldClan = oldHousehold.getType() == ScopeType.GROUP
                 ? oldHousehold
                 : oldHousehold.getParentScope();
-        if (oldClan == null || oldClan.getType() != ScopeType.CLAN) return;
+        if (oldClan == null || oldClan.getType() != ScopeType.GROUP) return;
 
         long otherMembers = membershipRepository
                 .findByScopeIdAndStatus(oldClan.getId(), MembershipStatus.ACTIVE).stream()
@@ -336,7 +336,7 @@ public class MembershipService {
         // Scope'larni inactive qilamiz (data o'chmaydi, faqat ko'rinmaydi)
         oldClan.setIsActive(false);
         scopeRepository.save(oldClan);
-        if (oldHousehold.getType() != ScopeType.CLAN) {
+        if (oldHousehold.getType() != ScopeType.GROUP) {
             oldHousehold.setIsActive(false);
             scopeRepository.save(oldHousehold);
         }

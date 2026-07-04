@@ -13,7 +13,7 @@ import uz.familyfinance.api.util.HouseholdCodeGenerator;
 import uz.familyfinance.api.util.InviteCodeGenerator;
 
 /**
- * Mavjud CLAN (urug') ostida yangi HOUSEHOLD (xonadon) scope yaratish uchun markazlashtirilgan servis.
+ * Mavjud GROUP (urug') ostida yangi HOUSEHOLD (xonadon) scope yaratish uchun markazlashtirilgan servis.
  *
  * <p>Har bir yangi oila (FamilyUnit/nikoh) o'zining alohida xonadon raqamiga ({@code displayCode})
  * ega bo'lishi uchun ishlatiladi — aks holda bir aktiv xonadonda yaratilgan barcha oilalar bir xil
@@ -30,10 +30,10 @@ public class HouseholdProvisioningService {
     private final ScopeMembershipService scopeMembershipService;
 
     /**
-     * Berilgan CLAN ostida yangi HOUSEHOLD scope yaratadi (unique invite kod + inson o'qiy
+     * Berilgan GROUP ostida yangi HOUSEHOLD scope yaratadi (unique invite kod + inson o'qiy
      * oladigan {@code displayCode} bilan) va egasini OWNER sifatida a'zo qiladi.
      *
-     * @param clan  ota CLAN scope (null bo'lsa parent'siz — eski/g'ayrioddiy holat)
+     * @param clan  ota GROUP scope (null bo'lsa parent'siz — eski/g'ayrioddiy holat)
      * @param name  xonadon nomi (UI'da ko'rsatish uchun)
      * @param owner xonadon egasi (OWNER membership oladi)
      * @return saqlangan HOUSEHOLD scope

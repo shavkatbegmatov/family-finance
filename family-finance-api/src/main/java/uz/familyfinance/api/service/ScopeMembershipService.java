@@ -85,7 +85,7 @@ public class ScopeMembershipService {
     }
 
     /**
-     * User'ni HOUSEHOLD va uning parent CLAN'iga bir xil rol bilan a'zo qiladi.
+     * User'ni HOUSEHOLD va uning parent GROUP'iga bir xil rol bilan a'zo qiladi.
      * Xonadon a'zosiga login berishda ham, eski login'larni tuzatishda ham ishlatiladi (DRY).
      *
      * @param household HOUSEHOLD scope; {@code null} bo'lsa no-op
@@ -95,7 +95,7 @@ public class ScopeMembershipService {
         if (household == null) {
             return;
         }
-        // Avval parent CLAN (genealogiya/ko'rinish), keyin HOUSEHOLD (byudjet) — ikkalasi bir xil rol
+        // Avval parent GROUP (genealogiya/ko'rinish), keyin HOUSEHOLD (byudjet) — ikkalasi bir xil rol
         addMembershipIfAbsent(household.getParentScope(), user, role);
         addMembershipIfAbsent(household, user, role);
     }

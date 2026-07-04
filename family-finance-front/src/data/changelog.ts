@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.11.0',
+        date: '2026-07-02 01:00',
+        title: "\"Urug'\" endi \"Guruh\" — shajara va moliya ajratildi",
+        features: [
+            "\"Urug'\" tushunchasi \"Guruh\"ga aylandi: guruh endi majburiy emas — bir nechta xonadon moliyasini birgalikda ko'rish uchun ixtiyoriy birlashma. Qarindoshlik (shajara) esa guruhga bog'liq emas — u oila daraxtining o'zidan aniqlanadi.",
+            "Yangi ro'yxatdan o'tgan foydalanuvchi endi to'g'ridan-to'g'ri mustaqil xonadon oladi (avval avtomatik \"urug'\" ham yaratilardi). Xohlasangiz keyin guruh ochib, boshqa xonadonlar bilan birlashasiz.",
+            "Shajaraga yangi oila yoki a'zo qo'shilganda avtomatik xonadon yaratilmaydi — byudjet-xonadon faqat kerak bo'lganda alohida ochiladi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.10.0',
         date: '2026-06-29 21:00',
         title: "Super admin platforma paneli",

@@ -7,7 +7,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import type { Scope, ScopeType } from '../../types/scope.types';
 
 const SCOPE_TYPE_LABEL: Record<ScopeType, string> = {
-  CLAN: "Urug'",
+  GROUP: 'Guruh',
   HOUSEHOLD: 'Xonadon',
   PROJECT: 'Loyiha',
   EVENT: 'Tadbir',
@@ -17,7 +17,7 @@ const SCOPE_TYPE_LABEL: Record<ScopeType, string> = {
 };
 
 const SCOPE_TYPE_TONE: Record<ScopeType, string> = {
-  CLAN: 'badge-primary',
+  GROUP: 'badge-primary',
   HOUSEHOLD: 'badge-secondary',
   PROJECT: 'badge-accent',
   EVENT: 'badge-info',
@@ -50,7 +50,7 @@ export function AdminFamiliesPage() {
     );
   }, [data, search]);
 
-  const clanCount = useMemo(() => (data ?? []).filter((s) => s.type === 'CLAN').length, [data]);
+  const groupCount = useMemo(() => (data ?? []).filter((s) => s.type === 'GROUP').length, [data]);
   const householdCount = useMemo(
     () => (data ?? []).filter((s) => s.type === 'HOUSEHOLD').length,
     [data],
@@ -60,12 +60,12 @@ export function AdminFamiliesPage() {
     <div className="space-y-4 lg:space-y-6">
       <PageHeader
         title="Oilalar"
-        subtitle="Platformadagi barcha urug' va xonadonlar (faqat ko'rish)"
+        subtitle="Platformadagi barcha guruh va xonadonlar (faqat ko'rish)"
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Jami scope" value={(data ?? []).length} />
-        <StatCard label="Urug'lar" value={clanCount} />
+        <StatCard label="Guruhlar" value={groupCount} />
         <StatCard label="Xonadonlar" value={householdCount} />
       </div>
 
