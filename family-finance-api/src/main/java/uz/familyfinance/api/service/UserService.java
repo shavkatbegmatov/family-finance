@@ -24,9 +24,9 @@ import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.FamilyUnitRepository;
 import uz.familyfinance.api.repository.PointParticipantRepository;
 import uz.familyfinance.api.repository.RoleRepository;
-import uz.familyfinance.api.repository.ScopeRepository;
 import uz.familyfinance.api.repository.UserRepository;
 import uz.familyfinance.api.entity.PointParticipant;
 import uz.familyfinance.api.util.PasswordPolicy;
@@ -55,8 +55,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final FamilyUnitRepository familyUnitRepository;
     private final PointParticipantRepository pointParticipantRepository;
-    private final ScopeRepository scopeRepository;
     private final ScopeContextService scopeContext;
     private final ScopeMembershipService scopeMembershipService;
     private final PasswordEncoder passwordEncoder;
@@ -232,27 +232,15 @@ public class UserService {
     }
 
     /**
-     * Oila a'zosiga mos HOUSEHOLD scope'ni topadi. Member scope'i HOUSEHOLD bo'lsa — o'zi;
-     * GROUP bo'lsa — uning birinchi faol HOUSEHOLD'i. Member scope'i bo'lmasa — login ochayotgan
-     * adminning aktiv xonadoniga fallback (xuddi shu xonadon a'zosiga login berilmoqda).
+     * Oila a'zosiga mos HOUSEHOLD scope'ni topadi (ADR-001 F4: a'zoning xonadoni FamilyUnit.scope
+     * ko'prigidan — a'zo partner bo'lgan nikoh birligining byudjet-xonadoni). Topilmasa — login
+     * ochayotgan adminning aktiv xonadoniga fallback (xuddi shu xonadon a'zosiga login berilmoqda).
      */
     private Scope resolveHouseholdScope(FamilyMember member) {
-        Scope scope = member.getScope();
-        if (scope == null) {
-            scope = scopeContext.getActiveHousehold().orElse(null);
-        }
-        if (scope == null) {
-            return null;
-        }
-        if (scope.getType() == ScopeType.HOUSEHOLD) {
-            return scope;
-        }
-        if (scope.getType() == ScopeType.GROUP) {
-            return scopeRepository
-                    .findFirstByParentScopeIdAndTypeAndIsActiveTrue(scope.getId(), ScopeType.HOUSEHOLD)
-                    .orElse(null);
-        }
-        return null;
+        return familyUnitRepository
+                .findScopesByPartnerIdAndType(member.getId(), ScopeType.HOUSEHOLD)
+                .stream().findFirst()
+                .orElseGet(() -> scopeContext.getActiveHousehold().orElse(null));
     }
 
     /**

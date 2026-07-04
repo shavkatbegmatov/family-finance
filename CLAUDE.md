@@ -43,9 +43,10 @@ npm run lint      # ESLint
 
 1. **Financial data is scope-aware.** Moliyaviy entity'lar (Account, Budget, Debt, SavingsGoal)
    **`scope_id` (NOT NULL)** bilan yuradi va so'rovlar scope orqali chegaralanadi. Genealogiya
-   (FamilyMember, FamilyUnit) esa ADR-001 bo'yicha ajratilgan: ularning `scope_id`si **nullable
-   ixtiyoriy ko'prik** (avtomatik to'ldirilmaydi); genealogik izolyatsiya `family_group_id`
-   (tenant marker) orqali. Moliyaviy so'rovlarni `family_group_id` bilan qilmang.
+   ADR-001 bo'yicha ajratilgan: `FamilyMember`da `scope_id` **YO'Q** (V54 DROP — a'zoning
+   xonadoni `FamilyUnit.scope` ixtiyoriy ko'prigidan, `FamilyUnitRepository.
+   findScopesByPartnerIdAndType`); genealogik izolyatsiya `family_group_id` (tenant marker)
+   orqali. Moliyaviy so'rovlarni `family_group_id` bilan qilmang.
 2. **All scoping goes through `ScopeContextService`** — resolve active scope (JWT
    `activeScopeId` → `User.primaryScope` → first ACTIVE membership) and `getVisibleScopeIds()`.
    `FamilyGroup` still exists only as a legacy bridge (`Scope.legacyFamilyGroup`).

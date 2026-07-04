@@ -4,6 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import uz.familyfinance.api.entity.FamilyUnit;
+import uz.familyfinance.api.entity.Scope;
+import uz.familyfinance.api.enums.ScopeType;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,4 +48,14 @@ public interface FamilyUnitRepository extends JpaRepository<FamilyUnit, Long> {
            "LEFT JOIN FETCH fu.children c LEFT JOIN FETCH c.person " +
            "WHERE fu.scope.id = :scopeId")
     List<FamilyUnit> findByScopeIdWithRelations(@Param("scopeId") Long scopeId);
+
+    /**
+     * Shaxs partner bo'lgan nikoh birliklarining byudjet-xonadonlari (ADR-001 F4).
+     * FamilyMember.scope o'chirilgach "a'zoning xonadoni" YAGONA manbadan — FamilyUnit.scope
+     * ko'prigidan aniqlanadi (shaxs emas, oila xonadonga bog'lanadi).
+     */
+    @Query("SELECT fu.scope FROM FamilyUnit fu JOIN fu.partners p " +
+           "WHERE p.person.id = :personId AND fu.scope IS NOT NULL AND fu.scope.type = :type " +
+           "ORDER BY fu.id")
+    List<Scope> findScopesByPartnerIdAndType(@Param("personId") Long personId, @Param("type") ScopeType type);
 }

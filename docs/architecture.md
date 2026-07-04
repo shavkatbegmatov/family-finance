@@ -52,7 +52,7 @@ deliberate bridge, not the target state. New code should use scopes directly.
 | Entity | scope_id |
 |--------|----------|
 | `Account`, `Budget`, `Debt`, `SavingsGoal` | NOT NULL (V35 add → V36 backfill → V39 not-null) |
-| `FamilyMember` | **nullable** (ADR-001: genealogiya scope'ni bilmaydi; `family_group_id` = genealogik tenant) |
+| `FamilyMember` | **YO'Q** (V54 DROP — ADR-001 F4: a'zoning xonadoni `FamilyUnit.scope` ko'prigidan; `family_group_id` = genealogik tenant) |
 | `FamilyUnit` | **nullable** ko'prik + `display_code` (V40 add → V41 backfill; ADR-001: avtomatik to'ldirilmaydi) |
 | `Category` | global (no scope) |
 | `Point*` | resolved via legacy bridge during transition |
