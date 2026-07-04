@@ -37,7 +37,7 @@
     "react-hot-toast": "^2.4.1",
     "react-i18next": "^17.0.8",
     "react-router-dom": "^7.18.0",
-    "recharts": "^3.8.1",
+    "recharts": "^3.9.2",
     "relatives-tree": "^3.2.2",
     "sockjs-client": "^1.6.1",
     "three": "^0.184.0",
