@@ -30,6 +30,7 @@ import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.FamilyGroupRepository;
 import uz.familyfinance.api.repository.FamilyMemberRepository;
+import uz.familyfinance.api.repository.FamilyUnitRepository;
 import uz.familyfinance.api.repository.RoleRepository;
 import uz.familyfinance.api.repository.ScopeMembershipRepository;
 import uz.familyfinance.api.repository.ScopeRepository;
@@ -53,6 +54,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final FamilyUnitRepository familyUnitRepository;
     private final FamilyGroupRepository familyGroupRepository;
     private final ScopeRepository scopeRepository;
     private final ScopeMembershipRepository scopeMembershipRepository;
@@ -211,7 +213,6 @@ public class AuthService {
                     .role(FamilyRole.OTHER)
                     .user(user)
                     .familyGroup(familyGroup)
-                    .scope(household)
                     .build();
             familyMemberRepository.save(familyMember);
         }
@@ -241,14 +242,18 @@ public class AuthService {
             return;
         }
 
-        // Oila a'zosiga bog'langan user — uning aktiv scope'i HAR DOIM o'sha a'zo xonadoni
-        // bilan mos bo'lishi kerak. Bu, jumladan, eski bug tufayli (admin login ochganda
-        // primaryScope o'rnatilmagani sabab) noto'g'ri/bo'sh urug'ga tushib qolgan login'larni
-        // keyingi kirishda avtomatik tuzatadi (self-heal) — migratsiyasiz.
+        // Oila a'zosiga bog'langan user — uning aktiv scope'i o'sha a'zo OILASI xonadoni
+        // bilan mos bo'lishi kerak. A'zoning xonadoni ADR-001 F4'dan beri FamilyUnit.scope
+        // ko'prigidan aniqlanadi (FamilyMember.scope o'chirilgan). Eski bug tufayli
+        // noto'g'ri/bo'sh guruhga tushib qolgan login'larni keyingi kirishda avtomatik
+        // tuzatadi (self-heal) — migratsiyasiz.
         FamilyMember linkedMember = familyMemberRepository.findByUserId(user.getId()).orElse(null);
-        if (linkedMember != null && linkedMember.getScope() != null) {
-            reconcileUserScopeWithMember(user, linkedMember);
-            return;
+        if (linkedMember != null) {
+            Scope memberHousehold = findMemberHouseholdScope(linkedMember.getId());
+            if (memberHousehold != null) {
+                reconcileUserScopeWithMember(user, linkedMember, memberHousehold);
+                return;
+            }
         }
 
         if (user.getFamilyGroup() != null && user.getPrimaryScope() != null) {
@@ -270,20 +275,19 @@ public class AuthService {
     }
 
     /**
+     * A'zo partner bo'lgan nikoh birliklarining birinchi byudjet-xonadoni (FamilyUnit.scope
+     * ko'prigi orqali) yoki {@code null}. ADR-001 F4: "a'zoning xonadoni"ning yagona manbasi.
+     */
+    private Scope findMemberHouseholdScope(Long memberId) {
+        return familyUnitRepository.findScopesByPartnerIdAndType(memberId, ScopeType.HOUSEHOLD)
+                .stream().findFirst().orElse(null);
+    }
+
+    /**
      * User'ning scope/familyGroup'ini bog'langan oila a'zosi xonadoniga moslaydi va kerakli
      * membership'larni ta'minlaydi. Mos bo'lsa — hech narsa o'zgartirmaydi (no-op).
      */
-    private void reconcileUserScopeWithMember(User user, FamilyMember member) {
-        Scope memberScope = member.getScope();
-        Scope household = (memberScope.getType() == ScopeType.HOUSEHOLD)
-                ? memberScope
-                : scopeRepository
-                        .findFirstByParentScopeIdAndTypeAndIsActiveTrue(memberScope.getId(), ScopeType.HOUSEHOLD)
-                        .orElse(null);
-        if (household == null) {
-            return; // xonadon topilmadi — xavfsizlik uchun tegmaymiz
-        }
-
+    private void reconcileUserScopeWithMember(User user, FamilyMember member, Scope household) {
         // Membership'lar (HOUSEHOLD + parent GROUP). Mavjud ACTIVE rol (masalan OWNER) saqlanadi.
         scopeMembershipService.attachToHousehold(household, user, ScopeRole.MEMBER);
 
@@ -359,7 +363,6 @@ public class AuthService {
                     .role(FamilyRole.OTHER)
                     .user(user)
                     .familyGroup(familyGroup)
-                    .scope(household)
                     .build();
             familyMemberRepository.save(familyMember);
         } else {

@@ -87,16 +87,6 @@ public class FamilyMember extends BaseEntity implements Auditable {
     private FamilyGroup familyGroup;
 
     /**
-     * IXTIYORIY moliyaviy ko'prik — bu shaxs qaysi byudjet-xonadonga (HOUSEHOLD scope)
-     * biriktirilgan. ADR-001 decoupling: genealogiya moliyani bilmaydi, shuning uchun bu
-     * avtomatik TO'LDIRILMAYDI (NULL bo'lishi normal). Izolyatsiya {@link #familyGroup}
-     * (genealogik tenant) orqali, scope orqali emas. {@code scope_id} nullable (V39 istisno).
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scope_id")
-    private Scope scope;
-
-    /**
      * To'liq ismni hisoblash: "Familiya Ism Otasining ismi" formatida.
      * getFullName() ham shu methodga yo'naltiradi — orqaga qarab moslik uchun.
      */

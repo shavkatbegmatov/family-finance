@@ -1,6 +1,6 @@
 # ADR-001: Genealogiya ↔ Moliya decoupling
 
-> **Status:** Qabul qilingan (Accepted) — Faza 1-3 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
+> **Status:** Qabul qilingan (Accepted) — Faza 1-4 bajarildi · **Sana:** 2026-06-30 · **Aloqador:** `docs/architecture.md`,
 > `docs/multi-scope-plan-original.txt`
 
 ## 1. Kontekst
@@ -192,10 +192,15 @@ Foydalanuvchi tanlovi: to'liq rebrand (enum + DB migration) + auto-provisioning 
 emas), `archiveOldClan` API param (JSON kontrakt), `changelog.ts` (tarixiy yozuvlar).
 **Qoldi:** `archiveOldClan` param nomi (internal, keyingi tozalash).
 
-### Faza 4 — Genealogiyadan `scope`ni butunlay olib tashlash (`V51`)
-- Faza 1-3 prod'da barqaror bo'lgach: `family_members.scope_id` ustuni `DROP`.
-- `FamilyMember.scope` maydoni entity'dan olib tashlanadi.
-- `FamilyUnit.scope` — saqlanadi (ixtiyoriy ko'prik), lekin majburiy emasligini tasdiqlash.
+### Faza 4 — Genealogiyadan `scope`ni butunlay olib tashlash (`V54`) ✅ BAJARILDI
+- ✅ `V54`: `family_members.scope_id` ustuni + `idx_family_members_scope` DROP.
+- ✅ `FamilyMember.scope` maydoni entity'dan olib tashlandi.
+- ✅ **"A'zoning xonadoni"ning yagona manbasi endi `FamilyUnit.scope` ko'prigi** — shaxs emas,
+  OILA (nikoh birligi) xonadonga bog'lanadi. O'qish joylari ko'chirildi:
+  `FamilyUnitRepository.findScopesByPartnerIdAndType` (yangi query) → `AuthService` self-heal
+  (`reconcileUserScopeWithMember`) va `UserService.resolveHouseholdScope`. Yozish joylari
+  (`joinExistingScopeByCode`, `provisionScopeAndFamilyGroup` FamilyMember builder'lari) tozalandi.
+- ✅ `FamilyUnit.scope` saqlanadi (ixtiyoriy ko'prik) — tasdiqlab qolindi.
 
 ### Faza 5 — Legacy cleanup (alohida, allaqachon rejada)
 - `Scope.legacyFamilyGroup` va `FamilyGroup` ko'prigini yo'q qilish.
