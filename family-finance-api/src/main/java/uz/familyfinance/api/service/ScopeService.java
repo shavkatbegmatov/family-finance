@@ -218,6 +218,78 @@ public class ScopeService {
     }
 
     // ====================================================================
+    // Parent (Group) boshqaruvi — ADR-001 decoupling UX
+    // ====================================================================
+
+    /**
+     * Xonadonni guruhga biriktirish yoki guruhdan uzish (parentScopeId = null).
+     *
+     * <p>Ruxsat qoidalari:</p>
+     * <ul>
+     *   <li><b>Biriktirish:</b> xonadonda OWNER/ADMIN + guruhda yozish huquqi
+     *       (kamida MEMBER a'zolik) — guruhga a'zo bo'lmagan odam xonadonini unga ulay olmaydi.</li>
+     *   <li><b>Uzish:</b> xonadonda OWNER/ADMIN <i>yoki</i> guruhda OWNER/ADMIN
+     *       (guruh egasi begona xonadonni chiqarib yubora oladi).</li>
+     * </ul>
+     *
+     * <p>Ko'chirish (guruhdan guruhga) to'g'ridan-to'g'ri qo'llanmaydi — avval uzish,
+     * keyin biriktirish (ikkala tomonning ruxsat tekshiruvi aniq bo'lishi uchun).</p>
+     */
+    @Transactional
+    public ScopeResponse setHouseholdParent(Long householdId, Long parentScopeId) {
+        Scope household = findScopeOrThrow(householdId);
+        if (household.getType() != ScopeType.HOUSEHOLD) {
+            throw new BadRequestException("Faqat xonadonni guruhga biriktirish/uzish mumkin");
+        }
+
+        if (parentScopeId == null) {
+            detachFromGroup(household);
+        } else {
+            attachToGroup(household, parentScopeId);
+        }
+
+        scopeRepository.save(household);
+        return ScopeResponse.from(household);
+    }
+
+    private void attachToGroup(Scope household, Long groupId) {
+        if (!scopeContext.canManageScope(household.getId())) {
+            throw new AccessDeniedException("Xonadonni biriktirish uchun unda OWNER/ADMIN bo'lishingiz kerak");
+        }
+        if (household.getParentScope() != null) {
+            throw new BadRequestException(
+                    "Xonadon allaqachon guruhga biriktirilgan — avval joriy guruhdan chiqaring");
+        }
+        Scope group = findScopeOrThrow(groupId);
+        if (group.getType() != ScopeType.GROUP || !Boolean.TRUE.equals(group.getIsActive())) {
+            throw new BadRequestException("Biriktirish faqat faol GROUP scope'ga mumkin");
+        }
+        if (!scopeContext.canWriteToScope(groupId)) {
+            throw new AccessDeniedException(
+                    "Guruhga biriktirish uchun unda kamida a'zo (MEMBER) bo'lishingiz kerak");
+        }
+        household.setParentScope(group);
+        log.info("Household {} attached to group {} by user {}",
+                household.getId(), groupId, scopeContext.getCurrentUserId());
+    }
+
+    private void detachFromGroup(Scope household) {
+        Scope currentGroup = household.getParentScope();
+        if (currentGroup == null) {
+            throw new BadRequestException("Xonadon hech qanday guruhga biriktirilmagan");
+        }
+        boolean canManageHousehold = scopeContext.canManageScope(household.getId());
+        boolean canManageGroup = scopeContext.canManageScope(currentGroup.getId());
+        if (!canManageHousehold && !canManageGroup) {
+            throw new AccessDeniedException(
+                    "Guruhdan chiqarish uchun xonadonda yoki guruhda OWNER/ADMIN bo'lishingiz kerak");
+        }
+        household.setParentScope(null);
+        log.info("Household {} detached from group {} by user {}",
+                household.getId(), currentGroup.getId(), scopeContext.getCurrentUserId());
+    }
+
+    // ====================================================================
     // Lifecycle
     // ====================================================================
 

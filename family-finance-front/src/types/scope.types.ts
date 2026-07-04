@@ -32,6 +32,8 @@ export interface Scope {
   ownerUserId?: number;
   ownerUserName?: string;
   uniqueCode?: string;
+  /** Inson o'qiy oladigan xonadon raqami (faqat HOUSEHOLD, masalan "278-541"). */
+  displayCode?: string;
   metadata?: Record<string, unknown>;
   startsAt?: string;
   endsAt?: string;

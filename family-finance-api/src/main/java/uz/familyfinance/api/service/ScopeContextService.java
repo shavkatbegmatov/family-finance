@@ -171,13 +171,19 @@ public class ScopeContextService {
     }
 
     private Optional<FamilyGroup> resolveFamilyGroup(Scope scope) {
-        Scope clanScope = (scope.getType() == ScopeType.GROUP)
+        // Avval scope o'zining legacy mapping'i — root HOUSEHOLD (parent'siz, 3C provisioning)
+        // ham o'z legacyFamilyGroup'iga ega; ilgari faqat parent orqali qidirilib, root
+        // xonadonlarda Points/legacy xizmatlar ishlamay qolardi.
+        if (scope.getLegacyFamilyGroup() != null) {
+            return Optional.of(scope.getLegacyFamilyGroup());
+        }
+        Scope groupScope = (scope.getType() == ScopeType.GROUP)
                 ? scope
                 : scope.getParentScope();
-        if (clanScope == null) {
+        if (groupScope == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(clanScope.getLegacyFamilyGroup());
+        return Optional.ofNullable(groupScope.getLegacyFamilyGroup());
     }
 
     /**

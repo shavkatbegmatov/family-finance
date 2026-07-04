@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.12.0',
+        date: '2026-07-04 12:00',
+        title: "Guruh va xonadonlar boshqaruvi",
+        features: [
+            "Yangi \"Guruh va xonadonlar\" sahifasi: guruh ochish, mustaqil xonadonni guruhga biriktirish va guruhdan chiqarish endi bir joyda. Kirish — yuqoridagi scope tanlagich ostidagi \"Guruh va xonadonlarni boshqarish\" havolasi orqali.",
+            "Xonadoningizni guruhga biriktirsangiz, xonadon a'zolari guruh darajasidagi umumiy moliyani ko'ra oladi; istalgan payt guruhdan chiqib mustaqil bo'lish mumkin. Biriktirish uchun guruhga a'zo bo'lish talab qilinadi.",
+        ],
+        fixes: [
+            "Guruhsiz (mustaqil) xonadonlarda Ballar tizimi ishlamay qolishi tuzatildi.",
+        ],
+    },
+    {
         version: '1.11.0',
         date: '2026-07-02 01:00',
         title: "\"Urug'\" endi \"Guruh\" — shajara va moliya ajratildi",
