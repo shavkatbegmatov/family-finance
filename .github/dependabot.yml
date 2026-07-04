@@ -23,6 +23,22 @@ updates:
       # TS 6 major: typescript-eslint peer talabi <6.0.0 — ekotizim qo'llagach olib tashlansin
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # Framework-darajali major migratsiyalar — ataylab, alohida loyiha sifatida qilinadi:
+      # Tailwind 4 (config formati + daisyUI mosligi + vizual regressiya)
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      # React 19 (react+react-dom+types birga, ref/JSX o'zgarishlari)
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
+      # @types/node runtime'ga mos bo'lishi kerak (CI Node 24) — major'ni qo'lda boshqaramiz
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
