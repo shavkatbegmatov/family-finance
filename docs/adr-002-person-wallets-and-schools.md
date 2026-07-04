@@ -1,0 +1,104 @@
+# ADR-002: Shaxsiy hamyonlar, maktablar va moliya tamoyillari
+
+> **Status:** Qabul qilingan (Accepted) — barcha qarorlar mahsulot egasi bilan tasdiqlangan
+> (2026-07-05) · **Asos:** [`adr-001`](./adr-001-genealogy-finance-decoupling.md) (genealogiya↔moliya
+> decoupling) · **Holat:** hujjat — implementatsiya P1'dan boshlanadi.
+
+## 1. Kontekst
+
+ADR-001 genealogiya (graf) va moliyani (daraxt) ajratdi, lekin ikkita savolni ochiq qoldirdi:
+Points tizimi kimga tegishli (u hali `family_group`ga bog'langan — 14 entity) va `FamilyGroup`ning
+yakuniy taqdiri. Mahsulot egasi vizionni aniqlashtirdi:
+
+1. **Ball — xonadon farzandiga** qo'yiladi (shaxsga, oila kontekstida).
+2. **Maktablar**: keyinchalik platformada "maktab" ochiladi → ichida guruhlar (sinflar) →
+   farzandlar yozilib, u yerda ham ball oladi.
+3. **Har user — kamida bitta xonadon a'zosi** (avtomatik).
+4. **Moliya shaxsga bog'lanadi**; umumiy hisoblar **faqat xonadon darajasida**.
+
+## 2. Qarorlar
+
+### Q1 — Hamyonlar: har (shaxs, kontekst) jufti uchun ALOHIDA balans
+
+`Hamyon = (FamilyMember, kontekst-Scope)`. Uy hamyoni (kontekst=HOUSEHOLD) pulga
+konvertatsiya qilinishi MUMKIN (ota-ona tasdig'i bilan); sinf hamyoni (kontekst=CLASS) —
+FAQAT obro'/reyting/maktab-ichki mukofotlar, pulga konvertatsiya YO'Q.
+
+**Nega:** balanslar aralashsa, maktabda qo'yilgan ball uyda pulga aylanadi — o'qituvchi
+bevosita "pul chiqaruvchi"ga aylanadi (iqtisodiy teshik + suiiste'mol yo'li). Valyutalar
+hech qachon kesishmaydi.
+
+### Q2 — PROJECT/EVENT/FUND scope turlari bekor qilinadi
+
+To'y/hashar/fond kabi ko'p-xonadonli yig'inlar: **tashkilotchi xonadonidagi `SavingsGoal`**
+(maqsad) + boshqa xonadonlardan **hissa-transferlar** (kim qancha qo'shgani ko'rinadi, egalik
+aniq). TRUSTEE/PROPERTY ham keyinga — hozircha yaratish bloklanadi.
+
+**Nega:** bu turlar uchun UI hech qachon qurilmagan (CreateScopeWizard yo'q); ularda hisob
+ochish "umumiy hisob faqat xonadonda" qoidasiga zid; scope daraxti soddalashadi:
+`HOUSEHOLD`, `GROUP`, (keyin `SCHOOL`/`CLASS`).
+
+### Q3 — PERSONAL hisoblar faqat egasiga ko'rinadi
+
+Hozirgi xulq saqlanadi va qotiriladi: xonadon hisobotlariga faqat umumiy (`FAMILY`)
+hisoblar kiradi. Kattalar moliyaviy erkinligi — default.
+
+## 3. Target model
+
+```
+SHAXS (FamilyMember — login IXTIYORIY, bola akkauntsiz bo'lishi normal)
+  ├── shaxsiy hisoblar (Account.owner=FamilyMember, AccountScope.PERSONAL)
+  ├── xonadon a'zoligi → umumiy hisoblar (AccountScope.FAMILY, homeScope=HOUSEHOLD)
+  └── HAMYONLAR (ball):
+        ├── uy hamyoni   (kontekst = o'z xonadoni)  → konvertatsiya ✓ (ota tasdig'i)
+        └── sinf hamyoni (kontekst = CLASS)          → konvertatsiya ✗ (reyting/mukofot)
+
+SCOPE daraxti:
+  HOUSEHOLD (root bo'la oladi)  ← hisoblar FAQAT shu yerda (+ SYSTEM_TRANSIT global)
+  GROUP (ixtiyoriy)             ← faqat ko'rish/birlashtirish, hisobsiz
+  SCHOOL (root, tekshiruvli) → CLASS  ← ball konteksti, moliya YO'Q
+```
+
+## 4. Aniqlangan xavflar va yechimlari
+
+| # | Xavf | Yechim |
+|---|------|--------|
+| K1 | Uy↔maktab ballari aralashuvi (o'qituvchi = pul chiqaruvchi) | Q1: alohida hamyonlar, konvertatsiya faqat uy kontekstida |
+| K2 | Bola ko'pincha loginsiz — `ScopeMembership` (user-based) yetmaydi | Sinfga yozilish = yangi `Enrollment` (FamilyMember ↔ CLASS); ball shaxsga, userga emas. `PointParticipant` allaqachon shu naqshda (familyMember FK + nickname) |
+| K3 | Maktab tenant chegarasini kesadi: begona oilalar bolalari bir ro'yxatda | Ota-ona roziligi (consent) yozilishda; sinf ichida **nickname-first** ko'rsatish; "maktab ochish" tekshiruvli (platforma admin tasdig'i) — aks holda bolalar ro'yxatini yig'ish vektori |
+| K4 | "Umumiy hisob faqat xonadonda" to'y/hasharni yo'qotadi | Q2: SavingsGoal + hissa-transferlar naqshi |
+
+## 5. Hozirgi kod mosligi (2026-07-05 o'lchovi)
+
+| Tamoyil | Fakt | Moslik |
+|---------|------|--------|
+| User → avto-xonadon | ADR-001 F3C: root HOUSEHOLD provisioning | ✅ 100% |
+| Moliya shaxsga | `Account.owner` = FamilyMember; `AccountScope` PERSONAL/FAMILY; `homeScope` | 🟡 ~80% — GROUP-level hisob ochish hali mumkin; legacy `Account.familyGroup` yozilmoqda (`AccountService`) |
+| Ball → shaxsga | `PointParticipant`: `familyMember` FK (nullable — loginsiz bola!) + nickname/avatar + `scope` (HOUSEHOLD, NOT NULL) | 🟡 ~70% — model tayyor; 14 entity'dagi `family_group` kaliti ortiqcha; hamyon-kontekst ajratish yo'q |
+| Maktablar | Yo'q; `Scope`+membership mashinasi generik | 🔴 0% (poydevor mos) |
+
+## 6. Bosqichlar
+
+- **P1 — Points → (shaxs, kontekst)**: 14 Point* entity'dan `family_group` kalitini chiqarish,
+  `(participant, scope)` kalitiga o'tish; "hamyon" tushunchasi (balans per kontekst);
+  konvertatsiya faqat HOUSEHOLD kontekstida — DB/servis darajasida qotiriladi. Eng katta
+  bosqich (12 repo, 8+ servis, backfill migratsiyalar, Points UI moslash), lekin
+  `PointParticipant.scope` NOT NULL bo'lgani uchun backfill deterministik.
+- **P2 — Moliya qoidasini qotirish**: hisob ochish faqat HOUSEHOLD scope'da (servis tekshiruvi
+  + DB CHECK); `Account.familyGroup` legacy FK DROP; PERSONAL-faqat-egasiga invariantini
+  hisobot query'larida tekshirib mustahkamlash.
+- **P3 — Scope soddalashuvi**: PROJECT/EVENT/FUND/TRUSTEE/PROPERTY yaratishni bloklash
+  (enum qoladi — mavjud ma'lumot bo'lsa o'qiladi), UI'dan olib tashlash; shundan keyin
+  `family_group` faqat genealogiya+Points'dan ham chiqqan bo'ladi → `tree_id` rename arzon.
+- **P4 — Maktablar MVP**: `SCHOOL`/`CLASS` scope turlari; `Enrollment`
+  (FamilyMember↔CLASS, consent bilan); o'qituvchi/ma'mur rollari; sinf hamyoni; nickname-first
+  reyting; maktab ochish tasdiq oqimi.
+
+Har bosqich — alohida PR to'lqini, ADR-001 uslubida (CI → merge → deploy → smoke).
+
+## 7. Ochiq savollar (P4'gacha hal qilinadi)
+
+1. Maktabni tasdiqlash oqimi: faqat SUPER_ADMIN'mi yoki hujjat-asosli arizami?
+2. Sinf reytingida nickname majburiymi yoki ota-ona tanlovimi (consent darajalari)?
+3. Sinf hamyonidagi mukofotlar: maktab o'z "do'koni"ni yuritadimi (PointShop per SCHOOL)?
+4. Bola 18 yoshga to'lganda: hamyonlar va PERSONAL hisoblar o'z User akkauntiga qanday o'tadi?
