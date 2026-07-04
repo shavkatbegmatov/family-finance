@@ -183,11 +183,12 @@ public class AuthService {
                     "Ushbu kod orqali ro'yxatdan o'tish faqat GROUP/HOUSEHOLD uchun mumkin");
         }
 
-        // Genealogik tenant (legacy) — GROUP bor bo'lsa undan, aks holda root household'dan
-        FamilyGroup familyGroup = (clan != null ? clan : household).getLegacyFamilyGroup();
+        // Genealogik tenant — xonadon egasining familyGroup'i (ADR-001 F5: legacy FK yo'q)
+        User householdOwner = household.getOwnerUser();
+        FamilyGroup familyGroup = householdOwner != null ? householdOwner.getFamilyGroup() : null;
         if (familyGroup == null) {
             throw new IllegalStateException(
-                    "Tanlangan scope'ning eski oila guruhi yo'q — qo'lda fix talab etiladi");
+                    "Tanlangan xonadon egasining oila guruhi yo'q — qo'lda fix talab etiladi");
         }
 
         // 1) GROUP'ga MEMBER bo'lib qo'shish (faqat GROUP bor bo'lsa)
@@ -332,7 +333,6 @@ public class AuthService {
                 .ownerUser(user)
                 .uniqueCode(inviteCodeGenerator.generateForType(ScopeType.HOUSEHOLD))
                 .displayCode(householdCodeGenerator.generate())
-                .legacyFamilyGroup(familyGroup)
                 .isActive(true)
                 .build();
         household = scopeRepository.save(household);

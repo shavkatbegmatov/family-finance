@@ -106,9 +106,10 @@ public class PointConfigService {
     }
 
     /**
-     * Phase 2: JWT'dagi activeScopeId orqali aktiv scope'ga mos asl FamilyGroup ni
-     * qaytaradi. Bu mavjud 31+ chaqiruvchini qayta yozmasdan scope-aware bo'lish
-     * imkonini beradi (Strategy: scope.legacy_family_group_id mapping orqali).
+     * JWT'dagi activeScopeId orqali aktiv scope'ga mos genealogik tenant'ni (FamilyGroup)
+     * qaytaradi. Bu mavjud 31+ chaqiruvchini qayta yozmasdan scope-aware bo'lish imkonini
+     * beradi. ADR-001 F5: mapping legacy FK emas — scope EGASINING familyGroup'i orqali
+     * ({@code ScopeContextService.resolveFamilyGroup}).
      *
      * <p>Eski fallback: agar aktiv scope topilmasa (legacy token), User.familyGroup
      * dan o'qiladi — eski Phase 1 oldidagi xulq-atvor.</p>

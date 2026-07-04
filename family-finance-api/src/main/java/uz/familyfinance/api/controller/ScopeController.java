@@ -174,13 +174,15 @@ public class ScopeController {
 
     /**
      * Login qilingan user invite code orqali boshqa oilaga qo'shilishi.
-     * archiveOldClan=true bo'lsa, eski auto-yaratilgan bo'sh clan arxivlanadi.
+     * archiveOldGroup=true bo'lsa, eski auto-yaratilgan bo'sh guruh/xonadon arxivlanadi.
+     * (Eski klientlar — APK — uchun legacy "archiveOldClan" kaliti ham qabul qilinadi.)
      */
     @PostMapping("/join-by-code")
     public ResponseEntity<ApiResponse<MembershipResponse>> joinByCode(
             @RequestBody java.util.Map<String, Object> body) {
         String code = (String) body.get("inviteCode");
-        boolean archive = body.get("archiveOldClan") instanceof Boolean b ? b : false;
+        Object flag = body.getOrDefault("archiveOldGroup", body.get("archiveOldClan"));
+        boolean archive = flag instanceof Boolean b ? b : false;
         return ResponseEntity.ok(ApiResponse.success(
                 membershipService.joinByCode(code, archive)));
     }

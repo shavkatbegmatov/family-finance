@@ -49,7 +49,8 @@ npm run lint      # ESLint
    orqali. Moliyaviy so'rovlarni `family_group_id` bilan qilmang.
 2. **All scoping goes through `ScopeContextService`** — resolve active scope (JWT
    `activeScopeId` → `User.primaryScope` → first ACTIVE membership) and `getVisibleScopeIds()`.
-   `FamilyGroup` still exists only as a legacy bridge (`Scope.legacyFamilyGroup`).
+   `FamilyGroup` = sof genealogik tenant (ADR-001 F5: `Scope`da unga FK YO'Q — V55 DROP;
+   tenant `scope.ownerUser.familyGroup` orqali resolve qilinadi).
 3. **Auth is session-backed.** Every endpoint that issues a new access token must create/update
    a DB `Session` (token + refresh-token hashes, rotation) — otherwise `JwtAuthenticationFilter`
    returns 401 and the client enters a refresh loop (V44 fix).

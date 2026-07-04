@@ -126,11 +126,11 @@ export const scopesApi = {
 
   /**
    * Login qilingan user invite code orqali boshqa oilaga qo'shiladi.
-   * archiveOldClan=true bo'lsa, eski bo'sh clan arxivlanadi.
+   * archiveOldGroup=true bo'lsa, eski bo'sh guruh/xonadon arxivlanadi.
    */
-  joinByCode: (inviteCode: string, archiveOldClan: boolean = false) =>
+  joinByCode: (inviteCode: string, archiveOldGroup: boolean = false) =>
     axiosInstance.post<ApiResponse<Membership>>('/v1/scopes/join-by-code', {
       inviteCode,
-      archiveOldClan,
+      archiveOldGroup,
     }),
 };
