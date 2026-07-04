@@ -19,6 +19,10 @@ updates:
     labels: ["dependencies", "frontend"]
     commit-message:
       prefix: "deps(front)"
+    ignore:
+      # TS 6 major: typescript-eslint peer talabi <6.0.0 — ekotizim qo'llagach olib tashlansin
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
