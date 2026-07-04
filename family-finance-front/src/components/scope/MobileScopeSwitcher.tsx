@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Crown, Loader2, ShieldCheck, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, Crown, Loader2, Settings2, ShieldCheck, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useScopeStore } from '../../store/scopeStore';
 import type { Scope } from '../../types/scope.types';
@@ -98,6 +99,15 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
               <X className="h-4 w-4" />
             </button>
           </div>
+
+          <Link
+            to="/scopes"
+            onClick={() => setIsOpen(false)}
+            className="mx-2 mb-1 flex min-h-[2.75rem] items-center gap-2 rounded-xl bg-base-200/60 px-3 text-sm font-medium text-base-content/80 tap-sm"
+          >
+            <Settings2 className="h-4 w-4" />
+            Guruh va xonadonlarni boshqarish
+          </Link>
 
           <div
             className="min-h-0 flex-1 overflow-y-auto px-2"

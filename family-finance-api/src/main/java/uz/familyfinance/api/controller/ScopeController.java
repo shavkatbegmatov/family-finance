@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.MembershipInviteRequest;
 import uz.familyfinance.api.dto.request.ScopeCreateRequest;
 import uz.familyfinance.api.dto.request.ScopeRoleUpdateRequest;
+import uz.familyfinance.api.dto.request.SetScopeParentRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.FinancialOverviewResponse;
 import uz.familyfinance.api.dto.response.MembershipResponse;
@@ -72,6 +73,17 @@ public class ScopeController {
     public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
         scopeService.deactivate(id);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    /**
+     * Xonadonni guruhga biriktirish yoki uzish (ADR-001 decoupling UX).
+     * Body: {@code {parentScopeId: <groupId>}} — biriktirish; {@code {parentScopeId: null}} — uzish.
+     */
+    @PutMapping("/{id}/parent")
+    public ResponseEntity<ApiResponse<ScopeResponse>> setParent(
+            @PathVariable Long id, @RequestBody SetScopeParentRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                scopeService.setHouseholdParent(id, request.getParentScopeId())));
     }
 
     // ===== Invite codes =====

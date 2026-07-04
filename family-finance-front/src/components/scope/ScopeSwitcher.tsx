@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Crown, Loader2, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, Crown, Loader2, Settings2, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
@@ -174,6 +175,15 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
               Hech qanday scope'ga a'zo emassiz.
             </div>
           )}
+
+          <Link
+            to="/scopes"
+            onClick={() => setIsOpen(false)}
+            className="sticky bottom-0 flex items-center gap-2 border-t border-base-200 bg-base-100 px-3 py-2.5 text-sm text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content"
+          >
+            <Settings2 className="h-4 w-4" />
+            Guruh va xonadonlarni boshqarish
+          </Link>
         </div>
       )}
     </div>

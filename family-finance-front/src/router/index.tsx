@@ -38,6 +38,7 @@ const HouseholdPage = lazy(() => import('../pages/household/HouseholdPage').then
 const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage').then(m => ({ default: m.MemberDetailPage })));
 const FamilyGroupSettingsPage = lazy(() => import('../pages/settings/FamilyGroupSettings').then(m => ({ default: m.FamilyGroupSettings })));
 const BanksPage = lazy(() => import('../pages/settings/BanksPage').then(m => ({ default: m.BanksPage })));
+const ScopeManagementPage = lazy(() => import('../pages/scope/ScopeManagementPage').then(m => ({ default: m.ScopeManagementPage })));
 
 // Super Admin panel pages
 const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
@@ -293,6 +294,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
         handle: { title: "A'zo profili" },
+      },
+      {
+        path: 'scopes',
+        element: (
+          <ProtectedRoute>
+            <LazyRoute><ScopeManagementPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Guruh va xonadonlar' },
       },
       {
         path: 'my-family/settings',

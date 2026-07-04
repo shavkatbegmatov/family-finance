@@ -37,6 +37,15 @@ export const scopesApi = {
   create: (data: ScopeCreateRequest) =>
     axiosInstance.post<ApiResponse<Scope>>('/v1/scopes', data),
 
+  /**
+   * Xonadonni guruhga biriktirish yoki uzish (ADR-001 decoupling UX).
+   * parentScopeId = guruh ID (biriktirish) yoki null (guruhdan chiqarish).
+   */
+  setParent: (scopeId: number, parentScopeId: number | null) =>
+    axiosInstance.put<ApiResponse<Scope>>(`/v1/scopes/${scopeId}/parent`, {
+      parentScopeId,
+    }),
+
   deactivate: (id: number) =>
     axiosInstance.delete<ApiResponse<void>>(`/v1/scopes/${id}`),
 
