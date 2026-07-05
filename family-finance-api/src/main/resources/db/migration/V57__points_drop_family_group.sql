@@ -35,16 +35,22 @@ BEGIN
 END $$;
 
 -- 2) Unique constraintlar: family_group -> scope
+-- MUHIM: V25 bu nomlarning ba'zilarini CONSTRAINT emas, UNIQUE INDEX sifatida yaratgan
+-- (masalan uk_point_participant_member) — shuning uchun ikkala shaklni ham tozalaymiz.
 ALTER TABLE point_configs             DROP CONSTRAINT IF EXISTS uk_point_configs;
+DROP INDEX IF EXISTS uk_point_configs;
 ALTER TABLE point_configs             ADD CONSTRAINT uk_point_configs UNIQUE (scope_id);
 
 ALTER TABLE point_participants        DROP CONSTRAINT IF EXISTS uk_point_participant_member;
+DROP INDEX IF EXISTS uk_point_participant_member;
 ALTER TABLE point_participants        ADD CONSTRAINT uk_point_participant_member UNIQUE (scope_id, family_member_id);
 
 ALTER TABLE point_balances            DROP CONSTRAINT IF EXISTS uk_point_balance_participant;
+DROP INDEX IF EXISTS uk_point_balance_participant;
 ALTER TABLE point_balances            ADD CONSTRAINT uk_point_balance_participant UNIQUE (scope_id, participant_id);
 
 ALTER TABLE point_savings_accounts    DROP CONSTRAINT IF EXISTS uk_point_savings_participant;
+DROP INDEX IF EXISTS uk_point_savings_participant;
 ALTER TABLE point_savings_accounts    ADD CONSTRAINT uk_point_savings_participant UNIQUE (scope_id, participant_id);
 
 -- 3) NOT NULL (achievements'dan tashqari — global yutuqlar scope'siz)
