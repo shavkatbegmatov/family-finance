@@ -893,13 +893,13 @@ public class UserService {
         );
     }
 
-    /** Oila a'zosi orqali ball ishtirokchisini topadi (badge'lar uchun). */
+    /** Oila a'zosi orqali ball ishtirokchisini topadi (badge'lar uchun) — kontekstsiz. */
     private PointParticipant lookupParticipantForMember(FamilyMember member) {
-        if (member == null || member.getFamilyGroup() == null) {
+        if (member == null) {
             return null;
         }
         return pointParticipantRepository
-                .findByFamilyGroupIdAndFamilyMemberId(member.getFamilyGroup().getId(), member.getId())
+                .findFirstByFamilyMemberIdAndIsActiveTrue(member.getId())
                 .orElse(null);
     }
 }

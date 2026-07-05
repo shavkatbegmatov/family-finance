@@ -28,15 +28,15 @@ public class PointLeaderboardService {
 
     @Transactional(readOnly = true)
     public List<LeaderboardEntryResponse> getOverallLeaderboard() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        List<PointBalance> balances = balanceRepository.findByFamilyGroupIdOrderByTotalEarnedDesc(groupId);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        List<PointBalance> balances = balanceRepository.findByScopeIdOrderByTotalEarnedDesc(scopeId);
         return buildLeaderboard(balances);
     }
 
     @Transactional(readOnly = true)
     public List<LeaderboardEntryResponse> getWeeklyLeaderboard() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        List<PointBalance> balances = balanceRepository.findByFamilyGroupIdOrderByCurrentBalanceDesc(groupId);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        List<PointBalance> balances = balanceRepository.findByScopeIdOrderByCurrentBalanceDesc(scopeId);
 
         LocalDateTime weekStart = LocalDateTime.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 .withHour(0).withMinute(0).withSecond(0);
@@ -67,8 +67,8 @@ public class PointLeaderboardService {
 
     @Transactional(readOnly = true)
     public List<LeaderboardEntryResponse> getMonthlyLeaderboard() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        List<PointBalance> balances = balanceRepository.findByFamilyGroupIdOrderByCurrentBalanceDesc(groupId);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        List<PointBalance> balances = balanceRepository.findByScopeIdOrderByCurrentBalanceDesc(scopeId);
 
         LocalDateTime monthStart = LocalDateTime.now().withDayOfMonth(1)
                 .withHour(0).withMinute(0).withSecond(0);

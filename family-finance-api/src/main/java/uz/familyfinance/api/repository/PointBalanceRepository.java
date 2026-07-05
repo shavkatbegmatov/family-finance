@@ -18,9 +18,10 @@ public interface PointBalanceRepository extends JpaRepository<PointBalance, Long
     @Query("SELECT b FROM PointBalance b JOIN FETCH b.participant WHERE b.participant.id = :participantId")
     Optional<PointBalance> findByParticipantIdWithParticipant(@Param("participantId") Long participantId);
 
-    List<PointBalance> findByFamilyGroupIdOrderByCurrentBalanceDesc(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha reyting. */
+    List<PointBalance> findByScopeIdOrderByCurrentBalanceDesc(Long scopeId);
 
-    List<PointBalance> findByFamilyGroupIdOrderByTotalEarnedDesc(Long familyGroupId);
+    List<PointBalance> findByScopeIdOrderByTotalEarnedDesc(Long scopeId);
 
     @Modifying
     @Query("UPDATE PointBalance b SET b.currentBalance = b.currentBalance + :amount, " +
@@ -41,8 +42,8 @@ public interface PointBalanceRepository extends JpaRepository<PointBalance, Long
 
     @Modifying
     @Query("UPDATE PointBalance b SET b.inflationMultiplier = b.inflationMultiplier * :factor " +
-           "WHERE b.familyGroup.id = :groupId")
-    void applyInflation(@Param("groupId") Long groupId, @Param("factor") BigDecimal factor);
+           "WHERE b.scope.id = :scopeId")
+    void applyInflation(@Param("scopeId") Long scopeId, @Param("factor") BigDecimal factor);
 
     @Modifying
     @Query("UPDATE PointBalance b SET b.savingsBalance = b.savingsBalance + :amount WHERE b.id = :id")

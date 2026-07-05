@@ -31,15 +31,15 @@ public class PointAchievementService {
 
     @Transactional(readOnly = true)
     public List<PointAchievementResponse> getAll() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return achievementRepository.findActiveByGroupOrSystem(groupId).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return achievementRepository.findActiveByScopeOrSystem(scopeId).stream()
                 .map(a -> toResponse(a, null)).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<PointAchievementResponse> getEarnedByParticipant(Long participantId) {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        List<PointAchievement> all = achievementRepository.findActiveByGroupOrSystem(groupId);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        List<PointAchievement> all = achievementRepository.findActiveByScopeOrSystem(scopeId);
         Set<Long> earnedIds = memberAchievementRepository.findByParticipantId(participantId).stream()
                 .map(ma -> ma.getAchievement().getId()).collect(Collectors.toSet());
         return all.stream().map(a -> {
@@ -90,8 +90,8 @@ public class PointAchievementService {
 
     @Transactional
     public void checkAndAwardAchievements(PointParticipant participant) {
-        Long groupId = participant.getFamilyGroup().getId();
-        List<PointAchievement> achievements = achievementRepository.findActiveByGroupOrSystem(groupId);
+        Long scopeId = participant.getScope().getId();
+        List<PointAchievement> achievements = achievementRepository.findActiveByScopeOrSystem(scopeId);
         PointBalance balance = balanceRepository.findByParticipantId(participant.getId()).orElse(null);
         if (balance == null) return;
 

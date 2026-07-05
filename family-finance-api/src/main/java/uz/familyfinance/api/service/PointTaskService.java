@@ -32,14 +32,14 @@ public class PointTaskService {
 
     @Transactional(readOnly = true)
     public Page<PointTaskResponse> getAll(Pageable pageable) {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return taskRepository.findByFamilyGroupId(groupId, pageable).map(this::toResponse);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return taskRepository.findByScopeId(scopeId, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
     public Page<PointTaskResponse> getByStatus(PointTaskStatus status, Pageable pageable) {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return taskRepository.findByFamilyGroupIdAndStatus(groupId, status, pageable).map(this::toResponse);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return taskRepository.findByScopeIdAndStatus(scopeId, status, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -49,8 +49,8 @@ public class PointTaskService {
 
     @Transactional(readOnly = true)
     public List<PointTaskResponse> getPendingVerification() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return taskRepository.findPendingVerification(groupId).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return taskRepository.findPendingVerification(scopeId).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -213,9 +213,10 @@ public class PointTaskService {
     private BigDecimal calculateMultiplier(PointTask task) {
         BigDecimal multiplier = BigDecimal.ONE;
 
-        // Faol eventlardan multiplier
-        List<PointMultiplierEvent> events = eventRepository.findActiveEvents(
-                task.getFamilyGroup().getId(), LocalDateTime.now(), task.getCategory());
+        // Faol eventlardan multiplier (task scope'i — hamyon konteksti; V56'gacha yetim task'da null)
+        List<PointMultiplierEvent> events = task.getScope() != null
+                ? eventRepository.findActiveEvents(task.getScope().getId(), LocalDateTime.now(), task.getCategory())
+                : List.of();
         for (PointMultiplierEvent event : events) {
             multiplier = multiplier.multiply(event.getMultiplier());
         }

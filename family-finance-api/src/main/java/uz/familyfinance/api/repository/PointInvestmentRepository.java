@@ -9,7 +9,8 @@ public interface PointInvestmentRepository extends JpaRepository<PointInvestment
 
     List<PointInvestment> findByParticipantIdAndIsActiveTrue(Long participantId);
 
-    List<PointInvestment> findByFamilyGroupIdAndIsActiveTrue(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointInvestment> findByScopeIdAndIsActiveTrue(Long scopeId);
 
     List<PointInvestment> findByIsActiveTrue();
 }

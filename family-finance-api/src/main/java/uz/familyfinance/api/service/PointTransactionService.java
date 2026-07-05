@@ -67,8 +67,8 @@ public class PointTransactionService {
 
     @Transactional(readOnly = true)
     public Page<PointTransactionResponse> getByGroup(Pageable pageable) {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return transactionRepository.findByFamilyGroupIdOrderByTransactionDateDesc(groupId, pageable)
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return transactionRepository.findByScopeIdOrderByTransactionDateDesc(scopeId, pageable)
                 .map(this::toResponse);
     }
 

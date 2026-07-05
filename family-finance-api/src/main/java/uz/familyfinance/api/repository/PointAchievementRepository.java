@@ -9,11 +9,12 @@ import java.util.List;
 
 public interface PointAchievementRepository extends JpaRepository<PointAchievement, Long> {
 
+    /** ADR-002 P1b: scope NULL = global (tizim) yutuq — hamyon-kontekst yoki global. */
     @Query("SELECT a FROM PointAchievement a WHERE a.isActive = true AND " +
-           "(a.familyGroup IS NULL OR a.familyGroup.id = :groupId)")
-    List<PointAchievement> findActiveByGroupOrSystem(@Param("groupId") Long groupId);
+           "(a.scope IS NULL OR a.scope.id = :scopeId)")
+    List<PointAchievement> findActiveByScopeOrSystem(@Param("scopeId") Long scopeId);
 
     List<PointAchievement> findByIsSystemTrueAndIsActiveTrue();
 
-    List<PointAchievement> findByFamilyGroupIdAndIsActiveTrue(Long familyGroupId);
+    List<PointAchievement> findByScopeIdAndIsActiveTrue(Long scopeId);
 }

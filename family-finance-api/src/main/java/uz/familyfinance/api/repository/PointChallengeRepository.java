@@ -9,9 +9,10 @@ import java.util.List;
 
 public interface PointChallengeRepository extends JpaRepository<PointChallenge, Long> {
 
-    List<PointChallenge> findByFamilyGroupIdAndStatus(Long familyGroupId, PointChallengeStatus status);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointChallenge> findByScopeIdAndStatus(Long scopeId, PointChallengeStatus status);
 
-    List<PointChallenge> findByFamilyGroupId(Long familyGroupId);
+    List<PointChallenge> findByScopeId(Long scopeId);
 
     List<PointChallenge> findByStatusAndEndDateBefore(PointChallengeStatus status, LocalDate date);
 }

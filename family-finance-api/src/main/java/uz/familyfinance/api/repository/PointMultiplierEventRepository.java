@@ -11,17 +11,18 @@ import java.util.List;
 
 public interface PointMultiplierEventRepository extends JpaRepository<PointMultiplierEvent, Long> {
 
-    List<PointMultiplierEvent> findByFamilyGroupId(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointMultiplierEvent> findByScopeId(Long scopeId);
 
-    @Query("SELECT e FROM PointMultiplierEvent e WHERE e.familyGroup.id = :groupId " +
+    @Query("SELECT e FROM PointMultiplierEvent e WHERE e.scope.id = :scopeId " +
            "AND e.isActive = true AND e.startDate <= :now AND e.endDate >= :now " +
            "AND (e.taskCategory IS NULL OR e.taskCategory = :category)")
-    List<PointMultiplierEvent> findActiveEvents(@Param("groupId") Long groupId,
+    List<PointMultiplierEvent> findActiveEvents(@Param("scopeId") Long scopeId,
                                                  @Param("now") LocalDateTime now,
                                                  @Param("category") PointTaskCategory category);
 
-    @Query("SELECT e FROM PointMultiplierEvent e WHERE e.familyGroup.id = :groupId " +
+    @Query("SELECT e FROM PointMultiplierEvent e WHERE e.scope.id = :scopeId " +
            "AND e.isActive = true AND e.startDate <= :now AND e.endDate >= :now")
-    List<PointMultiplierEvent> findAllActiveEvents(@Param("groupId") Long groupId,
+    List<PointMultiplierEvent> findAllActiveEvents(@Param("scopeId") Long scopeId,
                                                     @Param("now") LocalDateTime now);
 }

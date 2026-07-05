@@ -567,16 +567,13 @@ public class FamilyMemberService {
             r.setUserId(m.getUser().getId());
             r.setUserName(m.getUser().getUsername());
         }
-        // Ball tizimida ishtirokchi sifatida ro'yxatdan o'tganmi — badge'lar uchun.
-        // Indexed lookup (family_group_id, family_member_id) — kichik oilalar uchun N+1 maqbul.
-        if (m.getFamilyGroup() != null) {
-            pointParticipantRepository
-                    .findByFamilyGroupIdAndFamilyMemberId(m.getFamilyGroup().getId(), m.getId())
-                    .ifPresent(p -> {
-                        r.setPointParticipantId(p.getId());
-                        r.setPointParticipantNickname(p.getNickname());
-                    });
-        }
+        // Ball tizimida ishtirokchi sifatida ro'yxatdan o'tganmi — badge'lar uchun (kontekstsiz).
+        pointParticipantRepository
+                .findFirstByFamilyMemberIdAndIsActiveTrue(m.getId())
+                .ifPresent(p -> {
+                    r.setPointParticipantId(p.getId());
+                    r.setPointParticipantNickname(p.getNickname());
+                });
         r.setCredentials(credentials);
         return r;
     }

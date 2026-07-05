@@ -25,11 +25,10 @@ public class PointConfigService {
 
     @Transactional(readOnly = true)
     public PointConfigResponse getConfig() {
-        Long groupId = getCurrentFamilyGroupId();
-        PointConfig config = configRepository.findByFamilyGroupId(groupId)
+        PointConfig config = configRepository.findByScopeId(getActiveHouseholdScopeId())
                 .orElse(null);
         if (config == null) {
-            return getDefaultConfig(groupId);
+            return getDefaultConfig(getCurrentFamilyGroupId());
         }
         return toResponse(config);
     }
@@ -37,18 +36,15 @@ public class PointConfigService {
     @Transactional
     public PointConfigResponse createOrUpdate(PointConfigRequest request) {
         CustomUserDetails userDetails = getCurrentUserDetails();
-        Long groupId = userDetails.getUser().getFamilyGroup().getId();
 
-        PointConfig config = configRepository.findByFamilyGroupId(groupId)
+        // ADR-002 P1b: hamyon konteksti — yagona kalit; familyGroup dual-write (P1c'da olib tashlanadi)
+        PointConfig config = configRepository.findByScopeId(getActiveHouseholdScopeId())
                 .orElseGet(() -> {
                     PointConfig c = new PointConfig();
                     c.setFamilyGroup(userDetails.getUser().getFamilyGroup());
+                    c.setScope(getActiveHouseholdScope());
                     return c;
                 });
-        // ADR-002 P1 dual-write: hamyon konteksti (V39'da scope set qilinmay qolgan bug fix)
-        if (config.getScope() == null) {
-            config.setScope(getActiveHouseholdScope());
-        }
 
         config.setConversionRate(request.getConversionRate());
         if (request.getCurrency() != null) config.setCurrency(request.getCurrency());
@@ -64,8 +60,7 @@ public class PointConfigService {
     }
 
     public PointConfig getConfigEntity() {
-        Long groupId = getCurrentFamilyGroupId();
-        return configRepository.findByFamilyGroupId(groupId).orElse(null);
+        return configRepository.findByScopeId(getActiveHouseholdScopeId()).orElse(null);
     }
 
     public BigDecimal getConversionRate() {
@@ -115,6 +110,20 @@ public class PointConfigService {
      */
     public uz.familyfinance.api.entity.Scope getActiveHouseholdScope() {
         return scopeContext.getActiveHousehold().orElse(null);
+    }
+
+    /**
+     * ADR-002 P1b: hamyon konteksti ID'si — Points o'qishlarining yagona kaliti
+     * (eski {@link #getCurrentFamilyGroupId()} o'rnini bosadi). Aktiv xonadon
+     * topilmasa aniq xato — Points faqat xonadon kontekstida ma'noli.
+     */
+    public Long getActiveHouseholdScopeId() {
+        uz.familyfinance.api.entity.Scope household = getActiveHouseholdScope();
+        if (household == null) {
+            throw new ResourceNotFoundException(
+                    "Aktiv xonadon topilmadi — Ballar tizimi xonadon kontekstida ishlaydi");
+        }
+        return household.getId();
     }
 
     /**

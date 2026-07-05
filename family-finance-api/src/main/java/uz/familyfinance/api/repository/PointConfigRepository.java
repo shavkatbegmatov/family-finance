@@ -7,7 +7,8 @@ import java.util.Optional;
 
 public interface PointConfigRepository extends JpaRepository<PointConfig, Long> {
 
-    Optional<PointConfig> findByFamilyGroupId(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha — V56 backfill'dan keyin yagona kalit. */
+    Optional<PointConfig> findByScopeId(Long scopeId);
 
-    boolean existsByFamilyGroupId(Long familyGroupId);
+    boolean existsByScopeId(Long scopeId);
 }
