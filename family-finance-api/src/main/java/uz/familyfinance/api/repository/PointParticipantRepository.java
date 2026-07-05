@@ -17,5 +17,8 @@ public interface PointParticipantRepository extends JpaRepository<PointParticipa
 
     Optional<PointParticipant> findByScopeIdAndFamilyMemberId(Long scopeId, Long familyMemberId);
 
+    /** A'zo bo'yicha (kontekstsiz) birinchi faol ishtirokchi — badge/profil ko'rinishlari uchun. */
+    Optional<PointParticipant> findFirstByFamilyMemberIdAndIsActiveTrue(Long familyMemberId);
+
     boolean existsByScopeIdAndFamilyMemberId(Long scopeId, Long familyMemberId);
 }
