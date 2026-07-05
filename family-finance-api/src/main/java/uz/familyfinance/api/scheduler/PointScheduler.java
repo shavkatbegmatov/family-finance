@@ -160,6 +160,7 @@ public class PointScheduler {
             // Snapshot saqlash
             PointInflationSnapshot snapshot = PointInflationSnapshot.builder()
                     .familyGroup(config.getFamilyGroup())
+                    .scope(config.getScope())
                     .snapshotDate(LocalDate.now())
                     .inflationRate(config.getInflationRateMonthly())
                     .cumulativeMultiplier(factor)

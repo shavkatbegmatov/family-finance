@@ -46,6 +46,7 @@ public class PointChallengeService {
         var userDetails = configService.getCurrentUserDetails();
         PointChallenge challenge = PointChallenge.builder()
                 .familyGroup(configService.getCurrentFamilyGroup())
+                .scope(configService.getActiveHouseholdScope())
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .startDate(request.getStartDate())

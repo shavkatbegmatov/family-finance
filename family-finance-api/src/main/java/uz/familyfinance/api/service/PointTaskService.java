@@ -67,6 +67,7 @@ public class PointTaskService {
 
         PointTask task = PointTask.builder()
                 .familyGroup(group)
+                .scope(configService.getActiveHouseholdScope())
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .category(PointTaskCategory.valueOf(request.getCategory()))

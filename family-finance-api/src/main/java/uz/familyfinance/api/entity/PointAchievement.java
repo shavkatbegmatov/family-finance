@@ -20,6 +20,14 @@ public class PointAchievement extends BaseEntity {
     @JoinColumn(name = "family_group_id")
     private FamilyGroup familyGroup;
 
+    /**
+     * ADR-002 P1: hamyon konteksti (HOUSEHOLD scope). NULL = GLOBAL (tizim) yutuq —
+     * familyGroup NULL bilan izchil. V56 backfill (faqat oila-maxsuslar).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Column(nullable = false, length = 100)
     private String name;
 
