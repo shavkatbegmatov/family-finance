@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.14.1',
+        date: '2026-07-06 03:00',
+        title: "Xonadonlar daraxti: chiziqlar endi bir-birini to'smaydi",
+        features: [],
+        fixes: [
+            "Oila a'zolari sahifasidagi \"Xonadonlar\" ko'rinishida bog'lanish chiziqlari ustma-ust tushib o'qib bo'lmas holga kelardi — endi har bir chiziq alohida yo'lakdan yuradi va farzand xonadoni ota xonadoni ostiga joylashadi (kesishishlar keskin kamaydi).",
+        ],
+    },
+    {
         version: '1.14.0',
         date: '2026-07-06 12:00',
         title: "Tizim soddalashdi — \"Guruh\" tushunchasi olib tashlandi",
