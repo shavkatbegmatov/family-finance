@@ -17,13 +17,9 @@ import java.math.BigDecimal;
 @Builder
 public class PointConfig extends BaseEntity {
 
+    /** ADR-002 P1c: hamyon konteksti (HOUSEHOLD scope) — bitta xonadonga bitta config (V57 unique+NOT NULL). */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_group_id", nullable = false, unique = true)
-    private FamilyGroup familyGroup;
-
-    /** Phase 2: yangi scope tuzilmasi (HOUSEHOLD). V37 da NOT NULL bo'ladi. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scope_id")
+    @JoinColumn(name = "scope_id", nullable = false, unique = true)
     private Scope scope;
 
     @Column(name = "conversion_rate", nullable = false, precision = 19, scale = 4)

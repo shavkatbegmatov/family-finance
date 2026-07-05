@@ -16,13 +16,9 @@ import uz.familyfinance.api.enums.AchievementType;
 @Builder
 public class PointAchievement extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_group_id")
-    private FamilyGroup familyGroup;
-
     /**
      * ADR-002 P1: hamyon konteksti (HOUSEHOLD scope). NULL = GLOBAL (tizim) yutuq —
-     * familyGroup NULL bilan izchil. V56 backfill (faqat oila-maxsuslar).
+     * V56 backfill (faqat oila-maxsus yutuqlar); global yutuqlar scope'siz.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scope_id")

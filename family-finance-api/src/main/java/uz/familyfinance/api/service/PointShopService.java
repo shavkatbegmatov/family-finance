@@ -48,7 +48,6 @@ public class PointShopService {
     public PointShopItemResponse createItem(PointShopItemRequest request) {
         var userDetails = configService.getCurrentUserDetails();
         PointShopItem item = PointShopItem.builder()
-                .familyGroup(configService.getCurrentFamilyGroup())
                 .scope(configService.getActiveHouseholdScope())
                 .name(request.getName())
                 .description(request.getDescription())
@@ -119,7 +118,6 @@ public class PointShopService {
         }
 
         PointPurchase purchase = PointPurchase.builder()
-                .familyGroup(participant.getFamilyGroup())
                 .scope(participant.getScope())
                 .participant(participant)
                 .shopItem(item)

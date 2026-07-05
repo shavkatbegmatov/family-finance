@@ -95,7 +95,6 @@ public class PointScheduler {
 
                 if (shouldGenerate) {
                     PointTask newTask = PointTask.builder()
-                            .familyGroup(template.getFamilyGroup())
                             .title(template.getTitle())
                             .description(template.getDescription())
                             .category(template.getCategory())
@@ -161,7 +160,6 @@ public class PointScheduler {
 
             // Snapshot saqlash
             PointInflationSnapshot snapshot = PointInflationSnapshot.builder()
-                    .familyGroup(config.getFamilyGroup())
                     .scope(config.getScope())
                     .snapshotDate(LocalDate.now())
                     .inflationRate(config.getInflationRateMonthly())
@@ -169,7 +167,7 @@ public class PointScheduler {
                     .build();
             inflationSnapshotRepository.save(snapshot);
 
-            log.info("Inflyatsiya qo'llandi: {} guruh, rate: {}", config.getFamilyGroup().getName(), config.getInflationRateMonthly());
+            log.info("Inflyatsiya qo'llandi: {} xonadon, rate: {}", config.getScope().getName(), config.getInflationRateMonthly());
         }
     }
 

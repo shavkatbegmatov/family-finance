@@ -33,7 +33,6 @@ public class PointTransactionService {
         int balanceAfter = balanceBefore + amount;
 
         PointTransaction tx = PointTransaction.builder()
-                .familyGroup(participant.getFamilyGroup())
                 .scope(participant.getScope())
                 .participant(participant)
                 .type(type)

@@ -59,7 +59,6 @@ public class PointInvestmentService {
         balanceRepository.addToInvestment(balance.getId(), request.getAmount());
 
         PointInvestment investment = PointInvestment.builder()
-                .familyGroup(participant.getFamilyGroup())
                 .scope(participant.getScope())
                 .participant(participant)
                 .type(type)

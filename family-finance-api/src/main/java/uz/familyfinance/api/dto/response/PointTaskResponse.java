@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 public class PointTaskResponse {
 
     private Long id;
-    private Long familyGroupId;
     private String title;
     private String description;
     private String category;
