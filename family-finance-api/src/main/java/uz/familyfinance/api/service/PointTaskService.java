@@ -63,10 +63,8 @@ public class PointTaskService {
     @Transactional
     public PointTaskResponse create(PointTaskRequest request) {
         var userDetails = configService.getCurrentUserDetails();
-        FamilyGroup group = configService.getCurrentFamilyGroup();
 
         PointTask task = PointTask.builder()
-                .familyGroup(group)
                 .scope(configService.getActiveHouseholdScope())
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -245,7 +243,6 @@ public class PointTaskService {
     PointTaskResponse toResponse(PointTask t) {
         PointTaskResponse r = new PointTaskResponse();
         r.setId(t.getId());
-        r.setFamilyGroupId(t.getFamilyGroup().getId());
         r.setTitle(t.getTitle());
         r.setDescription(t.getDescription());
         r.setCategory(t.getCategory().name());

@@ -19,10 +19,6 @@ import java.time.LocalDate;
 @Builder
 public class PointChallenge extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_group_id", nullable = false)
-    private FamilyGroup familyGroup;
-
     /** Phase 2: yangi scope (HOUSEHOLD). V37 da NOT NULL bo'ladi. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scope_id")

@@ -56,7 +56,6 @@ public class PointAchievementService {
     @Transactional
     public PointAchievementResponse create(PointAchievementRequest request) {
         PointAchievement achievement = PointAchievement.builder()
-                .familyGroup(configService.getCurrentFamilyGroup())
                 .scope(configService.getActiveHouseholdScope())
                 .name(request.getName())
                 .description(request.getDescription())

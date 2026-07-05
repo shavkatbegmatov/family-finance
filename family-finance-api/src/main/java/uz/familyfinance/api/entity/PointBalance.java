@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "point_balances", uniqueConstraints = {
     @UniqueConstraint(name = "uk_point_balance_participant",
-        columnNames = {"family_group_id", "participant_id"})
+        columnNames = {"scope_id", "participant_id"})
 })
 @EntityListeners(AuditingEntityListener.class)
 @Getter
@@ -20,10 +20,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class PointBalance extends BaseEntity {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_group_id", nullable = false)
-    private FamilyGroup familyGroup;
 
     /** Phase 2: yangi scope (HOUSEHOLD). V39 da NOT NULL qilindi. */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

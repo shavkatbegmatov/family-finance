@@ -10,6 +10,7 @@ import uz.familyfinance.api.dto.request.PointConversionRequest;
 import uz.familyfinance.api.dto.response.PointConversionResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.PointTransactionType;
+import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.*;
 
@@ -33,6 +34,15 @@ public class PointConversionService {
     public PointConversionResponse convert(PointConversionRequest request) {
         var userDetails = configService.getCurrentUserDetails();
         PointParticipant participant = participantService.findById(request.getParticipantId());
+
+        // ADR-002 Q1: ballarni pulga aylantirish FAQAT xonadon hamyonida (kelajakda maktab/CLASS
+        // hamyonlari konvertatsiya qilinmaydi — o'qituvchi "pul chiqaruvchi" bo'lib qolmasin).
+        if (participant.getScope() == null
+                || participant.getScope().getType() != ScopeType.HOUSEHOLD) {
+            throw new IllegalArgumentException(
+                    "Ballarni pulga aylantirish faqat xonadon hamyonida mumkin");
+        }
+
         PointBalance balance = balanceRepository.findByParticipantId(participant.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Balans topilmadi"));
 
@@ -60,7 +70,6 @@ public class PointConversionService {
 
         // Konversiya yozuvi
         PointConversion conversion = PointConversion.builder()
-                .familyGroup(participant.getFamilyGroup())
                 .scope(participant.getScope())
                 .participant(participant)
                 .pointsConverted(request.getPoints())

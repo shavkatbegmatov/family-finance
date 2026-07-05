@@ -51,7 +51,6 @@ public class PointMultiplierEventController {
             @Valid @RequestBody PointMultiplierEventRequest request) {
         var userDetails = configService.getCurrentUserDetails();
         PointMultiplierEvent event = PointMultiplierEvent.builder()
-                .familyGroup(configService.getCurrentFamilyGroup())
                 .scope(configService.getActiveHouseholdScope())
                 .name(request.getName())
                 .description(request.getDescription())

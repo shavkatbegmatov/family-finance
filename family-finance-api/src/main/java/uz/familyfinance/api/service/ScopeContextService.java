@@ -29,7 +29,7 @@ import java.util.Set;
  * <p>Phase 1 da {@code getActiveScope()} joriy user'ning {@code primaryScope} dan
  * o'qiydi (JWT'da hali {@code active_scope_id} claim yo'q — Phase 2'da qo'shiladi).</p>
  *
- * <p>Bu servis kelajakda eski {@code PointConfigService.getCurrentFamilyGroup()}
+ * <p>Points endi bevosita scope bilan ishlaydi (ADR-002 P1);
  * o'rnini bosadi: Phase 2'da barcha 31+ chaqiruv shu yerga ko'chiriladi.</p>
  */
 @Service
@@ -155,7 +155,7 @@ public class ScopeContextService {
     /**
      * Aktiv scope ga mos genealogik tenant yoki xato.
      *
-     * <p>{@link PointConfigService#getCurrentFamilyGroup()} shu metoddan foydalanadi.</p>
+     * <p>Genealogik tenant kerak bo'lgan joylar (masalan a'zo tekshiruvi) shu metoddan foydalanadi.</p>
      */
     @Transactional(readOnly = true)
     public FamilyGroup getActiveFamilyGroup() {

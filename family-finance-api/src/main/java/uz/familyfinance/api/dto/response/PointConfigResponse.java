@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 public class PointConfigResponse {
 
     private Long id;
-    private Long familyGroupId;
     private BigDecimal conversionRate;
     private String currency;
     private Boolean inflationEnabled;

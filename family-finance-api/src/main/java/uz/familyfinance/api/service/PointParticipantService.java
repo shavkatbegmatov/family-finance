@@ -53,20 +53,22 @@ public class PointParticipantService {
     @Transactional
     public PointParticipantResponse create(PointParticipantRequest request) {
         var userDetails = configService.getCurrentUserDetails();
-        FamilyGroup group = configService.getCurrentFamilyGroup();
-        // Phase 2.G: aktiv scope MAJBURIY — participant/balance/savings uchun NOT NULL.
-        // Scope yo'q bo'lsa getActiveScope() aniq xato tashlaydi.
-        var activeScope = configService.getScopeContext().getActiveScope();
+        // ADR-002 P1c: hamyon konteksti — aniq XONADON scope'i (GROUP emas). Yo'q bo'lsa qat'iy xato.
+        var householdScope = configService.getActiveHouseholdScope();
+        if (householdScope == null) {
+            throw new ResourceNotFoundException(
+                    "Aktiv xonadon topilmadi — Ballar tizimi xonadon kontekstida ishlaydi");
+        }
 
         if (request.getFamilyMemberId() != null) {
-            if (participantRepository.existsByScopeIdAndFamilyMemberId(group.getId(), request.getFamilyMemberId())) {
+            if (participantRepository.existsByScopeIdAndFamilyMemberId(
+                    householdScope.getId(), request.getFamilyMemberId())) {
                 throw new IllegalArgumentException("Bu oila a'zosi allaqachon ishtirokchi sifatida qo'shilgan");
             }
         }
 
         PointParticipant participant = PointParticipant.builder()
-                .familyGroup(group)
-                .scope(activeScope)
+                .scope(householdScope)
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .nickname(request.getNickname())
@@ -76,7 +78,7 @@ public class PointParticipantService {
                 .build();
 
         if (request.getFamilyMemberId() != null) {
-            FamilyMember member = findAndValidateFamilyMember(request.getFamilyMemberId(), group.getId());
+            FamilyMember member = findAndValidateFamilyMember(request.getFamilyMemberId());
             participant.setFamilyMember(member);
         }
 
@@ -84,16 +86,14 @@ public class PointParticipantService {
 
         // Avtomatik PointBalance yaratish
         PointBalance balance = PointBalance.builder()
-                .familyGroup(group)
-                .scope(activeScope)
+                .scope(householdScope)
                 .participant(participant)
                 .build();
         balanceRepository.save(balance);
 
         // Avtomatik PointSavingsAccount yaratish
         PointSavingsAccount savings = PointSavingsAccount.builder()
-                .familyGroup(group)
-                .scope(activeScope)
+                .scope(householdScope)
                 .participant(participant)
                 .build();
         savingsRepository.save(savings);
@@ -129,7 +129,7 @@ public class PointParticipantService {
         validateParticipantAccess(participant, scopeId);
         validateParticipantIsActive(participant);
 
-        FamilyMember targetMember = findAndValidateFamilyMember(request.getFamilyMemberId(), scopeId);
+        FamilyMember targetMember = findAndValidateFamilyMember(request.getFamilyMemberId());
         FamilyMember previousMember = participant.getFamilyMember();
 
         if (previousMember != null && Objects.equals(previousMember.getId(), targetMember.getId())) {
@@ -245,7 +245,10 @@ public class PointParticipantService {
     public PointParticipantResponse toResponse(PointParticipant p) {
         PointParticipantResponse r = new PointParticipantResponse();
         r.setId(p.getId());
-        r.setFamilyGroupId(p.getFamilyGroup().getId());
+        // ADR-002 P1c: familyGroupId endi GENEALOGIK ma'no — bog'langan a'zoning tenant'i
+        // (frontend a'zo tanlash ro'yxatini shu bo'yicha filtrlaydi). Bog'lanmagan bo'lsa null.
+        r.setFamilyGroupId(p.getFamilyMember() != null && p.getFamilyMember().getFamilyGroup() != null
+                ? p.getFamilyMember().getFamilyGroup().getId() : null);
         r.setFirstName(p.getFirstName());
         r.setLastName(p.getLastName());
         r.setNickname(p.getNickname());
@@ -279,14 +282,15 @@ public class PointParticipantService {
         }
     }
 
-    private FamilyMember findAndValidateFamilyMember(Long familyMemberId, Long scopeId) {
+    private FamilyMember findAndValidateFamilyMember(Long familyMemberId) {
         FamilyMember member = familyMemberRepository.findById(familyMemberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi"));
 
         // A'zolik tekshiruvi GENEALOGIK tenant bo'yicha (FamilyMember'da scope yo'q — ADR-001 F4):
-        // a'zo joriy user oilasidan bo'lishi shart; hamyon konteksti (scopeId) bunga aralashmaydi.
-        FamilyGroup currentTenant = configService.getCurrentFamilyGroup();
-        if (member.getFamilyGroup() == null
+        // a'zo joriy user oilasidan bo'lishi shart; hamyon konteksti bunga aralashmaydi.
+        FamilyGroup currentTenant = configService.getScopeContext()
+                .getActiveFamilyGroupOptional().orElse(null);
+        if (currentTenant == null || member.getFamilyGroup() == null
                 || !Objects.equals(member.getFamilyGroup().getId(), currentTenant.getId())) {
             throw new ResourceNotFoundException("Oila a'zosi topilmadi");
         }
