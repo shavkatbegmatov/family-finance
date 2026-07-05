@@ -69,7 +69,7 @@ public class AccountService {
         if (scopeId == null) {
             return Page.empty(pageable);
         }
-        Page<Account> page = accountRepository.findByScopeId(scopeId, search, accountType, status, pageable);
+        Page<Account> page = accountRepository.findByScopeId(scopeId, currentUser.getId(), search, accountType, status, pageable);
         Map<Long, AccountAccessRole> roleMap = buildRoleMap(page.getContent(), currentUser.getId());
         return page.map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()));
     }
@@ -80,7 +80,7 @@ public class AccountService {
         if (scopeId == null) {
             return List.of();
         }
-        List<Account> accounts = accountRepository.findActiveByScopeId(scopeId);
+        List<Account> accounts = accountRepository.findActiveByScopeId(scopeId, currentUser.getId());
         Map<Long, AccountAccessRole> roleMap = buildRoleMap(accounts, currentUser.getId());
         return accounts.stream()
                 .map(a -> toResponseWithAccessRole(a, roleMap, currentUser.getId()))
@@ -146,11 +146,11 @@ public class AccountService {
                 .bankMfo(request.getBankMfo())
                 .bankInn(request.getBankInn())
                 .scope(scope)
-                // Phase 2: scope-aware family_group (active scope dan keladi) +
-                // Scope FK ham bir vaqtda o'rnatamiz (dual-write).
-                .familyGroup(scopeContext.getActiveFamilyGroupOptional()
-                        .orElse(currentUser.getUser().getFamilyGroup()))
-                .homeScope(scopeContext.getActiveScopeOptional().orElse(null))
+                // ADR-002 P2: hisob FAQAT xonadonda ochiladi — aniq HOUSEHOLD konteksti majburiy
+                // (GROUP faqat ko'rish uchun; SYSTEM_TRANSIT global hisoblar bu yo'ldan yaratilmaydi).
+                .homeScope(scopeContext.getActiveHousehold().orElseThrow(
+                        () -> new ResourceNotFoundException(
+                                "Aktiv xonadon topilmadi — hisob faqat xonadon kontekstida ochiladi")))
                 .build();
 
         // Owner ni bog'lash
@@ -447,20 +447,21 @@ public class AccountService {
         if (account.getOwner() != null) {
             familyId = account.getOwner().getId();
             memberId = (int) (account.getOwner().getId() % 100);
-        } else if (account.getFamilyGroup() != null) {
-            familyId = account.getFamilyGroup().getId();
-            memberId = 0; // Oila egasi bo'lsa
+        } else if (account.getHomeScope() != null) {
+            // ADR-002 P2: egasiz (umumiy) hisob ketma-ketligi xonadon bo'yicha
+            familyId = account.getHomeScope().getId();
+            memberId = 0;
         }
 
         long count;
         if (account.getOwner() != null) {
             count = accountRepository.countByOwnerIdAndBalanceAccountCodeAndCurrencyCode(
                     account.getOwner().getId(), balanceAccountCode, currencyCode);
-        } else if (account.getFamilyGroup() != null) {
-            count = accountRepository.countByFamilyGroupIdAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(
-                    account.getFamilyGroup().getId(), balanceAccountCode, currencyCode);
+        } else if (account.getHomeScope() != null) {
+            count = accountRepository.countByHomeScopeIdAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(
+                    account.getHomeScope().getId(), balanceAccountCode, currencyCode);
         } else {
-            count = accountRepository.countByFamilyGroupIsNullAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(
+            count = accountRepository.countByHomeScopeIsNullAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(
                     balanceAccountCode, currencyCode);
         }
 

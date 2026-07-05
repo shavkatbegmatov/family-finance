@@ -229,26 +229,26 @@ BEGIN
     -- 6) Hisoblar — turli balanslar bilan (FARQNI KO'RISH UCHUN!)
     -- =========================================
     INSERT INTO accounts (name, type, currency, balance, opening_balance, status, scope,
-                          color, icon, is_active, owner_id, family_group_id, scope_id,
+                          color, icon, is_active, owner_id, scope_id,
                           created_at, updated_at)
     VALUES
         -- Aka oilasi: o'rta hol (~6.5M)
         ('Aka naqd',    'CASH',      'UZS', 1500000.00,   1500000.00,   'ACTIVE', 'FAMILY',
-         '#10b981', '💵', true, v_aka_fm_id, v_aka_fg_id, v_aka_house_id, NOW(), NOW()),
+         '#10b981', '💵', true, v_aka_fm_id, v_aka_house_id, NOW(), NOW()),
         ('Aka kartasi', 'BANK_CARD', 'UZS', 5000000.00,   5000000.00,   'ACTIVE', 'FAMILY',
-         '#3b82f6', '💳', true, v_aka_fm_id, v_aka_fg_id, v_aka_house_id, NOW(), NOW()),
+         '#3b82f6', '💳', true, v_aka_fm_id, v_aka_house_id, NOW(), NOW()),
 
         -- Singil: student/kambag'al (~250K)
         ('Singil naqd', 'CASH',      'UZS', 250000.00,    250000.00,    'ACTIVE', 'FAMILY',
-         '#f59e0b', '💵', true, v_singil_fm_id, v_singil_fg_id, v_singil_house_id, NOW(), NOW()),
+         '#f59e0b', '💵', true, v_singil_fm_id, v_singil_house_id, NOW(), NOW()),
 
         -- Yangam: boy oila (~130M)
         ('Yangam naqd',       'CASH',      'UZS', 5000000.00,    5000000.00,    'ACTIVE', 'FAMILY',
-         '#a855f7', '💵', true, v_yangam_fm_id, v_yangam_fg_id, v_yangam_house_id, NOW(), NOW()),
+         '#a855f7', '💵', true, v_yangam_fm_id, v_yangam_house_id, NOW(), NOW()),
         ('Yangam kartasi',    'BANK_CARD', 'UZS', 25000000.00,   25000000.00,   'ACTIVE', 'FAMILY',
-         '#ec4899', '💳', true, v_yangam_fm_id, v_yangam_fg_id, v_yangam_house_id, NOW(), NOW()),
+         '#ec4899', '💳', true, v_yangam_fm_id, v_yangam_house_id, NOW(), NOW()),
         ('Yangam jamg''armasi', 'SAVINGS',   'UZS', 100000000.00, 100000000.00, 'ACTIVE', 'FAMILY',
-         '#eab308', '🐷', true, v_yangam_fm_id, v_yangam_fg_id, v_yangam_house_id, NOW(), NOW());
+         '#eab308', '🐷', true, v_yangam_fm_id, v_yangam_house_id, NOW(), NOW());
 
     RAISE NOTICE '  ✓ 6 ta hisob yaratildi (3 oilada turli balans bilan)';
 
