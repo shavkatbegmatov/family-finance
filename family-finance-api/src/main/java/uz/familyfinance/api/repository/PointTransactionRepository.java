@@ -15,7 +15,8 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
 
     Page<PointTransaction> findByParticipantIdOrderByTransactionDateDesc(Long participantId, Pageable pageable);
 
-    Page<PointTransaction> findByFamilyGroupIdOrderByTransactionDateDesc(Long familyGroupId, Pageable pageable);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    Page<PointTransaction> findByScopeIdOrderByTransactionDateDesc(Long scopeId, Pageable pageable);
 
     List<PointTransaction> findByParticipantIdAndType(Long participantId, PointTransactionType type);
 

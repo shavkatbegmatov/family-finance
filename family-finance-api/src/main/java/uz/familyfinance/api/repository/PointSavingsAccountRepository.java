@@ -10,7 +10,8 @@ public interface PointSavingsAccountRepository extends JpaRepository<PointSaving
 
     Optional<PointSavingsAccount> findByParticipantId(Long participantId);
 
-    List<PointSavingsAccount> findByFamilyGroupId(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointSavingsAccount> findByScopeId(Long scopeId);
 
-    Optional<PointSavingsAccount> findByFamilyGroupIdAndParticipantId(Long familyGroupId, Long participantId);
+    Optional<PointSavingsAccount> findByScopeIdAndParticipantId(Long scopeId, Long participantId);
 }

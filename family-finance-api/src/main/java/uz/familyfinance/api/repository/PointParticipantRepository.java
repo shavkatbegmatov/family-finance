@@ -10,11 +10,12 @@ import java.util.Optional;
 
 public interface PointParticipantRepository extends JpaRepository<PointParticipant, Long> {
 
-    List<PointParticipant> findByFamilyGroupIdAndIsActiveTrue(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointParticipant> findByScopeIdAndIsActiveTrue(Long scopeId);
 
-    Page<PointParticipant> findByFamilyGroupId(Long familyGroupId, Pageable pageable);
+    Page<PointParticipant> findByScopeId(Long scopeId, Pageable pageable);
 
-    Optional<PointParticipant> findByFamilyGroupIdAndFamilyMemberId(Long familyGroupId, Long familyMemberId);
+    Optional<PointParticipant> findByScopeIdAndFamilyMemberId(Long scopeId, Long familyMemberId);
 
-    boolean existsByFamilyGroupIdAndFamilyMemberId(Long familyGroupId, Long familyMemberId);
+    boolean existsByScopeIdAndFamilyMemberId(Long scopeId, Long familyMemberId);
 }

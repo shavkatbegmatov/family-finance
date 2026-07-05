@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface PointInflationSnapshotRepository extends JpaRepository<PointInflationSnapshot, Long> {
 
-    List<PointInflationSnapshot> findByFamilyGroupIdOrderBySnapshotDateDesc(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointInflationSnapshot> findByScopeIdOrderBySnapshotDateDesc(Long scopeId);
 }

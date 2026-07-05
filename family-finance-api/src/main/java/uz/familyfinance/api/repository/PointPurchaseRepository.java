@@ -11,5 +11,6 @@ public interface PointPurchaseRepository extends JpaRepository<PointPurchase, Lo
 
     Page<PointPurchase> findByParticipantIdOrderByPurchaseDateDesc(Long participantId, Pageable pageable);
 
-    List<PointPurchase> findByFamilyGroupIdAndIsDeliveredFalse(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointPurchase> findByScopeIdAndIsDeliveredFalse(Long scopeId);
 }

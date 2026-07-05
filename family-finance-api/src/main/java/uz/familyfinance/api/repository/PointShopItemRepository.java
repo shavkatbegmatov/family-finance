@@ -7,7 +7,8 @@ import java.util.List;
 
 public interface PointShopItemRepository extends JpaRepository<PointShopItem, Long> {
 
-    List<PointShopItem> findByFamilyGroupIdAndIsActiveTrue(Long familyGroupId);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    List<PointShopItem> findByScopeIdAndIsActiveTrue(Long scopeId);
 
-    List<PointShopItem> findByFamilyGroupId(Long familyGroupId);
+    List<PointShopItem> findByScopeId(Long scopeId);
 }

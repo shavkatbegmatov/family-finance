@@ -63,8 +63,8 @@ public class PointReportService {
 
     @Transactional(readOnly = true)
     public List<PointWeeklyReportResponse> getSummary() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        List<PointBalance> balances = balanceRepository.findByFamilyGroupIdOrderByTotalEarnedDesc(groupId);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        List<PointBalance> balances = balanceRepository.findByScopeIdOrderByTotalEarnedDesc(scopeId);
         List<PointWeeklyReportResponse> reports = new ArrayList<>();
         for (PointBalance b : balances) {
             PointWeeklyReportResponse report = getWeeklyReport(b.getParticipant().getId());

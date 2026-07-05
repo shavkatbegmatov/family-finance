@@ -82,7 +82,8 @@ public class PointScheduler {
         List<PointConfig> configs = configRepository.findAll();
 
         for (PointConfig config : configs) {
-            List<PointTask> templates = taskRepository.findRecurringTemplates(config.getFamilyGroup().getId());
+            if (config.getScope() == null) continue; // V56'gacha yaratilgan yetim config — hamyon konteksti yo'q
+            List<PointTask> templates = taskRepository.findRecurringTemplates(config.getScope().getId());
             for (PointTask template : templates) {
                 boolean shouldGenerate = false;
                 switch (template.getRecurrence()) {
@@ -154,8 +155,9 @@ public class PointScheduler {
                 continue;
             }
 
+            if (config.getScope() == null) continue; // hamyon kontekstisiz config — inflyatsiya qo'llanmaydi
             BigDecimal factor = BigDecimal.ONE.subtract(config.getInflationRateMonthly());
-            balanceRepository.applyInflation(config.getFamilyGroup().getId(), factor);
+            balanceRepository.applyInflation(config.getScope().getId(), factor);
 
             // Snapshot saqlash
             PointInflationSnapshot snapshot = PointInflationSnapshot.builder()

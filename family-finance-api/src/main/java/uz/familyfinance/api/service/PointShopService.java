@@ -32,15 +32,15 @@ public class PointShopService {
 
     @Transactional(readOnly = true)
     public List<PointShopItemResponse> getActiveItems() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return shopItemRepository.findByFamilyGroupIdAndIsActiveTrue(groupId).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return shopItemRepository.findByScopeIdAndIsActiveTrue(scopeId).stream()
                 .map(this::toItemResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<PointShopItemResponse> getAllItems() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return shopItemRepository.findByFamilyGroupId(groupId).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return shopItemRepository.findByScopeId(scopeId).stream()
                 .map(this::toItemResponse).collect(Collectors.toList());
     }
 

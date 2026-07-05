@@ -34,15 +34,15 @@ public class PointParticipantService {
 
     @Transactional(readOnly = true)
     public List<PointParticipantResponse> getAll() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return participantRepository.findByFamilyGroupIdAndIsActiveTrue(groupId).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return participantRepository.findByScopeIdAndIsActiveTrue(scopeId).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public Page<PointParticipantResponse> getAllPaged(Pageable pageable) {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return participantRepository.findByFamilyGroupId(groupId, pageable).map(this::toResponse);
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return participantRepository.findByScopeId(scopeId, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -59,7 +59,7 @@ public class PointParticipantService {
         var activeScope = configService.getScopeContext().getActiveScope();
 
         if (request.getFamilyMemberId() != null) {
-            if (participantRepository.existsByFamilyGroupIdAndFamilyMemberId(group.getId(), request.getFamilyMemberId())) {
+            if (participantRepository.existsByScopeIdAndFamilyMemberId(group.getId(), request.getFamilyMemberId())) {
                 throw new IllegalArgumentException("Bu oila a'zosi allaqachon ishtirokchi sifatida qo'shilgan");
             }
         }
@@ -122,14 +122,14 @@ public class PointParticipantService {
 
     @Transactional
     public PointParticipantResponse linkMember(Long participantId, PointParticipantLinkRequest request) {
-        Long groupId = configService.getCurrentFamilyGroupId();
+        Long scopeId = configService.getActiveHouseholdScopeId();
         Long currentUserId = getCurrentUserId();
 
         PointParticipant participant = findById(participantId);
-        validateParticipantAccess(participant, groupId);
+        validateParticipantAccess(participant, scopeId);
         validateParticipantIsActive(participant);
 
-        FamilyMember targetMember = findAndValidateFamilyMember(request.getFamilyMemberId(), groupId);
+        FamilyMember targetMember = findAndValidateFamilyMember(request.getFamilyMemberId(), scopeId);
         FamilyMember previousMember = participant.getFamilyMember();
 
         if (previousMember != null && Objects.equals(previousMember.getId(), targetMember.getId())) {
@@ -137,7 +137,7 @@ public class PointParticipantService {
         }
 
         PointParticipant currentOwner = participantRepository
-                .findByFamilyGroupIdAndFamilyMemberId(groupId, targetMember.getId())
+                .findByScopeIdAndFamilyMemberId(scopeId, targetMember.getId())
                 .orElse(null);
         boolean targetBoundToAnother = currentOwner != null && !Objects.equals(currentOwner.getId(), participant.getId());
         boolean participantHadDifferentMember = previousMember != null
@@ -193,11 +193,11 @@ public class PointParticipantService {
 
     @Transactional
     public PointParticipantResponse unlinkMember(Long participantId, PointParticipantUnlinkRequest request) {
-        Long groupId = configService.getCurrentFamilyGroupId();
+        Long scopeId = configService.getActiveHouseholdScopeId();
         Long currentUserId = getCurrentUserId();
 
         PointParticipant participant = findById(participantId);
-        validateParticipantAccess(participant, groupId);
+        validateParticipantAccess(participant, scopeId);
 
         FamilyMember linkedMember = participant.getFamilyMember();
         if (linkedMember == null) {
@@ -266,8 +266,9 @@ public class PointParticipantService {
         return r;
     }
 
-    private void validateParticipantAccess(PointParticipant participant, Long groupId) {
-        if (!Objects.equals(participant.getFamilyGroup().getId(), groupId)) {
+    private void validateParticipantAccess(PointParticipant participant, Long scopeId) {
+        // ADR-002 P1b: ishtirokchi konteksti — hamyon scope'i (participant.scope V39'dan NOT NULL)
+        if (!Objects.equals(participant.getScope().getId(), scopeId)) {
             throw new ResourceNotFoundException("Ishtirokchi topilmadi: " + participant.getId());
         }
     }
@@ -278,11 +279,15 @@ public class PointParticipantService {
         }
     }
 
-    private FamilyMember findAndValidateFamilyMember(Long familyMemberId, Long groupId) {
+    private FamilyMember findAndValidateFamilyMember(Long familyMemberId, Long scopeId) {
         FamilyMember member = familyMemberRepository.findById(familyMemberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi"));
 
-        if (member.getFamilyGroup() == null || !Objects.equals(member.getFamilyGroup().getId(), groupId)) {
+        // A'zolik tekshiruvi GENEALOGIK tenant bo'yicha (FamilyMember'da scope yo'q — ADR-001 F4):
+        // a'zo joriy user oilasidan bo'lishi shart; hamyon konteksti (scopeId) bunga aralashmaydi.
+        FamilyGroup currentTenant = configService.getCurrentFamilyGroup();
+        if (member.getFamilyGroup() == null
+                || !Objects.equals(member.getFamilyGroup().getId(), currentTenant.getId())) {
             throw new ResourceNotFoundException("Oila a'zosi topilmadi");
         }
 

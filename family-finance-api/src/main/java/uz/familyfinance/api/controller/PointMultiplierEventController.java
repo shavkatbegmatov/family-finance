@@ -30,18 +30,18 @@ public class PointMultiplierEventController {
     @GetMapping
     @RequiresPermission(PermissionCode.POINTS_VIEW)
     public ResponseEntity<ApiResponse<List<PointMultiplierEventResponse>>> getAll() {
-        Long groupId = configService.getCurrentFamilyGroupId();
+        Long scopeId = configService.getActiveHouseholdScopeId();
         return ResponseEntity.ok(ApiResponse.success(
-                eventRepository.findByFamilyGroupId(groupId).stream()
+                eventRepository.findByScopeId(scopeId).stream()
                         .map(this::toResponse).collect(Collectors.toList())));
     }
 
     @GetMapping("/active")
     @RequiresPermission(PermissionCode.POINTS_VIEW)
     public ResponseEntity<ApiResponse<List<PointMultiplierEventResponse>>> getActive() {
-        Long groupId = configService.getCurrentFamilyGroupId();
+        Long scopeId = configService.getActiveHouseholdScopeId();
         return ResponseEntity.ok(ApiResponse.success(
-                eventRepository.findAllActiveEvents(groupId, LocalDateTime.now()).stream()
+                eventRepository.findAllActiveEvents(scopeId, LocalDateTime.now()).stream()
                         .map(this::toResponse).collect(Collectors.toList())));
     }
 

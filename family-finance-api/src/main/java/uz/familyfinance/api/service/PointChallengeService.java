@@ -29,15 +29,15 @@ public class PointChallengeService {
 
     @Transactional(readOnly = true)
     public List<PointChallengeResponse> getAll() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return challengeRepository.findByFamilyGroupId(groupId).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return challengeRepository.findByScopeId(scopeId).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<PointChallengeResponse> getActive() {
-        Long groupId = configService.getCurrentFamilyGroupId();
-        return challengeRepository.findByFamilyGroupIdAndStatus(groupId, PointChallengeStatus.ACTIVE).stream()
+        Long scopeId = configService.getActiveHouseholdScopeId();
+        return challengeRepository.findByScopeIdAndStatus(scopeId, PointChallengeStatus.ACTIVE).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 

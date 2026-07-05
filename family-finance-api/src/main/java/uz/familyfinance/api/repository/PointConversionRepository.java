@@ -9,5 +9,6 @@ public interface PointConversionRepository extends JpaRepository<PointConversion
 
     Page<PointConversion> findByParticipantIdOrderByConversionDateDesc(Long participantId, Pageable pageable);
 
-    Page<PointConversion> findByFamilyGroupIdOrderByConversionDateDesc(Long familyGroupId, Pageable pageable);
+    /** ADR-002 P1b: hamyon konteksti (HOUSEHOLD scope) bo'yicha. */
+    Page<PointConversion> findByScopeIdOrderByConversionDateDesc(Long scopeId, Pageable pageable);
 }
