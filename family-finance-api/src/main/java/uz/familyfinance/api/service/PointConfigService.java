@@ -95,24 +95,31 @@ public class PointConfigService {
     }
 
     /**
-     * ADR-002 P1: joriy aktiv xonadon scope'i — Points yozuvlarining hamyon konteksti.
-     * Barcha Point* servislar shu yagona manbadan oladi.
+     * ADR-002 P1/P4: joriy HAMYON-KONTEKSTI — Points'ning yagona kalit manbasi.
+     * Aktiv scope XONADON yoki SINF (CLASS) bo'lsa — o'zi (sinf reytingi/do'koni shu orqali
+     * ishlaydi); GROUP bo'lsa — birinchi faol xonadoni. Konvertatsiya baribir faqat
+     * HOUSEHOLD hamyonida (PointConversionService guard'i).
      */
     public uz.familyfinance.api.entity.Scope getActiveHouseholdScope() {
+        uz.familyfinance.api.entity.Scope active = scopeContext.getActiveScopeOptional().orElse(null);
+        if (active != null && (active.getType() == uz.familyfinance.api.enums.ScopeType.HOUSEHOLD
+                || active.getType() == uz.familyfinance.api.enums.ScopeType.CLASS)) {
+            return active;
+        }
         return scopeContext.getActiveHousehold().orElse(null);
     }
 
     /**
-     * ADR-002 P1: hamyon konteksti ID'si — Points o'qishlarining yagona kaliti.
-     * Aktiv xonadon topilmasa aniq xato — Points faqat xonadon kontekstida ma'noli.
+     * Hamyon konteksti ID'si — topilmasa aniq xato (Points faqat xonadon/sinf
+     * kontekstida ma'noli).
      */
     public Long getActiveHouseholdScopeId() {
-        uz.familyfinance.api.entity.Scope household = getActiveHouseholdScope();
-        if (household == null) {
+        uz.familyfinance.api.entity.Scope context = getActiveHouseholdScope();
+        if (context == null) {
             throw new ResourceNotFoundException(
-                    "Aktiv xonadon topilmadi — Ballar tizimi xonadon kontekstida ishlaydi");
+                    "Aktiv xonadon/sinf topilmadi — Ballar tizimi hamyon kontekstida ishlaydi");
         }
-        return household.getId();
+        return context.getId();
     }
 
     public CustomUserDetails getCurrentUserDetails() {

@@ -107,9 +107,18 @@ SCOPE daraxti:
   jihatdan halol, LEKIN `User.familyGroup` autentifikatsiya/provisioning'ning hamma joyida:
   churn yuqori, funksional foyda nol. Maktablar (P4) bilan birga yoki alohida kichik
   sessiyada qilinadi.
-- **P4 — Maktablar MVP**: `SCHOOL`/`CLASS` scope turlari; `Enrollment`
-  (FamilyMember↔CLASS, consent bilan); o'qituvchi/ma'mur rollari; sinf hamyoni; nickname-first
-  reyting; maktab ochish tasdiq oqimi.
+- **P4 — Maktablar MVP** (qarorlar 2026-07-05: tasdiq=SUPER_ADMIN; nickname MAJBURIY;
+  maktab do'koni MVP'da BOR; 18 yosh — qo'lda o'tkazish):
+  - **P4a (backend) ✅ BAJARILDI** (`V59`): `SCHOOL` (root, ariza→`isActive=false`→SUPER_ADMIN
+    approve) / `CLASS` (parent=SCHOOL) turlari; `Enrollment` (FamilyMember↔CLASS, nickname
+    NOT NULL, consentBy=ota-ona, qayta-yozilish LEFT→ENROLLED); yozilganda sinf hamyoni
+    (PointParticipant scope=CLASS, nickname bilan) + Balance/Savings avtomatik; ota-onaga
+    sinfda VIEWER (mavjud visibility infra); o'qituvchi = CLASS ADMIN. `SchoolController`
+    (`/v1/schools/*`). **Kalit kengaytma:** `getActiveHouseholdScopeId` → hamyon-kontekst
+    (HOUSEHOLD **yoki** CLASS) — P1 tufayli reyting/do'kon/topshiriqlar sinfda avtomatik
+    ishlaydi; konvertatsiya guard'i CLASS'ni baribir rad etadi.
+  - **P4b (frontend)** — qoldi: scopeTypeMeta SCHOOL/CLASS, maktab arizasi/tasdiq UI (admin
+    panel), sinf yaratish/yozish UI, `getDisplayName` nickname-first reyting allaqachon tayyor.
 
 Har bosqich — alohida PR to'lqini, ADR-001 uslubida (CI → merge → deploy → smoke).
 
