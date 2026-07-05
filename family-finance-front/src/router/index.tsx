@@ -39,11 +39,13 @@ const MemberDetailPage = lazy(() => import('../pages/household/MemberDetailPage'
 const FamilyGroupSettingsPage = lazy(() => import('../pages/settings/FamilyGroupSettings').then(m => ({ default: m.FamilyGroupSettings })));
 const BanksPage = lazy(() => import('../pages/settings/BanksPage').then(m => ({ default: m.BanksPage })));
 const ScopeManagementPage = lazy(() => import('../pages/scope/ScopeManagementPage').then(m => ({ default: m.ScopeManagementPage })));
+const SchoolsPage = lazy(() => import('../pages/schools/SchoolsPage').then(m => ({ default: m.SchoolsPage })));
 
 // Super Admin panel pages
 const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage').then(m => ({ default: m.AdminDashboardPage })));
 const AdminFamiliesPage = lazy(() => import('../pages/admin/AdminFamiliesPage').then(m => ({ default: m.AdminFamiliesPage })));
 const AdminFamilyDetailPage = lazy(() => import('../pages/admin/AdminFamilyDetailPage').then(m => ({ default: m.AdminFamilyDetailPage })));
+const AdminSchoolsPage = lazy(() => import('../pages/admin/AdminSchoolsPage').then(m => ({ default: m.AdminSchoolsPage })));
 
 // Points layout & pages
 const PointsLayout = lazy(() => import('../components/points/PointsLayout').then(m => ({ default: m.PointsLayout })));
@@ -305,6 +307,15 @@ export const router = createBrowserRouter([
         handle: { title: 'Guruh va xonadonlar' },
       },
       {
+        path: 'schools',
+        element: (
+          <ProtectedRoute>
+            <LazyRoute><SchoolsPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Maktablar' },
+      },
+      {
         path: 'my-family/settings',
         element: (
           <ProtectedRoute permission={PermissionCode.FAMILY_VIEW}>
@@ -412,6 +423,11 @@ export const router = createBrowserRouter([
         path: 'families/:scopeId',
         element: <LazyRoute><AdminFamilyDetailPage /></LazyRoute>,
         handle: { title: 'Oila tafsiloti' },
+      },
+      {
+        path: 'schools',
+        element: <LazyRoute><AdminSchoolsPage /></LazyRoute>,
+        handle: { title: 'Maktab arizalari' },
       },
       {
         path: 'audit-logs',

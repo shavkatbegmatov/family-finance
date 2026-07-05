@@ -86,7 +86,9 @@ export function ScopeManagementPage() {
       {grouped.map((group) => (
         <div key={group.key} className="rounded-2xl bg-base-100 p-4 shadow-sm lg:p-5">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-base-content/50">
-            {group.groupName ? `Guruh: ${group.groupName}` : 'Mustaqil (guruhsiz)'}
+            {group.groupName
+              ? `${group.groupType === 'SCHOOL' ? 'Maktab' : 'Guruh'}: ${group.groupName}`
+              : 'Mustaqil (guruhsiz)'}
           </div>
           <div className="divide-y divide-base-200">
             {group.scopes.map((scope) => (

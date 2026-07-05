@@ -7,6 +7,7 @@ import {
   Shield,
   Building2,
   FileText,
+  GraduationCap,
   Settings,
   ShieldCheck,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ const menuGroups: MenuGroup[] = [
       { path: '/admin', icon: LayoutDashboard, label: 'Bosh sahifa', permission: PermissionCode.DASHBOARD_VIEW, end: true },
       { path: '/admin/users', icon: UserCog, label: 'Foydalanuvchilar', permission: PermissionCode.USERS_VIEW },
       { path: '/admin/families', icon: Users, label: 'Oilalar', permission: PermissionCode.FAMILY_VIEW },
+      { path: '/admin/schools', icon: GraduationCap, label: 'Maktab arizalari', permission: PermissionCode.FAMILY_VIEW },
       { path: '/admin/audit-logs', icon: FileText, label: 'Audit loglar', permission: PermissionCode.SETTINGS_VIEW },
     ],
   },

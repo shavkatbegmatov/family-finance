@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.13.0',
+        date: '2026-07-05 12:00',
+        title: 'Maktablar va sinf balllari',
+        features: [
+            "Yangi \"Maktablar\" sahifasi: o'qituvchi maktab ochish arizasini beradi (platforma administratori tasdiqlaydi), tasdiqlangan maktabda sinf ochadi va sinf kodini ota-onalarga tarqatadi.",
+            "Ota-ona sinf kodi bilan farzandini yozadi — farzand uchun alohida SINF HAMYONI ochiladi. Sinf balllari uy ballaridan butunlay alohida: reyting va sinf do'konida ishlaydi, lekin pulga aylanmaydi.",
+            "Maxfiylik: sinf reytingida farzandning haqiqiy ismi emas, ota-ona tanlagan taxallus ko'rinadi (haqiqiy ismni faqat o'qituvchi ko'radi). Yozilgan farzandni istalgan payt sinfdan chiqarish mumkin.",
+            "O'qituvchi sinfni tanlab (yuqoridagi kontekst tanlagich) Ball tizimi sahifasida o'quvchilarga ball beradi, vazifa va sinf do'konini yuritadi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.12.1',
         date: '2026-07-04 17:30',
         title: "Mustaqil xonadonga taklif kodi bilan qo'shilish",

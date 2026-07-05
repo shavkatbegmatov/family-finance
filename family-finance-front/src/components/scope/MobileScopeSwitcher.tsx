@@ -117,7 +117,7 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
               <div key={group.key} className="py-1">
                 {group.groupName && (
                   <div className="px-3 py-1.5 text-xs font-semibold text-base-content/70">
-                    🌳 {group.groupName}
+                    {group.groupType === 'SCHOOL' ? '🎓' : '🌳'} {group.groupName}
                   </div>
                 )}
                 {group.scopes.map((s) => (
