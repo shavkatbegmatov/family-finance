@@ -106,9 +106,9 @@ export function JoinFamilyModal({ isOpen, onClose, onJoined }: JoinFamilyModalPr
               )}
               {preview && (
                 <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-                  {getScopeTypeMeta(preview.type).type === 'GROUP' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
+                  <Home className="h-4 w-4" />
                   <span>
-                    <strong>{preview.name}</strong> ({getScopeTypeMeta(preview.type).type === 'GROUP' ? 'Guruh' : 'Xonadon'})
+                    <strong>{preview.name}</strong> ({getScopeTypeMeta(preview.type).label})
                   </span>
                 </div>
               )}

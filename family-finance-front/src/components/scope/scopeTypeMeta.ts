@@ -29,12 +29,14 @@ interface ScopeTypeMeta {
  * ScopeSwitcher va boshqa joylarda foydalanish uchun.
  */
 export const SCOPE_TYPE_META: Record<ScopeType, ScopeTypeMeta> = {
+  // ADR-003: GROUP iste'foda (V60 arxivladi) — meta faqat super admin arxiv
+  // qatorlari va eski localStorage skew'i uchun qoladi; UI oqimlarida ishlatilmaydi.
   GROUP: {
     type: 'GROUP',
-    label: 'Guruh',
+    label: 'Guruh (arxiv)',
     icon: Users2,
-    toneClass: 'text-emerald-500 bg-emerald-500/10',
-    description: 'Bir nechta xonadon ustidagi ixtiyoriy moliyaviy guruh',
+    toneClass: 'text-slate-400 bg-slate-400/10',
+    description: "Iste'foga chiqarilgan guruh turi — xonadonlar endi mustaqil",
   },
   HOUSEHOLD: {
     type: 'HOUSEHOLD',
@@ -108,10 +110,10 @@ export function getScopeTypeMeta(type: string | null | undefined): ScopeTypeMeta
 
 /** Tartiblash uchun standart tartib (ScopeSwitcher dropdown'da). */
 export const SCOPE_TYPE_ORDER: ScopeType[] = [
-  'GROUP',
   'HOUSEHOLD',
   'SCHOOL',
   'CLASS',
+  'GROUP',
   'PROJECT',
   'EVENT',
   'FUND',

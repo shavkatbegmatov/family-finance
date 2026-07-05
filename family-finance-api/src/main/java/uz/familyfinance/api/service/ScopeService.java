@@ -75,7 +75,10 @@ public class ScopeService {
      */
     @Transactional(readOnly = true)
     public List<ScopeResponse> getAllScopes() {
+        // ADR-003: faqat faol scope'lar — V60 arxivlagan eski GROUP'lar (va boshqa
+        // arxivlar) super admin ro'yxatini ifloslantirmasligi uchun.
         return scopeRepository.findAll().stream()
+                .filter(s -> Boolean.TRUE.equals(s.getIsActive()))
                 .map(scope -> {
                     ScopeResponse r = ScopeResponse.from(scope);
                     r.setMemberCount(membershipRepository.countByScopeIdAndStatus(
@@ -109,12 +112,11 @@ public class ScopeService {
         validateCreateRequest(request);
 
         User currentUser = scopeContext.getCurrentUser();
-        Scope parent = resolveAndValidateParent(request);
 
+        // ADR-003: bu API faqat mustaqil (root) HOUSEHOLD yaratadi — parent yo'q.
         Scope scope = Scope.builder()
                 .type(request.getType())
                 .name(request.getName().trim())
-                .parentScope(parent)
                 .ownerUser(currentUser)
                 .uniqueCode(inviteCodeGenerator.generateForType(request.getType()))
                 .displayCode(request.getType() == ScopeType.HOUSEHOLD ? householdCodeGenerator.generate() : null)
@@ -143,44 +145,24 @@ public class ScopeService {
     }
 
     private void validateCreateRequest(ScopeCreateRequest request) {
-        // ADR-002 P3 (Q2): faqat GROUP va HOUSEHOLD yaratiladi. PROJECT/EVENT/FUND/TRUSTEE/
-        // PROPERTY bekor — to'y/hashar/fond = tashkilotchi xonadonidagi SavingsGoal + boshqa
-        // xonadonlardan hissa-transferlar. Enum qiymatlari o'qish uchun qoladi (mavjud
-        // ma'lumot bo'lsa buzilmaydi), yangi yaratish yopiq.
-        if (request.getType() != ScopeType.GROUP && request.getType() != ScopeType.HOUSEHOLD) {
+        // ADR-002 P3 + ADR-003: bu API orqali faqat HOUSEHOLD yaratiladi. GROUP olib
+        // tashlandi (unda moliyaviy ma'lumot bo'lmagan — V60 arxivladi); PROJECT/EVENT/
+        // FUND/TRUSTEE/PROPERTY bekor — SavingsGoal + hissa-transferlar; SCHOOL/CLASS
+        // faqat SchoolController oqimi orqali. Enum qiymatlari arxiv qatorlarni o'qish
+        // uchun qoladi.
+        if (request.getType() != ScopeType.HOUSEHOLD) {
             throw new BadRequestException(
                     "Bu scope turi endi qo'llanmaydi — maqsadli to'plash uchun Jamg'arma maqsadi"
-                    + " (SavingsGoal), tadbirlar uchun byudjet ishlating");
+                    + " (SavingsGoal), maktab/sinf uchun Maktablar bo'limini ishlating");
         }
-        if (request.getType().requiresParent() && request.getParentScopeId() == null) {
-            throw new BadRequestException(request.getType() + " uchun parent scope majburiy");
-        }
-        if (request.getType().forbidsParent() && request.getParentScopeId() != null) {
-            throw new BadRequestException("GROUP scope uchun parent bo'lishi mumkin emas");
+        if (request.getParentScopeId() != null) {
+            throw new BadRequestException(
+                    "Xonadon har doim mustaqil — parent ko'rsatilmaydi (ADR-003)");
         }
         if (request.getEndsAt() != null && request.getStartsAt() != null
                 && request.getEndsAt().isBefore(request.getStartsAt())) {
             throw new BadRequestException("Tugash sanasi boshlanish sanasidan oldin bo'la olmaydi");
         }
-    }
-
-    private Scope resolveAndValidateParent(ScopeCreateRequest request) {
-        if (request.getParentScopeId() == null) {
-            return null;
-        }
-        Scope parent = findScopeOrThrow(request.getParentScopeId());
-
-        // Faqat GROUP ostida HOUSEHOLD bo'lishi mumkin
-        if (request.getType() == ScopeType.HOUSEHOLD && parent.getType() != ScopeType.GROUP) {
-            throw new BadRequestException("HOUSEHOLD faqat GROUP ostida yaratilishi mumkin");
-        }
-
-        // Boshqaruv ruxsati tekshiruvi
-        if (!scopeContext.canManageScope(parent.getId())) {
-            throw new AccessDeniedException(
-                    "Sizda parent scope'da yangi sub-scope yaratish ruxsati yo'q");
-        }
-        return parent;
     }
 
     // ====================================================================
@@ -224,78 +206,6 @@ public class ScopeService {
                         "Bunday taklif kodi topilmadi yoki bekor qilingan"));
         // Faqat bazaviy ma'lumot: nom va turi — sezgir narsa qaytarmaymiz
         return ScopeResponse.from(scope);
-    }
-
-    // ====================================================================
-    // Parent (Group) boshqaruvi — ADR-001 decoupling UX
-    // ====================================================================
-
-    /**
-     * Xonadonni guruhga biriktirish yoki guruhdan uzish (parentScopeId = null).
-     *
-     * <p>Ruxsat qoidalari:</p>
-     * <ul>
-     *   <li><b>Biriktirish:</b> xonadonda OWNER/ADMIN + guruhda yozish huquqi
-     *       (kamida MEMBER a'zolik) — guruhga a'zo bo'lmagan odam xonadonini unga ulay olmaydi.</li>
-     *   <li><b>Uzish:</b> xonadonda OWNER/ADMIN <i>yoki</i> guruhda OWNER/ADMIN
-     *       (guruh egasi begona xonadonni chiqarib yubora oladi).</li>
-     * </ul>
-     *
-     * <p>Ko'chirish (guruhdan guruhga) to'g'ridan-to'g'ri qo'llanmaydi — avval uzish,
-     * keyin biriktirish (ikkala tomonning ruxsat tekshiruvi aniq bo'lishi uchun).</p>
-     */
-    @Transactional
-    public ScopeResponse setHouseholdParent(Long householdId, Long parentScopeId) {
-        Scope household = findScopeOrThrow(householdId);
-        if (household.getType() != ScopeType.HOUSEHOLD) {
-            throw new BadRequestException("Faqat xonadonni guruhga biriktirish/uzish mumkin");
-        }
-
-        if (parentScopeId == null) {
-            detachFromGroup(household);
-        } else {
-            attachToGroup(household, parentScopeId);
-        }
-
-        scopeRepository.save(household);
-        return ScopeResponse.from(household);
-    }
-
-    private void attachToGroup(Scope household, Long groupId) {
-        if (!scopeContext.canManageScope(household.getId())) {
-            throw new AccessDeniedException("Xonadonni biriktirish uchun unda OWNER/ADMIN bo'lishingiz kerak");
-        }
-        if (household.getParentScope() != null) {
-            throw new BadRequestException(
-                    "Xonadon allaqachon guruhga biriktirilgan — avval joriy guruhdan chiqaring");
-        }
-        Scope group = findScopeOrThrow(groupId);
-        if (group.getType() != ScopeType.GROUP || !Boolean.TRUE.equals(group.getIsActive())) {
-            throw new BadRequestException("Biriktirish faqat faol GROUP scope'ga mumkin");
-        }
-        if (!scopeContext.canWriteToScope(groupId)) {
-            throw new AccessDeniedException(
-                    "Guruhga biriktirish uchun unda kamida a'zo (MEMBER) bo'lishingiz kerak");
-        }
-        household.setParentScope(group);
-        log.info("Household {} attached to group {} by user {}",
-                household.getId(), groupId, scopeContext.getCurrentUserId());
-    }
-
-    private void detachFromGroup(Scope household) {
-        Scope currentGroup = household.getParentScope();
-        if (currentGroup == null) {
-            throw new BadRequestException("Xonadon hech qanday guruhga biriktirilmagan");
-        }
-        boolean canManageHousehold = scopeContext.canManageScope(household.getId());
-        boolean canManageGroup = scopeContext.canManageScope(currentGroup.getId());
-        if (!canManageHousehold && !canManageGroup) {
-            throw new AccessDeniedException(
-                    "Guruhdan chiqarish uchun xonadonda yoki guruhda OWNER/ADMIN bo'lishingiz kerak");
-        }
-        household.setParentScope(null);
-        log.info("Household {} detached from group {} by user {}",
-                household.getId(), currentGroup.getId(), scopeContext.getCurrentUserId());
     }
 
     // ====================================================================

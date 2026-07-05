@@ -115,15 +115,16 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
           >
             {grouped.map((group) => (
               <div key={group.key} className="py-1">
-                {group.groupName && (
+                {group.groupName && group.groupType === 'SCHOOL' && (
                   <div className="px-3 py-1.5 text-xs font-semibold text-base-content/70">
-                    {group.groupType === 'SCHOOL' ? '🎓' : '🌳'} {group.groupName}
+                    🎓 {group.groupName}
                   </div>
                 )}
                 {group.scopes.map((s) => (
                   <MobileScopeOption
                     key={s.id}
                     scope={s}
+                    indented={group.groupType === 'SCHOOL' && s.type !== 'SCHOOL'}
                     isActive={s.id === activeScope.id}
                     isSwitching={switchingId === s.id}
                     onClick={() => handleSwitch(s)}
@@ -141,11 +142,14 @@ export function MobileScopeSwitcher({ className }: { className?: string }) {
 /** Varaqdagi bitta scope qatori — 44px+ touch-target bilan. */
 function MobileScopeOption({
   scope,
+  indented = false,
   isActive,
   isSwitching,
   onClick,
 }: {
   scope: Scope;
+  /** Container (maktab) sarlavhasi ostidagi bola — chapdan joy ochish. */
+  indented?: boolean;
   isActive: boolean;
   isSwitching: boolean;
   onClick: () => void;
@@ -161,7 +165,7 @@ function MobileScopeOption({
       disabled={isSwitching || isActive}
       className={clsx(
         'flex min-h-[3rem] w-full items-center gap-3 rounded-xl px-3 py-2 text-left tap-sm',
-        meta.type !== 'GROUP' && 'ml-3 w-[calc(100%-0.75rem)]',
+        indented && 'ml-3 w-[calc(100%-0.75rem)]',
         isActive ? 'bg-primary/10 text-primary' : 'active:bg-base-200',
         isSwitching && 'opacity-50',
       )}

@@ -189,8 +189,9 @@ public class MembershipService {
     // ====================================================================
 
     /**
-     * Login qilingan user invite code orqali boshqa oilaga MEMBER bo'lib qo'shiladi.
-     * <p>Eski auto-yaratilgan guruh/xonadoni bo'sh va u yagona a'zo bo'lsa — arxivlanadi.</p>
+     * Login qilingan user invite code orqali boshqa XONADONGA MEMBER bo'lib qo'shiladi
+     * (ADR-003: faqat HOUSEHOLD kodi — GROUP iste'foda).
+     * <p>Eski auto-yaratilgan xonadoni bo'sh va u yagona a'zo bo'lsa — arxivlanadi.</p>
      */
     @Transactional
     public MembershipResponse joinByCode(String inviteCode, boolean archiveOldGroup) {
@@ -209,36 +210,19 @@ public class MembershipService {
                 .orElseThrow(() -> new BadRequestException(
                         "Taklif kodi noto'g'ri yoki bekor qilingan: " + inviteCode));
 
-        // GROUP va HOUSEHOLD aniqlash (registratsiyadagi mantiq bilan bir xil).
-        // Root xonadon (parent'siz, ADR-001) ham qo'llanadi — group null bo'ladi.
-        Scope group;
-        Scope household;
-        if (target.getType() == ScopeType.GROUP) {
-            group = target;
-            household = scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
-                    group.getId(), ScopeType.HOUSEHOLD)
-                    .orElseThrow(() -> new BadRequestException(
-                            "Bu guruhda hech qanday faol xonadon topilmadi"));
-        } else if (target.getType() == ScopeType.HOUSEHOLD) {
-            household = target;
-            group = target.getParentScope();  // null = mustaqil root xonadon
-            if (group != null && group.getType() != ScopeType.GROUP) {
-                throw new BadRequestException("Xonadon noto'g'ri guruhga ulangan");
-            }
-        } else {
+        // ADR-003: faqat xonadon kodi qabul qilinadi (arxiv GROUP kodlari baribir
+        // isActive filtridan o'tmaydi).
+        if (target.getType() != ScopeType.HOUSEHOLD) {
             throw new BadRequestException(
-                    "Bu kod orqali qo'shilish faqat GROUP/HOUSEHOLD uchun mumkin");
+                    "Bu kod orqali qo'shilish faqat xonadon kodi bilan mumkin");
         }
+        Scope household = target;
 
-        // Mavjud auto-yaratilgan guruh/xonadonni arxivlash (agar so'ralgan bo'lsa)
+        // Mavjud auto-yaratilgan bo'sh xonadonni arxivlash (agar so'ralgan bo'lsa)
         if (archiveOldGroup) {
             archiveUserEmptyOldScopes(user);
         }
 
-        // GROUP'ga MEMBER bo'lib qo'shish (faqat guruh bor bo'lsa)
-        if (group != null) {
-            ensureMembership(group, user, ScopeRole.MEMBER);
-        }
         // HOUSEHOLD'ga MEMBER bo'lib qo'shish va asosiy ScopeMembership'ni saqlash
         ScopeMembership newHouseholdMembership = ensureMembership(household, user, ScopeRole.MEMBER);
 
@@ -256,8 +240,8 @@ public class MembershipService {
         }
         userRepository.save(user);
 
-        log.info("User {} joined scope via code: group={}, household={}",
-                user.getUsername(), group != null ? group.getId() : null, household.getId());
+        log.info("User {} joined household via code: household={}",
+                user.getUsername(), household.getId());
 
         return MembershipResponse.from(newHouseholdMembership);
     }
@@ -313,42 +297,30 @@ public class MembershipService {
     }
 
     /**
-     * User o'z auto-yaratilgan eski guruh/xonadonidan tushib qoladi va u bo'sh qolsa
-     * (faqat o'zi a'zo edi) — arxivlash (is_active=false). Root xonadon (guruhsiz,
-     * ADR-001 yangi modeli) ham qamrab olinadi.
+     * User o'z auto-yaratilgan eski xonadonidan tushib qoladi va u bo'sh qolsa
+     * (faqat o'zi a'zo edi) — arxivlash (is_active=false). ADR-003: primaryScope
+     * endi doim HOUSEHOLD (V60 GROUP'larni allaqachon arxivlagan).
      */
     private void archiveUserEmptyOldScopes(User user) {
         Scope oldHousehold = user.getPrimaryScope();
-        if (oldHousehold == null) return;
-
-        // Arxivlash nomzodi: xonadonning guruhi (bo'lsa) yoki xonadonning o'zi (root model)
-        Scope oldTop = oldHousehold.getType() == ScopeType.GROUP
-                ? oldHousehold
-                : (oldHousehold.getParentScope() != null ? oldHousehold.getParentScope() : oldHousehold);
-        if (oldTop.getType() != ScopeType.GROUP && oldTop.getType() != ScopeType.HOUSEHOLD) return;
+        if (oldHousehold == null || oldHousehold.getType() != ScopeType.HOUSEHOLD) return;
 
         long otherMembers = membershipRepository
-                .findByScopeIdAndStatus(oldTop.getId(), MembershipStatus.ACTIVE).stream()
+                .findByScopeIdAndStatus(oldHousehold.getId(), MembershipStatus.ACTIVE).stream()
                 .filter(m -> !m.getUser().getId().equals(user.getId()))
                 .count();
         if (otherMembers > 0) return; // Boshqa a'zolar bor — arxivlamaymiz
 
-        // User'ning eski membership'larini LEFT qilamiz
-        membershipRepository.findByScopeIdAndUserId(oldTop.getId(), user.getId())
-                .ifPresent(m -> { m.setStatus(MembershipStatus.LEFT); membershipRepository.save(m); });
+        // User'ning eski membership'ini LEFT qilamiz
         membershipRepository.findByScopeIdAndUserId(oldHousehold.getId(), user.getId())
                 .ifPresent(m -> { m.setStatus(MembershipStatus.LEFT); membershipRepository.save(m); });
 
-        // Scope'larni inactive qilamiz (data o'chmaydi, faqat ko'rinmaydi)
-        oldTop.setIsActive(false);
-        scopeRepository.save(oldTop);
-        if (!oldTop.getId().equals(oldHousehold.getId())) {
-            oldHousehold.setIsActive(false);
-            scopeRepository.save(oldHousehold);
-        }
+        // Scope'ni inactive qilamiz (data o'chmaydi, faqat ko'rinmaydi)
+        oldHousehold.setIsActive(false);
+        scopeRepository.save(oldHousehold);
 
-        log.info("Archived empty auto-created scope {} (user {} left)",
-                oldTop.getId(), user.getUsername());
+        log.info("Archived empty auto-created household {} (user {} left)",
+                oldHousehold.getId(), user.getUsername());
     }
 
     @Transactional

@@ -105,9 +105,9 @@ public class AuthService {
         user.getRoles().add(memberRole);
         user = userRepository.save(user);
 
-        // YANGI: Scope provisioning ikki yo'l bilan:
-        // 1) inviteCode bor bo'lsa — mavjud oilaga MEMBER bo'lib qo'shiladi
-        // 2) inviteCode yo'q bo'lsa — yangi GROUP+HOUSEHOLD yaratiladi (auto-provisioning)
+        // Scope provisioning ikki yo'l bilan:
+        // 1) inviteCode bor bo'lsa — mavjud xonadonga MEMBER bo'lib qo'shiladi
+        // 2) inviteCode yo'q bo'lsa — yangi mustaqil HOUSEHOLD yaratiladi (auto-provisioning)
         String code = request.getInviteCode() != null ? request.getInviteCode().trim() : "";
         if (!code.isEmpty()) {
             joinExistingScopeByCode(user, code, request);
@@ -131,14 +131,12 @@ public class AuthService {
     }
 
     /**
-     * Yangi ro'yxatdan o'tgan user uchun to'liq scope strukturasini yaratadi:
+     * Yangi ro'yxatdan o'tgan user uchun scope strukturasini yaratadi:
      * <ol>
-     *   <li>FamilyGroup (legacy uyg'unligi uchun)</li>
-     *   <li>GROUP scope (parent=null, owner=user)</li>
-     *   <li>HOUSEHOLD scope (parent=GROUP, owner=user)</li>
-     *   <li>2 ta ScopeMembership: ikkalasida ham OWNER role</li>
+     *   <li>FamilyGroup (genealogik tenant)</li>
+     *   <li>Mustaqil root HOUSEHOLD scope (owner=user) + OWNER membership</li>
      *   <li>User.familyGroup va User.primaryScope (=household) o'rnatiladi</li>
-     *   <li>FamilyMember (legacy) — yangi familyGroup'ga biriktiriladi</li>
+     *   <li>FamilyMember — yangi familyGroup'ga biriktiriladi</li>
      * </ol>
      */
     private void provisionInitialScopeFor(User user, RegisterRequest request) {
@@ -148,13 +146,11 @@ public class AuthService {
     }
 
     /**
-     * Mavjud Scope'ga (invite code orqali) user'ni MEMBER bo'lib qo'shadi.
+     * Mavjud XONADONGA (invite code orqali) user'ni MEMBER bo'lib qo'shadi (ADR-003:
+     * faqat HOUSEHOLD kodi — GROUP iste'foda, arxiv kodlari isActive filtridan o'tmaydi).
      * <ul>
-     *   <li>Kod prefiksiga ko'ra: C=GROUP, H=HOUSEHOLD, P=PROJECT, EVENT...</li>
-     *   <li>HOUSEHOLD kodi bilan kelsa: HOUSEHOLD'ga MEMBER + parent GROUP'ga ham MEMBER</li>
-     *   <li>GROUP kodi bilan kelsa: GROUP'ga MEMBER + birinchi HOUSEHOLD'ga ham MEMBER (agar bor bo'lsa)</li>
      *   <li>User.familyGroup va User.primaryScope (=HOUSEHOLD) o'rnatiladi</li>
-     *   <li>FamilyMember (legacy) yaratiladi va familyGroup'ga biriktiriladi</li>
+     *   <li>FamilyMember yaratiladi va familyGroup'ga biriktiriladi</li>
      * </ul>
      */
     private void joinExistingScopeByCode(User user, String inviteCode, RegisterRequest request) {
@@ -163,25 +159,11 @@ public class AuthService {
                 .orElseThrow(() -> new BadRequestException(
                         "Taklif kodi noto'g'ri yoki bekor qilingan: " + inviteCode));
 
-        // GROUP va HOUSEHOLD scope'larini aniqlash
-        Scope clan;
-        Scope household;
-        if (targetScope.getType() == ScopeType.GROUP) {
-            clan = targetScope;
-            household = scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
-                    clan.getId(), ScopeType.HOUSEHOLD)
-                    .orElseThrow(() -> new BadRequestException(
-                            "Bu urug'da hech qanday faol xonadon topilmadi"));
-        } else if (targetScope.getType() == ScopeType.HOUSEHOLD) {
-            household = targetScope;
-            clan = targetScope.getParentScope();  // null = mustaqil root xonadon (GROUP ixtiyoriy)
-            if (clan != null && clan.getType() != ScopeType.GROUP) {
-                throw new BadRequestException("Xonadon noto'g'ri guruhga ulangan");
-            }
-        } else {
+        if (targetScope.getType() != ScopeType.HOUSEHOLD) {
             throw new BadRequestException(
-                    "Ushbu kod orqali ro'yxatdan o'tish faqat GROUP/HOUSEHOLD uchun mumkin");
+                    "Ushbu kod orqali ro'yxatdan o'tish faqat xonadon kodi bilan mumkin");
         }
+        Scope household = targetScope;
 
         // Genealogik tenant — xonadon egasining familyGroup'i (ADR-001 F5: legacy FK yo'q)
         User householdOwner = household.getOwnerUser();
@@ -191,19 +173,15 @@ public class AuthService {
                     "Tanlangan xonadon egasining oila guruhi yo'q — qo'lda fix talab etiladi");
         }
 
-        // 1) GROUP'ga MEMBER bo'lib qo'shish (faqat GROUP bor bo'lsa)
-        if (clan != null) {
-            scopeMembershipService.addMembershipIfAbsent(clan, user, ScopeRole.MEMBER);
-        }
-        // 2) HOUSEHOLD'ga MEMBER bo'lib qo'shish
+        // 1) HOUSEHOLD'ga MEMBER bo'lib qo'shish
         scopeMembershipService.addMembershipIfAbsent(household, user, ScopeRole.MEMBER);
 
-        // 3) User'ni familyGroup va primaryScope ga bog'lash
+        // 2) User'ni familyGroup va primaryScope ga bog'lash
         user.setFamilyGroup(familyGroup);
         user.setPrimaryScope(household);
         userRepository.save(user);
 
-        // 4) FamilyMember (legacy)
+        // 3) FamilyMember (legacy)
         boolean hasMember = familyMemberRepository.findByUserId(user.getId()).isPresent();
         if (!hasMember) {
             FamilyMember familyMember = FamilyMember.builder()
@@ -218,8 +196,8 @@ public class AuthService {
             familyMemberRepository.save(familyMember);
         }
 
-        log.info("User '{}' joined existing scope via invite code: group={}, household={}",
-                user.getUsername(), clan != null ? clan.getId() : null, household.getId());
+        log.info("User '{}' joined existing household via invite code: household={}",
+                user.getUsername(), household.getId());
     }
 
     /**
@@ -237,7 +215,7 @@ public class AuthService {
         User user = userRepository.findById(userParam.getId()).orElse(null);
         if (user == null) return;
 
-        // SUPER_ADMIN — alohida platforma profili: oilasiz/scope'siz. Unga GROUP+HOUSEHOLD
+        // SUPER_ADMIN — alohida platforma profili: oilasiz/scope'siz. Unga xonadon
         // provisioning QILINMAYDI (login'da activeScopeId=null bo'lib qoladi, nazorat-only UI).
         if (Boolean.TRUE.equals(user.getIsSuperAdmin())) {
             return;

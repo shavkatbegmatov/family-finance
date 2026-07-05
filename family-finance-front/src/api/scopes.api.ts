@@ -11,8 +11,8 @@ import type {
 } from '../types/scope.types';
 
 /**
- * Multi-level Scope (Clan + Household + Project + Event + Fund + Trustee + Property)
- * va Membership boshqaruvi uchun REST klient.
+ * Scope (Household, School/Class) va Membership boshqaruvi uchun REST klient.
+ * ADR-003: GROUP iste'foda — xonadonlar har doim mustaqil.
  *
  * Backend: ScopeController (/v1/scopes/*) va AuthController (/v1/auth/switch-scope).
  */
@@ -36,15 +36,6 @@ export const scopesApi = {
 
   create: (data: ScopeCreateRequest) =>
     axiosInstance.post<ApiResponse<Scope>>('/v1/scopes', data),
-
-  /**
-   * Xonadonni guruhga biriktirish yoki uzish (ADR-001 decoupling UX).
-   * parentScopeId = guruh ID (biriktirish) yoki null (guruhdan chiqarish).
-   */
-  setParent: (scopeId: number, parentScopeId: number | null) =>
-    axiosInstance.put<ApiResponse<Scope>>(`/v1/scopes/${scopeId}/parent`, {
-      parentScopeId,
-    }),
 
   deactivate: (id: number) =>
     axiosInstance.delete<ApiResponse<void>>(`/v1/scopes/${id}`),
@@ -126,7 +117,7 @@ export const scopesApi = {
 
   /**
    * Login qilingan user invite code orqali boshqa oilaga qo'shiladi.
-   * archiveOldGroup=true bo'lsa, eski bo'sh guruh/xonadon arxivlanadi.
+   * archiveOldGroup=true bo'lsa, eski bo'sh xonadon arxivlanadi.
    */
   joinByCode: (inviteCode: string, archiveOldGroup: boolean = false) =>
     axiosInstance.post<ApiResponse<Membership>>('/v1/scopes/join-by-code', {

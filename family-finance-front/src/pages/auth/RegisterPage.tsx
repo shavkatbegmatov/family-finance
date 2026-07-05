@@ -375,9 +375,9 @@ export function RegisterPage() {
                 )}
                 {codePreview && (
                   <div className="mt-2 flex items-center gap-2 rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-                    {getScopeTypeMeta(codePreview.type).type === 'GROUP' ? <Users className="h-4 w-4" /> : <Home className="h-4 w-4" />}
+                    <Home className="h-4 w-4" />
                     <span>
-                      <strong>{codePreview.name}</strong> ({getScopeTypeMeta(codePreview.type).type === 'GROUP' ? 'Guruh' : 'Xonadon'}) ga
+                      <strong>{codePreview.name}</strong> ({getScopeTypeMeta(codePreview.type).label}) ga
                       MEMBER bo'lib qo'shilasiz
                     </span>
                   </div>

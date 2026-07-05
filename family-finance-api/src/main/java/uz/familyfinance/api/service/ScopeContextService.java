@@ -197,6 +197,9 @@ public class ScopeContextService {
         if (scope.getType() == ScopeType.HOUSEHOLD) {
             return Optional.of(scope);
         }
+        // ADR-003 skew-himoya: eski JWT'da activeScopeId hali arxivlangan GROUP bo'lishi
+        // mumkin (deploy oynasi) — V60'dan keyin bunday guruhning bolalari uzilgan, shu
+        // sabab bu tarmoq odatda bo'sh qaytadi va chaqiruvchi xavfsiz xato beradi.
         if (scope.getType() == ScopeType.GROUP) {
             return scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
                     scope.getId(), ScopeType.HOUSEHOLD);
@@ -222,17 +225,6 @@ public class ScopeContextService {
                 ? active
                 : resolveHousehold(active).orElse(null);
         return wallet != null && canManageScope(wallet.getId());
-    }
-
-    /**
-     * Joriy aktiv scope tegishli bo'lgan GROUP (urug'). Aktiv scope GROUP bo'lsa — o'zi;
-     * HOUSEHOLD (yoki boshqa) bo'lsa — uning ota-scope'i (GROUP). Yangi HOUSEHOLD'larni shu
-     * GROUP ostiga joylashtirish uchun ishlatiladi.
-     */
-    @Transactional(readOnly = true)
-    public Optional<Scope> getActiveGroupOptional() {
-        return getActiveScopeOptional().map(scope ->
-                scope.getType() == ScopeType.GROUP ? scope : scope.getParentScope());
     }
 
     // ====================================================================

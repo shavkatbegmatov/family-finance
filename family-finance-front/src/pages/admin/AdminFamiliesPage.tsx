@@ -54,7 +54,7 @@ export function AdminFamiliesPage() {
     );
   }, [data, search]);
 
-  const groupCount = useMemo(() => (data ?? []).filter((s) => s.type === 'GROUP').length, [data]);
+  const schoolCount = useMemo(() => (data ?? []).filter((s) => s.type === 'SCHOOL').length, [data]);
   const householdCount = useMemo(
     () => (data ?? []).filter((s) => s.type === 'HOUSEHOLD').length,
     [data],
@@ -64,13 +64,13 @@ export function AdminFamiliesPage() {
     <div className="space-y-4 lg:space-y-6">
       <PageHeader
         title="Oilalar"
-        subtitle="Platformadagi barcha guruh va xonadonlar (faqat ko'rish)"
+        subtitle="Platformadagi barcha xonadon va maktablar (faqat ko'rish)"
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Jami scope" value={(data ?? []).length} />
-        <StatCard label="Guruhlar" value={groupCount} />
         <StatCard label="Xonadonlar" value={householdCount} />
+        <StatCard label="Maktablar" value={schoolCount} />
       </div>
 
       <div className="relative">

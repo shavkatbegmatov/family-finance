@@ -42,8 +42,8 @@ export function AdminDashboardPage() {
     queryFn: async () => (await scopesApi.getAllScopes()).data.data,
   });
 
-  const groupCount = (scopes ?? []).filter((s) => s.type === 'GROUP').length;
   const householdCount = (scopes ?? []).filter((s) => s.type === 'HOUSEHOLD').length;
+  const schoolCount = (scopes ?? []).filter((s) => s.type === 'SCHOOL').length;
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -60,8 +60,8 @@ export function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatCard label="Guruhlar" value={groupCount} />
         <StatCard label="Xonadonlar" value={householdCount} />
+        <StatCard label="Maktablar" value={schoolCount} />
         <StatCard label="Jami scope" value={(scopes ?? []).length} />
       </div>
 
