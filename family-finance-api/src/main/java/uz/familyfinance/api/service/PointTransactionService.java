@@ -34,6 +34,7 @@ public class PointTransactionService {
 
         PointTransaction tx = PointTransaction.builder()
                 .familyGroup(participant.getFamilyGroup())
+                .scope(participant.getScope())
                 .participant(participant)
                 .type(type)
                 .amount(amount)

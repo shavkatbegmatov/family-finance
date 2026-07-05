@@ -60,6 +60,7 @@ public class PointInvestmentService {
 
         PointInvestment investment = PointInvestment.builder()
                 .familyGroup(participant.getFamilyGroup())
+                .scope(participant.getScope())
                 .participant(participant)
                 .type(type)
                 .investedAmount(request.getAmount())

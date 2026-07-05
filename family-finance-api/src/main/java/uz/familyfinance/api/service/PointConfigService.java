@@ -45,6 +45,10 @@ public class PointConfigService {
                     c.setFamilyGroup(userDetails.getUser().getFamilyGroup());
                     return c;
                 });
+        // ADR-002 P1 dual-write: hamyon konteksti (V39'da scope set qilinmay qolgan bug fix)
+        if (config.getScope() == null) {
+            config.setScope(getActiveHouseholdScope());
+        }
 
         config.setConversionRate(request.getConversionRate());
         if (request.getCurrency() != null) config.setCurrency(request.getCurrency());
@@ -103,6 +107,14 @@ public class PointConfigService {
 
     public Long getCurrentFamilyGroupId() {
         return getCurrentFamilyGroup().getId();
+    }
+
+    /**
+     * ADR-002 P1: joriy aktiv xonadon scope'i — Points yozuvlarining hamyon konteksti.
+     * Barcha Point* servislar dual-write davrida shu yagona manbadan oladi.
+     */
+    public uz.familyfinance.api.entity.Scope getActiveHouseholdScope() {
+        return scopeContext.getActiveHousehold().orElse(null);
     }
 
     /**

@@ -22,6 +22,11 @@ public class PointInflationSnapshot extends BaseEntity {
     @JoinColumn(name = "family_group_id", nullable = false)
     private FamilyGroup familyGroup;
 
+    /** ADR-002 P1: hamyon konteksti (HOUSEHOLD scope). V56 backfill; P1c'da NOT NULL + fg DROP. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private Scope scope;
+
     @Column(name = "snapshot_date", nullable = false)
     private LocalDate snapshotDate;
 

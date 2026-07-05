@@ -61,6 +61,7 @@ public class PointConversionService {
         // Konversiya yozuvi
         PointConversion conversion = PointConversion.builder()
                 .familyGroup(participant.getFamilyGroup())
+                .scope(participant.getScope())
                 .participant(participant)
                 .pointsConverted(request.getPoints())
                 .conversionRate(conversionRate)
