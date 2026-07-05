@@ -79,11 +79,18 @@ SCOPE daraxti:
 
 ## 6. Bosqichlar
 
-- **P1 — Points → (shaxs, kontekst)**: 14 Point* entity'dan `family_group` kalitini chiqarish,
-  `(participant, scope)` kalitiga o'tish; "hamyon" tushunchasi (balans per kontekst);
-  konvertatsiya faqat HOUSEHOLD kontekstida — DB/servis darajasida qotiriladi. Eng katta
-  bosqich (12 repo, 8+ servis, backfill migratsiyalar, Points UI moslash), lekin
-  `PointParticipant.scope` NOT NULL bo'lgani uchun backfill deterministik.
+- **P1 — Points → (shaxs, kontekst)** ✅ **BAJARILDI** (PR #265/#266/#267/#268, PROD):
+  - P1a (`V56`): 9 jadvalga `scope_id` + deterministik backfill (participant.scope / fg-admin
+    household) + 11 yozish nuqtasida dual-write; `createOrUpdate` scope-bug fix.
+  - P1b: 12 repo / 31 o'qish query scope'ga; yagona kalit
+    `PointConfigService.getActiveHouseholdScopeId()`; sed'dan keyin qo'lda tutilgan 4 aralash
+    joy (fg-id scope o'rnida) + 2 tashqi badge-lookup (member-based bo'ldi).
+  - P1c (`V57`): 14 jadvaldan `family_group_id` DROP; unique constraintlar `(scope, ...)`ga
+    (V25 ularni UNIQUE INDEX qilib yaratgani uchun DROP CONSTRAINT+DROP INDEX ikkalasi — #268
+    fix); scope_id NOT NULL (global achievements'dan tashqari); **Q1 guard kodda**:
+    konvertatsiya faqat `HOUSEHOLD` hamyonida; participant yaratish konteksti aniq XONADON.
+  - Saboq: `UNSTABLE` (Integration Tests tugamay) merge qilmaslik — u aynan V57 xatosini
+    ushlagan edi; PROD o'sha paytda eski konteynerda xavfsiz qolgan (Flyway rollback).
 - **P2 — Moliya qoidasini qotirish**: hisob ochish faqat HOUSEHOLD scope'da (servis tekshiruvi
   + DB CHECK); `Account.familyGroup` legacy FK DROP; PERSONAL-faqat-egasiga invariantini
   hisobot query'larida tekshirib mustahkamlash.
