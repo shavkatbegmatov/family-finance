@@ -51,6 +51,8 @@ public class InviteCodeGenerator {
         return switch (type) {
             case GROUP -> 'G';
             case HOUSEHOLD -> 'H';
+            case SCHOOL -> 'S';
+            case CLASS -> 'K';
             case PROJECT -> 'P';
             case EVENT -> 'E';
             case FUND -> 'F';

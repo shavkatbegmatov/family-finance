@@ -43,6 +43,9 @@ public interface ScopeRepository extends JpaRepository<Scope, Long> {
      */
     Optional<Scope> findFirstByTypeAndOwnerUserIdAndIsActiveTrue(ScopeType type, Long ownerUserId);
 
+    /** ADR-002 P4: tasdiq kutayotgan (isActive=false) scope'lar — maktab arizalari. */
+    List<Scope> findByTypeAndIsActiveFalse(ScopeType type);
+
     /**
      * Berilgan user ko'rishi mumkin bo'lgan barcha scope ID'lari:
      * <ul>
