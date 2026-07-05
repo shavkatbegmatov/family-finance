@@ -143,6 +143,15 @@ public class ScopeService {
     }
 
     private void validateCreateRequest(ScopeCreateRequest request) {
+        // ADR-002 P3 (Q2): faqat GROUP va HOUSEHOLD yaratiladi. PROJECT/EVENT/FUND/TRUSTEE/
+        // PROPERTY bekor — to'y/hashar/fond = tashkilotchi xonadonidagi SavingsGoal + boshqa
+        // xonadonlardan hissa-transferlar. Enum qiymatlari o'qish uchun qoladi (mavjud
+        // ma'lumot bo'lsa buzilmaydi), yangi yaratish yopiq.
+        if (request.getType() != ScopeType.GROUP && request.getType() != ScopeType.HOUSEHOLD) {
+            throw new BadRequestException(
+                    "Bu scope turi endi qo'llanmaydi — maqsadli to'plash uchun Jamg'arma maqsadi"
+                    + " (SavingsGoal), tadbirlar uchun byudjet ishlating");
+        }
         if (request.getType().requiresParent() && request.getParentScopeId() == null) {
             throw new BadRequestException(request.getType() + " uchun parent scope majburiy");
         }
