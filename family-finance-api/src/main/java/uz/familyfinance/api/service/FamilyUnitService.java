@@ -454,6 +454,8 @@ public class FamilyUnitService {
                     pr.setId(p.getId());
                     pr.setPersonId(p.getPerson().getId());
                     pr.setFullName(p.getPerson().getFullName());
+                    pr.setFirstName(p.getPerson().getFirstName());
+                    pr.setLastName(p.getPerson().getLastName());
                     pr.setAvatar(p.getPerson().getAvatar());
                     pr.setGender(p.getPerson().getGender());
                     pr.setRole(p.getRole());
@@ -478,6 +480,8 @@ public class FamilyUnitService {
                     cr.setId(c.getId());
                     cr.setPersonId(c.getPerson().getId());
                     cr.setFullName(c.getPerson().getFullName());
+                    cr.setFirstName(c.getPerson().getFirstName());
+                    cr.setLastName(c.getPerson().getLastName());
                     cr.setAvatar(c.getPerson().getAvatar());
                     cr.setGender(c.getPerson().getGender());
                     cr.setLineageType(c.getLineageType());

@@ -30,6 +30,10 @@ export interface PartnerDto {
   id: number;
   personId: number;
   fullName: string;
+  /** Ism (alohida) — daraxtda "Familiya Ism" ko'rsatish uchun (yangi backend). */
+  firstName?: string;
+  /** Familiya (alohida) — nullable. */
+  lastName?: string;
   avatar?: string;
   gender?: Gender;
   role: PartnerRole;
@@ -39,6 +43,10 @@ export interface ChildDto {
   id: number;
   personId: number;
   fullName: string;
+  /** Ism (alohida) — daraxtda farzand faqat ismi bilan (yangi backend). */
+  firstName?: string;
+  /** Familiya (alohida) — nullable. */
+  lastName?: string;
   avatar?: string;
   gender?: Gender;
   lineageType: LineageType;
