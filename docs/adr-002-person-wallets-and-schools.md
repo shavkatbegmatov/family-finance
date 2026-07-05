@@ -117,8 +117,18 @@ SCOPE daraxti:
     (`/v1/schools/*`). **Kalit kengaytma:** `getActiveHouseholdScopeId` → hamyon-kontekst
     (HOUSEHOLD **yoki** CLASS) — P1 tufayli reyting/do'kon/topshiriqlar sinfda avtomatik
     ishlaydi; konvertatsiya guard'i CLASS'ni baribir rad etadi.
-  - **P4b (frontend)** — qoldi: scopeTypeMeta SCHOOL/CLASS, maktab arizasi/tasdiq UI (admin
-    panel), sinf yaratish/yozish UI, `getDisplayName` nickname-first reyting allaqachon tayyor.
+  - **P4b (frontend) ✅ BAJARILDI** (PROD, v1.13.0): `/schools` sahifasi (sinf kodi bilan
+    yozish — taxallus majburiy; maktab arizasi; sinf ochish; ro'yxat+kod nusxalash),
+    `/admin/schools` tasdiq UI, scopeTypeMeta SCHOOL/CLASS, SCHOOL container sifatida
+    Switcher'da (🎓 sarlavha).
+  - **P4c (ruxsatlar)**: POINTS moduli uchun **scope-admin fallback** — global
+    `POINTS_MANAGE*` (faqat ADMIN rolida) yangi ro'yxatdan o'tgan o'qituvchini (MEMBER)
+    bloklar edi: sinf yaratadi-yu, ball/vazifa/do'kon yurita olmaydi. Yechim:
+    `PermissionAspect` global tekshiruv yiqilsa, talab faqat POINTS-moduli bo'lsa va user
+    hamyon-kontekst scope'ida (HOUSEHOLD/CLASS) OWNER/ADMIN bo'lsa — ruxsat
+    (`ScopeContextService.canManageActiveWalletScope`). Frontend `usePermission` +
+    `ProtectedRoute`/`PermissionGate` xuddi shu formula bilan. Farzand (membership'siz)
+    hech narsa olmaydi; konvertatsiya baribir HOUSEHOLD-guard ostida.
 
 Har bosqich — alohida PR to'lqini, ADR-001 uslubida (CI → merge → deploy → smoke).
 

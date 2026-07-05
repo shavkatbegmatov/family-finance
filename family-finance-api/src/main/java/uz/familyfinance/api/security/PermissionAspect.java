@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uz.familyfinance.api.enums.PermissionCode;
 import uz.familyfinance.api.service.PermissionService;
+import uz.familyfinance.api.service.ScopeContextService;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class PermissionAspect {
 
     private final PermissionService permissionService;
+    private final ScopeContextService scopeContextService;
 
     @Before("@annotation(uz.familyfinance.api.security.RequiresPermission)")
     public void checkPermission(JoinPoint joinPoint) {
@@ -73,6 +75,18 @@ public class PermissionAspect {
             hasPermission = permissionService.hasAnyPermission(userId, requiredPermissions);
         }
 
+        // ADR-002 P4c: POINTS moduli uchun scope-admin fallback — hamyon-kontekst
+        // (HOUSEHOLD/CLASS) OWNER/ADMIN'i global rolsiz ham ball tizimini boshqaradi
+        // (o'qituvchi o'z sinfida, xonadon egasi o'z uyida). Faqat QO'SHIMCHA ruxsat:
+        // global permission bor bo'lsa bu tarmoqqa kirilmaydi; boshqa modullarga
+        // taalluqli emas.
+        if (!hasPermission && isPointsModuleOnly(requiredPermissions)
+                && scopeContextService.canManageActiveWalletScope()) {
+            log.debug("Points scope-admin fallback granted for user {} on method {}",
+                    userDetails.getUsername(), method.getName());
+            hasPermission = true;
+        }
+
         if (!hasPermission) {
             String permissionNames = Arrays.stream(requiredPermissions)
                     .map(PermissionCode::getCode)
@@ -90,5 +104,11 @@ public class PermissionAspect {
         log.debug("Permission granted for user {} on method {}",
                 userDetails.getUsername(),
                 method.getName());
+    }
+
+    /** Barcha talab qilingan permission'lar POINTS modulidami (scope-admin fallback sharti). */
+    private boolean isPointsModuleOnly(PermissionCode[] permissions) {
+        return permissions.length > 0
+                && Arrays.stream(permissions).allMatch(p -> "POINTS".equals(p.getModule()));
     }
 }

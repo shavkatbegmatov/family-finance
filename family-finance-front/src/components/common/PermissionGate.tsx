@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useAuthStore } from '../../store/authStore';
+import { usePermission } from '../../hooks/usePermission';
 
 interface PermissionGateProps {
   /**
@@ -57,19 +58,20 @@ export function PermissionGate({
   children,
   fallback = null,
 }: PermissionGateProps) {
-  // Subscribe to permissions state to trigger re-render when permissions change
-  const userPermissions = useAuthStore((state) => state.permissions);
+  // Scope-aware tekshiruv (P4c): global permission YOKI POINTS_* uchun
+  // hamyon-kontekst scope-admin — backend PermissionAspect bilan mos.
+  const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermission();
 
   const permissions = Array.isArray(permission) ? permission : [permission];
 
   let hasAccess: boolean;
 
   if (permissions.length === 1) {
-    hasAccess = userPermissions.has(permissions[0]);
+    hasAccess = hasPermission(permissions[0]);
   } else if (requireAll) {
-    hasAccess = permissions.every(p => userPermissions.has(p));
+    hasAccess = hasAllPermissions(...permissions);
   } else {
-    hasAccess = permissions.some(p => userPermissions.has(p));
+    hasAccess = hasAnyPermission(...permissions);
   }
 
   return hasAccess ? <>{children}</> : <>{fallback}</>;

@@ -205,6 +205,26 @@ public class ScopeContextService {
     }
 
     /**
+     * ADR-002 P4c: joriy user HAMYON-KONTEKST scope'ida (aktiv scope HOUSEHOLD/CLASS
+     * bo'lsa — o'sha; GROUP bo'lsa — birinchi xonadoni) OWNER yoki ADMIN'mi.
+     *
+     * <p>Points boshqaruvi uchun scope-admin fallback: o'qituvchi (CLASS ADMIN) o'z
+     * sinfida, xonadon egasi o'z uyida global POINTS_MANAGE* rolisiz ham ball/vazifa/
+     * do'kon yurita oladi. Farzand (membership'siz yoki oddiy MEMBER) hech narsa olmaydi.
+     * Pulga konvertatsiya bunga bog'liq emas — u baribir faqat HOUSEHOLD hamyonida
+     * (PointConversionService guard'i).</p>
+     */
+    @Transactional(readOnly = true)
+    public boolean canManageActiveWalletScope() {
+        Scope active = getActiveScopeOptional().orElse(null);
+        if (active == null) return false;
+        Scope wallet = (active.getType() == ScopeType.HOUSEHOLD || active.getType() == ScopeType.CLASS)
+                ? active
+                : resolveHousehold(active).orElse(null);
+        return wallet != null && canManageScope(wallet.getId());
+    }
+
+    /**
      * Joriy aktiv scope tegishli bo'lgan GROUP (urug'). Aktiv scope GROUP bo'lsa — o'zi;
      * HOUSEHOLD (yoki boshqa) bo'lsa — uning ota-scope'i (GROUP). Yangi HOUSEHOLD'larni shu
      * GROUP ostiga joylashtirish uchun ishlatiladi.

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { useScopeStore } from '../store/scopeStore';
 
 export const PermissionCode = {
   // DASHBOARD
@@ -102,20 +103,39 @@ export type PermissionCodeType = (typeof PermissionCode)[keyof typeof Permission
 export function usePermission() {
   const permissions = useAuthStore((state) => state.permissions);
   const roles = useAuthStore((state) => state.roles);
+  const activeScope = useScopeStore((state) => state.activeScope);
+
+  // ADR-002 P4c: POINTS moduli uchun scope-admin fallback — backend PermissionAspect
+  // bilan nomma-nom mos. Hamyon-kontekst (XONADON yoki SINF) OWNER/ADMIN'i global
+  // POINTS_* rolisiz ham ball tizimini boshqaradi (o'qituvchi o'z sinfida, xonadon
+  // egasi o'z uyida). Boshqa modullarga ta'sir qilmaydi.
+  const isWalletScopeManager = useMemo(
+    () =>
+      (activeScope?.type === 'HOUSEHOLD' || activeScope?.type === 'CLASS') &&
+      (activeScope.currentUserRole === 'OWNER' || activeScope.currentUserRole === 'ADMIN'),
+    [activeScope]
+  );
+
+  const effectivelyHas = useCallback(
+    (permission: string) =>
+      permissions.has(permission) ||
+      (permission.startsWith('POINTS_') && isWalletScopeManager),
+    [permissions, isWalletScopeManager]
+  );
 
   const hasPermission = useCallback(
-    (permission: string) => permissions.has(permission),
-    [permissions]
+    (permission: string) => effectivelyHas(permission),
+    [effectivelyHas]
   );
 
   const hasAnyPermission = useCallback(
-    (...perms: string[]) => perms.some(p => permissions.has(p)),
-    [permissions]
+    (...perms: string[]) => perms.some(effectivelyHas),
+    [effectivelyHas]
   );
 
   const hasAllPermissions = useCallback(
-    (...perms: string[]) => perms.every(p => permissions.has(p)),
-    [permissions]
+    (...perms: string[]) => perms.every(effectivelyHas),
+    [effectivelyHas]
   );
 
   const hasRole = useCallback(
@@ -199,18 +219,18 @@ export function usePermission() {
   const canUpdateRoles = useMemo(() => permissions.has(PermissionCode.ROLES_UPDATE), [permissions]);
   const canDeleteRoles = useMemo(() => permissions.has(PermissionCode.ROLES_DELETE), [permissions]);
 
-  // Points
-  const canViewPoints = useMemo(() => permissions.has(PermissionCode.POINTS_VIEW), [permissions]);
-  const canManagePoints = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE), [permissions]);
-  const canAssignPointTasks = useMemo(() => permissions.has(PermissionCode.POINTS_ASSIGN_TASK), [permissions]);
-  const canVerifyPointTasks = useMemo(() => permissions.has(PermissionCode.POINTS_VERIFY_TASK), [permissions]);
-  const canAwardPoints = useMemo(() => permissions.has(PermissionCode.POINTS_AWARD), [permissions]);
-  const canConvertPoints = useMemo(() => permissions.has(PermissionCode.POINTS_CONVERT), [permissions]);
-  const canViewPointLeaderboard = useMemo(() => permissions.has(PermissionCode.POINTS_VIEW_LEADERBOARD), [permissions]);
-  const canManagePointAchievements = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_ACHIEVEMENTS), [permissions]);
-  const canManagePointEvents = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_EVENTS), [permissions]);
-  const canManagePointShop = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_SHOP), [permissions]);
-  const canManagePointChallenges = useMemo(() => permissions.has(PermissionCode.POINTS_MANAGE_CHALLENGES), [permissions]);
+  // Points — effectivelyHas: global permission YOKI hamyon-kontekst scope-admin (P4c)
+  const canViewPoints = useMemo(() => effectivelyHas(PermissionCode.POINTS_VIEW), [effectivelyHas]);
+  const canManagePoints = useMemo(() => effectivelyHas(PermissionCode.POINTS_MANAGE), [effectivelyHas]);
+  const canAssignPointTasks = useMemo(() => effectivelyHas(PermissionCode.POINTS_ASSIGN_TASK), [effectivelyHas]);
+  const canVerifyPointTasks = useMemo(() => effectivelyHas(PermissionCode.POINTS_VERIFY_TASK), [effectivelyHas]);
+  const canAwardPoints = useMemo(() => effectivelyHas(PermissionCode.POINTS_AWARD), [effectivelyHas]);
+  const canConvertPoints = useMemo(() => effectivelyHas(PermissionCode.POINTS_CONVERT), [effectivelyHas]);
+  const canViewPointLeaderboard = useMemo(() => effectivelyHas(PermissionCode.POINTS_VIEW_LEADERBOARD), [effectivelyHas]);
+  const canManagePointAchievements = useMemo(() => effectivelyHas(PermissionCode.POINTS_MANAGE_ACHIEVEMENTS), [effectivelyHas]);
+  const canManagePointEvents = useMemo(() => effectivelyHas(PermissionCode.POINTS_MANAGE_EVENTS), [effectivelyHas]);
+  const canManagePointShop = useMemo(() => effectivelyHas(PermissionCode.POINTS_MANAGE_SHOP), [effectivelyHas]);
+  const canManagePointChallenges = useMemo(() => effectivelyHas(PermissionCode.POINTS_MANAGE_CHALLENGES), [effectivelyHas]);
 
   return {
     hasPermission, hasAnyPermission, hasAllPermissions, hasRole,

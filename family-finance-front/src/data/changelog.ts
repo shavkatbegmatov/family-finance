@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.13.1',
+        date: '2026-07-05 15:00',
+        title: "O'qituvchi va xonadon egasi uchun ball boshqaruvi",
+        features: [
+            "O'qituvchi endi o'z sinfida (sinf kontekstini tanlab) ball berish, vazifa yaratish va sinf do'konini yuritishni alohida ma'mur rolisiz bajara oladi — sinf admini bo'lish kifoya.",
+            "Xonadon egasi ham o'z xonadonida ball tizimini to'liq boshqaradi. Bu boshqa bo'limlarga (moliya, sozlamalar) ta'sir qilmaydi — ular avvalgidek ruxsatlar bilan himoyalangan.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.13.0',
         date: '2026-07-05 12:00',
         title: 'Maktablar va sinf balllari',
