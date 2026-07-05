@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useAuthStore } from '../../store/authStore';
+import { usePermission } from '../../hooks/usePermission';
 import { AccessDenied } from './AccessDenied';
 
 interface ProtectedRouteProps {
@@ -65,8 +65,9 @@ export function ProtectedRoute({
   deniedTitle,
   deniedMessage,
 }: ProtectedRouteProps) {
-  // Use Zustand selector to subscribe to permissions specifically
-  const userPermissions = useAuthStore((state) => state.permissions);
+  // Scope-aware tekshiruv (P4c): global permission YOKI POINTS_* uchun
+  // hamyon-kontekst scope-admin — backend PermissionAspect bilan mos.
+  const { hasPermission, hasAnyPermission, hasAllPermissions } = usePermission();
 
   // If no permission specified, allow access (e.g., profile page)
   if (!permission) {
@@ -78,11 +79,11 @@ export function ProtectedRoute({
   let hasAccess: boolean;
 
   if (permissions.length === 1) {
-    hasAccess = userPermissions.has(permissions[0]);
+    hasAccess = hasPermission(permissions[0]);
   } else if (requireAll) {
-    hasAccess = permissions.every(p => userPermissions.has(p));
+    hasAccess = hasAllPermissions(...permissions);
   } else {
-    hasAccess = permissions.some(p => userPermissions.has(p));
+    hasAccess = hasAnyPermission(...permissions);
   }
 
   if (!hasAccess) {
