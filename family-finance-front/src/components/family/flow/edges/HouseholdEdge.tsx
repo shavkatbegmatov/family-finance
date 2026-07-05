@@ -13,7 +13,13 @@ function HouseholdEdgeComponent(props: EdgeProps) {
     data,
   } = props;
 
-  const routingY = (data?.routingY as number) ?? (sourceY + targetY) / 2;
+  // Layout taxminiy node balandligi bilan routingY beradi — bu yerda haqiqiy
+  // handle koordinatalari bilan clamp qilamiz (chiziq node ichiga kirmasin).
+  const rawRoutingY = (data?.routingY as number) ?? (sourceY + targetY) / 2;
+  const routingY =
+    sourceY + 20 < targetY - 20
+      ? Math.min(Math.max(rawRoutingY, sourceY + 20), targetY - 20)
+      : (sourceY + targetY) / 2;
   const borderRadius = 12;
 
   const startX = sourceX;
