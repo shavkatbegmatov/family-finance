@@ -99,9 +99,14 @@ SCOPE daraxti:
   - **Q3 maxfiylik FIX**: "Barcha hisoblar" (`findByScopeId`) va dropdown
     (`findActiveByScopeId`) boshqalarning PERSONAL hisoblarini ko'rsatib yuborardi —
     endi `FAMILY OR meniki OR menga ulashilgan` sharti bilan.
-- **P3 — Scope soddalashuvi**: PROJECT/EVENT/FUND/TRUSTEE/PROPERTY yaratishni bloklash
-  (enum qoladi — mavjud ma'lumot bo'lsa o'qiladi), UI'dan olib tashlash; shundan keyin
-  `family_group` faqat genealogiya+Points'dan ham chiqqan bo'ladi → `tree_id` rename arzon.
+- **P3 — Scope soddalashuvi** ✅ **BAJARILDI**: PROJECT/EVENT/FUND/TRUSTEE/PROPERTY yaratish
+  servis darajasida bloklandi (aniq xato xabari SavingsGoal'ga yo'naltiradi); enum qiymatlari
+  `@Deprecated` (mavjud ma'lumot o'qiladi). UI allaqachon faqat GROUP yaratadi.
+  **`tree_id` rename — ATAYLAB KEYINGA**: P1/P2'dan keyin `family_group` faqat genealogiya
+  (users, family_members, family_address_history) va auth oqimlarida — rename endi semantik
+  jihatdan halol, LEKIN `User.familyGroup` autentifikatsiya/provisioning'ning hamma joyida:
+  churn yuqori, funksional foyda nol. Maktablar (P4) bilan birga yoki alohida kichik
+  sessiyada qilinadi.
 - **P4 — Maktablar MVP**: `SCHOOL`/`CLASS` scope turlari; `Enrollment`
   (FamilyMember↔CLASS, consent bilan); o'qituvchi/ma'mur rollari; sinf hamyoni; nickname-first
   reyting; maktab ochish tasdiq oqimi.

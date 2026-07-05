@@ -22,19 +22,24 @@ public enum ScopeType {
     /** Xonadon — alohida byudjetga ega birlik; mustaqil root yoki GROUP ostida bo'la oladi. */
     HOUSEHOLD,
 
-    /** Loyiha — oilaviy biznes yoki uzoq muddatli investitsiya, alohida P&L. */
+    /** @deprecated ADR-002 P3: yaratish yopiq — oilaviy biznes/investitsiya alohida hisob+byudjet bilan yuritiladi. */
+    @Deprecated
     PROJECT,
 
-    /** Voqea — to'y, hajj kabi vaqtinchalik umumiy byudjet ({@code endsAt} bo'lishi mumkin). */
+    /** @deprecated ADR-002 P3: yaratish yopiq — to'y/hajj = tashkilotchi xonadonida SavingsGoal + hissa-transferlar. */
+    @Deprecated
     EVENT,
 
-    /** Fond — maqsadli to'plash (bolalar ta'limi, tibbiy yordam). */
+    /** @deprecated ADR-002 P3: yaratish yopiq — maqsadli to'plash = SavingsGoal. */
+    @Deprecated
     FUND,
 
-    /** Vasiylik — kimningdir nomidan moliya boshqarish (yosh bola, qari ota-ona). */
+    /** @deprecated ADR-002 P3: yaratish yopiq — kelajakda alohida loyiha sifatida qayta ko'riladi. */
+    @Deprecated
     TRUSTEE,
 
-    /** Ulushli mulk — ko'p egali aktiv (birgalikda sotib olingan kvartira/yer/avtomobil). */
+    /** @deprecated ADR-002 P3: yaratish yopiq — kelajakda alohida loyiha sifatida qayta ko'riladi. */
+    @Deprecated
     PROPERTY;
 
     /**
