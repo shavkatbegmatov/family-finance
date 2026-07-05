@@ -9,6 +9,10 @@ public class ChildResponse {
     private Long id;
     private Long personId;
     private String fullName;
+    /** Ism (alohida) — daraxtda farzand faqat ismi bilan ko'rsatiladi. */
+    private String firstName;
+    /** Familiya (alohida) — nullable. */
+    private String lastName;
     private String avatar;
     private Gender gender;
     private LineageType lineageType;

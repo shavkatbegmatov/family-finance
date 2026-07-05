@@ -5,15 +5,41 @@ import type {
   HouseholdTreeResponse,
   HouseholdNodeData,
   HouseholdEdgeDto,
-  HouseholdNodeDto,
 } from '../types';
+import {
+  childHandleId,
+  childHandleLeft,
+  nodeHeight,
+  nodeWidth,
+} from '../components/family/flow/nodes/householdMetrics';
 
-export const HOUSEHOLD_NODE_WIDTH = 280;
 const X_GAP = 64;
 /** Qator ostidagi edge-yo'laklar zonasi — qatorlar orasidagi kafolatlangan bo'sh joy. */
 const EDGE_ZONE = 150;
 /** Bir track'dagi segmentlar orasidagi minimal gorizontal bo'shliq. */
 const TRACK_CLEARANCE = 24;
+
+/**
+ * Chiziq ranglari: har SOURCE xonadonga bitta muted hue; shu xonadonning
+ * farzand chiziqlari lightness bo'yicha yaqin gradient oladi. Dark/light
+ * themega mos, past saturatsiya — "bachkana" bo'lmaydi.
+ */
+const EDGE_HUES: Array<{ h: number; s: number }> = [
+  { h: 215, s: 42 }, // moviy
+  { h: 168, s: 38 }, // teal
+  { h: 276, s: 34 }, // binafsha
+  { h: 28, s: 46 },  // amber
+  { h: 336, s: 36 }, // pushti
+  { h: 192, s: 42 }, // cyan
+  { h: 96, s: 30 },  // olive
+  { h: 252, s: 34 }, // indigo
+];
+
+function edgeColor(hueIdx: number, childIdx: number): string {
+  const { h, s } = EDGE_HUES[hueIdx % EDGE_HUES.length];
+  const l = 52 + (childIdx % 3) * 7; // bitta xonadon ichida yaqin gradient
+  return `hsl(${h} ${s}% ${l}% / 0.8)`;
+}
 
 interface LayoutResult {
   nodes: ReactFlowNode[];
@@ -31,13 +57,12 @@ const EMPTY: LayoutResult = { nodes: [], edges: [], isLayouting: false };
 /**
  * FamilyUnit-markazli generational (avlodli) layout.
  *
- * <p>Har tugun — bitta nikoh (FamilyUnit). relatives-tree shaxs-markazli va DAG'ni
- * qo'llab-quvvatlamaydi (bir oila ikki ota-oiladan keladi). Shuning uchun qo'lda:
- * longest-path leveling + <b>barycenter tartiblash</b> (bola xonadoni ota xonadoni
- * ostiga intiladi) + <b>track-routing</b>: har qator ostida balandligi kartalarning
- * haqiqiy (kontentdan hisoblangan) bo'yiga qarab ochiladigan EDGE_ZONE bor — undagi
- * gorizontal segmentlar kesishsa alohida yo'lak oladi va hech qachon ustma-ust
- * yotmaydi.</p>
+ * <p>Har tugun — bitta nikoh (FamilyUnit). Qo'lda Sugiyama-uslub: longest-path
+ * leveling + barycenter tartiblash (kenglik-aware — kartalar har xil enli) +
+ * track-routing (gorizontal segmentlar kesishsa alohida yo'lak). Har farzand
+ * chizig'i O'Z avatari tagidagi handle'dan chiqadi; kesishish nuqtalari uchun
+ * ko'prikcha (hop) koordinatalari va tutashish tugunlari ham shu yerda
+ * hisoblanadi.</p>
  */
 export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutResult {
   return useMemo(() => {
@@ -54,17 +79,15 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
 
     const byId = new Map(households.map((h) => [h.familyUnitId, h]));
     const level = computeLevels(unitIds, validEdges);
+    const widthOf = (id: number) => nodeWidth(byId.get(id));
+    const heightOf = (id: number) => nodeHeight(byId.get(id));
 
-    // Har qatorning Y koordinatasi kumulyativ: qator boshlanishi = oldingi qator
-    // boshlanishi + o'sha qatordagi ENG BALAND karta + EDGE_ZONE. Shunda yo'laklar
-    // hech qachon karta ichiga tushmaydi (eski xato: fiks 440px gap baland
-    // kartalarda yo'laklarni kartaga siqib, clamp hammasini bitta chiziqqa
-    // yig'ib yuborardi).
+    // Qator Y'lari kumulyativ: qator boshlanishi = oldingi qator boshlanishi +
+    // o'sha qatordagi ENG BALAND karta + EDGE_ZONE (yo'laklar kartaga tegmaydi).
     const rowMaxHeight = new Map<number, number>();
     unitIds.forEach((id) => {
       const lvl = level.get(id) ?? 0;
-      const h = estimateNodeHeight(byId.get(id));
-      rowMaxHeight.set(lvl, Math.max(rowMaxHeight.get(lvl) ?? 0, h));
+      rowMaxHeight.set(lvl, Math.max(rowMaxHeight.get(lvl) ?? 0, heightOf(id)));
     });
     const levels = [...rowMaxHeight.keys()].sort((a, b) => a - b);
     const levelY = new Map<number, number>();
@@ -74,7 +97,7 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
       cursorY += (rowMaxHeight.get(lvl) ?? 200) + EDGE_ZONE;
     });
 
-    const positions = computePositions(unitIds, level, validEdges, levelY);
+    const positions = computePositions(unitIds, level, validEdges, levelY, widthOf);
 
     const nodes: ReactFlowNode[] = unitIds.map((id) => ({
       id: `unit_${id}`,
@@ -85,105 +108,166 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
 
     const getX = (id: number) => positions.get(id)?.x ?? 0;
 
-    // ================= Edge routing: track assignment =================
-    const edgeRoutingInfo = new Map<number, { targetHandle: string; routingY: number }>();
+    // Rang: har source xonadonga barqaror hue (sortlangan unikal ro'yxat indeksi).
+    const sourceUnitIds = [...new Set(validEdges.map((e) => e.fromUnitId))].sort((a, b) => a - b);
+    const hueOf = new Map(sourceUnitIds.map((id, i) => [id, i]));
 
-    interface RoutedEdge {
-      idx: number; // validEdges'dagi indeks
+    // ============ Edge geometriyasi (routing uchun yagona manba) ============
+    interface EdgeGeom {
+      idx: number;
+      sourceHandle: string;
       targetHandle: string;
+      color: string;
+      sx: number; // source handle X
+      sy: number; // source node pastki cheti Y (taxminiy)
+      tx: number; // target handle X
+      ty: number; // target node yuqori cheti Y
       segMin: number;
       segMax: number;
-      targetY: number;
-      track: number;
+      routingY: number;
+      junction: boolean;
     }
 
-    const edgesBySourceLevel = new Map<number, RoutedEdge[]>();
-    validEdges.forEach((e, idx) => {
-      const srcLvl = level.get(e.fromUnitId) ?? 0;
+    const geoms: EdgeGeom[] = validEdges.map((e, idx) => {
+      const fromUnit = byId.get(e.fromUnitId);
       const toUnit = byId.get(e.toUnitId);
-      const viaPartner = toUnit?.parents.find((p) => p.personId === e.viaChildPersonId);
-      const isRight = viaPartner?.gender === 'FEMALE';
-      // Handle'lar HouseholdNode'da: source pastki markaz, target top 25%/75%
-      const sx = getX(e.fromUnitId) + HOUSEHOLD_NODE_WIDTH / 2;
-      const tx = getX(e.toUnitId) + HOUSEHOLD_NODE_WIDTH * (isRight ? 0.75 : 0.25);
+      const srcLvl = level.get(e.fromUnitId) ?? 0;
       const targetLvl = level.get(e.toUnitId) ?? srcLvl + 1;
 
-      const list = edgesBySourceLevel.get(srcLvl) ?? [];
-      list.push({
+      // Source: farzandning O'Z handle'i (avatari tagidan chiqadi)
+      const childIdx = fromUnit?.children.findIndex((c) => c.personId === e.viaChildPersonId) ?? -1;
+      const sourceHandle = childIdx >= 0 ? childHandleId(e.viaChildPersonId) : 'hh-bottom';
+      const sx =
+        getX(e.fromUnitId) +
+        (childIdx >= 0 ? childHandleLeft(childIdx) : widthOf(e.fromUnitId) / 2);
+
+      // Target: yangi xonadonda bu shaxs ota (chap) yoki ona (o'ng)
+      const viaPartner = toUnit?.parents.find((p) => p.personId === e.viaChildPersonId);
+      const isRight = viaPartner?.gender === 'FEMALE';
+      const tx = getX(e.toUnitId) + widthOf(e.toUnitId) * (isRight ? 0.75 : 0.25);
+
+      return {
         idx,
+        sourceHandle,
         targetHandle: isRight ? 'hh-top-right' : 'hh-top-left',
+        color: edgeColor(hueOf.get(e.fromUnitId) ?? 0, Math.max(childIdx, 0)),
+        sx,
+        sy: (levelY.get(srcLvl) ?? 0) + heightOf(e.fromUnitId),
+        tx,
+        ty: levelY.get(targetLvl) ?? 0,
         segMin: Math.min(sx, tx),
         segMax: Math.max(sx, tx),
-        targetY: levelY.get(targetLvl) ?? 0,
-        track: 0,
-      });
-      edgesBySourceLevel.set(srcLvl, list);
+        routingY: 0,
+        junction: false,
+      };
     });
 
-    edgesBySourceLevel.forEach((levelEdges, srcLvl) => {
-      // Greedy interval coloring: segment boshi bo'yicha sortlab, birinchi
-      // "bo'sh" track'ka joylash — kesishmaganlar bitta balandlikda qoladi.
+    // ============ Track assignment (source-qator bo'yicha) ============
+    const bySourceLevel = new Map<number, EdgeGeom[]>();
+    geoms.forEach((g) => {
+      const srcLvl = level.get(validEdges[g.idx].fromUnitId) ?? 0;
+      const list = bySourceLevel.get(srcLvl) ?? [];
+      list.push(g);
+      bySourceLevel.set(srcLvl, list);
+    });
+
+    bySourceLevel.forEach((levelEdges, srcLvl) => {
       const sorted = [...levelEdges].sort(
         (a, b) => a.segMin - b.segMin || a.segMax - b.segMax,
       );
       const trackEnds: number[] = [];
-      sorted.forEach((it) => {
-        let t = trackEnds.findIndex((end) => it.segMin > end + TRACK_CLEARANCE);
+      const trackIdxOf = new Map<EdgeGeom, number>();
+      sorted.forEach((g) => {
+        let t = trackEnds.findIndex((end) => g.segMin > end + TRACK_CLEARANCE);
         if (t === -1) {
           t = trackEnds.length;
-          trackEnds.push(it.segMax);
+          trackEnds.push(g.segMax);
         } else {
-          trackEnds[t] = it.segMax;
+          trackEnds[t] = g.segMax;
         }
-        it.track = t;
+        trackIdxOf.set(g, t);
       });
 
       const trackCount = trackEnds.length;
-      // Yo'laklar zonasi: qator kartalarining pastidan keyingi qatorgacha.
       const zoneTop = (levelY.get(srcLvl) ?? 0) + (rowMaxHeight.get(srcLvl) ?? 200) + 28;
-      sorted.forEach((it) => {
-        const zoneBottom = it.targetY - 36; // marker + handle uchun joy
+      sorted.forEach((g) => {
+        const zoneBottom = g.ty - 36; // marker + handle uchun joy
         const step =
           trackCount > 1
             ? Math.min(24, Math.max(12, (zoneBottom - zoneTop) / (trackCount - 1)))
             : 0;
-        const routingY = Math.min(zoneTop + it.track * step, Math.max(zoneTop, zoneBottom));
-        edgeRoutingInfo.set(it.idx, { targetHandle: it.targetHandle, routingY });
+        g.routingY = Math.min(
+          zoneTop + (trackIdxOf.get(g) ?? 0) * step,
+          Math.max(zoneTop, zoneBottom),
+        );
       });
     });
 
+    // ============ Tutashish tugunlari ============
+    // Bir handle'dan (bitta farzanddan) 2+ chiziq chiqsa — ayrilish nuqtasida tugun.
+    const bySourceHandle = new Map<string, EdgeGeom[]>();
+    geoms.forEach((g) => {
+      const key = `${validEdges[g.idx].fromUnitId}:${g.sourceHandle}`;
+      const list = bySourceHandle.get(key) ?? [];
+      list.push(g);
+      bySourceHandle.set(key, list);
+    });
+    bySourceHandle.forEach((list) => {
+      if (list.length > 1) list.forEach((g) => { g.junction = true; });
+    });
+
+    // ============ Ko'prikchalar (hop) ============
+    // Barcha kesishishlar orthogonal: MENING gorizontal segmentim × BOSHQA
+    // edge'ning vertikal segmenti. Konventsiya: gorizontal chiziq vertikal
+    // USTIDAN sakraydi. Vertikal segmentlar: source tushishi (sx, sy..routingY)
+    // va target tushishi (tx, routingY..ty).
+    const verticals = geoms.flatMap((g) => [
+      { owner: g.idx, x: g.sx, y1: g.sy, y2: g.routingY },
+      { owner: g.idx, x: g.tx, y1: g.routingY, y2: g.ty },
+    ]);
+    const hopsOf = new Map<number, number[]>();
+    const EPS = 10; // burchak radiusi/handle atrofini hopdan chetlash
+    geoms.forEach((g) => {
+      if (g.segMax - g.segMin < EPS * 2) return;
+      const hops = verticals
+        .filter(
+          (v) =>
+            v.owner !== g.idx &&
+            v.x > g.segMin + EPS &&
+            v.x < g.segMax - EPS &&
+            g.routingY > Math.min(v.y1, v.y2) + 2 &&
+            g.routingY < Math.max(v.y1, v.y2) - 2,
+        )
+        .map((v) => v.x);
+      if (hops.length > 0) {
+        // Yaqin (dublikat) kesishishlarni birlashtirib, chizish tartibida sortlash
+        const uniq = [...new Set(hops.map((x) => Math.round(x)))].sort((a, b) => a - b);
+        hopsOf.set(g.idx, uniq);
+      }
+    });
+
     const rfEdges: ReactFlowEdge[] = validEdges.map((e, idx) => {
-      const info = edgeRoutingInfo.get(idx);
+      const g = geoms[idx];
       return {
         id: `hh_edge_${idx}`,
         type: 'householdEdge',
         source: `unit_${e.fromUnitId}`,
         target: `unit_${e.toUnitId}`,
-        targetHandle: info?.targetHandle ?? 'hh-top-left',
-        data: { routingY: info?.routingY },
-        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-        style: { strokeWidth: 2, stroke: 'oklch(var(--bc) / 0.35)' },
+        sourceHandle: g.sourceHandle,
+        targetHandle: g.targetHandle,
+        data: {
+          routingY: g.routingY,
+          hops: hopsOf.get(idx) ?? [],
+          junction: g.junction,
+          color: g.color,
+        },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16, color: g.color },
+        style: { strokeWidth: 2, stroke: g.color },
       };
     });
 
     return { nodes, edges: rfEdges, isLayouting: false };
   }, [data]);
-}
-
-/**
- * Karta balandligini kontentdan baholash (HouseholdNode tuzilishi bilan sinxron):
- * header (~37) + padding + ota-ona chiplari (44px + 6px oraliq) + farzand
- * avatar qatorlari (54px + 8px oraliq, qatorda 4 ta). ±10px xato zarar qilmaydi —
- * yo'laklar zonasi baribir kartadan pastda ochiladi.
- */
-function estimateNodeHeight(h: HouseholdNodeDto | undefined): number {
-  if (!h) return 200;
-  const parents = h.parents.length;
-  const children = h.children.length;
-  const parentsBlock = parents > 0 ? parents * 44 + (parents - 1) * 6 : 16;
-  const childRows = children > 0 ? Math.ceil(children / 4) : 0;
-  const childrenBlock = childRows > 0 ? 12 + 18 + childRows * 54 + (childRows - 1) * 8 : 0;
-  return 4 + 37 + 24 + 18 + parentsBlock + childrenBlock;
 }
 
 /** Longest-path leveling — DAG bo'lmasa ham N iteratsiyada to'xtaydi (sikl himoyasi). */
@@ -206,17 +290,17 @@ function computeLevels(unitIds: number[], edges: HouseholdEdgeDto[]): Map<number
 }
 
 /**
- * Har avlodni alohida gorizontal qatorga joylaydi. Qator ichidagi tartib —
- * <b>barycenter heuristikasi</b>: har xonadon ota xonadon(lar)ining o'rtacha X'i
- * ostiga intiladi (pastga o'tish), keyin farzand xonadonlari o'rtasiga (yuqoriga
- * o'tish) — bir necha sweep. Bu chiziqlarni iloji boricha vertikal qiladi va
- * kesishishlarni keskin kamaytiradi (klassik Sugiyama qatlamli yondashuvi).
+ * Har avlodni alohida qatorga joylaydi (kartalar har xil ENLI — kumulyativ X).
+ * Qator ichidagi tartib — barycenter heuristikasi: har xonadon ota
+ * xonadon(lar)i MARKAZLARINING o'rtachasiga intiladi (pastga o'tish), keyin
+ * farzand xonadonlari o'rtasiga (yuqoriga o'tish) — bir necha sweep.
  */
 function computePositions(
   unitIds: number[],
   level: Map<number, number>,
   edges: HouseholdEdgeDto[],
   levelY: Map<number, number>,
+  widthOf: (id: number) => number,
 ): Map<number, Position> {
   const byLevel = new Map<number, number[]>();
   unitIds.forEach((id) => {
@@ -233,18 +317,23 @@ function computePositions(
     childrenOf.set(e.fromUnitId, [...(childrenOf.get(e.fromUnitId) ?? []), e.toUnitId]);
   });
 
-  const widthStep = HOUSEHOLD_NODE_WIDTH + X_GAP;
   const levels = [...byLevel.keys()].sort((a, b) => a - b);
-  const maxPerLevel = Math.max(...[...byLevel.values()].map((arr) => arr.length));
-  const totalWidth = maxPerLevel * widthStep;
+  const rowWidth = (ids: number[]) =>
+    ids.reduce((s, id) => s + widthOf(id), 0) + Math.max(0, ids.length - 1) * X_GAP;
+  const globalWidth = Math.max(...levels.map((l) => rowWidth(byLevel.get(l) ?? [])));
 
   const xOf = new Map<number, number>();
   const applyX = (lvl: number) => {
     const ids = byLevel.get(lvl) ?? [];
-    const offsetX = (totalWidth - ids.length * widthStep) / 2;
-    ids.forEach((id, i) => xOf.set(id, offsetX + i * widthStep));
+    let cursor = (globalWidth - rowWidth(ids)) / 2;
+    ids.forEach((id) => {
+      xOf.set(id, cursor);
+      cursor += widthOf(id) + X_GAP;
+    });
   };
   levels.forEach(applyX);
+
+  const centerOf = (id: number) => (xOf.get(id) ?? 0) + widthOf(id) / 2;
 
   const reorder = (lvl: number, neighborsOf: Map<number, number[]>) => {
     const ids = byLevel.get(lvl) ?? [];
@@ -252,20 +341,14 @@ function computePositions(
     const key = new Map<number, number>();
     ids.forEach((id) => {
       const ns = neighborsOf.get(id) ?? [];
-      const xs = ns
-        .map((n) => xOf.get(n))
-        .filter((v): v is number => v != null);
-      key.set(
-        id,
-        xs.length > 0 ? xs.reduce((a, b) => a + b, 0) / xs.length : xOf.get(id) ?? 0,
-      );
+      const cs = ns.map(centerOf);
+      key.set(id, cs.length > 0 ? cs.reduce((a, b) => a + b, 0) / cs.length : centerOf(id));
     });
     ids.sort((a, b) => (key.get(a) ?? 0) - (key.get(b) ?? 0) || a - b);
     applyX(lvl);
   };
 
-  // 2 to'liq sweep (pastga: otalar bo'yicha; yuqoriga: farzandlar bo'yicha) +
-  // yakuniy pastga o'tish — kichik graflar uchun barqaror yaqinlashadi.
+  // 2 to'liq sweep (pastga: otalar; yuqoriga: farzandlar) + yakuniy pastga o'tish.
   for (let pass = 0; pass < 2; pass++) {
     for (let li = 1; li < levels.length; li++) reorder(levels[li], parentsOf);
     for (let li = levels.length - 2; li >= 0; li--) reorder(levels[li], childrenOf);

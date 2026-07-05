@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.15.0',
+        date: '2026-07-06 05:00',
+        title: 'Xonadonlar daraxti — professional diagramma',
+        features: [
+            "Har farzandning chizig'i endi o'z suratchasi tagidan chiqadi (avval hammasi karta o'rtasidan chiqardi); farzandlar bir qatorda turadi — ko'p farzandli kartalar o'zi kengayadi.",
+            "Chiziqlar xonadon bo'yicha rang oldi: bitta xonadonning farzand chiziqlari yaqin ottenkalar, turli xonadonlar — turli (bosiq) ranglar.",
+            "Chiziqlar kesishgan joyda ko'prikcha ko'rinadi, bir nuqtadan ayrilgan joyda tugun-nuqta — endi qaysi chiziq qayerga borayotgani bir qarashda aniq.",
+            "Daraxtda farzandlar faqat ismi bilan, ota-ona esa familiya va ismi bilan ko'rsatiladi (otasining ismi qisqartirildi).",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.14.2',
         date: '2026-07-06 04:00',
         title: "Xonadonlar daraxti: yo'laklar endi haqiqatan ajralgan",
