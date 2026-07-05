@@ -10,6 +10,7 @@ import uz.familyfinance.api.dto.request.PointConversionRequest;
 import uz.familyfinance.api.dto.response.PointConversionResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.PointTransactionType;
+import uz.familyfinance.api.enums.ScopeType;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.*;
 
