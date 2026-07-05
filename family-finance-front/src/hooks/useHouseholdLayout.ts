@@ -1,13 +1,17 @@
 import { useMemo } from 'react';
 import { MarkerType } from '@xyflow/react';
 import type { Node as ReactFlowNode, Edge as ReactFlowEdge } from '@xyflow/react';
-import type { HouseholdTreeResponse, HouseholdNodeData, HouseholdEdgeDto } from '../types';
+import type {
+  HouseholdTreeResponse,
+  HouseholdNodeData,
+  HouseholdEdgeDto,
+  HouseholdNodeDto,
+} from '../types';
 
 export const HOUSEHOLD_NODE_WIDTH = 280;
 const X_GAP = 64;
-const Y_LEVEL_GAP = 440;
-/** Edge gorizontal segmenti node pastidan qancha pastda boshlanadi (taxminiy node bo'yi). */
-const EDGE_START_OFFSET = 180;
+/** Qator ostidagi edge-yo'laklar zonasi — qatorlar orasidagi kafolatlangan bo'sh joy. */
+const EDGE_ZONE = 150;
 /** Bir track'dagi segmentlar orasidagi minimal gorizontal bo'shliq. */
 const TRACK_CLEARANCE = 24;
 
@@ -30,9 +34,10 @@ const EMPTY: LayoutResult = { nodes: [], edges: [], isLayouting: false };
  * <p>Har tugun — bitta nikoh (FamilyUnit). relatives-tree shaxs-markazli va DAG'ni
  * qo'llab-quvvatlamaydi (bir oila ikki ota-oiladan keladi). Shuning uchun qo'lda:
  * longest-path leveling + <b>barycenter tartiblash</b> (bola xonadoni ota xonadoni
- * ostiga intiladi — uzun ko'ndalang chiziqlar kamayadi) + edge'lar uchun
- * <b>track-routing</b> (bir qatordagi gorizontal segmentlar kesishsa alohida
- * balandlik oladi — chiziqlar bir-birini to'smaydi).</p>
+ * ostiga intiladi) + <b>track-routing</b>: har qator ostida balandligi kartalarning
+ * haqiqiy (kontentdan hisoblangan) bo'yiga qarab ochiladigan EDGE_ZONE bor — undagi
+ * gorizontal segmentlar kesishsa alohida yo'lak oladi va hech qachon ustma-ust
+ * yotmaydi.</p>
  */
 export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutResult {
   return useMemo(() => {
@@ -47,10 +52,30 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
       (e) => validIds.has(e.fromUnitId) && validIds.has(e.toUnitId),
     );
 
-    const level = computeLevels(unitIds, validEdges);
-    const positions = computePositions(unitIds, level, validEdges);
-
     const byId = new Map(households.map((h) => [h.familyUnitId, h]));
+    const level = computeLevels(unitIds, validEdges);
+
+    // Har qatorning Y koordinatasi kumulyativ: qator boshlanishi = oldingi qator
+    // boshlanishi + o'sha qatordagi ENG BALAND karta + EDGE_ZONE. Shunda yo'laklar
+    // hech qachon karta ichiga tushmaydi (eski xato: fiks 440px gap baland
+    // kartalarda yo'laklarni kartaga siqib, clamp hammasini bitta chiziqqa
+    // yig'ib yuborardi).
+    const rowMaxHeight = new Map<number, number>();
+    unitIds.forEach((id) => {
+      const lvl = level.get(id) ?? 0;
+      const h = estimateNodeHeight(byId.get(id));
+      rowMaxHeight.set(lvl, Math.max(rowMaxHeight.get(lvl) ?? 0, h));
+    });
+    const levels = [...rowMaxHeight.keys()].sort((a, b) => a - b);
+    const levelY = new Map<number, number>();
+    let cursorY = 0;
+    levels.forEach((lvl) => {
+      levelY.set(lvl, cursorY);
+      cursorY += (rowMaxHeight.get(lvl) ?? 200) + EDGE_ZONE;
+    });
+
+    const positions = computePositions(unitIds, level, validEdges, levelY);
+
     const nodes: ReactFlowNode[] = unitIds.map((id) => ({
       id: `unit_${id}`,
       type: 'householdNode',
@@ -61,9 +86,6 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
     const getX = (id: number) => positions.get(id)?.x ?? 0;
 
     // ================= Edge routing: track assignment =================
-    // Har source-qator uchun edge'larning gorizontal segmentlari hisoblanadi;
-    // kesishadigan segmentlar alohida "track" (balandlik) oladi — natijada
-    // chiziqlar hech qachon bitta gorizontalda ustma-ust yotmaydi.
     const edgeRoutingInfo = new Map<number, { targetHandle: string; routingY: number }>();
 
     interface RoutedEdge {
@@ -92,7 +114,7 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
         targetHandle: isRight ? 'hh-top-right' : 'hh-top-left',
         segMin: Math.min(sx, tx),
         segMax: Math.max(sx, tx),
-        targetY: targetLvl * Y_LEVEL_GAP,
+        targetY: levelY.get(targetLvl) ?? 0,
         track: 0,
       });
       edgesBySourceLevel.set(srcLvl, list);
@@ -117,15 +139,15 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
       });
 
       const trackCount = trackEnds.length;
-      const startY = srcLvl * Y_LEVEL_GAP + EDGE_START_OFFSET;
+      // Yo'laklar zonasi: qator kartalarining pastidan keyingi qatorgacha.
+      const zoneTop = (levelY.get(srcLvl) ?? 0) + (rowMaxHeight.get(srcLvl) ?? 200) + 28;
       sorted.forEach((it) => {
-        const minY = startY + 32;
-        const maxY = it.targetY - 40;
+        const zoneBottom = it.targetY - 36; // marker + handle uchun joy
         const step =
           trackCount > 1
-            ? Math.min(26, Math.max(10, (maxY - minY) / (trackCount - 1)))
+            ? Math.min(24, Math.max(12, (zoneBottom - zoneTop) / (trackCount - 1)))
             : 0;
-        const routingY = Math.min(minY + it.track * step, Math.max(minY, maxY));
+        const routingY = Math.min(zoneTop + it.track * step, Math.max(zoneTop, zoneBottom));
         edgeRoutingInfo.set(it.idx, { targetHandle: it.targetHandle, routingY });
       });
     });
@@ -146,6 +168,22 @@ export function useHouseholdLayout(data: HouseholdTreeResponse | null): LayoutRe
 
     return { nodes, edges: rfEdges, isLayouting: false };
   }, [data]);
+}
+
+/**
+ * Karta balandligini kontentdan baholash (HouseholdNode tuzilishi bilan sinxron):
+ * header (~37) + padding + ota-ona chiplari (44px + 6px oraliq) + farzand
+ * avatar qatorlari (54px + 8px oraliq, qatorda 4 ta). ±10px xato zarar qilmaydi —
+ * yo'laklar zonasi baribir kartadan pastda ochiladi.
+ */
+function estimateNodeHeight(h: HouseholdNodeDto | undefined): number {
+  if (!h) return 200;
+  const parents = h.parents.length;
+  const children = h.children.length;
+  const parentsBlock = parents > 0 ? parents * 44 + (parents - 1) * 6 : 16;
+  const childRows = children > 0 ? Math.ceil(children / 4) : 0;
+  const childrenBlock = childRows > 0 ? 12 + 18 + childRows * 54 + (childRows - 1) * 8 : 0;
+  return 4 + 37 + 24 + 18 + parentsBlock + childrenBlock;
 }
 
 /** Longest-path leveling — DAG bo'lmasa ham N iteratsiyada to'xtaydi (sikl himoyasi). */
@@ -178,6 +216,7 @@ function computePositions(
   unitIds: number[],
   level: Map<number, number>,
   edges: HouseholdEdgeDto[],
+  levelY: Map<number, number>,
 ): Map<number, Position> {
   const byLevel = new Map<number, number[]>();
   unitIds.forEach((id) => {
@@ -235,7 +274,10 @@ function computePositions(
 
   const positions = new Map<number, Position>();
   unitIds.forEach((id) => {
-    positions.set(id, { x: xOf.get(id) ?? 0, y: (level.get(id) ?? 0) * Y_LEVEL_GAP });
+    positions.set(id, {
+      x: xOf.get(id) ?? 0,
+      y: levelY.get(level.get(id) ?? 0) ?? 0,
+    });
   });
   return positions;
 }

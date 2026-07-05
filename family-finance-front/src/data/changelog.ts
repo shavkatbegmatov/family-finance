@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.14.2',
+        date: '2026-07-06 04:00',
+        title: "Xonadonlar daraxti: yo'laklar endi haqiqatan ajralgan",
+        features: [],
+        fixes: [
+            "Baland xonadon kartalarida (ko'p farzandli) bog'lanish chiziqlari yana bitta balandlikka siqilib qolardi — endi qatorlar orasi kartalarning haqiqiy bo'yiga qarab ochiladi va har chiziqqa alohida yo'lak kafolatlanadi.",
+        ],
+    },
+    {
         version: '1.14.1',
         date: '2026-07-06 03:00',
         title: "Xonadonlar daraxti: chiziqlar endi bir-birini to'smaydi",
