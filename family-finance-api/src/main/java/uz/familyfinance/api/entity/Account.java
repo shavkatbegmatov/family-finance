@@ -90,19 +90,13 @@ public class Account extends BaseEntity implements Auditable {
     @JoinColumn(name = "owner_id")
     private FamilyMember owner;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "family_group_id")
-    private FamilyGroup familyGroup;
-
     /**
-     * Phase 2: yangi scope tuzilmasi (odatda HOUSEHOLD, ba'zan GROUP-level
-     * umumiy hisoblar uchun). Hozircha nullable — V35 backfill orqali to'lgan.
-     * V37 (Phase 2 oxiri) da NOT NULL bo'ladi va eski familyGroup deprecated.
+     * ADR-002 P2: hisob konteksti — XONADON (HOUSEHOLD scope). Umumiy hisoblar faqat
+     * xonadon darajasida; NULL = faqat SYSTEM_TRANSIT global buxgalteriya hisoblari.
      *
      * <p>Nom {@code homeScope} (umumiy {@code scope} emas) — chunki Account'da
      * allaqachon {@link AccountScope} enum {@code scope} maydoni mavjud
-     * (visibility uchun: PERSONAL/FAMILY). Kelajakda enum {@code visibility}'ga
-     * ko'chiriladi va bu maydon faqat {@code scope}'ga aylanadi.</p>
+     * (visibility uchun: PERSONAL/FAMILY).</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scope_id")
@@ -153,8 +147,8 @@ public class Account extends BaseEntity implements Auditable {
         if (this.owner != null) {
             map.put("ownerId", this.owner.getId());
         }
-        if (this.familyGroup != null) {
-            map.put("familyGroupId", this.familyGroup.getId());
+        if (this.homeScope != null) {
+            map.put("homeScopeId", this.homeScope.getId());
         }
         if (this.bank != null) {
             map.put("bankId", this.bank.getId());

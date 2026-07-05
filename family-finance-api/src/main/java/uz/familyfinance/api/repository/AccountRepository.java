@@ -61,10 +61,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
        long countByOwnerIdAndBalanceAccountCodeAndCurrencyCode(Long ownerId, String balanceAccountCode,
                      String currencyCode);
 
-       long countByFamilyGroupIdAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(Long familyGroupId,
+       /** ADR-002 P2: accCode ketma-ketligi endi xonadon (homeScope) bo'yicha. */
+       long countByHomeScopeIdAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(Long homeScopeId,
                      String balanceAccountCode, String currencyCode);
 
-       long countByFamilyGroupIsNullAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(String balanceAccountCode,
+       long countByHomeScopeIsNullAndOwnerIsNullAndBalanceAccountCodeAndCurrencyCode(String balanceAccountCode,
                      String currencyCode);
 
        @Query("SELECT a FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND " +
@@ -89,18 +90,27 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
         * <p>{@code homeScope.id = :scopeId} aniq tanlangan scope bilan filtrlaydi
         * (SYSTEM_TRANSIT global hisoblar scope_id = NULL bo'lgani uchun chiqib ketadi).</p>
         */
-       @Query(value = "SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
+       /**
+        * ADR-002 Q3 (maxfiylik): scope'dagi UMUMIY (FAMILY) hisoblar + faqat MENING
+        * shaxsiy/ulashilgan hisoblarim — boshqalarning PERSONAL hisoblari ko'rinmaydi.
+        */
+       @Query(value = "SELECT a FROM Account a LEFT JOIN FETCH a.owner o WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
+                     +
+                     "(a.scope = 'FAMILY' OR o.user.id = :userId OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
                      +
                      "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
                      +
                      "(:accountType IS NULL OR a.type = :accountType) AND " +
-                     "(:status IS NULL OR a.status = :status)", countQuery = "SELECT COUNT(a) FROM Account a WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
+                     "(:status IS NULL OR a.status = :status)", countQuery = "SELECT COUNT(a) FROM Account a LEFT JOIN a.owner o WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
+                                   +
+                                   "(a.scope = 'FAMILY' OR o.user.id = :userId OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId)) AND "
                                    +
                                    "(CAST(:search AS string) IS NULL OR LOWER(a.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(a.accCode) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND "
                                    +
                                    "(:accountType IS NULL OR a.type = :accountType) AND " +
                                    "(:status IS NULL OR a.status = :status)")
        Page<Account> findByScopeId(@Param("scopeId") Long scopeId,
+                     @Param("userId") Long userId,
                      @Param("search") String search,
                      @Param("accountType") AccountType accountType,
                      @Param("status") AccountStatus status,
@@ -119,9 +129,13 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                      @Param("userId") Long userId,
                      Pageable pageable);
 
-       /** Aktiv scope'dagi barcha aktiv hisoblar (/list dropdown uchun). */
-       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId")
-       List<Account> findActiveByScopeId(@Param("scopeId") Long scopeId);
+       /**
+        * Aktiv scope'dagi aktiv hisoblar (/list dropdown uchun) — ADR-002 Q3:
+        * umumiy (FAMILY) + faqat o'z/ulashilgan hisoblar.
+        */
+       @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner o WHERE a.isActive = true AND a.type <> 'SYSTEM_TRANSIT' AND a.homeScope.id = :scopeId AND "
+                     + "(a.scope = 'FAMILY' OR o.user.id = :userId OR EXISTS(SELECT 1 FROM AccountAccess aa WHERE aa.account = a AND aa.user.id = :userId))")
+       List<Account> findActiveByScopeId(@Param("scopeId") Long scopeId, @Param("userId") Long userId);
 
        // Access-controlled queries
 
@@ -132,10 +146,11 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
                      @Param("isAdmin") boolean isAdmin,
                      @Param("visibleScopeIds") Collection<Long> visibleScopeIds);
 
+       /** ADR-002 P2: xonadonning umumiy (FAMILY) hisoblari — homeScope bo'yicha. */
        @Query("SELECT a FROM Account a LEFT JOIN FETCH a.owner " +
-                     "WHERE a.familyGroup.id = :familyGroupId AND a.scope = 'FAMILY' " +
+                     "WHERE a.homeScope.id = :scopeId AND a.scope = 'FAMILY' " +
                      "AND a.status = 'ACTIVE' AND a.isActive = true")
-       List<Account> findFamilyAccountsByGroupId(@Param("familyGroupId") Long familyGroupId);
+       List<Account> findFamilyAccountsByScopeId(@Param("scopeId") Long scopeId);
 
        @Query("SELECT a FROM Account a WHERE a.owner.id = :ownerId AND a.isActive = true AND a.type <> 'SYSTEM_TRANSIT'")
        List<Account> findByOwnerId(@Param("ownerId") Long ownerId);

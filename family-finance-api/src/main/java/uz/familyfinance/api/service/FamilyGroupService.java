@@ -456,8 +456,13 @@ public class FamilyGroupService {
                 })
                 .collect(Collectors.toList());
 
-        // 4. FAMILY scope account'larni olish
-        List<Account> familyAccounts = accountRepository.findFamilyAccountsByGroupId(familyGroup.getId());
+        // 4. Xonadonning umumiy (FAMILY) hisoblari — fg→scope mapping egalik orqali (ADR-001 F5 naqshi)
+        List<Account> familyAccounts = familyGroup.getAdmin() != null
+                ? scopeRepository.findFirstByTypeAndOwnerUserIdAndIsActiveTrue(
+                                uz.familyfinance.api.enums.ScopeType.HOUSEHOLD, familyGroup.getAdmin().getId())
+                        .map(hs -> accountRepository.findFamilyAccountsByScopeId(hs.getId()))
+                        .orElse(java.util.List.of())
+                : java.util.List.of();
         List<HouseholdDashboardResponse.HouseholdAccountSummary> accountSummaries = familyAccounts.stream()
                 .map(a -> HouseholdDashboardResponse.HouseholdAccountSummary.builder()
                         .id(a.getId())

@@ -91,9 +91,14 @@ SCOPE daraxti:
     konvertatsiya faqat `HOUSEHOLD` hamyonida; participant yaratish konteksti aniq XONADON.
   - Saboq: `UNSTABLE` (Integration Tests tugamay) merge qilmaslik — u aynan V57 xatosini
     ushlagan edi; PROD o'sha paytda eski konteynerda xavfsiz qolgan (Flyway rollback).
-- **P2 — Moliya qoidasini qotirish**: hisob ochish faqat HOUSEHOLD scope'da (servis tekshiruvi
-  + DB CHECK); `Account.familyGroup` legacy FK DROP; PERSONAL-faqat-egasiga invariantini
-  hisobot query'larida tekshirib mustahkamlash.
+- **P2 — Moliya qoidasini qotirish** ✅ **BAJARILDI** (`V58`):
+  - Hisob ochish faqat XONADONDA: `AccountService.create` → `getActiveHousehold().orElseThrow`
+    (DB CHECK emas — PG'da cross-table CHECK yo'q, servis darajasida qotirildi).
+  - `Account.familyGroup` DROP (V58): entity, accCode generatsiyasi (`homeScope`-based),
+    `findFamilyAccountsByScopeId`, audit-map, seed SQL.
+  - **Q3 maxfiylik FIX**: "Barcha hisoblar" (`findByScopeId`) va dropdown
+    (`findActiveByScopeId`) boshqalarning PERSONAL hisoblarini ko'rsatib yuborardi —
+    endi `FAMILY OR meniki OR menga ulashilgan` sharti bilan.
 - **P3 — Scope soddalashuvi**: PROJECT/EVENT/FUND/TRUSTEE/PROPERTY yaratishni bloklash
   (enum qoladi — mavjud ma'lumot bo'lsa o'qiladi), UI'dan olib tashlash; shundan keyin
   `family_group` faqat genealogiya+Points'dan ham chiqqan bo'ladi → `tree_id` rename arzon.
