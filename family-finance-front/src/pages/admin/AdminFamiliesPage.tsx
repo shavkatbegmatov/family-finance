@@ -9,6 +9,8 @@ import type { Scope, ScopeType } from '../../types/scope.types';
 const SCOPE_TYPE_LABEL: Record<ScopeType, string> = {
   GROUP: 'Guruh',
   HOUSEHOLD: 'Xonadon',
+  SCHOOL: 'Maktab',
+  CLASS: 'Sinf',
   PROJECT: 'Loyiha',
   EVENT: 'Tadbir',
   FUND: "Jamg'arma",
@@ -19,6 +21,8 @@ const SCOPE_TYPE_LABEL: Record<ScopeType, string> = {
 const SCOPE_TYPE_TONE: Record<ScopeType, string> = {
   GROUP: 'badge-primary',
   HOUSEHOLD: 'badge-secondary',
+  SCHOOL: 'badge-info',
+  CLASS: 'badge-accent',
   PROJECT: 'badge-accent',
   EVENT: 'badge-info',
   FUND: 'badge-success',

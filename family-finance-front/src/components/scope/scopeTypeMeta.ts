@@ -1,9 +1,11 @@
 import type { ComponentType } from 'react';
 import {
+  BookOpen,
   Briefcase,
   Building2,
   Calendar,
   Coins,
+  GraduationCap,
   Heart,
   Home,
   Users2,
@@ -40,6 +42,20 @@ export const SCOPE_TYPE_META: Record<ScopeType, ScopeTypeMeta> = {
     icon: Home,
     toneClass: 'text-sky-500 bg-sky-500/10',
     description: 'Alohida byudjetli nuklear oila',
+  },
+  SCHOOL: {
+    type: 'SCHOOL',
+    label: 'Maktab',
+    icon: GraduationCap,
+    toneClass: 'text-indigo-500 bg-indigo-500/10',
+    description: "Ta'lim muassasasi — sinflar shu yerda ochiladi",
+  },
+  CLASS: {
+    type: 'CLASS',
+    label: 'Sinf',
+    icon: BookOpen,
+    toneClass: 'text-teal-500 bg-teal-500/10',
+    description: "Sinf — o'quvchilar ball to'playdigan kontekst (pulga aylanmaydi)",
   },
   PROJECT: {
     type: 'PROJECT',
@@ -94,6 +110,8 @@ export function getScopeTypeMeta(type: string | null | undefined): ScopeTypeMeta
 export const SCOPE_TYPE_ORDER: ScopeType[] = [
   'GROUP',
   'HOUSEHOLD',
+  'SCHOOL',
+  'CLASS',
   'PROJECT',
   'EVENT',
   'FUND',

@@ -7,6 +7,8 @@
 export type ScopeType =
   | 'GROUP'
   | 'HOUSEHOLD'
+  | 'SCHOOL'
+  | 'CLASS'
   | 'PROJECT'
   | 'EVENT'
   | 'FUND'
@@ -96,6 +98,29 @@ export interface SwitchScopeResponse {
   activeScopeName: string;
   activeScopeType: ScopeType;
   currentUserRole?: ScopeRole;
+}
+
+// =============================================================================
+// Maktablar (ADR-002 P4)
+// =============================================================================
+
+/** Sinfga yozilish holati — backend EnrollmentStatus.java bilan mos. */
+export type EnrollmentStatus = 'ENROLLED' | 'LEFT';
+
+/**
+ * Farzandning sinfga yozilishi — backend EnrollmentResponse bilan mos.
+ * K3 maxfiylik: `realName` faqat o'qituvchi/sinf admini yoki yozgan
+ * ota-onaga to'ldiriladi, boshqalarga null.
+ */
+export interface Enrollment {
+  id: number;
+  classScopeId: number;
+  className?: string;
+  familyMemberId: number;
+  nickname: string;
+  realName?: string;
+  status: EnrollmentStatus;
+  joinedAt?: string;
 }
 
 // =============================================================================

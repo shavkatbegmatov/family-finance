@@ -25,16 +25,21 @@ export const ROLE_TONE: Record<ScopeRole, string> = {
 export interface ScopeGroupData {
   key: string;
   groupName: string | null;
+  /** Container turi — sarlavha bezagi uchun ('GROUP' | 'SCHOOL', "Boshqa"da null). */
+  groupType: 'GROUP' | 'SCHOOL' | null;
   scopes: Scope[];
 }
 
 /**
- * Scope'larni Guruh bo'yicha guruhlash. GROUP o'zi va uning bevosita farzandlari
- * (HOUSEHOLD, PROJECT, EVENT, h.k.) bir guruhda. Guruh'siz scope'lar (PROJECT
- * to'g'ridan-to'g'ri user uchun, ya'ni parentSiz bo'lsa) "Boshqa" guruhida.
+ * Scope'larni container (GROUP yoki SCHOOL) bo'yicha guruhlash. Container o'zi va
+ * uning bevosita farzandlari (HOUSEHOLD, CLASS, h.k.) bir guruhda. Container'siz
+ * scope'lar "Boshqa" guruhida.
  */
 /** Runtime-xavfsiz GROUP tekshiruvi — legacy 'CLAN' (eski backend/localStorage) ham GROUP sanaladi. */
 const isGroupScope = (s: Scope) => getScopeTypeMeta(s.type).type === 'GROUP';
+
+/** Farzand scope'larni o'z ostida guruhlaydigan container'lar: GROUP va SCHOOL. */
+const isContainerScope = (s: Scope) => isGroupScope(s) || s.type === 'SCHOOL';
 
 export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
   if (scopes.length === 0) return [];
@@ -42,13 +47,14 @@ export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
   const groups = new Map<string, ScopeGroupData>();
   const groupsById = new Map<number, Scope>();
 
-  // Avval barcha GROUP'larni topish
+  // Avval barcha container'larni (GROUP/SCHOOL) topish
   for (const s of scopes) {
-    if (isGroupScope(s)) {
+    if (isContainerScope(s)) {
       groupsById.set(s.id, s);
       groups.set(`group-${s.id}`, {
         key: `group-${s.id}`,
         groupName: s.name,
+        groupType: isGroupScope(s) ? 'GROUP' : 'SCHOOL',
         scopes: [s],
       });
     }
@@ -56,13 +62,14 @@ export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
 
   // Keyin qolganlarini parent bo'yicha taqsimlash
   for (const s of scopes) {
-    if (isGroupScope(s)) continue;
+    if (isContainerScope(s)) continue;
     const parentGroup = s.parentScopeId ? groupsById.get(s.parentScopeId) : null;
     if (parentGroup) {
       const group = groups.get(`group-${parentGroup.id}`)!;
       group.scopes.push(s);
     } else {
-      const other = groups.get('other') ?? { key: 'other', groupName: null, scopes: [] };
+      const other =
+        groups.get('other') ?? { key: 'other', groupName: null, groupType: null, scopes: [] };
       other.scopes.push(s);
       groups.set('other', other);
     }

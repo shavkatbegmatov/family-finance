@@ -163,6 +163,7 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
             <ScopeGroup
               key={group.key}
               groupName={group.groupName}
+              groupType={group.groupType}
               scopes={group.scopes}
               activeScopeId={activeScope?.id ?? null}
               switchingId={switchingId}
@@ -217,12 +218,14 @@ function ActiveScopeBadge({ scope }: { scope: Scope | null }) {
 
 function ScopeGroup({
   groupName,
+  groupType,
   scopes,
   activeScopeId,
   switchingId,
   onSwitch,
 }: {
   groupName: string | null;
+  groupType: 'GROUP' | 'SCHOOL' | null;
   scopes: Scope[];
   activeScopeId: number | null;
   switchingId: number | null;
@@ -232,7 +235,7 @@ function ScopeGroup({
     <div className="py-1">
       {groupName && (
         <div className="px-3 py-1.5 text-xs font-semibold text-base-content/70">
-          🌳 {groupName}
+          {groupType === 'SCHOOL' ? '🎓' : '🌳'} {groupName}
         </div>
       )}
       {scopes.map((s) => (

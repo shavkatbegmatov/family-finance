@@ -18,6 +18,7 @@ import {
   FileText,
   Building2,
   Trophy,
+  GraduationCap,
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { PermissionCode, type PermissionCodeType } from '../../hooks/usePermission';
@@ -70,6 +71,7 @@ const menuGroups: MenuGroup[] = [
       { path: '/my-family', icon: Home, label: 'Mening oilam', permission: PermissionCode.FAMILY_VIEW },
       { path: '/family', icon: Users, label: "Oila a'zolari", permission: PermissionCode.FAMILY_VIEW },
       { path: '/points', icon: Trophy, label: 'Ball tizimi', permission: PermissionCode.POINTS_VIEW },
+      { path: '/schools', icon: GraduationCap, label: 'Maktablar', permission: PermissionCode.FAMILY_VIEW },
     ],
   },
   {
