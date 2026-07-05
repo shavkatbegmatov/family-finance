@@ -183,7 +183,7 @@ export function ScopeSwitcher({ className }: ScopeSwitcherProps) {
             className="sticky bottom-0 flex items-center gap-2 border-t border-base-200 bg-base-100 px-3 py-2.5 text-sm text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content"
           >
             <Settings2 className="h-4 w-4" />
-            Guruh va xonadonlarni boshqarish
+            Xonadonlarimni ko'rish
           </Link>
         </div>
       )}
@@ -225,7 +225,7 @@ function ScopeGroup({
   onSwitch,
 }: {
   groupName: string | null;
-  groupType: 'GROUP' | 'SCHOOL' | null;
+  groupType: 'SCHOOL' | null;
   scopes: Scope[];
   activeScopeId: number | null;
   switchingId: number | null;
@@ -233,15 +233,16 @@ function ScopeGroup({
 }) {
   return (
     <div className="py-1">
-      {groupName && (
+      {groupName && groupType === 'SCHOOL' && (
         <div className="px-3 py-1.5 text-xs font-semibold text-base-content/70">
-          {groupType === 'SCHOOL' ? '🎓' : '🌳'} {groupName}
+          🎓 {groupName}
         </div>
       )}
       {scopes.map((s) => (
         <ScopeOption
           key={s.id}
           scope={s}
+          indented={groupType === 'SCHOOL' && s.type !== 'SCHOOL'}
           isActive={s.id === activeScopeId}
           isSwitching={switchingId === s.id}
           onClick={() => onSwitch(s)}
@@ -253,11 +254,14 @@ function ScopeGroup({
 
 function ScopeOption({
   scope,
+  indented = false,
   isActive,
   isSwitching,
   onClick,
 }: {
   scope: Scope;
+  /** Container (maktab) sarlavhasi ostidagi bola — chapdan joy ochish. */
+  indented?: boolean;
   isActive: boolean;
   isSwitching: boolean;
   onClick: () => void;
@@ -265,7 +269,7 @@ function ScopeOption({
   const meta = getScopeTypeMeta(scope.type);
   const Icon = meta.icon;
   const role = scope.currentUserRole;
-  const indent = meta.type === 'GROUP' ? '' : 'ml-3';
+  const indent = indented ? 'ml-3' : '';
 
   return (
     <button

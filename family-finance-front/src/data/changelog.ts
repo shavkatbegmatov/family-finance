@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.14.0',
+        date: '2026-07-06 12:00',
+        title: "Tizim soddalashdi — \"Guruh\" tushunchasi olib tashlandi",
+        features: [
+            "\"Guruh\" (bir nechta xonadonni birlashtiruvchi qatlam) olib tashlandi: unda hech qanday moliyaviy ma'lumot yuritilmasdi va foydalanuvchilarni chalg'itardi. Endi har bir xonadon to'liq mustaqil — kontekst tanlagich ham soddalashdi.",
+            "Eski guruhlar arxivlandi — hech qanday ma'lumot yo'qolmadi (xonadonlaringiz, hisob-kitoblaringiz joyida). Qarindoshlik shajarasi guruhga bog'liq emas edi va o'zgarishsiz ishlayveradi.",
+            "\"Xonadonlarim\" sahifasi: siz a'zo bo'lgan barcha kontekstlar (xonadon, maktab, sinf) va ulardagi rolingiz bir joyda.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.13.1',
         date: '2026-07-05 15:00',
         title: "O'qituvchi va xonadon egasi uchun ball boshqaruvi",

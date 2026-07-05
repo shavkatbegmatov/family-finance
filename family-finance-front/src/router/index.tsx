@@ -304,7 +304,7 @@ export const router = createBrowserRouter([
             <LazyRoute><ScopeManagementPage /></LazyRoute>
           </ProtectedRoute>
         ),
-        handle: { title: 'Guruh va xonadonlar' },
+        handle: { title: 'Xonadonlarim' },
       },
       {
         path: 'schools',

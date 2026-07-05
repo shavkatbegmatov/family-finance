@@ -43,10 +43,10 @@ class ScopeIsolationIntegrationTest extends AbstractPostgresIntegrationTest {
     private AccountRepository accountRepository;
 
     private Scope newScope(String name, User owner) {
-        // GROUP — eng yuqori daraja (parentsiz); chk_scope_parent: GROUP => parent_scope_id NULL.
+        // HOUSEHOLD — mustaqil root scope (ADR-003: GROUP iste'foda).
         // Izolyatsiya testi uchun ikki mustaqil top-level scope yetarli.
         return scopeRepository.save(Scope.builder()
-                .type(ScopeType.GROUP)
+                .type(ScopeType.HOUSEHOLD)
                 .name(name)
                 .ownerUser(owner)
                 .build());

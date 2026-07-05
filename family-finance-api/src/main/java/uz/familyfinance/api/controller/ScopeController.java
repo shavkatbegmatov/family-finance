@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.MembershipInviteRequest;
 import uz.familyfinance.api.dto.request.ScopeCreateRequest;
 import uz.familyfinance.api.dto.request.ScopeRoleUpdateRequest;
-import uz.familyfinance.api.dto.request.SetScopeParentRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.FinancialOverviewResponse;
 import uz.familyfinance.api.dto.response.MembershipResponse;
@@ -75,16 +74,8 @@ public class ScopeController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    /**
-     * Xonadonni guruhga biriktirish yoki uzish (ADR-001 decoupling UX).
-     * Body: {@code {parentScopeId: <groupId>}} — biriktirish; {@code {parentScopeId: null}} — uzish.
-     */
-    @PutMapping("/{id}/parent")
-    public ResponseEntity<ApiResponse<ScopeResponse>> setParent(
-            @PathVariable Long id, @RequestBody SetScopeParentRequest request) {
-        return ResponseEntity.ok(ApiResponse.success(
-                scopeService.setHouseholdParent(id, request.getParentScopeId())));
-    }
+    // ADR-003: PUT /{id}/parent (guruhga biriktirish/uzish) olib tashlandi — GROUP
+    // scope iste'foda (V60), xonadonlar har doim mustaqil.
 
     // ===== Invite codes =====
 
@@ -174,7 +165,8 @@ public class ScopeController {
 
     /**
      * Login qilingan user invite code orqali boshqa oilaga qo'shilishi.
-     * archiveOldGroup=true bo'lsa, eski auto-yaratilgan bo'sh guruh/xonadon arxivlanadi.
+     * archiveOldGroup=true bo'lsa, eski auto-yaratilgan bo'sh xonadon arxivlanadi
+     * (ADR-003'dan keyin faqat xonadon — GROUP'lar V60'da allaqachon arxivda).
      * (Eski klientlar — APK — uchun legacy "archiveOldClan" kaliti ham qabul qilinadi.)
      */
     @PostMapping("/join-by-code")

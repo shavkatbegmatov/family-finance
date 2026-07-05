@@ -52,7 +52,7 @@ class TransactionAggregateScopeIntegrationTest extends AbstractPostgresIntegrati
 
     private Scope newClan(String name, User owner) {
         return scopeRepository.save(Scope.builder()
-                .type(ScopeType.GROUP).name(name).ownerUser(owner).build());
+                .type(ScopeType.HOUSEHOLD).name(name).ownerUser(owner).build());
     }
 
     private void income(Scope scope, String amount) {

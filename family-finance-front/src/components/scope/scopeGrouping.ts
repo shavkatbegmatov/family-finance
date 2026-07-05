@@ -1,5 +1,4 @@
 import type { Scope, ScopeRole } from '../../types/scope.types';
-import { getScopeTypeMeta } from './scopeTypeMeta';
 
 /**
  * ScopeSwitcher (desktop dropdown) va MobileScopeSwitcher (bottom-sheet)
@@ -25,21 +24,17 @@ export const ROLE_TONE: Record<ScopeRole, string> = {
 export interface ScopeGroupData {
   key: string;
   groupName: string | null;
-  /** Container turi — sarlavha bezagi uchun ('GROUP' | 'SCHOOL', "Boshqa"da null). */
-  groupType: 'GROUP' | 'SCHOOL' | null;
+  /** Container turi — sarlavha bezagi uchun (ADR-003'dan keyin faqat 'SCHOOL', "Boshqa"da null). */
+  groupType: 'SCHOOL' | null;
   scopes: Scope[];
 }
 
 /**
- * Scope'larni container (GROUP yoki SCHOOL) bo'yicha guruhlash. Container o'zi va
- * uning bevosita farzandlari (HOUSEHOLD, CLASS, h.k.) bir guruhda. Container'siz
- * scope'lar "Boshqa" guruhida.
+ * Scope'larni container (SCHOOL) bo'yicha guruhlash: maktab o'zi va uning sinflari
+ * (CLASS) bir guruhda. Qolgan scope'lar (xonadonlar — ADR-003'dan beri har doim
+ * mustaqil) "Boshqa" guruhida tekis ro'yxat bo'ladi.
  */
-/** Runtime-xavfsiz GROUP tekshiruvi — legacy 'CLAN' (eski backend/localStorage) ham GROUP sanaladi. */
-const isGroupScope = (s: Scope) => getScopeTypeMeta(s.type).type === 'GROUP';
-
-/** Farzand scope'larni o'z ostida guruhlaydigan container'lar: GROUP va SCHOOL. */
-const isContainerScope = (s: Scope) => isGroupScope(s) || s.type === 'SCHOOL';
+const isContainerScope = (s: Scope) => s.type === 'SCHOOL';
 
 export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
   if (scopes.length === 0) return [];
@@ -47,14 +42,14 @@ export function groupScopesByGroup(scopes: Scope[]): ScopeGroupData[] {
   const groups = new Map<string, ScopeGroupData>();
   const groupsById = new Map<number, Scope>();
 
-  // Avval barcha container'larni (GROUP/SCHOOL) topish
+  // Avval barcha container'larni (SCHOOL) topish
   for (const s of scopes) {
     if (isContainerScope(s)) {
       groupsById.set(s.id, s);
       groups.set(`group-${s.id}`, {
         key: `group-${s.id}`,
         groupName: s.name,
-        groupType: isGroupScope(s) ? 'GROUP' : 'SCHOOL',
+        groupType: 'SCHOOL',
         scopes: [s],
       });
     }

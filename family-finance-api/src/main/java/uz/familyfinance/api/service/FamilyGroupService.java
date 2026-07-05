@@ -126,13 +126,14 @@ public class FamilyGroupService {
             familyMemberRepository.save(memberRecord);
         }
 
-        // Scope-aware: target GROUP va HOUSEHOLD'ga ScopeMembership qo'shamiz
+        // Scope-aware: target HOUSEHOLD'ga ScopeMembership qo'shamiz
         attachUserToScopesOfFamilyGroup(userToAdd, familyGroup);
     }
 
     /**
-     * Berilgan FamilyGroup'ning GROUP va HOUSEHOLD scope'lariga user'ni MEMBER sifatida
-     * biriktiradi. Mavjud LEFT/PENDING membership'ni qayta tiklash. Idempotent.
+     * Berilgan FamilyGroup admin'ining XONADONIGA user'ni MEMBER sifatida biriktiradi
+     * (ADR-003: GROUP iste'foda — V60 arxivlagan, tarmoq olib tashlandi).
+     * Mavjud LEFT/PENDING membership'ni qayta tiklash. Idempotent.
      */
     private void attachUserToScopesOfFamilyGroup(User user, FamilyGroup familyGroup) {
         // ADR-001 F5: fg→scope mapping endi legacy FK emas, EGALIK orqali — fg admin'i
@@ -140,24 +141,6 @@ public class FamilyGroupService {
         User admin = familyGroup.getAdmin();
         if (admin == null) return;
 
-        // 1) Admin egalik qiladigan GROUP (eski V34 modeli) — bo'lsa, unga + birinchi xonadoniga
-        uz.familyfinance.api.entity.Scope group = scopeRepository
-                .findFirstByTypeAndOwnerUserIdAndIsActiveTrue(
-                        uz.familyfinance.api.enums.ScopeType.GROUP, admin.getId())
-                .orElse(null);
-        if (group != null) {
-            attachAsMember(group, user);
-            scopeRepository.findFirstByParentScopeIdAndTypeAndIsActiveTrue(
-                    group.getId(), uz.familyfinance.api.enums.ScopeType.HOUSEHOLD)
-                    .ifPresent(household -> {
-                        attachAsMember(household, user);
-                        user.setPrimaryScope(household);
-                        userRepository.save(user);
-                    });
-            return;
-        }
-
-        // 2) GROUP yo'q (yangi root-household modeli) — admin xonadonining o'ziga
         scopeRepository.findFirstByTypeAndOwnerUserIdAndIsActiveTrue(
                         uz.familyfinance.api.enums.ScopeType.HOUSEHOLD, admin.getId())
                 .ifPresent(household -> {
