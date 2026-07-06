@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.15.1',
+        date: '2026-07-06 06:00',
+        title: "Xonadonlar daraxti: chiziqlar kartalarni ham to'smaydi",
+        features: [],
+        fixes: [
+            "Bir necha avlodni kesib o'tuvchi chiziqlar oraliq qatordagi kartalar ustidan o'tishi mumkin edi — endi ular kartalar orasidagi bo'sh kanallardan yuradi va bir kanaldagi chiziqlar ham bir-biridan ajratilgan.",
+        ],
+    },
+    {
         version: '1.15.0',
         date: '2026-07-06 05:00',
         title: 'Xonadonlar daraxti — professional diagramma',
