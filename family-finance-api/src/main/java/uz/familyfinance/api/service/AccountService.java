@@ -131,6 +131,13 @@ public class AccountService {
         BigDecimal initialBalance = request.getBalance() != null ? request.getBalance() : BigDecimal.ZERO;
         AccountScope scope = request.getScope() != null ? request.getScope() : AccountScope.PERSONAL;
 
+        // IDOR/write-guard: hisob aktiv xonadonda ochiladi — foydalanuvchi o'sha xonadonga
+        // yoza olishi shart (VIEWER yoki eskirgan tokenli, chiqarib yuborilgan a'zo emas).
+        var homeScope = scopeContext.getActiveHousehold().orElseThrow(
+                () -> new ResourceNotFoundException(
+                        "Aktiv xonadon topilmadi — hisob faqat xonadon kontekstida ochiladi"));
+        scopeContext.assertCanWrite(homeScope.getId());
+
         Account account = Account.builder()
                 .name(request.getName())
                 .type(request.getType())
@@ -148,9 +155,7 @@ public class AccountService {
                 .scope(scope)
                 // ADR-002 P2: hisob FAQAT xonadonda ochiladi — aniq HOUSEHOLD konteksti majburiy
                 // (GROUP faqat ko'rish uchun; SYSTEM_TRANSIT global hisoblar bu yo'ldan yaratilmaydi).
-                .homeScope(scopeContext.getActiveHousehold().orElseThrow(
-                        () -> new ResourceNotFoundException(
-                                "Aktiv xonadon topilmadi — hisob faqat xonadon kontekstida ochiladi")))
+                .homeScope(homeScope)
                 .build();
 
         // Owner ni bog'lash
@@ -283,8 +288,11 @@ public class AccountService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, CustomUserDetails currentUser) {
         Account account = findById(id);
+        // IDOR himoyasi: o'chirish (deaktivatsiya) faqat hisob egasiga — changeStatus
+        // bilan bir xil qoida (avval hech qanday scope/egalik tekshiruvi yo'q edi).
+        checkOwnerAccess(account, currentUser);
         account.setIsActive(false);
         accountRepository.save(account);
     }

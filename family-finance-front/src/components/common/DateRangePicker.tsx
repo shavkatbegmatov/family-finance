@@ -192,13 +192,11 @@ export function DateRangePicker({
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentMonth((prev) => {
-      const newMonth = new Date(prev);
-      if (direction === 'prev') {
-        newMonth.setMonth(newMonth.getMonth() - 1);
-      } else {
-        newMonth.setMonth(newMonth.getMonth() + 1);
-      }
-      return newMonth;
+      const delta = direction === 'prev' ? -1 : 1;
+      // Har doim oyning 1-kunidan quramiz. Native setMonth 31-kunli sanadan qisqa oyga
+      // o'tganda toshib ketardi (may 31 → iyun 31 → iyul 1), natijada iyun kalendarga
+      // umuman kirmasdi. currentMonth faqat oy/yil uchun ishlatiladi — kun ahamiyatsiz.
+      return new Date(prev.getFullYear(), prev.getMonth() + delta, 1);
     });
   };
 

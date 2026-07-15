@@ -46,9 +46,25 @@ export function useCrossTabSync() {
         logoutWithRedirect(500);
       }
 
-      // Case 2: auth store changed to signed out state in another tab
-      if (event.key === 'auth-storage' && event.newValue && isSignedOutAuthStorage(event.newValue)) {
-        logoutWithRedirect(500);
+      // Case 2: auth store changed in another tab
+      if (event.key === 'auth-storage' && event.newValue) {
+        if (isSignedOutAuthStorage(event.newValue)) {
+          logoutWithRedirect(500);
+        } else {
+          // Boshqa FOYDALANUVCHI login qilgan bo'lsa (id o'zgargan) — to'liq qayta
+          // yuklab rehydrate qilamiz. Aks holda bu tab eski user UI holatini ushlab
+          // turib, axios yangi user tokeni bilan so'rov yuborardi (cross-user aralashuv).
+          try {
+            const parsed = JSON.parse(event.newValue) as { state?: { user?: { id?: number } } };
+            const newUserId = parsed.state?.user?.id ?? null;
+            const currentUserId = useAuthStore.getState().user?.id ?? null;
+            if (newUserId != null && currentUserId != null && newUserId !== currentUserId) {
+              window.location.reload();
+            }
+          } catch {
+            // ignore — noto'g'ri JSON
+          }
+        }
       }
 
       // Case 3: Entire localStorage cleared
@@ -59,14 +75,10 @@ export function useCrossTabSync() {
         logoutWithRedirect(500);
       }
 
-      // Case 4: New login in another tab (token changed)
-      if (event.key === 'accessToken' && event.oldValue && event.newValue &&
-          event.oldValue !== event.newValue) {
-        toast('Boshqa tabda yangi session boshlandi', {
-          duration: 3000,
-          icon: '🔄',
-        });
-      }
+      // Case 4: accessToken o'zgardi. Bu ko'pincha boshqa tabdagi ODDIY soatlik refresh
+      // (o'sha user) — hech qanday xabar shart emas (avval har refreshda chalg'ituvchi
+      // "Boshqa tabda yangi session boshlandi" toast chiqardi). Haqiqiy boshqa-user
+      // login holati Case 2'da (auth-storage id o'zgarishi) qayta-yuklash bilan hal qilinadi.
     };
 
     window.addEventListener('storage', handleStorageChange);

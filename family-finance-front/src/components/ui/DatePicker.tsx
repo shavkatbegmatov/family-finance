@@ -329,12 +329,12 @@ export function DatePicker({
       case 'PageUp':
         e.preventDefault();
         if (viewMode === 'days') {
-          const newDate = new Date(focusedDate);
-          if (e.shiftKey) {
-            newDate.setFullYear(focusedDate.getFullYear() - 1);
-          } else {
-            newDate.setMonth(focusedDate.getMonth() - 1);
-          }
+          // date-fns setYear/subMonths kunni klamp qiladi — native setMonth/setFullYear
+          // esa toshib ketardi (mart 31 → fevral 31 → mart 3; 29-fevral → oddiy yilda
+          // 1-mart). Arrow tugmalar allaqachon date-fns (addMonths/subMonths) ishlatadi.
+          const newDate = e.shiftKey
+            ? setYear(focusedDate, getYear(focusedDate) - 1)
+            : subMonths(focusedDate, 1);
           if (!isDateDisabled(newDate, min, max)) {
             setFocusedDate(newDate);
           }
@@ -343,12 +343,9 @@ export function DatePicker({
       case 'PageDown':
         e.preventDefault();
         if (viewMode === 'days') {
-          const newDate = new Date(focusedDate);
-          if (e.shiftKey) {
-            newDate.setFullYear(focusedDate.getFullYear() + 1);
-          } else {
-            newDate.setMonth(focusedDate.getMonth() + 1);
-          }
+          const newDate = e.shiftKey
+            ? setYear(focusedDate, getYear(focusedDate) + 1)
+            : addMonths(focusedDate, 1);
           if (!isDateDisabled(newDate, min, max)) {
             setFocusedDate(newDate);
           }

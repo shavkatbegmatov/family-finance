@@ -42,6 +42,13 @@ public class FamilyUnitService {
     private final FamilyMemberRepository familyMemberRepository;
     private final FamilyTreeValidationService validationService;
 
+    // Genealogiya tenant-guard (checkAccess yagona manbasi FamilyMemberService'da).
+    // @Lazy — FamilyMemberService allaqachon FamilyUnitService'ni inject qiladi, shu
+    // sabab aylanma bog'liqlikni uzish uchun lazy proksi ishlatiladi.
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private FamilyMemberService familyMemberService;
+
     @Transactional
     public FamilyUnitResponse createFamilyUnit(CreateFamilyUnitRequest request) {
         if (request.getPartner2Id() != null) {
@@ -63,7 +70,7 @@ public class FamilyUnitService {
             attachPartner(saved, findMember(request.getPartner2Id()));
         }
 
-        return getById(saved.getId());
+        return buildResponse(saved.getId());
     }
 
     /**
@@ -103,11 +110,14 @@ public class FamilyUnitService {
         attachPartner(saved, father);
         attachPartner(saved, mother);
 
-        // Farzandni biriktirish — addChild logikasi (cycle/duplikat/biologik validatsiyalar bilan) qayta ishlatiladi
+        // Farzandni biriktirish — doAddChild logikasi (cycle/duplikat/biologik validatsiyalar
+        // bilan) qayta ishlatiladi. Ichki (guard'siz) variant chaqiriladi: kirish huquqi
+        // yuqorida findMember(child) orqali allaqachon tekshirilgan, yangi ota-onalar esa
+        // hali familyGroup'siz bo'lishi mumkin (unit-guard ularni noto'g'ri to'sib qo'yardi).
         AddChildRequest childReq = new AddChildRequest();
         childReq.setPersonId(child.getId());
         childReq.setLineageType(LineageType.BIOLOGICAL);
-        return addChild(saved.getId(), childReq);
+        return doAddChild(saved.getId(), childReq);
     }
 
     private FamilyMember resolveOrCreateParent(Long existingId, String firstName, Gender gender,
@@ -164,7 +174,7 @@ public class FamilyUnitService {
             unit.setMarriageDate(request.getMarriageDate());
         }
         familyUnitRepository.save(unit);
-        return getById(unit.getId());
+        return buildResponse(unit.getId());
     }
 
     /** Yetishmayotgan ota yoki onani nikohga partner sifatida qo'shadi (allaqachon bor bo'lsa o'tkazib yuboradi). */
@@ -183,6 +193,12 @@ public class FamilyUnitService {
             return;
         }
         FamilyMember parent = resolveOrCreateParent(existingId, firstName, gender, role, birthDate);
+        // Reuse yo'li ham fresh addParents kabi juftlik tekshiruvidan o'tsin — avval
+        // attachParentIfAbsent hech qanday tekshiruvsiz qo'shardi, natijada mavjud partner
+        // bilan bir xil jinsli/dublikat/o'zi-bilan nikoh yuzaga kelishi mumkin edi.
+        familyPartnerRepository.findByFamilyUnitId(unit.getId())
+                .forEach(existing -> validationService.validatePartnerPair(
+                        existing.getPerson().getId(), parent.getId()));
         attachPartner(unit, parent);
     }
 
@@ -314,8 +330,7 @@ public class FamilyUnitService {
 
     @Transactional
     public FamilyUnitResponse updateFamilyUnit(Long id, UpdateFamilyUnitRequest request) {
-        FamilyUnit unit = familyUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + id));
+        FamilyUnit unit = loadAccessibleUnit(id);
 
         if (request.getMarriageType() != null) {
             unit.setMarriageType(request.getMarriageType());
@@ -336,8 +351,7 @@ public class FamilyUnitService {
 
     @Transactional
     public void deleteFamilyUnit(Long id) {
-        FamilyUnit unit = familyUnitRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + id));
+        FamilyUnit unit = loadAccessibleUnit(id);
         familyUnitRepository.delete(unit);
     }
 
@@ -345,8 +359,7 @@ public class FamilyUnitService {
     public FamilyUnitResponse addPartner(Long familyUnitId, AddPartnerRequest request) {
         validationService.validateMaxPartners(familyUnitId);
 
-        FamilyUnit unit = familyUnitRepository.findByIdWithRelations(familyUnitId)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + familyUnitId));
+        FamilyUnit unit = loadAccessibleUnit(familyUnitId);
         FamilyMember person = findMember(request.getPersonId());
 
         ensureNotAlreadyPartner(familyUnitId, request.getPersonId());
@@ -357,19 +370,31 @@ public class FamilyUnitService {
         }
 
         attachPartner(unit, person);
-        return getById(familyUnitId);
+        return buildResponse(familyUnitId);
     }
 
     @Transactional
     public FamilyUnitResponse removePartner(Long familyUnitId, Long personId) {
+        loadAccessibleUnit(familyUnitId); // tenant-guard
         FamilyPartner partner = familyPartnerRepository.findByFamilyUnitIdAndPersonId(familyUnitId, personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Partner topilmadi"));
         familyPartnerRepository.delete(partner);
-        return getById(familyUnitId);
+        return buildResponse(familyUnitId);
     }
 
     @Transactional
     public FamilyUnitResponse addChild(Long familyUnitId, AddChildRequest request) {
+        loadAccessibleUnit(familyUnitId); // tenant-guard (public kirish nuqtasi)
+        return doAddChild(familyUnitId, request);
+    }
+
+    /**
+     * Farzand biriktirishning ichki (unit-guard'siz) varianti — addParents yangi
+     * yaratilgan (hali familyGroup'siz ota-onali) nikohga farzand qo'shganda ishlatadi.
+     * Kirish huquqi u yerda findMember(child) orqali allaqachon tekshirilgan. Public
+     * addChild unit-guard'ni o'zi bajaradi.
+     */
+    private FamilyUnitResponse doAddChild(Long familyUnitId, AddChildRequest request) {
         validationService.validateNoAncestorCycle(familyUnitId, request.getPersonId());
 
         FamilyUnit unit = familyUnitRepository.findById(familyUnitId)
@@ -391,26 +416,27 @@ public class FamilyUnitService {
                 .build();
 
         familyChildRepository.save(child);
-        return getById(familyUnitId);
+        return buildResponse(familyUnitId);
     }
 
     @Transactional
     public FamilyUnitResponse removeChild(Long familyUnitId, Long personId) {
+        loadAccessibleUnit(familyUnitId); // tenant-guard
         FamilyChild child = familyChildRepository.findByFamilyUnitIdAndPersonId(familyUnitId, personId)
                 .orElseThrow(() -> new ResourceNotFoundException("Farzand topilmadi"));
         familyChildRepository.delete(child);
-        return getById(familyUnitId);
+        return buildResponse(familyUnitId);
     }
 
     @Transactional(readOnly = true)
     public FamilyUnitResponse getById(Long id) {
-        FamilyUnit unit = familyUnitRepository.findByIdWithRelations(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + id));
-        return toResponse(unit);
+        return toResponse(loadAccessibleUnit(id));
     }
 
     @Transactional(readOnly = true)
     public List<FamilyUnitResponse> getByPersonId(Long personId) {
+        // Tenant-guard: findMember faqat joriy tenant'dagi shaxsni yuklaydi (aks holda 403).
+        findMember(personId);
         List<FamilyUnit> asPartner = familyUnitRepository.findByPartnerIdWithRelations(personId);
         List<FamilyUnit> asChild = familyUnitRepository.findByChildIdWithRelations(personId);
 
@@ -423,8 +449,53 @@ public class FamilyUnitService {
     }
 
     private FamilyMember findMember(Long id) {
-        return familyMemberRepository.findById(id)
+        FamilyMember member = familyMemberRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + id));
+        // Tenant-guard: begona oilaning a'zosini nikoh/farzandga bog'lab bo'lmaydi.
+        familyMemberService.assertMemberAccessible(member);
+        return member;
+    }
+
+    private FamilyUnit loadUnitWithRelations(Long id) {
+        return familyUnitRepository.findByIdWithRelations(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Oila birligi topilmadi: " + id));
+    }
+
+    private FamilyUnit loadAccessibleUnit(Long id) {
+        FamilyUnit unit = loadUnitWithRelations(id);
+        assertUnitAccessible(unit);
+        return unit;
+    }
+
+    private FamilyUnitResponse buildResponse(Long id) {
+        return toResponse(loadUnitWithRelations(id));
+    }
+
+    /**
+     * Birlik joriy foydalanuvchi tenant'iga tegishlimi — uning ISTALGAN a'zosi (partner
+     * yoki farzand) tenant'da bo'lsa ruxsat beriladi. "Barchasi" emas "istalgan" — ba'zi
+     * ota-onalar familyGroup'siz yaratilishi mumkin; bunday birlikni bitta tenant a'zosi
+     * (masalan farzand) ochib beradi. Hech bir a'zo tenant'da bo'lmasa — begona oila (403).
+     */
+    private void assertUnitAccessible(FamilyUnit unit) {
+        boolean anyAccessible = java.util.stream.Stream.concat(
+                        unit.getPartners().stream().map(FamilyPartner::getPerson),
+                        unit.getChildren().stream().map(FamilyChild::getPerson))
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(this::isMemberAccessible);
+        if (!anyAccessible) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Bu oila birligiga kirish huquqingiz yo'q");
+        }
+    }
+
+    private boolean isMemberAccessible(FamilyMember member) {
+        try {
+            familyMemberService.assertMemberAccessible(member);
+            return true;
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return false;
+        }
     }
 
     public FamilyUnitResponse toResponse(FamilyUnit unit) {

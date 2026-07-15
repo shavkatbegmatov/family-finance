@@ -11,6 +11,7 @@ import type {
   PointBalance, PointTask, PointMultiplierEvent, PointParticipant,
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import {
   PointsEmptyState,
   PointsGamifiedBadge,
@@ -74,6 +75,11 @@ export function PointsDashboardPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Aktiv scope (xonadon) almashganda qayta yuklash — bu sahifa react-query ishlatmaydi,
+  // shu sabab useSwitchScope invalidatsiyasi yetib kelmaydi va eski xonadon ballari
+  // ko'rinib qolardi (amallar esa yangi scope'ga bajarilardi).
+  useScopeChangeEffect(loadData);
 
   // Quick stats
   const stats = useMemo(() => {

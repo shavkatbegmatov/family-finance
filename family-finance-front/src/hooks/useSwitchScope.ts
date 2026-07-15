@@ -61,8 +61,14 @@ export function useSwitchScope(): SwitchScopeResult {
         }
         const newAccessToken = data.accessToken;
 
+        // axios silent refresh yangi (rotatsiyalangan) refresh tokenni FAQAT localStorage'ga
+        // yozadi, Zustand store'ni emas — shu sabab store'dagi refreshToken eskirgan bo'lishi
+        // mumkin. Tirik tokenni localStorage'dan olamiz; aks holda setAuth uni o'lik token
+        // bilan ustiga yozib, keyingi refresh'da "Sessiya tugadi" majburiy logout bo'lardi.
+        const liveRefreshToken = localStorage.getItem('refreshToken') ?? refreshToken;
+
         // 1) authStore — yangi JWT (axios darhol yangi tokenni ishlatadi)
-        setAuth(user, newAccessToken, refreshToken, Array.from(permissions), Array.from(roles));
+        setAuth(user, newAccessToken, liveRefreshToken, Array.from(permissions), Array.from(roles));
         // 2) aktiv scope
         setActiveScope(target);
         // 3) WebSocket'ni yangi token bilan qayta ulash

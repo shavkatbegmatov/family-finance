@@ -18,10 +18,15 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
     @Query("DELETE FROM TransactionSplit s WHERE s.transaction.id = :transactionId")
     void deleteByTransactionId(@Param("transactionId") Long transactionId);
 
-    /** Kategoriya hisobotida split'lar ham hisobga olinishi uchun. */
+    /**
+     * Kategoriya hisobotida split'lar ham hisobga olinishi uchun. Storno qilingan
+     * tranzaksiya (status=REVERSED) split'lari chiqarib tashlanadi — aks holda
+     * storno'dan keyin ham byudjet "spent"'ga qo'shilib qolardi.
+     */
     @Query("SELECT COALESCE(SUM(s.amount), 0) FROM TransactionSplit s " +
             "WHERE s.category.id = :categoryId " +
             "AND s.transaction.type = 'EXPENSE' " +
+            "AND s.transaction.status <> 'REVERSED' " +
             "AND s.transaction.transactionDate >= :from " +
             "AND s.transaction.transactionDate <= :to")
     BigDecimal sumExpenseByCategoryAndDateRange(@Param("categoryId") Long categoryId,
@@ -33,6 +38,7 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
             "WHERE s.category.id = :categoryId " +
             "AND s.transaction.account.homeScope.id = :scopeId " +
             "AND s.transaction.type = 'EXPENSE' " +
+            "AND s.transaction.status <> 'REVERSED' " +
             "AND s.transaction.transactionDate >= :from " +
             "AND s.transaction.transactionDate <= :to")
     BigDecimal sumExpenseByCategoryAndScopeAndDateRange(@Param("categoryId") Long categoryId,

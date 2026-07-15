@@ -20,6 +20,11 @@ import java.util.Set;
 
 @Entity
 @Table(name = "accounts")
+// @DynamicUpdate: save() faqat o'zgargan ustunlarni yozadi. Balans esa faqat
+// addToBalance (atomik bulk UPDATE) orqali o'zgaradi; @DynamicUpdate'siz metadata
+// yangilanishida (masalan hisob nomi) eskirgan balans ham qayta yozilib, konkurent
+// tranzaksiya effektini o'chirib yuborardi (lost update).
+@org.hibernate.annotations.DynamicUpdate
 @EntityListeners({ AuditingEntityListener.class, AuditEntityListener.class })
 @Getter
 @Setter

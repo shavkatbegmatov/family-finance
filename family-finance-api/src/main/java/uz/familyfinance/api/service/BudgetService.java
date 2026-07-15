@@ -74,7 +74,10 @@ public class BudgetService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kategoriya topilmadi"));
 
+        // IDOR/write-guard: aktiv scope'ga yozish huquqi tekshiriladi (VIEWER yoki
+        // chiqarib yuborilgan a'zoning eskirgan tokeni yozа olmasin).
         var activeScope = scopeContext.getActiveScope();
+        scopeContext.assertCanWrite(activeScope.getId());
 
         // Ustma-ust faol byudjetni RAD etamiz (ildiz sabab): aks holda bir kategoriya+scope'da
         // ikki mos byudjet checkBudgetWarning'da IncorrectResultSize tashlab, o'sha kategoriyali
