@@ -132,8 +132,9 @@ public class AccountController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(PermissionCode.ACCOUNTS_DELETE)
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        accountService.delete(id);
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        accountService.delete(id, userDetails);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 

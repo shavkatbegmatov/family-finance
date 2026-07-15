@@ -39,7 +39,17 @@ public interface SavingsGoalRepository extends JpaRepository<SavingsGoal, Long> 
     @Query("UPDATE SavingsGoal sg SET sg.currentAmount = sg.currentAmount + :amount WHERE sg.id = :id")
     void addToCurrentAmount(@Param("id") Long id, @Param("amount") BigDecimal amount);
 
+    /**
+     * Shartli bajarilgan-belgilash: faqat hali bajarilmagan (isCompleted=false)
+     * maqsadni belgilaydi va o'zgartirilgan qatorlar sonini qaytaradi. Shu tufayli
+     * takroriy hissalar bir maqsadni qayta-qayta "bajarildi" deb belgilamaydi va
+     * bildirishnoma faqat bir marta yuboriladi.
+     */
     @Modifying
-    @Query("UPDATE SavingsGoal sg SET sg.isCompleted = true WHERE sg.id = :id")
-    void markAsCompleted(@Param("id") Long id);
+    @Query("UPDATE SavingsGoal sg SET sg.isCompleted = true WHERE sg.id = :id AND sg.isCompleted = false")
+    int markAsCompleted(@Param("id") Long id);
+
+    /** Bulk update'dan keyin DB'dagi HAQIQIY joriy summa (managed entity eskirgan bo'ladi). */
+    @Query("SELECT sg.currentAmount FROM SavingsGoal sg WHERE sg.id = :id")
+    BigDecimal getCurrentAmountById(@Param("id") Long id);
 }

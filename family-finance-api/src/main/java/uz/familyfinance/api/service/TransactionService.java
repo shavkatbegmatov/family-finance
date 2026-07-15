@@ -306,6 +306,11 @@ public class TransactionService {
         Account account = accountRepository.findById(request.getAccountId())
                 .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
 
+        // IDOR himoyasi: foydalanuvchi YANGI hisobga ham yoza olishi shart. Avval faqat
+        // eski hisob tekshirilardi — begona (boshqa scope) hisobga tranzaksiyani ko'chirib,
+        // uning balansini o'zgartirish mumkin edi.
+        accountService.assertCanModify(account);
+
         // D4: UPDATE'da ham muzlatilgan/yopilgan hisob rad etiladi (avval faqat CREATE tekshirardi)
         ensureAccountActive(account);
 
@@ -344,6 +349,7 @@ public class TransactionService {
             if (request.getToAccountId() != null) {
                 toAccount = accountRepository.findById(request.getToAccountId())
                         .orElseThrow(() -> new ResourceNotFoundException("Qabul qiluvchi hisob topilmadi"));
+                accountService.assertCanModify(toAccount); // IDOR: qabul qiluvchi hisobga yozish huquqi
                 ensureAccountActive(toAccount); // D4: qabul qiluvchi hisob ham faol bo'lishi shart
                 ensureSameCurrency(account, toAccount); // D7: turli valyutali o'tkazma balansni buzadi
                 existing.setToAccount(toAccount);
@@ -702,7 +708,7 @@ public class TransactionService {
         }
         LocalDate today = LocalDate.now();
         // C3: byudjet va xarajat FAQAT shu scope'da qidiriladi (boshqa urug'/xonadon emas)
-        budgetRepository.findByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+        budgetRepository.findFirstByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByEndDateDesc(
                 categoryId, scopeId, today, today).ifPresent(budget -> {
             LocalDateTime from = budget.getStartDate().atStartOfDay();
             LocalDateTime to = budget.getEndDate().atTime(23, 59, 59);
@@ -736,7 +742,9 @@ public class TransactionService {
         if (budgetAlertRepository.existsByBudgetIdAndThreshold(budget.getId(), threshold.getPercent())) {
             return;
         }
-        notificationService.createGlobalNotification(
+        // Scoped: byudjet ogohlantirishi faqat shu byudjet scope'i a'zolariga (V61).
+        notificationService.createScopedNotification(
+                budget.getScope(),
                 title,
                 String.format("Kategoriya byudjeti %s%% sarflandi", percentage),
                 notificationType,

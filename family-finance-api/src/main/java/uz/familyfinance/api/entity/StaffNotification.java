@@ -26,7 +26,16 @@ public class StaffNotification extends BaseEntity implements Auditable {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user; // NULL = barcha xodimlar uchun
+    private User user; // NULL = ma'lum foydalanuvchiga bog'lanmagan (scope orqali ko'rinadi)
+
+    /**
+     * Bildirishnoma tegishli moliyaviy scope. NULL = haqiqiy tizim-global.
+     * Scoped bildirishnoma FAQAT o'sha scope a'zolariga ko'rinadi (cross-tenant
+     * PII sizishining oldini oladi — V61).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scope_id")
+    private uz.familyfinance.api.entity.Scope scope;
 
     @Column(nullable = false, length = 200)
     private String title;
@@ -76,6 +85,9 @@ public class StaffNotification extends BaseEntity implements Auditable {
         // Avoid lazy loading
         if (this.user != null) {
             map.put("userId", this.user.getId());
+        }
+        if (this.scope != null) {
+            map.put("scopeId", this.scope.getId());
         }
 
         return map;

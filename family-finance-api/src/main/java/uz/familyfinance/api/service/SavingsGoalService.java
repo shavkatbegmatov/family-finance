@@ -55,6 +55,11 @@ public class SavingsGoalService {
 
     @Transactional
     public SavingsGoalResponse create(SavingsGoalRequest request) {
+        // IDOR/write-guard: aktiv scope'ga yozish huquqi tekshiriladi (VIEWER yoki
+        // chiqarib yuborilgan a'zoning eskirgan tokeni yozа olmasin).
+        var activeScope = scopeContext.getActiveScope();
+        scopeContext.assertCanWrite(activeScope.getId());
+
         SavingsGoal goal = SavingsGoal.builder()
                 .name(request.getName())
                 .targetAmount(request.getTargetAmount())
@@ -63,7 +68,7 @@ public class SavingsGoalService {
                 .color(request.getColor())
                 // Phase 2.G: jamg'arma AKTIV scope'ga MAJBURIY bog'lanadi (NOT NULL constraint).
                 // scope_id — savings_goals'ning yagona tenant kaliti (family_group_id yo'q).
-                .scope(scopeContext.getActiveScope())
+                .scope(activeScope)
                 .build();
 
         if (request.getAccountId() != null) {
@@ -84,6 +89,12 @@ public class SavingsGoalService {
         goal.setDeadline(request.getDeadline());
         goal.setIcon(request.getIcon());
         goal.setColor(request.getColor());
+
+        // Target o'zgarganda bajarilish holatini qayta hisoblash — masalan target
+        // oshirilsa, allaqachon "bajarilgan" maqsad yana faol bo'lishi kerak (aks holda
+        // u getTotalSavingsByScope KPI'sidan tushib qolib, joriy summasi "yo'qolardi").
+        BigDecimal cur = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
+        goal.setIsCompleted(cur.compareTo(goal.getTargetAmount()) >= 0);
 
         if (request.getAccountId() != null) {
             Account account = accountRepository.findById(request.getAccountId())
@@ -120,11 +131,17 @@ public class SavingsGoalService {
         // Atomic balance update
         savingsGoalRepository.addToCurrentAmount(goal.getId(), request.getAmount());
 
-        BigDecimal current = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
-        BigDecimal newAmount = current.add(request.getAmount());
-        if (newAmount.compareTo(goal.getTargetAmount()) >= 0) {
-            savingsGoalRepository.markAsCompleted(goal.getId());
-            notificationService.createGlobalNotification(
+        // Bulk update'dan keyin managed entity eskirgan — DB'dagi HAQIQIY yig'indini
+        // o'qiymiz (konkurent hissalar bir-birini "ko'rmay" bajarilishni o'tkazib
+        // yubormasligi uchun). markAsCompleted shartli — faqat birinchi o'tish > 0
+        // qaytaradi, shu sabab bildirishnoma bir marta yuboriladi (allaqachon bajarilgan
+        // maqsadga hissa qo'shilsa qayta "bajarildi!" chiqmaydi).
+        BigDecimal newAmount = savingsGoalRepository.getCurrentAmountById(goal.getId());
+        if (newAmount != null && newAmount.compareTo(goal.getTargetAmount()) >= 0
+                && savingsGoalRepository.markAsCompleted(goal.getId()) > 0) {
+            // Scoped: maqsad nomi faqat shu jamg'arma scope'i a'zolariga (V61).
+            notificationService.createScopedNotification(
+                    goal.getScope(),
                     "Jamg'arma maqsadi bajarildi!",
                     String.format("\"%s\" maqsadi to'liq bajarildi!", goal.getName()),
                     uz.familyfinance.api.enums.StaffNotificationType.SAVINGS_MILESTONE,

@@ -59,40 +59,26 @@ public class DashboardService {
 
         List<Budget> activeBudgets = budgetRepository.findActiveByDateAndScope(now, scopeId);
 
-        // Batch: barcha budget category'lar uchun bitta query bilan expense sumlarni olish
-        List<DashboardStatsResponse.BudgetProgress> budgetProgress;
-        if (!activeBudgets.isEmpty()) {
-            List<Long> budgetCategoryIds = activeBudgets.stream()
-                    .map(b -> b.getCategory().getId()).toList();
-            // Budget'larning eng keng date range'ini topish
-            LocalDateTime budgetFrom = activeBudgets.stream()
-                    .map(b -> b.getStartDate().atStartOfDay())
-                    .min(LocalDateTime::compareTo).orElse(monthStart);
-            LocalDateTime budgetTo = activeBudgets.stream()
-                    .map(b -> b.getEndDate().atTime(23, 59, 59))
-                    .max(LocalDateTime::compareTo).orElse(monthEnd);
-
-            Map<Long, BigDecimal> spentMap = transactionRepository
-                    .sumExpenseByCategoryIdsAndScope(budgetCategoryIds, budgetFrom, budgetTo, scopeId).stream()
-                    .collect(Collectors.toMap(
-                            row -> (Long) row[0],
-                            row -> (BigDecimal) row[1]));
-
-            budgetProgress = activeBudgets.stream()
-                    .map(b -> {
-                        BigDecimal spent = spentMap.getOrDefault(b.getCategory().getId(), BigDecimal.ZERO);
-                        double pct = b.getAmount().compareTo(BigDecimal.ZERO) > 0
-                                ? spent.multiply(BigDecimal.valueOf(100)).divide(b.getAmount(), 2, RoundingMode.HALF_UP).doubleValue() : 0;
-                        return DashboardStatsResponse.BudgetProgress.builder()
-                                .categoryName(b.getCategory().getName())
-                                .budgetAmount(b.getAmount())
-                                .spentAmount(spent)
-                                .percentage(pct)
-                                .build();
-                    }).toList();
-        } else {
-            budgetProgress = List.of();
-        }
+        // Har bir byudjetning "sarfi" O'Z davri (startDate..endDate) bo'yicha hisoblanadi.
+        // Avval barcha byudjetlarning min(start)..max(end) BIRLASHGAN oralig'i ishlatilardi —
+        // natijada yillik byudjet bilan yonma-yon turgan oylik byudjet boshqa oydagi
+        // xarajatni ham "o'ziniki" deb ko'rsatib, dashboard BudgetService.toResponse bilan
+        // zid (masalan 110% "oshib ketgan") javob berardi.
+        List<DashboardStatsResponse.BudgetProgress> budgetProgress = activeBudgets.stream()
+                .map(b -> {
+                    LocalDateTime from = b.getStartDate().atStartOfDay();
+                    LocalDateTime to = b.getEndDate().atTime(23, 59, 59);
+                    BigDecimal spent = transactionRepository.sumExpenseByCategoryAndScopeAndDateRange(
+                            b.getCategory().getId(), scopeId, from, to);
+                    double pct = b.getAmount().compareTo(BigDecimal.ZERO) > 0
+                            ? spent.multiply(BigDecimal.valueOf(100)).divide(b.getAmount(), 2, RoundingMode.HALF_UP).doubleValue() : 0;
+                    return DashboardStatsResponse.BudgetProgress.builder()
+                            .categoryName(b.getCategory().getName())
+                            .budgetAmount(b.getAmount())
+                            .spentAmount(spent)
+                            .percentage(pct)
+                            .build();
+                }).toList();
 
         List<SavingsGoal> activeGoals = savingsGoalRepository.findByIsCompletedFalseAndScope(scopeId);
         List<DashboardStatsResponse.SavingsProgress> savingsProgress = activeGoals.stream()

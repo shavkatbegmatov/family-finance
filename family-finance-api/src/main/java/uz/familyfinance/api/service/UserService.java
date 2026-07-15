@@ -371,6 +371,11 @@ public class UserService {
         user.setPasswordChangedAt(LocalDateTime.now());
         userRepository.save(user);
 
+        // Parol o'zgargach barcha sessiyalar bekor qilinsin — o'g'irlangan/boshqa
+        // qurilmadagi sessiya yangi parolga qaramay tirik qolmasin. Foydalanuvchi
+        // barcha qurilmalarda yangi parol bilan qaytadan kiradi.
+        sessionService.revokeAllUserSessions(userId, userId, "Parol o'zgartirildi");
+
         auditLogService.log(
                 "User",
                 userId,
@@ -401,6 +406,14 @@ public class UserService {
         userRepository.save(user);
 
         User currentUser = getCurrentUser();
+
+        // Admin reset qilganda maqsad — mavjud (ko'pincha buzilgan/unutilgan) sessiyalarni
+        // tugatish; foydalanuvchi yangi vaqtinchalik parol bilan qaytadan kiradi.
+        sessionService.revokeAllUserSessions(
+                userId,
+                currentUser != null ? currentUser.getId() : null,
+                "Admin parolni reset qildi");
+
         auditLogService.log(
                 "User",
                 userId,
@@ -435,6 +448,15 @@ public class UserService {
         userRepository.save(user);
 
         User currentUser = getCurrentUser();
+
+        // O'chirilgan foydalanuvchining barcha sessiyalari bekor qilinsin — aks holda
+        // mavjud access token muddati tugaguncha (1s) ishlar, refresh esa yangi token
+        // berishda davom etardi; deactivate amalda kuchga kirmasdi.
+        sessionService.revokeAllUserSessions(
+                userId,
+                currentUser != null ? currentUser.getId() : null,
+                "Foydalanuvchi o'chirildi (deactivate)");
+
         auditLogService.log(
                 "User",
                 userId,

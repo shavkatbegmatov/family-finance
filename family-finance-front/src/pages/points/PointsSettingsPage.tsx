@@ -9,6 +9,7 @@ import type {
   PointConfig, PointConfigRequest, PointMultiplierEvent, PointMultiplierEventRequest,
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { ModalPortal } from '../../components/common/Modal';
 import { formatDate } from '../../config/constants';
 import {
@@ -111,6 +112,9 @@ export function PointsSettingsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Aktiv scope almashganda qayta yuklash (bu sahifa react-query ishlatmaydi).
+  useScopeChangeEffect(loadData);
 
   const handleSaveConfig = async () => {
     if (form.conversionRate <= 0) {

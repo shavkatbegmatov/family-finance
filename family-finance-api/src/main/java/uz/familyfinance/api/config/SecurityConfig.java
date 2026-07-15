@@ -21,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import uz.familyfinance.api.security.CustomUserDetailsService;
 import uz.familyfinance.api.security.JwtAuthenticationEntryPoint;
 import uz.familyfinance.api.security.JwtAuthenticationFilter;
+import uz.familyfinance.api.security.MustChangePasswordFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -29,6 +30,7 @@ import uz.familyfinance.api.security.JwtAuthenticationFilter;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final MustChangePasswordFilter mustChangePasswordFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final CustomUserDetailsService staffUserDetailsService;
 
@@ -59,7 +61,10 @@ public class SecurityConfig {
                         // Permissions checked at method level via @RequiresPermission
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // mustChangePassword majburlash — JwtAuthenticationFilter'dan KEYIN (SecurityContext
+                // to'ldirilgach): vaqtinchalik parolli user parolini o'zgartirmaguncha mutatsiya qila olmaydi.
+                .addFilterAfter(mustChangePasswordFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }

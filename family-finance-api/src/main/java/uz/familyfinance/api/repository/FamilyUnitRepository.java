@@ -54,8 +54,13 @@ public interface FamilyUnitRepository extends JpaRepository<FamilyUnit, Long> {
      * FamilyMember.scope o'chirilgach "a'zoning xonadoni" YAGONA manbadan — FamilyUnit.scope
      * ko'prigidan aniqlanadi (shaxs emas, oila xonadonga bog'lanadi).
      */
+    // Tarqatilgan (DISSOLVED) nikoh yoki arxivlangan (isActive=false) scope hisobga
+    // olinmaydi — aks holda qayta uylangan shaxs login'da eng eski/tugagan xonadonga
+    // (primaryScope) tushib qolardi. ORDER BY fu.id DESC — barqaror va eng yangi birinchi.
     @Query("SELECT fu.scope FROM FamilyUnit fu JOIN fu.partners p " +
            "WHERE p.person.id = :personId AND fu.scope IS NOT NULL AND fu.scope.type = :type " +
-           "ORDER BY fu.id")
+           "AND fu.status <> uz.familyfinance.api.enums.FamilyUnitStatus.DISSOLVED " +
+           "AND fu.scope.isActive = true " +
+           "ORDER BY fu.id DESC")
     List<Scope> findScopesByPartnerIdAndType(@Param("personId") Long personId, @Param("type") ScopeType type);
 }

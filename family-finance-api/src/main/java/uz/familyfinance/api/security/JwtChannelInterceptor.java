@@ -1,7 +1,7 @@
 package uz.familyfinance.api.security;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -12,16 +12,25 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import uz.familyfinance.api.service.SessionService;
 
-import java.security.Principal;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class JwtChannelInterceptor implements ChannelInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final SessionService sessionService;
+
+    // SessionService -> NotificationDispatcher -> SimpMessagingTemplate zanjiri WS
+    // broker konfiguratsiyasi bilan aylanma bog'liqlik hosil qilishi mumkin; @Lazy
+    // proksi bilan uziladi (isSessionValid faqat birinchi CONNECT'da chaqiriladi).
+    public JwtChannelInterceptor(JwtTokenProvider jwtTokenProvider,
+                                 @Lazy SessionService sessionService) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.sessionService = sessionService;
+    }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -33,7 +42,15 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
 
-                if (jwtTokenProvider.validateToken(token)) {
+                // Imzo/muddatdan tashqari: (1) sessiya DB'da hali faolmi (logout/revoke
+                // bo'lgan token WS ochmasin — HTTP filtr bilan bir xil qoida), (2) bu
+                // access token bo'lsin (refresh token WS credential sifatida qabul
+                // qilinmasin). getTokenUse validateToken'dan KEYIN (&&-qisqa tutashuv)
+                // chaqiriladi — noto'g'ri token'da getClaims xato tashlamasligi uchun.
+                // Legacy (tokenUse null) tokenlar deploy-xavfsiz o'tadi.
+                if (jwtTokenProvider.validateToken(token)
+                        && sessionService.isSessionValid(token)
+                        && !JwtTokenProvider.TOKEN_USE_REFRESH.equals(jwtTokenProvider.getTokenUse(token))) {
                     String username = jwtTokenProvider.getUsernameFromToken(token);
                     String tokenType = jwtTokenProvider.getTokenType(token);
                     Long userId = jwtTokenProvider.getUserIdFromToken(token);

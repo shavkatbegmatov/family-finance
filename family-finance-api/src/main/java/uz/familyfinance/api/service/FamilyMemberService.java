@@ -520,6 +520,28 @@ public class FamilyMemberService {
     }
 
     /**
+     * FamilyUnitService uchun public tenant-guard — genealogiya access-control'ining
+     * yagona manbai shu servis (checkAccess). Berilgan a'zo joriy foydalanuvchi
+     * genealogik tenant'iga tegishli bo'lmasa 403. SecurityContext'dan joriy
+     * foydalanuvchini oladi (FamilyUnitService controller'lari currentUser uzatmaydi).
+     */
+    public void assertMemberAccessible(FamilyMember member) {
+        CustomUserDetails currentUser = currentUserDetailsOrNull();
+        if (currentUser == null) {
+            throw new AccessDeniedException("Autentifikatsiya talab qilinadi");
+        }
+        checkAccess(member, currentUser);
+    }
+
+    private CustomUserDetails currentUserDetailsOrNull() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails cud) {
+            return cud;
+        }
+        return null;
+    }
+
+    /**
      * Bog'langan User.fullName ni FamilyMember dan sinxronlashtirish
      */
     private void syncUserFullName(FamilyMember member) {

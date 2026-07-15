@@ -42,7 +42,10 @@ public class FinanceScheduler {
                 long daysOverdue = ChronoUnit.DAYS.between(debt.getDueDate(), today);
                 String formattedAmount = String.format("%,.0f", debt.getRemainingAmount());
 
-                notificationService.createGlobalNotification(
+                // Scoped: qarzdor ismi/summasi faqat shu qarz scope'i a'zolariga
+                // ko'rinadi (cross-tenant PII sizishi yo'q — V61).
+                notificationService.createScopedNotification(
+                        debt.getScope(),
                         "Muddati o'tgan qarz!",
                         String.format("%s ning qarzi %s so'm. Muddati %d kun oldin o'tgan!",
                                 debt.getPersonName(), formattedAmount, daysOverdue),
