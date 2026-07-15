@@ -71,4 +71,25 @@ public class TelegramBotClient {
             log.warn("Telegram sendMessage muvaffaqiyatsiz (chatId={}): {}", chatId, e.getMessage());
         }
     }
+
+    /** Bot ma'lumotlari — token yaroqliligini live tekshirish (diagnostika). */
+    public JsonNode getMe() {
+        return restClient.get().uri("/getMe").retrieve().body(JsonNode.class);
+    }
+
+    /**
+     * Webhook holati — {@code getUpdates} bilan webhook birga ishlamaydi (409 Conflict);
+     * diagnostikada webhook o'rnatilib qolganini shu ko'rsatadi.
+     */
+    public JsonNode getWebhookInfo() {
+        return restClient.get().uri("/getWebhookInfo").retrieve().body(JsonNode.class);
+    }
+
+    /**
+     * Webhook'ni o'chirish (idempotent) — long-polling'ni 409 blokidan chiqaradi.
+     * {@code drop_pending_updates} yuborilmaydi: kutayotgan update'lar saqlanadi.
+     */
+    public JsonNode deleteWebhook() {
+        return restClient.post().uri("/deleteWebhook").retrieve().body(JsonNode.class);
+    }
 }

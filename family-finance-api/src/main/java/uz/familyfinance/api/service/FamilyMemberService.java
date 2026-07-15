@@ -59,7 +59,6 @@ public class FamilyMemberService {
     private final CategoryRepository categoryRepository;
     private final PointParticipantRepository pointParticipantRepository;
     private final ScopeContextService scopeContext;
-    private final FamilyUnitService familyUnitService;
 
     /**
      * Joriy aktiv scope'ga tegishli family_group_id ni qaytaradi.
@@ -457,11 +456,28 @@ public class FamilyMemberService {
             throw new BadRequestException("O'zingizning profilingizni o'chirib bo'lmaydi");
         }
 
-        // Genealogik bog'lanishlarni uzamiz — yetim partner/farzand qolmasin, bo'sh nikoh tozalanadi
-        familyUnitService.detachMemberFromGenealogy(member.getId());
-
+        // Yumshoq o'chirish: genealogik bog'lanishlar (nikoh, farzand) SAQLANADI. Avval
+        // detachMemberFromGenealogy hard-delete qilardi — o'chirishni qaytarib bo'lmasdi.
+        // A'zo isActive=false bo'ladi; daraxt/ro'yxat javoblari uni allaqachon filtrlaydi
+        // (mapPartners/mapChildren isActive bo'yicha), restore() esa bog'lanishlari bilan
+        // to'liq qayta faollashtiradi.
         member.setIsActive(false);
         familyMemberRepository.save(member);
+    }
+
+    /**
+     * Yumshoq o'chirilgan oila a'zosini qayta faollashtiradi. Bog'lanishlar o'chirilmagani
+     * uchun a'zo nikoh/farzand munosabatlari bilan o'z o'rniga to'liq qaytadi.
+     */
+    @Transactional
+    public FamilyMemberResponse restore(Long id, CustomUserDetails currentUser) {
+        FamilyMember member = findById(id);
+        checkAccess(member, currentUser);
+        if (Boolean.TRUE.equals(member.getIsActive())) {
+            throw new BadRequestException("Bu oila a'zosi allaqachon faol");
+        }
+        member.setIsActive(true);
+        return toResponse(familyMemberRepository.save(member));
     }
 
     @Transactional(readOnly = true)
