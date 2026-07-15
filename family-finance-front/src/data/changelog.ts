@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.0',
+        date: '2026-07-15 10:00',
+        title: "Barqarorlik va xavfsizlik — hisob-kitob, sessiya va maxfiylik tuzatishlari",
+        features: [],
+        fixes: [
+            "Tranzaksiyani storno qilsangiz u endi byudjet \"sarflandi\", dashboard va hisobotlardan ham to'g'ri chiqadi (avval faqat hisob balansi qaytardi, statistika eski holicha qolardi); hisob aylanmasi ham to'g'ri hisoblanadi. Storno qilingan takroriy to'lov avtomatik takrorlanmaydi.",
+            "Dashboard byudjet foizi endi har byudjetning o'z davri bo'yicha hisoblanadi (byudjet sahifasi bilan mos). Bir kategoriyaga ustma-ust ikki byudjet endi xarajat kiritishni bloklamaydi. Jamg'arma maqsadi bajarilganda bildirishnoma bir marta chiqadi; maqsad summasini o'zgartirsangiz holat qayta hisoblanadi.",
+            "Bildirishnomalar (qarz eslatmasi, byudjet ogohlantirishi, jamg'arma) endi faqat tegishli xonadon a'zolariga ko'rinadi — boshqa xonadonning qarzdori yoki summasi begonaga ko'rinmaydi. O'qilgan qilish va o'chirish faqat o'ziniki uchun ishlaydi.",
+            "Foydalanuvchi o'chirilganda yoki paroli o'zgartirilganda/reset qilinganda uning barcha qurilmalardagi sessiyalari darhol tugaydi; o'chirilgan hisob token yangilay olmaydi.",
+            "Xonadonni almashtirgandan ~1 soat keyin yuz beradigan \"Sessiya tugadi\" majburiy chiqish tuzatildi. Ballar, jamg'arma va xonadon sahifalari xonadon almashganda yangilanadi; realtime bildirishnomalar qayta ulanishdan keyin ham ishlaydi.",
+            "Pul maydoniga \"1 234 567,00\" kabi qiymat qo'yganda endi 100 barobar oshib ketmaydi. Sana filtrlari UTC+5'dan farqli qurilmada ham to'g'ri (bir kunga siljimaydi). Harakatsizlik ogohlantirishidagi \"Chiqish\" tugmasi endi ishlaydi.",
+            "Oila daraxtiga kirish faqat o'z oilangiz bilan cheklandi. Qayta uylangan shaxs tizimga kirganda eskirgan yoki tarqatilgan xonadonga tushib qolmaydi.",
+        ],
+    },
+    {
         version: '1.15.1',
         date: '2026-07-06 06:00',
         title: "Xonadonlar daraxti: chiziqlar kartalarni ham to'smaydi",
