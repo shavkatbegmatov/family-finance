@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.1',
+        date: '2026-07-16 01:30',
+        title: 'Telegram orqali kirish tiklandi',
+        features: [],
+        fixes: [
+            "Telegram orqali kirish/ro'yxatdan o'tish qayta ishlaydi — bot /start bosilganda yana \"Tasdiqlandi\" javobini beradi (Spring Boot 4 yangilanishidan keyin bot Telegram javoblarini o'qiy olmay qolgan edi).",
+            "Botga havolasiz (qo'lda) /start yozilsa endi jim qolmaydi — ilovadagi \"Telegram orqali kirish\" tugmasidan foydalanish kerakligini aytadi.",
+        ],
+    },
+    {
         version: '1.16.0',
         date: '2026-07-15 10:00',
         title: "Barqarorlik va xavfsizlik — hisob-kitob, sessiya va maxfiylik tuzatishlari",
