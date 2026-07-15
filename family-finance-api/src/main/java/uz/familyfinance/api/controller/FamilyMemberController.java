@@ -102,6 +102,13 @@ public class FamilyMemberController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @PostMapping("/{id}/restore")
+    @RequiresPermission(PermissionCode.FAMILY_UPDATE)
+    public ResponseEntity<ApiResponse<FamilyMemberResponse>> restore(@PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(familyMemberService.restore(id, currentUser)));
+    }
+
     @GetMapping("/export/excel")
     @RequiresPermission(PermissionCode.FAMILY_EXPORT)
     public void exportExcel(HttpServletResponse response, @AuthenticationPrincipal CustomUserDetails currentUser)
