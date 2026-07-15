@@ -1,6 +1,6 @@
 package uz.familyfinance.api.service.telegram;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -106,7 +106,7 @@ public class TelegramPollingService {
     private void handleUpdate(JsonNode update) {
         health.recordUpdateProcessed();
         JsonNode message = update.path("message");
-        String text = message.path("text").asText("");
+        String text = message.path("text").asString("");
         if (!text.startsWith("/start")) {
             return;
         }
@@ -133,6 +133,6 @@ public class TelegramPollingService {
 
     private static String textOrNull(JsonNode node, String field) {
         JsonNode value = node.path(field);
-        return value.isMissingNode() || value.isNull() ? null : value.asText();
+        return value.isMissingNode() || value.isNull() ? null : value.asString();
     }
 }

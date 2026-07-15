@@ -1,7 +1,7 @@
 package uz.familyfinance.api.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.StringNode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -61,7 +61,7 @@ public class TelegramAdminController {
         try {
             return call.get();
         } catch (Exception e) {
-            return TextNode.valueOf("XATO: " + e.getMessage());
+            return StringNode.valueOf("XATO: " + e.getMessage());
         }
     }
 }
