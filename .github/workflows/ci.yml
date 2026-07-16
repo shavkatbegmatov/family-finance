@@ -3,6 +3,13 @@ name: CI/CD
 on:
   push:
     branches: [main]
+    # Faqat hujjat o'zgargan commit prod'ni qayta deploy qilmasin (main'ga to'g'ridan-to'g'ri
+    # push'da har commit deploy demak — .md/docs uchun konteyner restart'i keraksiz).
+    # Kod bilan birga o'zgarsa workflow baribir ishlaydi.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   pull_request:
     branches: [main]
 
