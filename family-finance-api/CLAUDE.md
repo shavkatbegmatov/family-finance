@@ -1,6 +1,6 @@
 # Backend — family-finance-api
 
-Spring Boot 3.5.5, Java 17. Base package **`uz.familyfinance.api`**. Runs on **`:8098`**,
+Spring Boot 4.1.0, Java 21. Base package **`uz.familyfinance.api`**. Runs on **`:8098`**,
 context path **`/api`**. See root `../CLAUDE.md` and `../docs/architecture.md` first.
 
 ## Run / build
@@ -44,6 +44,14 @@ config/  scheduler/  util/  annotation/  exception/
   applied migration.
 - **Nullable `String` in JPQL:** wrap `CAST(:param AS string)` — otherwise Hibernate binds
   `bytea` and `lower(bytea)` fails.
+- **Jackson 3 (SB4):** Spring's HTTP message converters use **Jackson 3** (`tools.jackson`).
+  A `RestClient`/`RestTemplate` JSON target **must** be `tools.jackson.databind.JsonNode` —
+  a Jackson 2 `com.fasterxml…JsonNode` target compiles fine but blows up at runtime
+  (`InvalidDefinitionException: Cannot construct instance…`), which CI cannot catch. Jackson 3
+  renames: `TextNode`→`StringNode`, `asText()`→`asString()`. Injecting the Jackson 2
+  `ObjectMapper` directly (audit, `JwtAuthenticationEntryPoint`) is fine — it never goes through
+  a converter; that bean is hand-provided in `config/JacksonConfig`. (Cost us the silent Telegram
+  bot outage, PR #293.)
 - **Auditing:** entities implement `Auditable` (`getEntityName`, `toAuditMap`,
   `getSensitiveFields`); `AuditEntityListener` writes to `AuditLog`, sensitive fields masked.
 - **Scoping:** resolve via `ScopeContextService` (never raw `family_group_id`). See
