@@ -53,6 +53,11 @@ export function useIdleSessionTimeout(
   const lastBroadcastAtRef = useRef(0);
   const lastActivityHandledAtRef = useRef(0);
   const hasLoggedOutRef = useRef(false);
+  // Ogohlantirish modali ochiqligini closure'siz kuzatish (handleActivity uchun).
+  const showWarningRef = useRef(false);
+  useEffect(() => {
+    showWarningRef.current = showWarning;
+  }, [showWarning]);
 
   const clearTimers = useCallback(() => {
     if (warningTimerRef.current) {
@@ -212,6 +217,13 @@ export function useIdleSessionTimeout(
     applyActivity(initialActivityAt, true);
 
     const handleActivity = () => {
+      // Ogohlantirish modali ochiq bo'lsa, window'dagi faollik (jumladan modal tugmasini
+      // bosish paytidagi mousedown) sessiyani JIM tiklamasin — aks holda "Chiqish" tugmasi
+      // bosilganda modal mouseup'dan oldin unmount bo'lib, onClick={logoutNow} hech qachon
+      // ishlamasdi. Foydalanuvchi aniq "Davom etish"/"Chiqish" tugmasini tanlashi kerak.
+      if (showWarningRef.current) {
+        return;
+      }
       const now = Date.now();
       if (now - lastActivityHandledAtRef.current < 1000) {
         return;

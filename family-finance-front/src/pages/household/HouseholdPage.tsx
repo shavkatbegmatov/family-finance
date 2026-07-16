@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import {
   Home,
   Users,
@@ -76,6 +77,9 @@ export function HouseholdPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Aktiv scope almashganda qayta yuklash (bu sahifa react-query ishlatmaydi).
+  useScopeChangeEffect(loadData);
 
   const handleAddMember = async (username: string) => {
     setIsAdding(true);

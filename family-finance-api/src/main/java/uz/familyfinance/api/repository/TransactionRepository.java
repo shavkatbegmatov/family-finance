@@ -15,6 +15,18 @@ import java.util.List;
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
     Page<Transaction> findByType(TransactionType type, Pageable pageable);
 
+    // ------------------------------------------------------------------
+    // Storno (REVERSED) va agregatlar — muhim invariant:
+    // reverse() asl qatorni status=REVERSED qilib type=EXPENSE/INCOME'ni saqlaydi
+    // va alohida type=REVERSAL (status=CONFIRMED) kompensatsiya qatori yaratadi.
+    // Balans addToBalance orqali to'g'rilanadi. Shu sabab HAR bir moliyaviy
+    // AGREGAT (SUM/GROUP BY) storno qilingan asl qatorni (status=REVERSED) va
+    // kompensatsiya qatorini (type=REVERSAL) chiqarib tashlashi shart — aks holda
+    // byudjet "spent", dashboard, hisobotlar va aylanma storno'dan keyin ham
+    // eski summani ko'rsatadi. RO'YXAT so'rovlariga bu filtr QO'YILMAYDI —
+    // storno tranzaksiyalari daftарда (ledger) ko'rinib turishi kerak.
+    // ------------------------------------------------------------------
+
     @Query(
             value = "SELECT t FROM Transaction t WHERE " +
                     "(:scopeId IS NULL OR t.scope.id = :scopeId) AND " +
@@ -50,6 +62,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             Pageable pageable);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = :type AND " +
+           "t.status <> 'REVERSED' AND " +
            "t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumByTypeAndDateRange(@Param("type") TransactionType type,
                                       @Param("from") LocalDateTime from,
@@ -58,6 +71,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     /** Scope-aware: faqat berilgan scope'ning tranzaksiyalar yig'indisi (Account orqali). */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t "
          + "WHERE t.type = :type "
+         + "AND t.status <> 'REVERSED' "
          + "AND t.transactionDate >= :from AND t.transactionDate <= :to "
          + "AND t.scope.id = :scopeId")
     BigDecimal sumByTypeAndDateRangeAndScope(@Param("type") TransactionType type,
@@ -66,6 +80,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                     @Param("scopeId") Long scopeId);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'EXPENSE' AND " +
+           "t.status <> 'REVERSED' AND " +
            "t.category.id = :categoryId AND t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumExpenseByCategoryAndDateRange(@Param("categoryId") Long categoryId,
                                                  @Param("from") LocalDateTime from,
@@ -77,6 +92,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * sizishni oldini oladi (budget "spent" boshqa urug'/xonadon xarajatini qo'shmaydi).
      */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'EXPENSE' AND " +
+           "t.status <> 'REVERSED' AND " +
            "t.category.id = :categoryId AND t.account.homeScope.id = :scopeId " +
            "AND t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumExpenseByCategoryAndScopeAndDateRange(@Param("categoryId") Long categoryId,
@@ -85,6 +101,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                         @Param("to") LocalDateTime to);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'INCOME' AND " +
+           "t.status <> 'REVERSED' AND " +
            "t.category.id = :categoryId AND t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumIncomeByCategoryAndDateRange(@Param("categoryId") Long categoryId,
                                                 @Param("from") LocalDateTime from,
@@ -97,10 +114,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
          + "ORDER BY t.transactionDate DESC")
     List<Transaction> findTop10ByScope(@Param("scopeId") Long scopeId, Pageable pageable);
 
-    @Query("SELECT t FROM Transaction t WHERE t.isRecurring = true AND t.recurringPattern IS NOT NULL")
+    /**
+     * Recurring shablonlar — storno qilingan (status=REVERSED) shablon boshqa
+     * generatsiya qilmasligi uchun status filtri majburiy (aks holda storno
+     * qilingan shablon har davrda yangi tranzaksiya yaratishda davom etadi).
+     */
+    @Query("SELECT t FROM Transaction t WHERE t.isRecurring = true "
+         + "AND t.status <> 'REVERSED' AND t.recurringPattern IS NOT NULL")
     List<Transaction> findRecurringTransactions();
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'EXPENSE' AND " +
+           "t.status <> 'REVERSED' AND " +
            "t.familyMember.id = :memberId AND t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumExpenseByMemberAndDateRange(@Param("memberId") Long memberId,
                                                @Param("from") LocalDateTime from,
@@ -112,12 +136,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query("SELECT t.type, extract(month from t.transactionDate), COALESCE(SUM(t.amount), 0) " +
            "FROM Transaction t WHERE t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "AND t.status <> 'REVERSED' AND t.type <> 'REVERSAL' " +
            "GROUP BY t.type, extract(month from t.transactionDate)")
     List<Object[]> sumByTypeGroupedByMonth(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /** Scope-aware: faqat berilgan scope'ning oylik trend'i. */
     @Query("SELECT t.type, extract(month from t.transactionDate), COALESCE(SUM(t.amount), 0) "
          + "FROM Transaction t WHERE t.transactionDate >= :from AND t.transactionDate <= :to "
+         + "AND t.status <> 'REVERSED' AND t.type <> 'REVERSAL' "
          + "AND t.scope.id = :scopeId "
          + "GROUP BY t.type, extract(month from t.transactionDate)")
     List<Object[]> sumByTypeGroupedByMonthAndScope(@Param("from") LocalDateTime from,
@@ -125,13 +151,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                          @Param("scopeId") Long scopeId);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.type = 'EXPENSE' AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumExpenseGroupedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /** Scope-aware: faqat berilgan scope'ning kategoriya bo'yicha xarajatlari. */
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t "
-         + "WHERE t.type = 'EXPENSE' AND t.transactionDate >= :from AND t.transactionDate <= :to "
+         + "WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' "
+         + "AND t.transactionDate >= :from AND t.transactionDate <= :to "
          + "AND t.scope.id = :scopeId "
          + "GROUP BY t.category.id")
     List<Object[]> sumExpenseGroupedByCategoryAndScope(@Param("from") LocalDateTime from,
@@ -139,13 +167,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                               @Param("scopeId") Long scopeId);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.type = 'INCOME' AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "WHERE t.type = 'INCOME' AND t.status <> 'REVERSED' " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumIncomeGroupedByCategory(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /** Scope-aware: faqat berilgan scope'ning daromad kategoriyalari bo'yicha summa. */
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t "
-         + "WHERE t.type = 'INCOME' AND t.transactionDate >= :from AND t.transactionDate <= :to "
+         + "WHERE t.type = 'INCOME' AND t.status <> 'REVERSED' "
+         + "AND t.transactionDate >= :from AND t.transactionDate <= :to "
          + "AND t.scope.id = :scopeId "
          + "GROUP BY t.category.id")
     List<Object[]> sumIncomeGroupedByCategoryAndScope(@Param("from") LocalDateTime from,
@@ -153,7 +183,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                              @Param("scopeId") Long scopeId);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.type = 'EXPENSE' AND t.category.id IN :categoryIds " +
+           "WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' " +
+           "AND t.category.id IN :categoryIds " +
            "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumExpenseByCategoryIds(@Param("categoryIds") List<Long> categoryIds,
@@ -161,7 +192,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     /** Scope-aware: faqat berilgan family_group'dagi kategoriyalar bo'yicha xarajat. */
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t "
-         + "WHERE t.type = 'EXPENSE' AND t.category.id IN :categoryIds "
+         + "WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' "
+         + "AND t.category.id IN :categoryIds "
          + "AND t.transactionDate >= :from AND t.transactionDate <= :to "
          + "AND t.scope.id = :scopeId "
          + "GROUP BY t.category.id")
@@ -175,8 +207,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
            "ORDER BY t.transactionDate DESC")
     Page<Transaction> findByAccountId(@Param("accountId") Long accountId, Pageable pageable);
 
+    /**
+     * Debet aylanma — storno qilingan asl qator status=REVERSED bo'lgani uchun
+     * allaqachon chiqadi; kompensatsiya qatori (type=REVERSAL, status=CONFIRMED)
+     * ham chiqarilishi kerak, aks holda storno juftligi nolga yig'ilmay aylanmani
+     * buzadi.
+     */
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.debitAccount.id = :accountId " +
-           "AND t.status = 'CONFIRMED' " +
+           "AND t.status = 'CONFIRMED' AND t.type <> 'REVERSAL' " +
            "AND (CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) " +
            "AND (CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)")
     BigDecimal sumDebitTurnover(@Param("accountId") Long accountId,
@@ -184,7 +222,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                 @Param("toDate") LocalDateTime toDate);
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.creditAccount.id = :accountId " +
-           "AND t.status = 'CONFIRMED' " +
+           "AND t.status = 'CONFIRMED' AND t.type <> 'REVERSAL' " +
            "AND (CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) " +
            "AND (CAST(:toDate AS timestamp) IS NULL OR t.transactionDate <= :toDate)")
     BigDecimal sumCreditTurnover(@Param("accountId") Long accountId,
@@ -194,6 +232,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t.familyMember.id, t.type, COALESCE(SUM(t.amount), 0) " +
            "FROM Transaction t " +
            "WHERE t.familyMember.id IN :memberIds " +
+           "AND t.status <> 'REVERSED' AND t.type <> 'REVERSAL' " +
            "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.familyMember.id, t.type")
     List<Object[]> sumByMemberIdsGroupedByType(@Param("memberIds") List<Long> memberIds,
@@ -203,13 +242,14 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // ===== Member Financial Summary queries =====
 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t WHERE t.type = 'INCOME' AND " +
+           "t.status <> 'REVERSED' AND " +
            "t.familyMember.id = :memberId AND t.transactionDate >= :from AND t.transactionDate <= :to")
     BigDecimal sumIncomeByMemberAndDateRange(@Param("memberId") Long memberId,
                                               @Param("from") LocalDateTime from,
                                               @Param("to") LocalDateTime to);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.type = 'EXPENSE' AND t.familyMember.id = :memberId " +
+           "WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' AND t.familyMember.id = :memberId " +
            "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumExpenseByMemberGroupedByCategory(@Param("memberId") Long memberId,
@@ -217,7 +257,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                         @Param("to") LocalDateTime to);
 
     @Query("SELECT t.category.id, COALESCE(SUM(t.amount), 0) FROM Transaction t " +
-           "WHERE t.type = 'INCOME' AND t.familyMember.id = :memberId " +
+           "WHERE t.type = 'INCOME' AND t.status <> 'REVERSED' AND t.familyMember.id = :memberId " +
            "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.category.id")
     List<Object[]> sumIncomeByMemberGroupedByCategory(@Param("memberId") Long memberId,
@@ -226,6 +266,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query("SELECT t.type, extract(month from t.transactionDate), extract(year from t.transactionDate), COALESCE(SUM(t.amount), 0) " +
            "FROM Transaction t WHERE t.familyMember.id = :memberId " +
+           "AND t.status <> 'REVERSED' AND t.type <> 'REVERSAL' " +
            "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
            "GROUP BY t.type, extract(year from t.transactionDate), extract(month from t.transactionDate)")
     List<Object[]> sumByMemberGroupedByTypeAndMonth(@Param("memberId") Long memberId,

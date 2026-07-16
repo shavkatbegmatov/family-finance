@@ -25,9 +25,16 @@ const formatNumber = (num: number): string => {
   }).format(num);
 };
 
-// Parse formatted string to number (removes spaces and non-digits)
+// Parse formatted string to number.
+// Ilova butun so'm bilan ishlaydi (formatNumber maximumFractionDigits: 0). Shuning uchun:
+//  1) oxiridagi kasr qismini (",00" / ".50") olib tashlaymiz — aks holda bank formatidagi
+//     "1 234 567,00" → 123456700 (100x xato) bo'lardi;
+//  2) qolgan raqamlarni 15 tagacha cheklaymiz — juda katta paste'da Number aniqligi
+//     (MAX_SAFE_INTEGER) yo'qolmasligi uchun.
 const parseNumber = (str: string): number => {
-  const cleaned = str.replace(/[^\d]/g, '');
+  if (!str) return 0;
+  const withoutFraction = str.trim().replace(/[.,]\d{1,2}\s*$/, '');
+  const cleaned = withoutFraction.replace(/[^\d]/g, '').slice(0, 15);
   return cleaned === '' ? 0 : parseInt(cleaned, 10);
 };
 

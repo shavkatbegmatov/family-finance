@@ -13,6 +13,7 @@ import type {
   PointParticipant, PointBalance,
 } from '../../types/points.types';
 import { usePermission } from '../../hooks/usePermission';
+import { useScopeChangeEffect } from '../../hooks/useScopeChange';
 import { ModalPortal } from '../../components/common/Modal';
 import { Select } from '../../components/ui/Select';
 import { formatDate } from '../../config/constants';
@@ -90,6 +91,9 @@ export function PointsSavingsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Aktiv scope almashganda qayta yuklash (bu sahifa react-query ishlatmaydi).
+  useScopeChangeEffect(loadData);
 
   const handleDepositWithdraw = async () => {
     if (!selectedParticipantId || amount <= 0) {

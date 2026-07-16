@@ -459,6 +459,12 @@ public class AuthService {
             User user = userRepository.findByUsernameWithRolesAndPermissions(username)
                     .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi", "username", username));
 
+            // O'chirilgan (active=false) foydalanuvchiga yangi token berilmasin — aks
+            // holda deactivate amalda kuchga kirmaydi (refresh cheksiz token berardi).
+            if (!Boolean.TRUE.equals(user.getActive())) {
+                throw new BadRequestException("Hisob faol emas");
+            }
+
             CustomUserDetails userDetails = new CustomUserDetails(user);
 
             String newAccessToken = tokenProvider.generateStaffTokenWithPermissions(

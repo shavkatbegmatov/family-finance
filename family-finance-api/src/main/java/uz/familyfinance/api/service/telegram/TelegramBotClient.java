@@ -1,6 +1,6 @@
 package uz.familyfinance.api.service.telegram;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -70,5 +70,26 @@ public class TelegramBotClient {
         } catch (Exception e) {
             log.warn("Telegram sendMessage muvaffaqiyatsiz (chatId={}): {}", chatId, e.getMessage());
         }
+    }
+
+    /** Bot ma'lumotlari — token yaroqliligini live tekshirish (diagnostika). */
+    public JsonNode getMe() {
+        return restClient.get().uri("/getMe").retrieve().body(JsonNode.class);
+    }
+
+    /**
+     * Webhook holati — {@code getUpdates} bilan webhook birga ishlamaydi (409 Conflict);
+     * diagnostikada webhook o'rnatilib qolganini shu ko'rsatadi.
+     */
+    public JsonNode getWebhookInfo() {
+        return restClient.get().uri("/getWebhookInfo").retrieve().body(JsonNode.class);
+    }
+
+    /**
+     * Webhook'ni o'chirish (idempotent) — long-polling'ni 409 blokidan chiqaradi.
+     * {@code drop_pending_updates} yuborilmaydi: kutayotgan update'lar saqlanadi.
+     */
+    public JsonNode deleteWebhook() {
+        return restClient.post().uri("/deleteWebhook").retrieve().body(JsonNode.class);
     }
 }

@@ -80,6 +80,16 @@ class WebSocketService {
         Authorization: `Bearer ${token}`,
       },
 
+      // Har (qayta)ulanishdan oldin tokenni localStorage'dan yangilaymiz. reconnectDelay
+      // bilan avtomatik qayta-ulanish mount vaqtidagi (1 soatdan keyin eskirgan) tokenni
+      // ishlatib, realtime'ni jimgina o'ldirardi (bildirishnoma/permission-update yo'q).
+      beforeConnect: () => {
+        const fresh = localStorage.getItem('accessToken') ?? token;
+        if (this.client) {
+          this.client.connectHeaders = { Authorization: `Bearer ${fresh}` };
+        }
+      },
+
       // Debug (ishlab chiqarish uchun o'chirish mumkin)
       debug: (str) => {
         if (import.meta.env.DEV) {

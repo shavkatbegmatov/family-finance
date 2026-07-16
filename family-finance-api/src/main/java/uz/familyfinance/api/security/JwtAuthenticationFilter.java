@@ -55,6 +55,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 UserDetails userDetails = staffUserDetailsService.loadUserByUsername(username);
 
+                // Defense-in-depth: o'chirilgan (active=false) foydalanuvchi so'rovi rad
+                // etilsin. Odatda deactivate sessiyani ham bekor qiladi (yuqoridagi
+                // isSessionValid), ammo bu tekshiruv sessiyani revoke qilmagan boshqa
+                // yo'llardan ham himoyalaydi.
+                if (!userDetails.isEnabled()) {
+                    log.warn("Foydalanuvchi {} faol emas — so'rov rad etildi", username);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 // Phase 2: JWT'dan active scope ID ni olamiz va userDetails ga o'rnatamiz.
                 // Bu ScopeContextService.getActiveScope() uchun ishlatiladi.
                 if (userDetails instanceof CustomUserDetails custom) {

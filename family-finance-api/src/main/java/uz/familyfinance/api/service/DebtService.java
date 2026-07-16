@@ -56,6 +56,10 @@ public class DebtService {
 
     @Transactional
     public DebtResponse create(DebtRequest request) {
+        // IDOR/write-guard: aktiv scope'ga yozish huquqi tekshiriladi (VIEWER yoki
+        // chiqarib yuborilgan a'zoning eskirgan tokeni yozа olmasin).
+        var activeScope = scopeContext.getActiveScope();
+        scopeContext.assertCanWrite(activeScope.getId());
         Debt debt = Debt.builder()
                 .type(request.getType())
                 .personName(request.getPersonName())
@@ -66,7 +70,7 @@ public class DebtService {
                 .description(request.getDescription())
                 .status(DebtStatus.ACTIVE)
                 // Phase 2.G: qarz AKTIV scope'ga MAJBURIY bog'lanadi (NOT NULL constraint).
-                .scope(scopeContext.getActiveScope())
+                .scope(activeScope)
                 .build();
         return toResponse(debtRepository.save(debt));
     }

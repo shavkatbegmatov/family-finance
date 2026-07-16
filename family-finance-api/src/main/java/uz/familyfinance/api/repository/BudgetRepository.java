@@ -42,10 +42,30 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
      * C3: Scope-aware byudjet qidiruvi — faqat berilgan scope'dagi. Aks holda
      * checkBudgetWarning boshqa urug'/xonadon byudjetini topib, noto'g'ri ogohlantirardi.
      */
-    Optional<Budget> findByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+    /**
+     * Bir davrga to'g'ri keluvchi faol byudjet. {@code findFirst ... OrderBy} bilan
+     * eng ko'pi bilan bitta qator qaytadi — aks holda bir kategoriya+scope'da ustma-ust
+     * ikki faol byudjet bo'lsa, Spring {@code IncorrectResultSizeDataAccessException}
+     * tashlab, checkBudgetWarning orqali BUTUN xarajat kiritishni 500 bilan bloklardi.
+     */
+    Optional<Budget> findFirstByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByEndDateDesc(
             Long categoryId, Long scopeId, LocalDate startDate, LocalDate endDate);
 
     @Query("SELECT b FROM Budget b WHERE b.isActive = true AND " +
            "b.startDate >= :startDate AND b.endDate <= :endDate")
     List<Budget> findByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    /**
+     * Bir kategoriya + scope uchun berilgan davr bilan KESISHUVCHI faol byudjet bormi.
+     * BudgetService.create ustma-ust byudjet yaratishni rad etish uchun ishlatadi — ustma-ust
+     * byudjetlar checkBudgetWarning'da IncorrectResultSize → xarajat kiritishni 500 bilan
+     * bloklardi (ildiz sabab).
+     */
+    @Query("SELECT COUNT(b) > 0 FROM Budget b WHERE b.isActive = true "
+         + "AND b.category.id = :categoryId AND b.scope.id = :scopeId "
+         + "AND b.startDate <= :endDate AND b.endDate >= :startDate")
+    boolean existsOverlappingActiveBudget(@Param("categoryId") Long categoryId,
+                                          @Param("scopeId") Long scopeId,
+                                          @Param("startDate") LocalDate startDate,
+                                          @Param("endDate") LocalDate endDate);
 }

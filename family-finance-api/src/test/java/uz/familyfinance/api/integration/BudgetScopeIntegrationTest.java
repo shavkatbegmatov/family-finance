@@ -52,9 +52,9 @@ class BudgetScopeIntegrationTest extends AbstractPostgresIntegrationTest {
             // 2) TransactionSplit scoped sum (transaction.account.homeScope.id)
             assertThat(transactionSplitRepository
                     .sumExpenseByCategoryAndScopeAndDateRange(1L, 1L, from, to)).isNotNull();
-            // 3) Budget scope-aware derived lookup (findBy...ScopeId... yaroqli)
+            // 3) Budget scope-aware derived lookup (findFirst...ScopeId...OrderByEndDateDesc yaroqli)
             assertThat(budgetRepository
-                    .findByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                    .findFirstByCategoryIdAndScopeIdAndIsActiveTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByEndDateDesc(
                             1L, 1L, today, today)).isNotNull(); // Optional, hech qachon null emas
         }).doesNotThrowAnyException();
     }

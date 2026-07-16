@@ -11,6 +11,7 @@ import uz.familyfinance.api.dto.response.BudgetResponse;
 import uz.familyfinance.api.entity.Budget;
 import uz.familyfinance.api.entity.Category;
 import uz.familyfinance.api.enums.TransactionType;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.exception.ResourceNotFoundException;
 import uz.familyfinance.api.repository.BudgetAlertRepository;
 import uz.familyfinance.api.repository.BudgetRepository;
@@ -73,6 +74,22 @@ public class BudgetService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Kategoriya topilmadi"));
 
+        // IDOR/write-guard: aktiv scope'ga yozish huquqi tekshiriladi (VIEWER yoki
+        // chiqarib yuborilgan a'zoning eskirgan tokeni yozа olmasin).
+        var activeScope = scopeContext.getActiveScope();
+        scopeContext.assertCanWrite(activeScope.getId());
+
+        // Ustma-ust faol byudjetni RAD etamiz (ildiz sabab): aks holda bir kategoriya+scope'da
+        // ikki mos byudjet checkBudgetWarning'da IncorrectResultSize tashlab, o'sha kategoriyali
+        // BUTUN xarajat kiritishni 500 bilan bloklardi (findFirst faqat krashni yumshatgan edi;
+        // bu yerda dublikat umuman yaratilmaydi).
+        if (budgetRepository.existsOverlappingActiveBudget(
+                request.getCategoryId(), activeScope.getId(),
+                request.getStartDate(), request.getEndDate())) {
+            throw new BadRequestException(
+                    "Bu kategoriya uchun shu davr bilan kesishuvchi faol byudjet allaqachon mavjud");
+        }
+
         Budget budget = Budget.builder()
                 .category(category)
                 .amount(request.getAmount())
@@ -81,7 +98,7 @@ public class BudgetService {
                 .endDate(request.getEndDate())
                 // Phase 2.G: byudjet AKTIV scope'ga MAJBURIY bog'lanadi. Scope yo'q bo'lsa
                 // getActiveScope() aniq xato tashlaydi — NOT NULL constraint buzilmaydi.
-                .scope(scopeContext.getActiveScope())
+                .scope(activeScope)
                 .build();
 
         return toResponse(budgetRepository.save(budget));

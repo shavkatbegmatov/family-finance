@@ -59,7 +59,6 @@ public class FamilyMemberService {
     private final CategoryRepository categoryRepository;
     private final PointParticipantRepository pointParticipantRepository;
     private final ScopeContextService scopeContext;
-    private final FamilyUnitService familyUnitService;
 
     /**
      * Joriy aktiv scope'ga tegishli family_group_id ni qaytaradi.
@@ -457,11 +456,28 @@ public class FamilyMemberService {
             throw new BadRequestException("O'zingizning profilingizni o'chirib bo'lmaydi");
         }
 
-        // Genealogik bog'lanishlarni uzamiz — yetim partner/farzand qolmasin, bo'sh nikoh tozalanadi
-        familyUnitService.detachMemberFromGenealogy(member.getId());
-
+        // Yumshoq o'chirish: genealogik bog'lanishlar (nikoh, farzand) SAQLANADI. Avval
+        // detachMemberFromGenealogy hard-delete qilardi — o'chirishni qaytarib bo'lmasdi.
+        // A'zo isActive=false bo'ladi; daraxt/ro'yxat javoblari uni allaqachon filtrlaydi
+        // (mapPartners/mapChildren isActive bo'yicha), restore() esa bog'lanishlari bilan
+        // to'liq qayta faollashtiradi.
         member.setIsActive(false);
         familyMemberRepository.save(member);
+    }
+
+    /**
+     * Yumshoq o'chirilgan oila a'zosini qayta faollashtiradi. Bog'lanishlar o'chirilmagani
+     * uchun a'zo nikoh/farzand munosabatlari bilan o'z o'rniga to'liq qaytadi.
+     */
+    @Transactional
+    public FamilyMemberResponse restore(Long id, CustomUserDetails currentUser) {
+        FamilyMember member = findById(id);
+        checkAccess(member, currentUser);
+        if (Boolean.TRUE.equals(member.getIsActive())) {
+            throw new BadRequestException("Bu oila a'zosi allaqachon faol");
+        }
+        member.setIsActive(true);
+        return toResponse(familyMemberRepository.save(member));
     }
 
     @Transactional(readOnly = true)
@@ -501,6 +517,28 @@ public class FamilyMemberService {
             throw new AccessDeniedException(
                     "Siz ushbu oila a'zosini ko'rish yoki tahrirlash huquqiga ega emassiz.");
         }
+    }
+
+    /**
+     * FamilyUnitService uchun public tenant-guard — genealogiya access-control'ining
+     * yagona manbai shu servis (checkAccess). Berilgan a'zo joriy foydalanuvchi
+     * genealogik tenant'iga tegishli bo'lmasa 403. SecurityContext'dan joriy
+     * foydalanuvchini oladi (FamilyUnitService controller'lari currentUser uzatmaydi).
+     */
+    public void assertMemberAccessible(FamilyMember member) {
+        CustomUserDetails currentUser = currentUserDetailsOrNull();
+        if (currentUser == null) {
+            throw new AccessDeniedException("Autentifikatsiya talab qilinadi");
+        }
+        checkAccess(member, currentUser);
+    }
+
+    private CustomUserDetails currentUserDetailsOrNull() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails cud) {
+            return cud;
+        }
+        return null;
     }
 
     /**

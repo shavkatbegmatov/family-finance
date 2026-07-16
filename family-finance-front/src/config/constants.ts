@@ -23,22 +23,39 @@ export const formatDateForApi = (date: Date): string => {
   return date.toLocaleDateString('sv-SE', { timeZone: TIMEZONE });
 };
 
+// Toshkent kalendar sanasidan (getTashkentToday — YAGONA konversiya) N kun/oy/yil
+// oldingi sanani hisoblaydi. Avval getTashkentNow() + formatDateForApi() IKKI karra
+// timezone konversiya qilar, natijada UTC+5'dan farqli qurilmada (masalan diaspora
+// a'zosi Koreyada) sana filtri bir kunga siljirdi. Arifmetika UTC-peg (12:00 UTC)
+// ustida bajariladi — timezone siljishi yo'q, yagona manba getTashkentToday.
+const tashkentTodayUtcNoon = (): Date => {
+  const [y, m, d] = getTashkentToday().split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+};
+
+const formatUtcDate = (date: Date): string => {
+  const yy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+};
+
 export const getDateDaysAgo = (days: number): string => {
-  const date = getTashkentNow();
-  date.setDate(date.getDate() - days);
-  return formatDateForApi(date);
+  const date = tashkentTodayUtcNoon();
+  date.setUTCDate(date.getUTCDate() - days);
+  return formatUtcDate(date);
 };
 
 export const getDateMonthsAgo = (months: number): string => {
-  const date = getTashkentNow();
-  date.setMonth(date.getMonth() - months);
-  return formatDateForApi(date);
+  const date = tashkentTodayUtcNoon();
+  date.setUTCMonth(date.getUTCMonth() - months);
+  return formatUtcDate(date);
 };
 
 export const getDateYearsAgo = (years: number): string => {
-  const date = getTashkentNow();
-  date.setFullYear(date.getFullYear() - years);
-  return formatDateForApi(date);
+  const date = tashkentTodayUtcNoon();
+  date.setUTCFullYear(date.getUTCFullYear() - years);
+  return formatUtcDate(date);
 };
 
 // ==================== FAMILY FINANCE CONSTANTS ====================
