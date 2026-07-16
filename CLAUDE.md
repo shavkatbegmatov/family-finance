@@ -75,8 +75,13 @@ npm run lint      # ESLint
 
 ## Workflow
 
-- **Git:** `main` is protected — change only via PR (branch → PR → 2 CI checks: Backend/Frontend
-  → **squash merge**). Commit messages: clean, no AI/Co-Authored-By trailers.
+- **Git (solo dev, 2026-07-17):** push **straight to `main`** — no PR needed. Still enforced:
+  **linear history** (no merge commits — never `git merge` a branch into `main`; rebase or
+  commit directly), no force-push, no branch deletion. CI does **not** gate the push, but it
+  **does gate the deploy** (`build-and-push` needs `frontend-ci`+`backend-ci`) — red CI = images
+  aren't built, prod keeps the old version. So: **verify locally before pushing** (`./mvnw test`,
+  `npm run build`), since every push to `main` ships to prod. Commit messages: clean, no
+  AI/Co-Authored-By trailers.
 - **Deploy:** merging to `main` auto-deploys (GitHub Actions → GHCR images → Coolify webhook).
   Production: **https://family-finance.uz**. After each merge, watch the CI/CD run and
   health-check the URL.
