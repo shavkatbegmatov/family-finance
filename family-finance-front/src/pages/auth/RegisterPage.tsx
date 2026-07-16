@@ -23,13 +23,15 @@ import { PasswordStrengthMeter } from '../../components/ui/PasswordStrengthMeter
 import { isPasswordStrong, PASSWORD_MIN_LENGTH } from '../../utils/password';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { getScopeTypeMeta } from '../../components/scope/scopeTypeMeta';
+import { readPendingTelegramAuth } from '../../utils/telegramPendingAuth';
 import type { RegisterRequest } from '../../types';
 
 export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [telegramOpen, setTelegramOpen] = useState(false);
+  // Telegram tasdiqi kutilayotgan bo'lsa (tab qayta yuklangan) — modal o'zi ochilib davom etadi
+  const [telegramOpen, setTelegramOpen] = useState(() => readPendingTelegramAuth() !== null);
   const navigate = useNavigate();
 
   const {

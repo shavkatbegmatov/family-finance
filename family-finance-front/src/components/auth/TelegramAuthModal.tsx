@@ -12,7 +12,13 @@ import {
   TELEGRAM_POLL_TIMEOUT_MS,
 } from '../../config/constants';
 import { getApiErrorMessage } from '../../utils/apiError';
-import type { Gender, JwtResponse } from '../../types';
+import {
+  clearPendingTelegramAuth,
+  readPendingTelegramAuth,
+  savePendingTelegramAuth,
+  type PendingTelegramAuth,
+} from '../../utils/telegramPendingAuth';
+import type { Gender, JwtResponse, TelegramStatusResponse } from '../../types';
 
 interface TelegramAuthModalProps {
   isOpen: boolean;
@@ -24,6 +30,10 @@ type Phase = 'starting' | 'waiting' | 'register' | 'submitting' | 'pin' | 'verif
 /**
  * Telegram deep-link orqali kirish/ro'yxatdan o'tish modali (2-faktor PIN bilan).
  * init → deep-link → polling → (login | NEEDS_PIN: PIN so'rash | NEEDS_REGISTRATION: forma).
+ *
+ * <p>So'rov {@link savePendingTelegramAuth} bilan saqlanadi: Telegram ilovasiga o'tib qaytilganda
+ * tab qayta yuklangan/tashlab yuborilgan bo'lsa ham kirish o'sha joyidan davom etadi (avval
+ * bunda tasdiq "havoda" qolib ketardi — bot "Tasdiqlandi" derdi, ilova esa kirmasdi).</p>
  */
 export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
   const navigate = useNavigate();
@@ -40,6 +50,7 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
   const [password, setPassword] = useState('');
 
   const applyJwt = (jwt: JwtResponse) => {
+    clearPendingTelegramAuth();
     setAuth(
       { ...jwt.user, mustChangePassword: jwt.requiresPasswordChange || false },
       jwt.accessToken,
@@ -51,12 +62,52 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
     navigate('/', { replace: true });
   };
 
-  // Modal ochilganda: init → deep-link → status polling (deadline'gacha)
+  const closeWithError = (message: string) => {
+    clearPendingTelegramAuth();
+    toast.error(message);
+    onClose();
+  };
+
+  /** Foydalanuvchi ataylab yopdi — kutilayotgan so'rov bekor (qaytganda tiklanmasin). */
+  const handleClose = () => {
+    clearPendingTelegramAuth();
+    onClose();
+  };
+
+  /** Status javobini fazaga aylantiradi. Qaytadi: polling davom etsinmi (PENDING). */
+  const consumeStatus = (res: TelegramStatusResponse): boolean => {
+    if (res.status === 'AUTHENTICATED' && res.jwt) {
+      applyJwt(res.jwt);
+      return false;
+    }
+    if (res.status === 'NEEDS_PIN') {
+      setPhase('pin');
+      return false;
+    }
+    if (res.status === 'NEEDS_PIN_SETUP') {
+      setPhase('pin-setup');
+      return false;
+    }
+    if (res.status === 'NEEDS_REGISTRATION') {
+      setFirstName(res.firstName || '');
+      setLastName(res.lastName || '');
+      setPhase('register');
+      return false;
+    }
+    if (res.status === 'EXPIRED') {
+      closeWithError("Havola eskirdi. Qaytadan urinib ko'ring.");
+      return false;
+    }
+    return true;
+  };
+
+  // Modal ochilganda: (saqlangan so'rovni tiklash | init → deep-link) → status polling
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
+    let polling = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    const startedAt = Date.now();
+    let onVisibility: (() => void) | null = null;
 
     setPhase('starting');
     setRequestId(null);
@@ -66,67 +117,74 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
     setPinConfirm('');
     setPassword('');
 
-    const pollStatus = (id: string) => {
-      timer = setTimeout(async () => {
-        if (cancelled) return;
-        if (Date.now() - startedAt > TELEGRAM_POLL_TIMEOUT_MS) {
-          toast.error("Vaqt tugadi. Qaytadan urinib ko'ring.");
-          onClose();
-          return;
-        }
-        try {
-          const res = await authApi.telegramStatus(id);
-          if (cancelled) return;
-          if (res.status === 'AUTHENTICATED' && res.jwt) {
-            applyJwt(res.jwt);
-            return;
-          }
-          if (res.status === 'NEEDS_PIN') {
-            setPhase('pin');
-            return;
-          }
-          if (res.status === 'NEEDS_PIN_SETUP') {
-            setPhase('pin-setup');
-            return;
-          }
-          if (res.status === 'NEEDS_REGISTRATION') {
-            setFirstName(res.firstName || '');
-            setLastName(res.lastName || '');
-            setPhase('register');
-            return;
-          }
-          if (res.status === 'EXPIRED') {
-            toast.error("Havola eskirdi. Qaytadan urinib ko'ring.");
-            onClose();
-            return;
-          }
-        } catch {
-          // tarmoq xatosi — keyingi urinishda davom etadi
-        }
-        pollStatus(id);
-      }, TELEGRAM_POLL_INTERVAL_MS);
-    };
-
-    (async () => {
+    const initNew = async (): Promise<PendingTelegramAuth | null> => {
       try {
         const { requestId: id } = await authApi.telegramInit();
-        if (cancelled) return;
-        setRequestId(id);
-        setPhase('waiting');
+        if (cancelled) return null;
+        const saved = savePendingTelegramAuth(id);
         // Deep-link: web'da yangi tab, APK'da Capacitor WebView system'da ochadi
         window.open(telegramDeepLink(id), '_blank');
-        pollStatus(id);
+        return saved;
       } catch (e) {
         if (!cancelled) {
           toast.error(getApiErrorMessage(e, 'Telegram bilan ulanishda xatolik'));
           onClose();
         }
+        return null;
       }
+    };
+
+    (async () => {
+      // Tiklashda Telegram qayta ochilmaydi — foydalanuvchi allaqachon botda bo'lgan
+      const resumed = readPendingTelegramAuth();
+      const pending = resumed ?? (await initNew());
+      if (!pending || cancelled) return;
+
+      setRequestId(pending.requestId);
+      setPhase('waiting');
+      const deadline = pending.startedAt + TELEGRAM_POLL_TIMEOUT_MS;
+
+      const schedule = (delay: number) => {
+        if (!polling) return;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => void tick(), delay);
+      };
+
+      const tick = async () => {
+        if (cancelled || !polling) return;
+        if (Date.now() > deadline) {
+          polling = false;
+          closeWithError("Vaqt tugadi. Qaytadan urinib ko'ring.");
+          return;
+        }
+        try {
+          const res = await authApi.telegramStatus(pending.requestId);
+          if (cancelled) return;
+          if (!consumeStatus(res)) {
+            polling = false;
+            return;
+          }
+        } catch {
+          // tarmoq xatosi — keyingi urinishda davom etadi
+        }
+        schedule(TELEGRAM_POLL_INTERVAL_MS);
+      };
+
+      // Fon tab'da brauzer taymerlarni sekinlashtiradi (Telegram'ga o'tilgan payt) —
+      // qaytilganda darhol tekshiramiz, kutib o'tirmasin.
+      onVisibility = () => {
+        if (document.visibilityState === 'visible') schedule(0);
+      };
+      document.addEventListener('visibilitychange', onVisibility);
+
+      schedule(resumed ? 0 : TELEGRAM_POLL_INTERVAL_MS);
     })();
 
     return () => {
       cancelled = true;
+      polling = false;
       if (timer) clearTimeout(timer);
+      if (onVisibility) document.removeEventListener('visibilitychange', onVisibility);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -186,7 +244,7 @@ export function TelegramAuthModal({ isOpen, onClose }: TelegramAuthModalProps) {
             <Send className="h-5 w-5 text-[#229ED9]" />
             Telegram orqali kirish
           </h3>
-          <button onClick={onClose} className="btn btn-ghost btn-sm btn-square" aria-label="Yopish">
+          <button onClick={handleClose} className="btn btn-ghost btn-sm btn-square" aria-label="Yopish">
             <X className="h-4 w-4" />
           </button>
         </div>
