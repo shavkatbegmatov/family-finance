@@ -7,6 +7,7 @@ import { authApi } from '../../api/auth.api';
 import { useAuthStore } from '../../store/authStore';
 import { TelegramAuthModal } from '../../components/auth/TelegramAuthModal';
 import { consumeIntendedPath, sanitizeInternalPath } from '../../utils/sessionNavigation';
+import { readPendingTelegramAuth } from '../../utils/telegramPendingAuth';
 import { BrandMark } from '../../components/common/BrandLogo';
 import { getApiErrorMessage } from '../../utils/apiError';
 import type { LoginRequest } from '../../types';
@@ -14,7 +15,8 @@ import type { LoginRequest } from '../../types';
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [telegramOpen, setTelegramOpen] = useState(false);
+  // Telegram tasdiqi kutilayotgan bo'lsa (tab qayta yuklangan) — modal o'zi ochilib davom etadi
+  const [telegramOpen, setTelegramOpen] = useState(() => readPendingTelegramAuth() !== null);
   const navigate = useNavigate();
   const location = useLocation();
   const { setAuth, isAuthenticated, user } = useAuthStore();

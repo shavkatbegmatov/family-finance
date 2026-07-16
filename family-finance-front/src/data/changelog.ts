@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.2',
+        date: '2026-07-17 01:30',
+        title: 'Telegram orqali kirish: tasdiq endi yo\'qolmaydi',
+        features: [],
+        fixes: [
+            "Telegram'da \"Start\" bosib ilovaga qaytganingizda kirish endi ishonchli davom etadi. Avval Telegram'ga o'tib qaytilganda oyna yopilib qolsa yoki sahifa qayta yuklansa, bot \"Tasdiqlandi\" desa ham ilova kirmasdan qolardi — endi sahifaga qaytishingiz bilan kirish o'sha joyidan davom etadi (PIN so'raladi).",
+            "Telegram'dan qaytganingizda kirish darhol tekshiriladi — brauzer fondagi oynani sekinlashtirgani uchun bir necha soniya kutib qolish yo'q.",
+        ],
+    },
+    {
         version: '1.16.1',
         date: '2026-07-16 01:30',
         title: 'Telegram orqali kirish tiklandi',
