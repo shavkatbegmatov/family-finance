@@ -1,16 +1,11 @@
 import * as THREE from 'three';
-import SpriteText from 'three-spritetext';
 import type { GraphNode } from '../types';
 import type { NodeRenderer, RenderCtx } from './NodeRenderer';
 import { avatarsRenderer } from './avatarsRenderer';
-import { shortLabel } from './labelUtils';
+import { makeGraphLabel } from './labelUtils';
 import { makeFocusMarker } from './focusMarker';
 
-// "Hibrid": THREE.LOD — kamera masofasiga qarab 3 daraja avtomatik almashinadi.
-//   NEAR  → avatar (boy, lekin og'ir)
-//   MID   → rangli shar + ism
-//   FAR   → faqat kichik shar (eng yengil)
-// HYSTERESIS chegarada miltillashni (flicker) kamaytiradi.
+// "Hibrid": kamera masofasiga qarab avatar, badge-label yoki kichik shar ko'rsatadi.
 const NEAR = 0;
 const MID = 120;
 const FAR = 220;
@@ -27,35 +22,21 @@ function makeSphere(node: GraphNode, ctx: RenderCtx, radius: number): THREE.Mesh
   );
 }
 
-function makeLabel(node: GraphNode, ctx: RenderCtx): SpriteText {
-  const label = new SpriteText(shortLabel(node.label), 2.2, ctx.theme.label);
-  // To'q kontur — bloom ostida ham aniq o'qiladi.
-  label.strokeWidth = 5;
-  label.strokeColor = '#05070d';
-  label.material.depthWrite = false;
-  label.material.transparent = true;
-  label.position.set(0, 7, 0);
-  return label;
-}
-
 export const hybridRenderer: NodeRenderer = {
   kind: 'hybrid',
   extend: false,
   build(node: GraphNode, ctx: RenderCtx): THREE.Object3D {
     const lod = new THREE.LOD();
 
-    // Yaqin — avatar (avatarsRenderer'ni qayta ishlatamiz, DRY)
     lod.addLevel(avatarsRenderer.build(node, ctx), NEAR, HYSTERESIS);
 
-    // O'rta — rangli shar + (label LOD ruxsat bersa) ism
     const mid = new THREE.Group();
     const midMarker = makeFocusMarker(node, ctx);
     if (midMarker) mid.add(midMarker);
     mid.add(makeSphere(node, ctx, 4));
-    if (ctx.showLabel(node)) mid.add(makeLabel(node, ctx));
+    if (ctx.showLabel(node)) mid.add(makeGraphLabel(node, ctx));
     lod.addLevel(mid, MID, HYSTERESIS);
 
-    // Uzoq — faqat kichik shar (eng yengil)
     const far = new THREE.Group();
     const farMarker = makeFocusMarker(node, ctx);
     if (farMarker) far.add(farMarker);

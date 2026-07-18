@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.8',
+        date: '2026-07-18 14:15',
+        title: '3D shajara label badge ko\'rinishiga o\'tdi',
+        features: [
+            "3D shajarada ism-familiya endi tugun ortida qolmaydi: label tugun kattaligiga qarab yuqoriga chiqadi, yarim shaffof badge, nozik border va yuqori render qatlamida ko'rsatiladi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.16.7',
         date: '2026-07-18 13:50',
         title: "3D shajara qidiruvi fokus bilan bog'landi",
