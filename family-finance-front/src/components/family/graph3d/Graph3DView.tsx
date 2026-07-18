@@ -73,6 +73,18 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
     return personId ? `person_${personId}` : null;
   }, [viewMode, selectedFamilyUnitId, selectedPersonId, focusedPersonId, viewerPersonId, rootPersonId, treeData?.rootPersonId]);
   const rootNodeId = viewMode === 'person' && treeData?.rootPersonId ? `person_${treeData.rootPersonId}` : null;
+  const activeNodeLabel = useMemo(
+    () => data.nodes.find((node) => node.id === activeNodeId)?.label ?? null,
+    [activeNodeId, data.nodes],
+  );
+
+  const focusGraphNode = useCallback(
+    (node: GraphNode) => {
+      if (node.kind === 'person') setSelectedPersonId(node.refId);
+      else setSelectedFamilyUnitId(node.refId);
+    },
+    [setSelectedFamilyUnitId, setSelectedPersonId],
+  );
 
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
@@ -139,8 +151,8 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
         activeNodeId={activeNodeId}
         rootNodeId={rootNodeId}
       />
-      <Graph3DSearch fgRef={fgRef} nodes={data.nodes} />
-      <Graph3DControls fgRef={fgRef} viewMode={viewMode} />
+      <Graph3DSearch fgRef={fgRef} nodes={data.nodes} onFocusNode={focusGraphNode} />
+      <Graph3DControls fgRef={fgRef} viewMode={viewMode} activeLabel={activeNodeLabel} />
       <Graph3DLegend items={scale.legend} colorBy={effectiveColorBy} />
     </div>
   );

@@ -6,10 +6,11 @@ import type { GraphLink, GraphNode } from '../types';
 interface Props {
   fgRef: React.MutableRefObject<ForceGraphMethods<GraphNode, GraphLink> | undefined>;
   nodes: GraphNode[];
+  onFocusNode?: (node: GraphNode) => void;
 }
 
 /** Ism bo'yicha qidirib, tanlangan tugunga kamerani uchiradi. */
-export function Graph3DSearch({ fgRef, nodes }: Props) {
+export function Graph3DSearch({ fgRef, nodes, onFocusNode }: Props) {
   const [query, setQuery] = useState('');
 
   const matches = useMemo(() => {
@@ -28,6 +29,7 @@ export function Graph3DSearch({ fgRef, nodes }: Props) {
     const radius = Math.hypot(x, y, z) || 1;
     const ratio = 1 + distance / radius;
     fg.cameraPosition({ x: x * ratio, y: y * ratio, z: z * ratio }, { x, y, z }, 1500);
+    onFocusNode?.(node);
     setQuery('');
   };
 
@@ -41,6 +43,12 @@ export function Graph3DSearch({ fgRef, nodes }: Props) {
           placeholder="Qidirish..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && matches[0]) {
+              e.preventDefault();
+              flyTo(matches[0]);
+            }
+          }}
         />
       </label>
       {matches.length > 0 && (

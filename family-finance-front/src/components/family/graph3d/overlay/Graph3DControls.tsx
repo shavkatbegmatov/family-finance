@@ -7,6 +7,7 @@ import { useFamilyTreeStore } from '../../../../store/familyTreeStore';
 interface Props {
   fgRef: React.MutableRefObject<ForceGraphMethods<GraphNode, GraphLink> | undefined>;
   viewMode: 'person' | 'household';
+  activeLabel?: string | null;
 }
 
 const RENDERER_OPTIONS: { kind: RendererKind; label: string; Icon: ComponentType<{ className?: string }> }[] = [
@@ -16,7 +17,7 @@ const RENDERER_OPTIONS: { kind: RendererKind; label: string; Icon: ComponentType
 ];
 
 /** 3D umumiy ko'rish paneli: render uslubi, rang guruhi, grafni ekranga sig'dirish. */
-export function Graph3DControls({ fgRef, viewMode }: Props) {
+export function Graph3DControls({ fgRef, viewMode, activeLabel }: Props) {
   const node3dRenderer = useFamilyTreeStore((s) => s.node3dRenderer);
   const setNode3dRenderer = useFamilyTreeStore((s) => s.setNode3dRenderer);
   const colorBy = useFamilyTreeStore((s) => s.colorBy);
@@ -24,9 +25,12 @@ export function Graph3DControls({ fgRef, viewMode }: Props) {
 
   return (
     <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
-      <div className="flex items-center gap-1.5 rounded-lg bg-base-200/85 px-2.5 py-1 text-xs font-medium text-base-content/80 shadow-sm backdrop-blur">
+      <div
+        className="flex max-w-[220px] items-center gap-1.5 rounded-lg bg-base-200/85 px-2.5 py-1 text-xs font-medium text-base-content/80 shadow-sm backdrop-blur"
+        title={activeLabel ? `Fokus: ${activeLabel}` : "Umumiy 3D ko'rish"}
+      >
         <Boxes className="h-3.5 w-3.5 text-primary" />
-        <span>Umumiy 3D ko'rish</span>
+        <span className="truncate">{activeLabel ? `Fokus: ${activeLabel}` : "Umumiy 3D ko'rish"}</span>
       </div>
 
       <div className="flex gap-0.5 rounded-lg bg-base-200/80 p-0.5 shadow-sm backdrop-blur">

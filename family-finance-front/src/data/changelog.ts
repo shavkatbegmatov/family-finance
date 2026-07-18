@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.7',
+        date: '2026-07-18 13:50',
+        title: "3D shajara qidiruvi fokus bilan bog'landi",
+        features: [
+            "3D shajarada qidiruvdan tanlangan shaxs yoki xonadon endi darhol fokusga olinadi: kamera uchadi, halqa ko'rinadi va yuqori panelda fokus nomi chiqadi. Qidiruvda Enter bosish birinchi natijani ochadi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.16.6',
         date: '2026-07-18 13:48',
         title: '3D shajarada fokuslangan shaxs ajralib turadi',
