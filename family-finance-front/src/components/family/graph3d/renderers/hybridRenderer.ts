@@ -4,6 +4,7 @@ import type { GraphNode } from '../types';
 import type { NodeRenderer, RenderCtx } from './NodeRenderer';
 import { avatarsRenderer } from './avatarsRenderer';
 import { shortLabel } from './labelUtils';
+import { makeFocusMarker } from './focusMarker';
 
 // "Hibrid": THREE.LOD — kamera masofasiga qarab 3 daraja avtomatik almashinadi.
 //   NEAR  → avatar (boy, lekin og'ir)
@@ -48,12 +49,18 @@ export const hybridRenderer: NodeRenderer = {
 
     // O'rta — rangli shar + (label LOD ruxsat bersa) ism
     const mid = new THREE.Group();
+    const midMarker = makeFocusMarker(node, ctx);
+    if (midMarker) mid.add(midMarker);
     mid.add(makeSphere(node, ctx, 4));
     if (ctx.showLabel(node)) mid.add(makeLabel(node, ctx));
     lod.addLevel(mid, MID, HYSTERESIS);
 
     // Uzoq — faqat kichik shar (eng yengil)
-    lod.addLevel(makeSphere(node, ctx, 3), FAR, HYSTERESIS);
+    const far = new THREE.Group();
+    const farMarker = makeFocusMarker(node, ctx);
+    if (farMarker) far.add(farMarker);
+    far.add(makeSphere(node, ctx, 3));
+    lod.addLevel(far, FAR, HYSTERESIS);
 
     return lod;
   },

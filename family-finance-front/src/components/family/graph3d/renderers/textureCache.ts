@@ -9,6 +9,8 @@ export interface TextureCache {
   avatar(opts: { url?: string; initial: string; bg: string }): THREE.Texture;
   /** Jins-halqa foni uchun oq disk (SpriteMaterial.color bilan bo'yaladi). */
   discTexture(): THREE.Texture;
+  /** Fokuslangan yoki ildiz tugunni ajratish uchun oq halqa. */
+  ringTexture(): THREE.Texture;
   dispose(): void;
 }
 
@@ -53,6 +55,7 @@ function drawCircularImage(c: CanvasRenderingContext2D, size: number, img: HTMLI
 export function createTextureCache(): TextureCache {
   const cache = new Map<string, THREE.Texture>();
   let disc: THREE.Texture | null = null;
+  let ring: THREE.Texture | null = null;
 
   function avatar({ url, initial, bg }: { url?: string; initial: string; bg: string }): THREE.Texture {
     const key = url ? `url:${url}` : `init:${initial}|${bg}`;
@@ -97,12 +100,31 @@ export function createTextureCache(): TextureCache {
     return disc;
   }
 
+  function ringTexture(): THREE.Texture {
+    if (ring) return ring;
+    const size = 96;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const c = canvas.getContext('2d')!;
+    c.clearRect(0, 0, size, size);
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = 8;
+    c.beginPath();
+    c.arc(size / 2, size / 2, size / 2 - c.lineWidth, 0, Math.PI * 2);
+    c.stroke();
+    ring = new THREE.CanvasTexture(canvas);
+    return ring;
+  }
+
   function dispose(): void {
     cache.forEach((t) => t.dispose());
     disc?.dispose();
+    ring?.dispose();
     cache.clear();
     disc = null;
+    ring = null;
   }
 
-  return { avatar, discTexture, dispose };
+  return { avatar, discTexture, ringTexture, dispose };
 }

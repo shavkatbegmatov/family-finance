@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { GraphNode } from '../types';
 import type { NodeRenderer, RenderCtx } from './NodeRenderer';
 import { getInitial } from '../../flow/nodes/personCardUtils';
+import { makeFocusMarker } from './focusMarker';
 
 // "Avatarlar": billboard-sprite (rasm yoki initsial) + jins rangli disk-halqa.
 const SIZE = 12;
@@ -19,6 +20,9 @@ export const avatarsRenderer: NodeRenderer = {
   extend: false, // default sharni almashtiradi
   build(node: GraphNode, ctx: RenderCtx): THREE.Object3D {
     const group = new THREE.Group();
+    const marker = makeFocusMarker(node, ctx);
+    if (marker) group.add(marker);
+
     const ringColor = node.deceased ? '#9ca3af' : genderColor(node, ctx);
 
     // Orqa fon — jins rangli disk-halqa

@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.6',
+        date: '2026-07-18 13:48',
+        title: '3D shajarada fokuslangan shaxs ajralib turadi',
+        features: [
+            "3D shajarada tanlangan yoki markaziy shaxs endi halqa bilan ajraladi, kattaroq ko'rinadi va katta grafda ham ismi yashirib yuborilmaydi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.16.5',
         date: '2026-07-18 13:39',
         title: '3D shajara rang guruhi xonadon terminiga moslandi',

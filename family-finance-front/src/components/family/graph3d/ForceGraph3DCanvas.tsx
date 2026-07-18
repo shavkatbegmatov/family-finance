@@ -13,6 +13,8 @@ export interface ForceGraph3DCanvasProps {
   rendererKind: RendererKind;
   fgRef: React.MutableRefObject<ForceGraphMethods<GraphNode, GraphLink> | undefined>;
   onNodeClick: (node: GraphNode) => void;
+  activeNodeId?: string | null;
+  rootNodeId?: string | null;
 }
 
 const PERF_LARGE = 600;
@@ -41,6 +43,8 @@ export function ForceGraph3DCanvas({
   rendererKind,
   fgRef,
   onNodeClick,
+  activeNodeId,
+  rootNodeId,
 }: ForceGraph3DCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const texturesRef = useRef<ReturnType<typeof createTextureCache> | null>(null);
@@ -49,16 +53,32 @@ export function ForceGraph3DCanvas({
 
   const renderer = RENDERERS[rendererKind];
 
+  const isActiveNode = useCallback(
+    (node: GraphNode) => !!activeNodeId && node.id === activeNodeId,
+    [activeNodeId],
+  );
+  const isRootNode = useCallback(
+    (node: GraphNode) => !!rootNodeId && node.id === rootNodeId,
+    [rootNodeId],
+  );
+
   // Label LOD — kichik grafda barcha yorliqlar, katta grafda faqat markaziy (hub) tugunlar.
   const labelAll = graphData.nodes.length <= LABEL_ALL_MAX;
   const showLabel = useCallback(
-    (node: GraphNode) => labelAll || (node.degree ?? 0) >= HUB_DEGREE,
-    [labelAll],
+    (node: GraphNode) => isActiveNode(node) || isRootNode(node) || labelAll || (node.degree ?? 0) >= HUB_DEGREE,
+    [isActiveNode, isRootNode, labelAll],
   );
 
   const ctx = useMemo<RenderCtx>(
-    () => ({ theme, colorOf, textures: texturesRef.current!, showLabel }),
-    [theme, colorOf, showLabel],
+    () => ({
+      theme,
+      colorOf,
+      textures: texturesRef.current!,
+      showLabel,
+      isActiveNode,
+      isRootNode,
+    }),
+    [theme, colorOf, showLabel, isActiveNode, isRootNode],
   );
 
   // Accessor'larni barqarorlashtiramiz — aks holda har render'da (masalan o'lcham
@@ -70,8 +90,12 @@ export function ForceGraph3DCanvas({
   const nodeColorFn = useCallback((node: NodeObject) => colorOf(node as GraphNode), [colorOf]);
   // Node o'lchami bog'lanishlar soniga qarab — markaziy shaxslar kattaroq ko'rinadi.
   const nodeValFn = useCallback(
-    (node: NodeObject) => 1 + Math.min((node as GraphNode).degree ?? 0, 12) * 0.5,
-    [],
+    (node: NodeObject) => {
+      const graphNode = node as GraphNode;
+      const focusBoost = isActiveNode(graphNode) ? 2.2 : isRootNode(graphNode) ? 1.3 : 1;
+      return (1 + Math.min(graphNode.degree ?? 0, 12) * 0.5) * focusBoost;
+    },
+    [isActiveNode, isRootNode],
   );
   const nodeLabelFn = useCallback((node: NodeObject) => (node as GraphNode).label, []);
   const linkColorFn = useCallback(() => theme.link, [theme.link]);
@@ -111,7 +135,7 @@ export function ForceGraph3DCanvas({
   useEffect(() => {
     fgRef.current?.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rendererKind, theme, colorOf]);
+  }, [rendererKind, theme, colorOf, activeNodeId, rootNodeId]);
 
   // Unmount — three GPU resurslarini va teksturalarni tozalash
   useEffect(() => {

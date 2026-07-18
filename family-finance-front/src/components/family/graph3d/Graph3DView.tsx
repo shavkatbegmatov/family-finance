@@ -43,6 +43,13 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
   const genderFilter = useFamilyTreeStore((s) => s.genderFilter);
   const node3dRenderer = useFamilyTreeStore((s) => s.node3dRenderer);
   const colorBy = useFamilyTreeStore((s) => s.colorBy);
+  const rootPersonId = useFamilyTreeStore((s) => s.rootPersonId);
+  const focusedPersonId = useFamilyTreeStore((s) => s.focusedPersonId);
+  const viewerPersonId = useFamilyTreeStore((s) => s.viewerPersonId);
+  const selectedPersonId = useFamilyTreeStore((s) => s.selectedPersonId);
+  const selectedFamilyUnitId = useFamilyTreeStore((s) => s.selectedFamilyUnitId);
+  const setSelectedPersonId = useFamilyTreeStore((s) => s.setSelectedPersonId);
+  const setSelectedFamilyUnitId = useFamilyTreeStore((s) => s.setSelectedFamilyUnitId);
   const openModal = useFamilyTreeStore((s) => s.openModal);
   const setViewMode = useFamilyTreeStore((s) => s.setViewMode);
 
@@ -60,13 +67,21 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
   );
 
   const fgRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(undefined);
+  const activeNodeId = useMemo(() => {
+    if (viewMode === 'household') return selectedFamilyUnitId ? `unit_${selectedFamilyUnitId}` : null;
+    const personId = selectedPersonId ?? focusedPersonId ?? viewerPersonId ?? rootPersonId ?? treeData?.rootPersonId;
+    return personId ? `person_${personId}` : null;
+  }, [viewMode, selectedFamilyUnitId, selectedPersonId, focusedPersonId, viewerPersonId, rootPersonId, treeData?.rootPersonId]);
+  const rootNodeId = viewMode === 'person' && treeData?.rootPersonId ? `person_${treeData.rootPersonId}` : null;
 
   const handleNodeClick = useCallback(
     (node: GraphNode) => {
       if (node.kind === 'person') {
+        setSelectedPersonId(node.refId);
         openModal({ type: 'personDetail', personId: node.refId });
         return;
       }
+      setSelectedFamilyUnitId(node.refId);
       // Xonadon → moliyaviy scope'ga o'tish (HouseholdFlowTree bilan izchil)
       if (node.scopeId == null) {
         toast("Bu oila byudjet-xonadonga bog'lanmagan", { icon: 'ℹ️' });
@@ -76,7 +91,7 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
       if (target) void switchScope(target);
       else toast("Bu xonadon faol scope ro'yxatingizda yo'q", { icon: 'ℹ️' });
     },
-    [openModal, myScopes, switchScope],
+    [openModal, setSelectedFamilyUnitId, setSelectedPersonId, myScopes, switchScope],
   );
 
   if (!webglOk) return <WebGLFallback />;
@@ -121,6 +136,8 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
         rendererKind={node3dRenderer}
         fgRef={fgRef}
         onNodeClick={handleNodeClick}
+        activeNodeId={activeNodeId}
+        rootNodeId={rootNodeId}
       />
       <Graph3DSearch fgRef={fgRef} nodes={data.nodes} />
       <Graph3DControls fgRef={fgRef} viewMode={viewMode} />

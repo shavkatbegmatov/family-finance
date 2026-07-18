@@ -12,6 +12,10 @@ export interface RenderCtx {
   textures: TextureCache;
   /** Bu tugun ism yorlig'ini ko'rsatsinmi (katta grafda faqat markaziy tugunlar). */
   showLabel: (node: GraphNode) => boolean;
+  /** Tanlangan yoki foydalanuvchi fokuslagan tugun. */
+  isActiveNode: (node: GraphNode) => boolean;
+  /** Daraxt ildizi bo'lgan tugun. */
+  isRootNode: (node: GraphNode) => boolean;
 }
 
 /** Almashtiriladigan tugun-render moduli uchun umumiy interfeys. */
