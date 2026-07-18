@@ -19,8 +19,9 @@ export interface ForceGraph3DCanvasProps {
 
 const PERF_LARGE = 600;
 
-// Label LOD: shuncha tugundan ko'p bo'lsa, faqat "hub" (ko'p bog'langan) tugunlar yorliqlanadi.
-const LABEL_ALL_MAX = 30;
+// Label LOD: oilaviy shajara odatda 100-150 atrofida ham o'qilishi kerak.
+// Bundan katta grafda tartibsizlikni kamaytirish uchun faqat fokus/root/hub label qoladi.
+const LABEL_ALL_MAX = 160;
 const HUB_DEGREE = 3;
 
 function disposeObject(obj: Object3D): void {

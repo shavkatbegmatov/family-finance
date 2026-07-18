@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.9',
+        date: '2026-07-18 14:36',
+        title: "3D shajarada farzandlar ismi ko'rinadi",
+        features: [],
+        fixes: [
+            "3D shajarada 30 tadan ko'p node bo'lsa past bog'lanishli farzand node'larining ismi yashirilardi. Endi o'rta hajmdagi shajaralarda (160 tagacha node) barcha ism badge'lari ko'rinadi, juda katta grafda esa tartibsizlikni kamaytiruvchi LOD saqlanadi.",
+        ],
+    },
+    {
         version: '1.16.8',
         date: '2026-07-18 14:15',
         title: '3D shajara label badge ko\'rinishiga o\'tdi',
