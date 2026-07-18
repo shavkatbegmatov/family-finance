@@ -95,7 +95,7 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
             {viewMode === 'household' ? "Hali xonadon yo'q" : "Daraxt bo'sh"}
           </p>
           <p className="mt-1 max-w-md text-sm text-base-content/50">
-            Ma&apos;lumot qo&apos;shilgach, u shu yerda 3D grafda paydo bo&apos;ladi.
+            Ma&apos;lumot qo&apos;shilgach, u shu yerda 3D umumiy grafda paydo bo&apos;ladi.
           </p>
         </div>
         {viewMode === 'household' && (

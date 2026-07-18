@@ -81,7 +81,8 @@ queryKey orqali avtomatik refetch — yangi sahifalar `useScopeChangeEffect` ish
   **`UsernameInput`** (live availability via `GET /v1/users/check-username`).
 - `components/common/`: `BrandLogo`/`BrandMark`, `PermissionGate`/`RoleGate`, `Modal`/portal,
   `SearchCommand` (Cmd-K), `WhatsNewModal`, `QuickEntryFab`, `SessionTimeoutModal`.
-- Family tree: `components/family/graph3d/` (3D force graph) & `components/family/flow/` (2D).
+- Family tree: `components/family/flow/` is the primary 2D reading mode;
+  `components/family/graph3d/` is the 3D overview/explore mode.
 
 ## Conventions
 

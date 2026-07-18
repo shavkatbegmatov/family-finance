@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.3',
+        date: '2026-07-18 12:57',
+        title: "3D shajara roli aniqroq bo'ldi",
+        features: [
+            "Daraxt rejimida 2D endi asosiy daraxt, 3D esa umumiy ko'rish rejimi sifatida aniqroq nomlandi. Bu 3D grafni katta shajarani tez ko'zdan kechirish uchun ishlatishni ravshanroq qiladi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.16.2',
         date: '2026-07-17 01:30',
         title: 'Telegram orqali kirish: tasdiq endi yo\'qolmaydi',

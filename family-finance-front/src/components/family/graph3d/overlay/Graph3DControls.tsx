@@ -15,7 +15,7 @@ const RENDERER_OPTIONS: { kind: RendererKind; label: string; Icon: ComponentType
   { kind: 'hybrid', label: 'Hibrid', Icon: Layers },
 ];
 
-/** 3D ko'rinishning o'z boshqaruv paneli: render uslubi, rang guruhi, "hammasi ko'rinsin". */
+/** 3D umumiy ko'rish paneli: render uslubi, rang guruhi, grafni ekranga sig'dirish. */
 export function Graph3DControls({ fgRef, viewMode }: Props) {
   const node3dRenderer = useFamilyTreeStore((s) => s.node3dRenderer);
   const setNode3dRenderer = useFamilyTreeStore((s) => s.setNode3dRenderer);
@@ -56,7 +56,7 @@ export function Graph3DControls({ fgRef, viewMode }: Props) {
         <button
           type="button"
           className="btn btn-ghost btn-xs btn-square"
-          title="Hammasi ko'rinsin"
+          title="3D grafni ekranga sig'dirish"
           onClick={() => fgRef.current?.zoomToFit(600, 40)}
         >
           <Maximize2 className="h-3.5 w-3.5" />

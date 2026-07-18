@@ -136,7 +136,9 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
           type="button"
           className={`btn btn-xs gap-1 ${visualMode === '2d' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setVisualMode('2d')}
-          title="2D daraxt ko'rinishi"
+          title="2D asosiy daraxt rejimi"
+          aria-label="2D asosiy daraxt rejimi"
+          aria-pressed={visualMode === '2d'}
         >
           <Network className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">2D</span>
@@ -145,7 +147,9 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
           type="button"
           className={`btn btn-xs gap-1 ${visualMode === '3d' ? 'btn-primary' : 'btn-ghost'}`}
           onClick={() => setVisualMode('3d')}
-          title="3D graf ko'rinishi"
+          title="3D umumiy ko'rish rejimi"
+          aria-label="3D umumiy ko'rish rejimi"
+          aria-pressed={visualMode === '3d'}
         >
           <Boxes className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">3D</span>
