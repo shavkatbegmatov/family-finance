@@ -5,8 +5,8 @@ import type { FamilyTreeModal } from '../types/family-tree.types';
 export type VisualMode = '2d' | '3d';
 /** 3D tugun render uslubi (almashtiriladigan modullar). */
 export type RendererKind = 'galaxy' | 'avatars' | 'hybrid';
-/** Tugun ranglari nima bo'yicha guruhlanadi (videodagi "COMMUNITIES"). */
-export type ColorBy = 'gender' | 'generation' | 'surname' | 'clan';
+/** Tugun ranglari nima bo'yicha guruhlanadi. */
+export type ColorBy = 'gender' | 'generation' | 'surname' | 'household';
 
 interface ContextMenuState {
   x: number;

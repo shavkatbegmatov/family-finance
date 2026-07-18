@@ -52,8 +52,8 @@ export default function Graph3DView({ viewMode, treeData, householdData, isLoadi
   const theme = useGraphTheme();
   const data = useGraph3DData({ viewMode, treeData, householdData, showDeceased, genderFilter });
 
-  // "clan" rangi faqat xonadon rejimida ma'noli — person'da gender'ga qaytamiz
-  const effectiveColorBy = colorBy === 'clan' && viewMode === 'person' ? 'gender' : colorBy;
+  // Xonadon rangi faqat xonadon rejimida ma'noli — person'da gender'ga qaytamiz
+  const effectiveColorBy = colorBy === 'household' && viewMode === 'person' ? 'gender' : colorBy;
   const scale = useMemo(
     () => getColorScale(effectiveColorBy, data.nodes, theme),
     [effectiveColorBy, data.nodes, theme],

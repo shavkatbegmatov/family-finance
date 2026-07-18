@@ -54,7 +54,7 @@ export function Graph3DControls({ fgRef, viewMode }: Props) {
           <option value="gender">Jins</option>
           <option value="generation">Avlod</option>
           <option value="surname">Familiya</option>
-          <option value="clan" disabled={viewMode === 'person'}>
+          <option value="household" disabled={viewMode === 'person'}>
             Xonadon
           </option>
         </select>

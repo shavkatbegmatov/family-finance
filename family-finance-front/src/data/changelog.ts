@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.5',
+        date: '2026-07-18 13:39',
+        title: '3D shajara rang guruhi xonadon terminiga moslandi',
+        features: [],
+        fixes: [
+            "3D shajara ichki rang guruhida eski \"clan\" nomi olib tashlandi va xonadon terminiga moslandi. Foydalanuvchi ko'radigan \"Xonadon\" tanlovi o'zgarishsiz qoladi, lekin kod domen modeliga aniqroq mos bo'ldi.",
+        ],
+    },
+    {
         version: '1.16.4',
         date: '2026-07-18 13:11',
         title: "3D shajara belgisi ko'zga tashlanadi",

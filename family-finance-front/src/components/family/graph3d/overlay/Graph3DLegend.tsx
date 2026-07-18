@@ -4,7 +4,7 @@ const TITLES: Record<ColorBy, string> = {
   gender: 'Jins',
   generation: 'Avlod',
   surname: 'Familiya',
-  clan: 'Xonadon',
+  household: 'Xonadon',
 };
 
 /** Faol rang-guruh rejimining legendasi (videodagi "COMMUNITIES" kabi). */

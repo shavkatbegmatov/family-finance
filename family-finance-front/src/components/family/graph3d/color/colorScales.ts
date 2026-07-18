@@ -54,7 +54,7 @@ export function getColorScale(colorBy: ColorBy, nodes: GraphNode[], theme: Graph
       };
     }
 
-    case 'clan': {
+    case 'household': {
       const ids = new Set<number>();
       let hasUnscoped = false;
       nodes.forEach((n) => (n.scopeId != null ? ids.add(n.scopeId) : (hasUnscoped = true)));
