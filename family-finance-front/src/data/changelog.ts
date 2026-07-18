@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.16.4',
+        date: '2026-07-18 13:11',
+        title: "3D shajara belgisi ko'zga tashlanadi",
+        features: [
+            "Daraxt toolbarida 2D/3D tanlovi endi aniqroq: asosiy rejim \"Daraxt\", 3D esa \"3D ko'rish\" deb chiqadi. 3D rejim ichida ham \"Umumiy 3D ko'rish\" belgisi ko'rinadi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.16.3',
         date: '2026-07-18 12:57',
         title: "3D shajara roli aniqroq bo'ldi",

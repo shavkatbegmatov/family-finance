@@ -141,7 +141,7 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
           aria-pressed={visualMode === '2d'}
         >
           <Network className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">2D</span>
+          <span className="hidden sm:inline">Daraxt</span>
         </button>
         <button
           type="button"
@@ -152,7 +152,7 @@ export function FamilyTreeToolbar({ fullscreenRef }: FamilyTreeToolbarProps) {
           aria-pressed={visualMode === '3d'}
         >
           <Boxes className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">3D</span>
+          <span className="hidden sm:inline">3D ko'rish</span>
         </button>
       </div>
 

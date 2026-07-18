@@ -24,6 +24,11 @@ export function Graph3DControls({ fgRef, viewMode }: Props) {
 
   return (
     <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
+      <div className="flex items-center gap-1.5 rounded-lg bg-base-200/85 px-2.5 py-1 text-xs font-medium text-base-content/80 shadow-sm backdrop-blur">
+        <Boxes className="h-3.5 w-3.5 text-primary" />
+        <span>Umumiy 3D ko'rish</span>
+      </div>
+
       <div className="flex gap-0.5 rounded-lg bg-base-200/80 p-0.5 shadow-sm backdrop-blur">
         {RENDERER_OPTIONS.map(({ kind, label, Icon }) => (
           <button
