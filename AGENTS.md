@@ -92,3 +92,5 @@ npm run lint      # ESLint
 - **Architecture & domain model:** `@docs/architecture.md`
 - **Backend module guide:** `family-finance-api/CLAUDE.md`
 - **Frontend module guide:** `family-finance-front/CLAUDE.md`
+
+## Imported Claude Cowork project instructions

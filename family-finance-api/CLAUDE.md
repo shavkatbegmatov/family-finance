@@ -39,8 +39,8 @@ config/  scheduler/  util/  annotation/  exception/
 - **DTOs:** suffix `*Request` / `*Response`, split into `dto/request` & `dto/response`.
 - **Permissions:** guard mutations with `@RequiresPermission({PermissionCode.X}, requireAll=…)`;
   AOP `PermissionAspect` enforces via `PermissionService`. (Codes: see `enums/PermissionCode`.)
-- **Flyway:** new schema = new file `src/main/resources/db/migration/V54__*.sql` (latest is
-  **V53**, CLAN→GROUP rebrand; always verify with `ls db/migration` first). Never edit an
+- **Flyway:** new schema = new file after the latest migration (currently **V61**); always verify
+  with `ls src/main/resources/db/migration` first. Never edit an
   applied migration.
 - **Nullable `String` in JPQL:** wrap `CAST(:param AS string)` — otherwise Hibernate binds
   `bytea` and `lower(bytea)` fails.
@@ -61,7 +61,7 @@ config/  scheduler/  util/  annotation/  exception/
 
 - **Financial:** `Account`, `Transaction`, `Budget`, `Debt`+`DebtPayment`, `SavingsGoal`,
   `Category`, `Card` (AES-encrypted), `BalanceSnapshot`, `TransactionSplit`, `Tag`.
-- **Scope/family:** `Scope`, `ScopeMembership`, `FamilyGroup` (legacy), `FamilyMember`,
+- **Scope/family:** `Scope`, `ScopeMembership`, `FamilyGroup` (genealogik tenant), `FamilyMember`,
   `FamilyChild`, `FamilyPartner`, `FamilyUnit`.
 - **Auth:** `User` (`isSuperAdmin`, `primaryScope`), `Session` (V44), `RoleEntity`, `Permission`,
   `LoginAttempt`.
@@ -69,5 +69,5 @@ config/  scheduler/  util/  annotation/  exception/
   Achievement, Conversion, Shop, ...).
 - **Other:** `AuditLog`, `StaffNotification`, `AppSetting`, `Bank`/`BankBin`.
 - **Core services:** `AuthService`, `ScopeContextService`, `ScopeService`,
-  `ScopeMembershipService`, `HouseholdProvisioningService`, `SessionService`,
+  `ScopeMembershipService`, `SessionService`,
   `PermissionService`, `AuditLogService`, `Excel/PdfExportService`.

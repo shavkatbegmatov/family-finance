@@ -13,8 +13,9 @@ npm run preview   # serve production build
 npm run cap:sync  # build + cap sync android   (APK: npm run apk:debug)
 ```
 
-- Base API URL: `import.meta.env.VITE_API_BASE_URL || '/api'`. No automated tests — verify with
-  `npm run build` / `tsc` / `lint` + manual preview.
+- Base API URL: `import.meta.env.VITE_API_BASE_URL || '/api'`. Automated checks include Vitest
+  (`src/utils/*.test.ts`) and Playwright smoke (`e2e/smoke.spec.ts`); verify with
+  `npm run build` / `npm run test` / `npm run e2e` as needed + manual preview.
 
 ## src/ structure
 
@@ -65,7 +66,8 @@ data/        changelog.ts          utils/  password.ts, hibp.ts, apiError.ts, ..
 
 ## Multi-scope UI (fully implemented)
 
-`components/scope/ScopeSwitcher.tsx` (header dropdown, grouped by clan), `hooks/useSwitchScope.ts`
+`components/scope/ScopeSwitcher.tsx` (header dropdown, grouped by SCHOOL containers; households
+are flat roots after ADR-003), `hooks/useSwitchScope.ts`
 (also used by family-tree `HouseholdNode`), `hooks/useScopeChange.ts` (legacy pages react to
 `SCOPE_CHANGED_EVENT`), `api/scopes.api.ts`, `store/scopeStore.ts`, `types/scope.types.ts`.
 Switching scope updates JWT + authStore + invalidates React Query (data hook'lar `activeScopeId`

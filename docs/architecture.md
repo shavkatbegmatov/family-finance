@@ -1,23 +1,26 @@
 # Architecture & Domain Model
 
-Grounded in the **actual code** (Flyway V45, June 2026), not the original plan. The legacy
+Grounded in the **actual code** (Flyway V61, July 2026), not the original plan. The legacy
 roadmap lives in [`docs/multi-scope-plan-original.txt`](./multi-scope-plan-original.txt) —
 useful history, but the code is ahead of it.
 
-Domain terms (ADR-001 decoupling): **Group** = ixtiyoriy moliyaviy aggregation (eski "Clan"/urug'
-da'vosi olib tashlandi — "urug'" endi genealogiya grafidan hosil bo'ladi, jadval emas),
-**Household** = xonadon (byudjet birligi, mustaqil root bo'la oladi). Genealogiya (graf) va moliya
-(daraxt) ajratilgan. To'liq qaror: [`adr-001`](./adr-001-genealogy-finance-decoupling.md).
+Domain terms: **Household** = xonadon (byudjet birligi, har doim mustaqil root),
+**School/Class** = ta'limdagi ball kontekstlari. **Group** (eski "Clan") ADR-003 bilan
+iste'foga chiqarilgan va faqat arxiv/legacy qatorlar uchun o'qiladi. "Urug'" genealogiya grafidan
+hosil bo'ladi, jadval emas. Genealogiya (graf) va moliya ajratilgan. To'liq qarorlar:
+[`adr-001`](./adr-001-genealogy-finance-decoupling.md), [`adr-002`](./adr-002-person-wallets-and-schools.md),
+[`adr-003`](./adr-003-remove-group-scope.md).
 
 ## 1. Scope model (multi-scope core)
 
 A single universal `Scope` entity models every context type via a `type` enum + `metadata`
-(JSONB). Hierarchy is `parentScope` (GROUP is the root, `parentScope = null`).
+(JSONB). Hierarchy is now used for SCHOOL → CLASS; HOUSEHOLD is always a root. GROUP remains
+only as a deprecated archived enum value.
 
 - **`entity/Scope.java`** — `type`, `name`, `parentScope`, `ownerUser`, `uniqueCode`,
-  `displayCode`, `metadata` (JSONB), `startsAt`/`endsAt`, `isActive`, **`legacyFamilyGroup`**.
-- **`enums/ScopeType`** — `GROUP, HOUSEHOLD, PROJECT, EVENT, FUND, TRUSTEE, PROPERTY`
-  (helpers `requiresParent()`, `canContainHousehold()`).
+  `displayCode`, `metadata` (JSONB), `startsAt`/`endsAt`, `isActive`.
+- **`enums/ScopeType`** — active: `HOUSEHOLD, SCHOOL, CLASS`; deprecated/read-only:
+  `GROUP, PROJECT, EVENT, FUND, TRUSTEE, PROPERTY` (helpers `requiresParent()`, `forbidsParent()`).
 - **`entity/ScopeMembership.java`** + **`enums/ScopeRole`** (`OWNER, ADMIN, MEMBER, VIEWER,
   GUEST`) + **`enums/MembershipStatus`** (`ACTIVE, LEFT, EXPELLED, PENDING`).
   Unique constraint: one membership per (scope, user).
@@ -29,8 +32,9 @@ bride is MEMBER in both her parents' and her husband's households — two member
 
 - **Active scope resolution (fallback chain):** JWT `activeScopeId` → `User.primaryScope` →
   first ACTIVE membership.
-- `getActiveScope()`, `getActiveHousehold()`, `getActiveGroup()`, `getActiveScopeId()`.
-- **Visibility:** `getVisibleScopeIds()` (own ACTIVE memberships + parent GROUP), `canViewScope()`,
+- `getActiveScope()`, `getActiveHousehold()`, `getActiveScopeId()`.
+- **Visibility:** `getVisibleScopeIds()` (own ACTIVE memberships + active parent containers such as
+  SCHOOL for CLASS), `canViewScope()`,
   `canWriteToScope()`, `canManageScope()`.
 - **SUPER_ADMIN** (`User.isSuperAdmin`) bypasses membership but every cross-scope access is
   written to the audit log.
@@ -94,7 +98,7 @@ signature o'zgarishisiz ishlaydi. New code should use scopes directly.
 - **Soft-delete invariant:** removing a member must not leave orphan `FamilyChild`/
   `FamilyPartner`; validations consider **living** members only.
 - **Tree consistency (V1.6.4):** the "Xonadonlar" (households) and "Shaxslar" (persons) views
-  use the **same genealogical traversal** (not scope-visibility) — a parent in a different GROUP
+  use the **same genealogical traversal** (not scope-visibility) — a parent in another genealogik tenant
   still appears. Frontend: `components/family/flow/` (2D React-Flow) and
   `components/family/graph3d/` (3D force graph).
 
