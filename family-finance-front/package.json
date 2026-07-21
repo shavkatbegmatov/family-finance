@@ -29,7 +29,7 @@
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.303.0",
     "react": "^18.2.0",
-    "react-diff-viewer-continued": "^4.2.2",
+    "react-diff-viewer-continued": "^4.4.0",
     "react-dom": "^18.2.0",
     "react-easy-crop": "^6.2.2",
     "react-force-graph-3d": "^1.29.1",
