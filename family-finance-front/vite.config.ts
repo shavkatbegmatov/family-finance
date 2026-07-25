@@ -64,8 +64,6 @@ export default defineConfig({
           'vendor-date': ['date-fns'],
           // Form handling
           'vendor-form': ['react-hook-form'],
-          // PDF & export utilities
-          'vendor-export': ['jspdf', 'jspdf-autotable', 'html2canvas'],
           // WebSocket
           'vendor-websocket': ['sockjs-client', '@stomp/stompjs'],
           // 3D force-graph (heavy — faqat 3D ko'rinish ochilganda lazy yuklanadi)

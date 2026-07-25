@@ -23,10 +23,7 @@
     "axios": "^1.18.1",
     "clsx": "^2.1.0",
     "date-fns": "^3.2.0",
-    "html2canvas": "^1.4.1",
     "i18next": "^26.3.4",
-    "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.25.0",
     "react": "^18.2.0",
     "react-diff-viewer-continued": "^4.4.0",
@@ -42,7 +39,6 @@
     "sockjs-client": "^1.6.1",
     "three": "^0.184.0",
     "three-spritetext": "^1.10.0",
-    "xlsx": "^0.18.5",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
