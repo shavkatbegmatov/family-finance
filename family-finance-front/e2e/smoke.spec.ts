@@ -129,4 +129,89 @@ test.describe('Smoke (READ-ONLY)', () => {
       contentType: 'application/json',
     });
   });
+
+  /**
+   * Effekt-og'ir joylar: realtime WebSocket (bildirishnomalar) va 3D genealogiya
+   * grafi (three.js/WebGL). Bular React'ning StrictMode ikki marta ishga
+   * tushiradigan effektlariga eng sezgir qismlar, shuning uchun asosiy signal —
+   * konsol xatolari va sahifa crash'i.
+   *
+   * READ-ONLY: faqat ko'rish rejimi almashtiriladi, hech qanday ma'lumot
+   * yozilmaydi.
+   */
+  test('realtime ulanish + 3D graf render (READ-ONLY)', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => consoleErrors.push(`pageerror: ${err.message}`));
+
+    // SockJS WebSocket transportini tanlasa shu event ishlaydi; XHR-streaming
+    // fallback'ida esa quyidagi /ws/info javobi dalil bo'ladi.
+    const wsFrames: string[] = [];
+    page.on('websocket', (ws) => wsFrames.push(ws.url()));
+
+    const wsInfo = page
+      .waitForResponse((r) => r.url().includes('/ws/info'), { timeout: 25_000 })
+      .catch(() => null);
+
+    await login(page);
+
+    // --- Realtime (bildirishnomalar) ---
+    const info = await wsInfo;
+    const realtimeStarted = Boolean(info) || wsFrames.length > 0;
+    console.log(
+      realtimeStarted
+        ? `[smoke] Realtime handshake bajarildi (ws/info: ${info?.status() ?? 'yo\'q'}, websocket: ${wsFrames.length}).`
+        : '[smoke] Realtime handshake kuzatilmadi.',
+    );
+    expect(realtimeStarted, 'WebSocket/SockJS handshake boshlanishi kerak').toBe(true);
+
+    // --- 3D genealogiya grafi ---
+    // `admin` superadmin bo'lgani uchun oila daraxtiga ruxsati bo'lmasligi
+    // mumkin (AdminLayout'da moliya/oila menyulari yo'q) — u holda bu bo'lim
+    // o'tkazib yuboriladi, smoke yiqilmaydi.
+    await page.goto('/family');
+
+    const btn3d = page.getByRole('button', { name: /3D umumiy ko'rish rejimi/ });
+    const has3d = await btn3d
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    if (!has3d) {
+      console.log(
+        '[smoke] 3D tugmasi topilmadi — bu hisob oila daraxtiga kira olmaydi, bo\'lim o\'tkazib yuborildi.',
+      );
+    } else {
+      await btn3d.click();
+
+      // WebGL kontekst yaratilsa <canvas>, aks holda WebGLFallback ko'rsatiladi.
+      // Ikkalasi ham to'g'ri xatti-harakat — muhimi crash bo'lmasligi.
+      const canvasOrFallback = await page
+        .locator('canvas, [data-testid="webgl-fallback"]')
+        .first()
+        .waitFor({ state: 'visible', timeout: 30_000 })
+        .then(() => true)
+        .catch(() => false);
+
+      const glInfo = await page.evaluate(() => {
+        const c = document.querySelector('canvas');
+        if (!c) return 'canvas yo\'q (fallback rejimi)';
+        const gl = c.getContext('webgl2') || c.getContext('webgl');
+        return gl ? 'WebGL kontekst tirik' : 'canvas bor, WebGL kontekst yo\'q';
+      });
+
+      console.log(`[smoke] 3D rejim: render=${canvasOrFallback}, ${glInfo}`);
+      expect(canvasOrFallback, '3D rejimda canvas yoki fallback chiqishi kerak').toBe(true);
+    }
+
+    // --- Konsol xatolari (asosiy React 19 regressiya signali) ---
+    if (consoleErrors.length > 0) {
+      console.warn(`[smoke] Konsol xatolari (${consoleErrors.length}):\n${consoleErrors.join('\n')}`);
+    } else {
+      console.log('[smoke] Konsol xatolari yo\'q.');
+    }
+    expect(consoleErrors, 'sahifada JS xatosi bo\'lmasligi kerak').toEqual([]);
+  });
 });
