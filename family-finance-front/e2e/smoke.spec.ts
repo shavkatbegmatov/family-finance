@@ -291,21 +291,34 @@ test.describe('Smoke (READ-ONLY)', () => {
    * MUHIM: oyna AVTOMATIK ochilmaydi — yangi versiyada faqat Header
    * tugmasida qizil nuqta chiqadi, foydalanuvchi o'zi bosadi.
    *
+   * Mobil UI'da tugma ATAYLAB yo'q (Header'da `hidden sm:flex`, Footer esa
+   * butunlay `lg:block`) — u breakpoint'da shuning o'zi tekshiriladi.
+   *
    * Server ma'lumotiga tegilmaydi; tugma bosilganda faqat brauzer
    * localStorage'iga "ko'rilgan versiya" yoziladi.
    */
-  test('"Nima yangiliklar" oynasi (READ-ONLY)', async ({ page }) => {
+  test('"Nima yangiliklar" oynasi (READ-ONLY)', async ({ page }, testInfo) => {
     const consoleErrors = collectConsoleErrors(page);
 
     await login(page);
 
-    // Tugma ikki joyda: Header (desktop, `aria-label`) va Footer (versiya
-    // matni bilan). Breakpoint'ga qarab biri yashirin bo'ladi, shuning uchun
-    // ko'rinadiganini olamiz.
+    // Tugma ikki joyda: Header (`aria-label`, sm+) va Footer (versiya matni
+    // bilan, lg+). Breakpoint'ga qarab biri yashirin bo'lishi mumkin, shuning
+    // uchun ko'rinadiganini olamiz.
     const trigger = page
       .getByRole('button', { name: /Nima yangiliklar/ })
       .filter({ visible: true })
       .first();
+
+    if (testInfo.project.name === 'mobile') {
+      await expect(
+        trigger,
+        'mobil UI\'da bu tugma ko\'rsatilmasligi kerak',
+      ).toHaveCount(0);
+      console.log('[smoke] Mobil UI: "Nima yangiliklar" tugmasi ataylab yo\'q — kutilgan holat.');
+      assertNoConsoleErrors(consoleErrors);
+      return;
+    }
 
     await expect(trigger, 'Nima yangiliklar tugmasi ko\'rinishi kerak').toBeVisible({
       timeout: 20_000,
