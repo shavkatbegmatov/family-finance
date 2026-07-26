@@ -16,6 +16,12 @@ npm run cap:sync  # build + cap sync android   (APK: npm run apk:debug)
 - Base API URL: `import.meta.env.VITE_API_BASE_URL || '/api'`. Automated checks include Vitest
   (`src/utils/*.test.ts`) and Playwright smoke (`e2e/smoke.spec.ts`); verify with
   `npm run build` / `npm run test` / `npm run e2e` as needed + manual preview.
+- **E2E smoke (READ-ONLY, 3 ta test):** login+a11y, realtime (SockJS/STOMP handshake), 3D graf
+  (WebGL konteksti). Faqat **qo'lda** ishga tushadi — `gh workflow run playwright.yml`
+  (`workflow_dispatch`, non-blocking). Seed'dagi `admin` SUPER_ADMIN va oila daraxtiga kira
+  olmaydi, shuning uchun 3D testi uchun workflow register API orqali `ci_demo_family` hisobini
+  yaratadi (faqat efemer CI DB'sida — Flyway'ga qo'shilmagan, prodga tushmaydi). Hisob bo'lmasa
+  3D testi skip bo'ladi.
 
 ## src/ structure
 
