@@ -17,7 +17,7 @@ Spring Boot API + React/Vite SPA.
 | Module | Path | Tech | Port |
 |--------|------|------|------|
 | Backend | `family-finance-api/` | Spring Boot 4.1.0, Java 21, pkg `uz.familyfinance.api` | `:8098` (context `/api`) |
-| Frontend | `family-finance-front/` | React 18, Vite, TypeScript, Tailwind+daisyUI | `:5178` |
+| Frontend | `family-finance-front/` | React 19, Vite, TypeScript, Tailwind+daisyUI | `:5178` |
 
 DB: PostgreSQL 16 (`family_finance_db`), Flyway migrations, Hibernate `ddl-auto=validate`.
 

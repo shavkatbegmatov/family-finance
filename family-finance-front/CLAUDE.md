@@ -1,6 +1,6 @@
 # Frontend — family-finance-front
 
-React 18 + Vite + TypeScript SPA. Runs on **`:5178`** (proxies `/api` → `:8098`). Tailwind +
+React 19 + Vite + TypeScript SPA. Runs on **`:5178`** (proxies `/api` → `:8098`). Tailwind +
 daisyUI, Lucide icons. See root `../CLAUDE.md` and `../docs/architecture.md` first.
 
 ## Run / build
@@ -24,7 +24,8 @@ api/         axios instance (axios.ts) + per-domain modules (*.api.ts) — `ApiR
 components/  ui/ (inputs, table)  common/ (modals, gates)  layout/  scope/  family/  points/
              per-domain (D10 bo'lingan sahifalar): accounts/ transactions/ debts/ savings/ reports/ dashboard/ users/ roles/ household/
 pages/       route-level **orchestrator** containers (dashboard/, transactions/, accounts/, family/, scope/, ...)
-router/      index.tsx — react-router v6 createBrowserRouter, lazy pages, ProtectedRoute
+router/      index.tsx — react-router v8 createBrowserRouter, lazy pages, ProtectedRoute
+             (v8'da `react-router-dom` paketi YO'Q — hamma narsa `react-router` dan import qilinadi)
 store/       Zustand stores
 hooks/       usePermission, useSwitchScope, useScopeChange (`useActiveScopeId`), useFocusTrap;
              **data hooks** (react-query): use<Domain>Data — useAccountsData, useTransactionsData,
