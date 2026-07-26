@@ -19,6 +19,25 @@ import AxeBuilder from '@axe-core/playwright';
 const DEMO_USERNAME = 'admin';
 const DEMO_PASSWORD = 'admin123';
 
+/**
+ * Admin bergan parol (`admin123`) bilan kirilganda `PasswordChangeModal`
+ * avtomatik ochiladi va orqadagi butun kontentni to'sib qo'yadi — sahifa
+ * elementlari `hidden` bo'lib qoladi va keyingi `toBeVisible()` tekshiruvlari
+ * yiqiladi. Smoke READ-ONLY bo'lgani uchun parolni O'ZGARTIRMAYMIZ, modalni
+ * "Keyinroq" tugmasi bilan yopamiz (bu hech qanday mutatsiya qilmaydi).
+ * Modal chiqmasa (parol allaqachon o'zgartirilgan bo'lsa) test davom etadi.
+ */
+async function dismissPasswordChangeModal(page: Page): Promise<void> {
+  const later = page.getByRole('button', { name: 'Keyinroq' });
+  try {
+    await later.waitFor({ state: 'visible', timeout: 10_000 });
+    await later.click();
+    await later.waitFor({ state: 'hidden', timeout: 10_000 });
+  } catch {
+    // Modal chiqmadi — bu ham normal holat.
+  }
+}
+
 /** Login sahifasiga o'tib, demo hisob bilan kiradi (READ-ONLY auth). */
 async function login(page: Page): Promise<void> {
   await page.goto('/login');
@@ -32,6 +51,8 @@ async function login(page: Page): Promise<void> {
   await page.waitForURL((url) => !url.pathname.startsWith('/login'), {
     timeout: 30_000,
   });
+
+  await dismissPasswordChangeModal(page);
 }
 
 test.describe('Smoke (READ-ONLY)', () => {
