@@ -60,10 +60,17 @@ test.describe('Smoke (READ-ONLY)', () => {
     await login(page);
 
     // --- Bosh sahifa ko'rinishi ---
-    // "Bosh sahifa" sarlavhasi Header breadcrumb'ida (desktop) va mobil <h1>'da
-    // chiqadi; bir nechta joyda bo'lishi mumkin, shuning uchun .first().
+    // Sarlavha Header breadcrumb'ida (desktop) va mobil <h1>'da chiqadi.
+    // `admin` demo hisobi SUPERADMIN — login'dan keyin `/admin` ga tushadi va
+    // u yerda sarlavha "Platforma boshqaruvi" bo'ladi; oddiy foydalanuvchida
+    // "Bosh sahifa". Shu bilan birga "Bosh sahifa" matni yashirin navigatsiya
+    // elementlarida ham uchraydi, shuning uchun `.first()` dan oldin
+    // ko'rinadiganlarini filtrlaymiz (aks holda yashirin span tanlanadi).
     await expect(
-      page.getByText(/Bosh sahifa|Dashboard/).first(),
+      page
+        .getByText(/Bosh sahifa|Dashboard|Platforma boshqaruvi/)
+        .filter({ visible: true })
+        .first(),
     ).toBeVisible({ timeout: 30_000 });
 
     // --- Scope switcher ko'rinishi ---
