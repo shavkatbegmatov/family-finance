@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ShieldX, Home, ArrowLeft } from 'lucide-react';
 
 interface AccessDeniedProps {

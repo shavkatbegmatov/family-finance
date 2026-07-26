@@ -17,7 +17,7 @@ import {
   HandMetal,
   Sparkles,
 } from 'lucide-react';
-import { useMatches, useNavigate, Link } from 'react-router-dom';
+import { useMatches, useNavigate, Link } from 'react-router';
 import clsx from 'clsx';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';

@@ -41,11 +41,11 @@ interface FamilyMembersListViewProps {
   onDelete: (memberId: number) => void;
   onQuickAddParticipant: (member: FamilyMember) => void;
   // refs
-  tableAreaRef: RefObject<HTMLDivElement>;
-  tableContainerRef: RefObject<HTMLDivElement>;
-  tableHeadRef: RefObject<HTMLTableSectionElement>;
+  tableAreaRef: RefObject<HTMLDivElement | null>;
+  tableContainerRef: RefObject<HTMLDivElement | null>;
+  tableHeadRef: RefObject<HTMLTableSectionElement | null>;
   firstRowRef: MutableRefObject<HTMLTableRowElement | null>;
-  mobileSentinelRef: RefObject<HTMLDivElement>;
+  mobileSentinelRef: RefObject<HTMLDivElement | null>;
   tableViewportStyle: CSSProperties;
 }
 

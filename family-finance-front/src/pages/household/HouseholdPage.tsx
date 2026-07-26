@@ -16,7 +16,7 @@ import {
   User,
   Trash2,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import clsx from 'clsx';
 import { householdApi } from '../../api/household.api';
 import type { HouseholdDashboardResponse, HouseholdMemberSummary, HouseholdAccountSummary } from '../../api/household.api';

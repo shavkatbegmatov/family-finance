@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type JSX } from 'react';
 import { Copy, Check, Maximize2, Minimize2, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ChevronDown, Crown, Loader2, Settings2, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';

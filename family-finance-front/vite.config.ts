@@ -53,7 +53,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           // React core libraries
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-react': ['react', 'react-dom', 'react-router'],
           // State management & data fetching
           'vendor-state': ['zustand', 'axios'],
           // UI libraries

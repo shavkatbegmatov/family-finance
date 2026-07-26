@@ -8,7 +8,7 @@ import {
   Target,
   ArrowLeftRight,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { usePermission, PermissionCode } from '../../hooks/usePermission';
 import { formatCurrency, formatCompactCurrency, MONTHS_UZ } from '../../config/constants';
 import type { CurrencyBalance } from '../../types';

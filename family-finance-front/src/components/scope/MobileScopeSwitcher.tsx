@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { ChevronDown, Crown, Loader2, Settings2, ShieldCheck, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useScopeStore } from '../../store/scopeStore';

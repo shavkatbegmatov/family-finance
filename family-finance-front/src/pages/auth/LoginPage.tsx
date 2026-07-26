@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { LogIn, Eye, EyeOff, User as UserIcon, Lock, ShieldCheck, Send } from 'lucide-react';
 import toast from 'react-hot-toast';

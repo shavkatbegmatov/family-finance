@@ -1,5 +1,5 @@
 import { useMemo, type ComponentType, type CSSProperties } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink } from 'react-router';
 import {
   LayoutDashboard,
   Users,

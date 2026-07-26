@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import {
   ArrowLeft, RefreshCw, Plus, Wallet, CreditCard, PiggyBank,
   Smartphone, Landmark, Receipt, Banknote, Snowflake, Play,

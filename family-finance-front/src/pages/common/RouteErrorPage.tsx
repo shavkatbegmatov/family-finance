@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useRouteError, useNavigate, isRouteErrorResponse } from 'react-router-dom';
+import { useRouteError, useNavigate, isRouteErrorResponse } from 'react-router';
 import { RefreshCw, Home, AlertTriangle } from 'lucide-react';
 import { BrandMark } from '../../components/common/BrandLogo';
 

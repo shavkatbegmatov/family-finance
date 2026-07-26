@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components -- router config fayli: lazy sahifalar
    va `router` eksporti birga turadi; Fast Refresh (HMR) bu fayl uchun ahamiyatsiz. */
 import { lazy } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { MainLayout } from '../components/layout/MainLayout';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';

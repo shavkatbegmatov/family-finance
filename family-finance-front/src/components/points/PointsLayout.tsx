@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation } from 'react-router';
 import {
   LayoutDashboard, Users, ListTodo, Trophy, ShoppingBag,
   Swords, Settings, Clock, ArrowLeftRight, PiggyBank, Award,
