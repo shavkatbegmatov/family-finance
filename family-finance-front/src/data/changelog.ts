@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.17.0',
+        date: '2026-07-27 00:35',
+        title: 'Xavfsizlik yangilanishi va asosiy kutubxonalar yangilandi',
+        features: [
+            "Ilovaning asosiy kutubxonalari eng so'nggi versiyalarga ko'chirildi: React 19 va React Router 8.",
+        ],
+        fixes: [
+            "Bog'liqliklardagi barcha ma'lum xavfsizlik zaifliklari yopildi — 14 tadan 0 tagacha, jumladan 2 ta kritik darajadagi.",
+            "Ishlatilmayotgan eksport kutubxonalari olib tashlanib, ilova to'plami yengillashdi. Excel va PDF eksport avvalgidek serverda tayyorlanadi.",
+        ],
+    },
+    {
         version: '1.16.9',
         date: '2026-07-18 14:36',
         title: "3D shajarada farzandlar ismi ko'rinadi",
