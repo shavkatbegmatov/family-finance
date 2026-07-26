@@ -27,7 +27,8 @@ const DEMO_PASSWORD = 'admin123';
  * 3D bo'limini o'tkazib yuboradi.
  */
 const FAMILY_USERNAME = 'ci_demo_family';
-const FAMILY_PASSWORD = 'ci-smoke-demo-pw';
+// PasswordPolicy: kamida 10 belgi + katta harf + kichik harf + raqam.
+const FAMILY_PASSWORD = 'CiSmokeDemo2026';
 
 /**
  * Admin bergan parol (`admin123`) bilan kirilganda `PasswordChangeModal`

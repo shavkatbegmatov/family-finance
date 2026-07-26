@@ -107,8 +107,8 @@ jobs:
               "firstName": "Demo",
               "lastName": "Oila",
               "username": "ci_demo_family",
-              "password": "ci-smoke-demo-pw",
-              "confirmPassword": "ci-smoke-demo-pw",
+              "password": "CiSmokeDemo2026",
+              "confirmPassword": "CiSmokeDemo2026",
               "gender": "MALE"
             }' || echo 000)
           echo "register javobi: HTTP $code"
