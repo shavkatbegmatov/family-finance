@@ -89,6 +89,36 @@ jobs:
           echo "::warning::Backend 200 qaytarmadi — smoke baribir urinib ko'radi (non-blocking)."
         continue-on-error: true
 
+      # ── Smoke uchun oddiy oila hisobi ──
+      # Seed'dagi `admin` — SUPER_ADMIN, u oila daraxtiga kira olmaydi
+      # (AdminLayout'da moliya/oila menyulari ataylab yo'q), shuning uchun 3D
+      # genealogiya grafi qismini u bilan sinab bo'lmaydi. Register endpointi
+      # ochiq va yangi foydalanuvchiga family_group + HOUSEHOLD scope +
+      # family_member ni o'zi provisioning qiladi — aynan kerakli holat.
+      #
+      # Bu ATAYLAB Flyway migratsiyasi emas: demo hisob prod DB'ga tushmasligi
+      # kerak, u faqat shu efemer CI konteynerida yashaydi.
+      - name: CI demo oila hisobini yaratish (3D graf smoke uchun)
+        run: |
+          code=$(curl -sS -o /tmp/reg.json -w '%{http_code}' \
+            -X POST http://localhost:8098/api/v1/auth/register \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "firstName": "Demo",
+              "lastName": "Oila",
+              "username": "ci_demo_family",
+              "password": "ci-smoke-demo-pw",
+              "confirmPassword": "ci-smoke-demo-pw",
+              "gender": "MALE"
+            }' || echo 000)
+          echo "register javobi: HTTP $code"
+          head -c 300 /tmp/reg.json || true
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::warning::Demo oila hisobi yaratilmadi — smoke 3D bo'limini o'tkazib yuboradi."
+          fi
+        continue-on-error: true
+
       # ── Frontend deps + Playwright brauzeri ──
       - name: Frontend deps (npm ci)
         working-directory: family-finance-front
