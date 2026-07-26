@@ -238,6 +238,11 @@ test.describe('Smoke (READ-ONLY)', () => {
 
     await page.goto('/family');
 
+    // Sahifa "Ro'yxat" (jadval) rejimida ochiladi — 2D/3D almashtirish
+    // toolbari faqat "Daraxti" rejimida chiqadi, shuning uchun avval unga
+    // o'tamiz. Bu sof ko'rinish o'zgarishi, hech narsa yozilmaydi.
+    await page.getByRole('button', { name: 'Daraxti' }).click();
+
     const btn3d = page.getByRole('button', { name: /3D umumiy ko'rish rejimi/ });
     const has3d = await btn3d
       .waitFor({ state: 'visible', timeout: 20_000 })
