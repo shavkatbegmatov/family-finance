@@ -1,5 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+// Versiyani hardcode qilmaymiz — changelog yagona manba, shuning uchun
+// har `package.json` bump'ida test o'zi moslashadi.
+import { LATEST_VERSION, changelogData } from '../src/data/changelog';
 
 /**
  * G7 — READ-ONLY smoke test.
@@ -273,6 +276,61 @@ test.describe('Smoke (READ-ONLY)', () => {
       console.log(`[smoke] 3D rejim: render=${canvasOrFallback}, ${glInfo}`);
       expect(canvasOrFallback, '3D rejimda canvas yoki fallback chiqishi kerak').toBe(true);
     }
+
+    assertNoConsoleErrors(consoleErrors);
+  });
+
+  /**
+   * "Nima yangiliklar?" oynasi — har release'da changelog yangilanadi, ya'ni
+   * bu oyna eng tez eskiradigan joy. Tekshiradi: tugma joriy versiyani
+   * ko'rsatadimi, oyna ochiladimi va ichida oxirgi changelog yozuvi bormi.
+   *
+   * Versiya changelog'dan import qilinadi, shuning uchun keyingi bump'da
+   * testni qo'lda yangilash kerak emas.
+   *
+   * MUHIM: oyna AVTOMATIK ochilmaydi — yangi versiyada faqat Header
+   * tugmasida qizil nuqta chiqadi, foydalanuvchi o'zi bosadi.
+   *
+   * Server ma'lumotiga tegilmaydi; tugma bosilganda faqat brauzer
+   * localStorage'iga "ko'rilgan versiya" yoziladi.
+   */
+  test('"Nima yangiliklar" oynasi (READ-ONLY)', async ({ page }) => {
+    const consoleErrors = collectConsoleErrors(page);
+
+    await login(page);
+
+    // Tugma ikki joyda: Header (desktop, `aria-label`) va Footer (versiya
+    // matni bilan). Breakpoint'ga qarab biri yashirin bo'ladi, shuning uchun
+    // ko'rinadiganini olamiz.
+    const trigger = page
+      .getByRole('button', { name: /Nima yangiliklar/ })
+      .filter({ visible: true })
+      .first();
+
+    await expect(trigger, 'Nima yangiliklar tugmasi ko\'rinishi kerak').toBeVisible({
+      timeout: 20_000,
+    });
+
+    await trigger.click();
+
+    // Oyna sarlavhasi
+    await expect(page.getByText('Nima yangiliklar?').first()).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Ichida oxirgi changelog yozuvi: versiya + sarlavha
+    const latest = changelogData[0];
+    await expect(
+      page.getByText(new RegExp(`v${LATEST_VERSION.replace(/\./g, '\\.')}`)).first(),
+      `oynada v${LATEST_VERSION} ko'rinishi kerak`,
+    ).toBeVisible({ timeout: 15_000 });
+
+    await expect(
+      page.getByText(latest.title).first(),
+      `oynada "${latest.title}" sarlavhasi ko'rinishi kerak`,
+    ).toBeVisible({ timeout: 15_000 });
+
+    console.log(`[smoke] "Nima yangiliklar" oynasi ochildi — v${LATEST_VERSION}: ${latest.title}`);
 
     assertNoConsoleErrors(consoleErrors);
   });
