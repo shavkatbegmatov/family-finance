@@ -41,7 +41,13 @@ jobs:
       DB_NAME: family_finance_db
       DB_USERNAME: family_finance_user
       DB_PASSWORD: ci_smoke_pw
-      JWT_SECRET: ci-smoke-jwt-secret-please-change-only-for-ci-0123456789abcdef
+      # JwtTokenProvider.init() `Decoders.BASE64.decode()` qiladi — qiymat BASE64
+      # bo'lishi SHART (dekodlangach >=32 bayt, HMAC-SHA256 uchun). Oddiy matn
+      # bersak "Illegal base64 character: '-'" bilan backend ko'tarilmaydi.
+      # Bu quyida: base64("ci-smoke-only-not-a-real-secret-0123456789abcdef").
+      JWT_SECRET: Y2ktc21va2Utb25seS1ub3QtYS1yZWFsLXNlY3JldC0wMTIzNDU2Nzg5YWJjZGVm # gitleaks:allow
+      # CardEncryptionService kalitni oddiy UTF-8 satr sifatida oladi (32 baytga
+      # padding/trim) — bunisi base64 BO'LMASLIGI kerak.
       CARD_ENCRYPTION_KEY: ci-smoke-card-key-0123456789abcdef0123456789abcdef
 
     steps:
