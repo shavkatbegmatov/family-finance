@@ -73,18 +73,33 @@ test.describe('Smoke (READ-ONLY)', () => {
         .first(),
     ).toBeVisible({ timeout: 30_000 });
 
-    // --- Scope switcher ko'rinishi ---
+    // --- Scope switcher ---
     // Desktop: ScopeSwitcher tugmasi title="Aktiv scope'ni o'zgartirish".
     // Mobil:   MobileScopeSwitcher chip aria-label="Aktiv scope: ...".
-    // Ikkala variantni ham qoplaydigan locator (faqat scope ma'lumoti
-    // yuklangach ko'rinadi — myScopes bo'sh bo'lsa null qaytaradi).
+    // Ikkalasi ham DOM'da mount bo'ladi va faqat CSS bilan yashiriladi, shuning
+    // uchun ko'rinadiganlarini filtrlaymiz — `.first()` aks holda joriy
+    // breakpoint'da yashirin bo'lgan variantni tanlab qo'yadi.
+    //
+    // MUHIM: `admin` superadmin va AdminLayout'da ScopeSwitcher ATAYLAB yo'q
+    // ("super admin'da scope yo'q" — AdminLayout doc-comment), shuning uchun
+    // uning yo'qligi xato emas. Holatni log qilamiz, smoke'ni yiqitmaymiz.
     const scopeSwitcher = page
       .locator(
         'button[title="Aktiv scope\'ni o\'zgartirish"], button[aria-label^="Aktiv scope"]',
       )
+      .filter({ visible: true })
       .first();
 
-    await expect(scopeSwitcher).toBeVisible({ timeout: 30_000 });
+    const scopeSwitcherShown = await scopeSwitcher
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .then(() => true)
+      .catch(() => false);
+
+    console.log(
+      scopeSwitcherShown
+        ? '[smoke] Scope switcher ko\'rinadi.'
+        : '[smoke] Ko\'rinadigan scope switcher yo\'q — superadmin panelida bu kutilgan holat.',
+    );
 
     // --- a11y skan (axe-core) — kritik buzilishlarni LOG qiladi ---
     // Smoke'ni qizil qilmaymiz (mavjud UI'da oldindan mavjud muammolar
