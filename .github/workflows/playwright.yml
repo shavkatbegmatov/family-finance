@@ -1,24 +1,34 @@
-name: Playwright Smoke (manual, non-blocking)
+name: Playwright Smoke (deploy'ni bloklamaydi)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# G7 — Playwright READ-ONLY smoke testi (login → bosh sahifa → scope switcher
-# → a11y skan). ATAYLAB NON-BLOCKING:
+# G7 — Playwright READ-ONLY smoke: login + a11y, realtime (SockJS/STOMP),
+# 3D genealogiya grafi (WebGL). `main`ga har push'da AVTOMATIK ishlaydi,
+# qo'lda ham ishga tushirish mumkin (`workflow_dispatch`).
 #
-#   * Faqat `workflow_dispatch` — PR/push'da AVTOMATIK ISHLAMAYDI, shuning uchun
-#     hech qachon branch-protection required check bo'lib merge'ni BLOKLAMAYDI.
-#   * Mavjud `ci.yml` (frontend-ci / backend-ci / build-and-push) ga TEGMAYDI —
-#     bu butunlay alohida workflow.
-#   * Qo'shimcha himoya: butun job `continue-on-error: true` — kutilmagan infra
-#     nosozligi ham yashil holatni buzmaydi.
+# DEPLOY'NI GATE QILMAYDI — `ci.yml` dagi `build-and-push` faqat
+# `frontend-ci`/`backend-ci`/`secret-scan` ni kutadi va bu butunlay alohida
+# workflow. Ya'ni smoke qizil bo'lsa ham prod deploy to'xtamaydi; xuddi
+# `integration-test` jobi kabi — signal beradi, yo'lni to'smaydi.
 #
-# Ishga tushirish: GitHub → Actions → "Playwright Smoke (manual, non-blocking)"
-# → Run workflow. PostgreSQL + backend docker-compose bilan ko'tariladi
-# (backend porti host:8098 ga override orqali ochiladi), keyin Playwright
-# frontend dev serverni (`npm run dev`, :5178) o'zi ko'tarib smoke yuradi.
-# Dev server /api ni :8098 ga proxy qiladi.
+# `continue-on-error` ATAYLAB YO'Q: u bo'lsa testlar yiqilganda ham run
+# yashil ko'rinardi va buzuqlik sezilmay qolardi. Endi qizil = qizil, lekin
+# zarari faqat shu workflow bilan cheklangan.
+#
+# PostgreSQL + backend docker-compose bilan ko'tariladi (backend porti
+# host:8098 ga override orqali ochiladi), keyin Playwright frontend dev
+# serverni (`npm run dev`, :5178) o'zi ko'tarib smoke yuradi. Dev server
+# /api ni :8098 ga proxy qiladi.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
+  push:
+    branches: [main]
+    # Hujjat-only commit uchun docker build + brauzer yuklash ortiqcha
+    # (ci.yml ham xuddi shu ro'yxatni e'tiborsiz qoldiradi).
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   workflow_dispatch:
 
 concurrency:
@@ -32,8 +42,6 @@ jobs:
   smoke:
     name: E2E Smoke (READ-ONLY)
     runs-on: ubuntu-latest
-    # NON-BLOCKING kafolati: bu job qizil bo'lsa ham hech narsani bloklamaydi.
-    continue-on-error: true
     timeout-minutes: 25
     env:
       # docker-compose.dev.yml talab qiladigan sirlar — bu FAQAT efemer CI
@@ -77,6 +85,9 @@ jobs:
           docker compose -f docker-compose.dev.yml -f docker-compose.ci.yml \
             up -d --build db backend
 
+      # Backend ko'tarilmasa DARHOL to'xtaymiz: aks holda har bir test
+      # ECONNREFUSED bilan 30s timeout'ga uchraydi va asl sabab (masalan
+      # noto'g'ri JWT_SECRET) test xatolari ostida ko'rinmay qoladi.
       - name: Backend sog'lig'ini kutish (:8098)
         run: |
           echo "Backend ko'tarilishini kutish..."
@@ -86,8 +97,8 @@ jobs:
             [ "$code" = "200" ] && echo "Backend tayyor." && exit 0
             sleep 5
           done
-          echo "::warning::Backend 200 qaytarmadi — smoke baribir urinib ko'radi (non-blocking)."
-        continue-on-error: true
+          echo "::error::Backend 4 daqiqada 200 qaytarmadi — quyidagi 'Konteyner loglari' qadamida sababni ko'ring."
+          exit 1
 
       # ── Smoke uchun oddiy oila hisobi ──
       # Seed'dagi `admin` — SUPER_ADMIN, u oila daraxtiga kira olmaydi
