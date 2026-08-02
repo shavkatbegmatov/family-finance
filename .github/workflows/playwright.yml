@@ -2,13 +2,24 @@ name: Playwright Smoke (deploy'ni bloklamaydi)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # G7 — Playwright READ-ONLY smoke: login + a11y, realtime (SockJS/STOMP),
-# 3D genealogiya grafi (WebGL). `main`ga har push'da AVTOMATIK ishlaydi,
-# qo'lda ham ishga tushirish mumkin (`workflow_dispatch`).
+# 3D genealogiya grafi (WebGL). AVTOMATIK ishlaydi: `main`ga har push'da VA
+# `main`ga ochilgan har PR'da; qo'lda ham mumkin (`workflow_dispatch`).
+#
+# PR trigger MUHIM: push-only bo'lganda smoke faqat MERGE'DAN KEYIN ishlardi,
+# ya'ni buzuqlikni prod deploy boshlangach ushlardi. PR'da ishlaganda esa
+# dependabot bump'lari (masalan three.js yangilanishi — 3D grafni buzishi
+# mumkin) merge qilinishidan OLDIN tekshiriladi.
 #
 # DEPLOY'NI GATE QILMAYDI — `ci.yml` dagi `build-and-push` faqat
 # `frontend-ci`/`backend-ci`/`secret-scan` ni kutadi va bu butunlay alohida
 # workflow. Ya'ni smoke qizil bo'lsa ham prod deploy to'xtamaydi; xuddi
 # `integration-test` jobi kabi — signal beradi, yo'lni to'smaydi.
+# (Kelgusida gate qilish ko'rilishi mumkin — avval PR'lardagi barqarorlik
+# kuzatiladi.)
+#
+# Secrets TALAB QILINMAYDI: quyidagi env qiymatlari workflow ichida ochiq
+# yozilgan dummy'lar, shuning uchun dependabot PR'larida ham muammosiz
+# ishlaydi (dependabot repo secrets'iga kira olmaydi).
 #
 # `continue-on-error` ATAYLAB YO'Q: u bo'lsa testlar yiqilganda ham run
 # yashil ko'rinardi va buzuqlik sezilmay qolardi. Endi qizil = qizil, lekin
@@ -29,9 +40,18 @@ on:
       - '**.md'
       - 'docs/**'
       - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   workflow_dispatch:
 
 concurrency:
+  # PR'da har yangi push eskisini bekor qiladi (dependabot rebase qilganda
+  # ayniqsa foydali); `github.ref` PR uchun `refs/pull/<n>/merge` bo'ladi,
+  # ya'ni har PR o'z guruhida — main'dagi run bilan raqobatlashmaydi.
   group: playwright-smoke-${{ github.ref }}
   cancel-in-progress: true
 
