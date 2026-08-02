@@ -86,6 +86,14 @@ npm run lint      # ESLint
 - **Deploy:** pushing to `main` auto-deploys after green CI (GitHub Actions → GHCR images → Coolify webhook).
   Production: **https://family-finance.uz**. After each merge, watch the CI/CD run and
   health-check the URL.
+- **Prod muhitini tekshirganda (MUHIM):** prod Coolify bilan boshqariladi, shuning uchun u yerdagi
+  nomlar `docker-compose.dev.yml` dagilardan **farq qiladi** — DB nomi/useri dev'dagi
+  `family_finance_db`/`family_finance_user` emas, konteyner nomlari esa Coolify bergan tasodifiy
+  satrlar (nomda `family`, `postgres`, `db` bo'lmasligi mumkin). Serverda **boshqa loyihalar ham**
+  ishlaydi, shuning uchun konteynerni **nom bo'yicha emas, image bo'yicha** qidiring:
+  `docker ps --format "table {{.Names}}\t{{.Image}}" | grep family-finance`. DB koordinatalarini
+  esa backend konteyner env'idan oling (`docker inspect <api-konteyner> --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E "^DB_(HOST|NAME|USERNAME)="`).
+  Repo **public** — server manzili, konteyner nomlari va DB koordinatalarini bu yerga yozmang.
 
 ## Deeper context
 
