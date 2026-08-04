@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
+    "@capacitor/core": "^8.5.0",
     "@stomp/stompjs": "^7.3.0",
     "@tanstack/react-query": "^5.101.2",
     "@xyflow/react": "^12.11.1",
