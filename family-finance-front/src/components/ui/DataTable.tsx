@@ -109,7 +109,7 @@ function sortData<T>(
     if (aValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
     if (bValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
 
-    let comparison = 0;
+    let comparison: number;
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       comparison = aValue.localeCompare(bValue, 'uz');
     } else if (typeof aValue === 'number' && typeof bValue === 'number') {

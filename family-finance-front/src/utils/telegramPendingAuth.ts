@@ -28,12 +28,7 @@ export function savePendingTelegramAuth(requestId: string): PendingTelegramAuth 
 
 /** Muddati o'tmagan kutilayotgan so'rov; yo'q yoki eskirgan bo'lsa null (va tozalanadi). */
 export function readPendingTelegramAuth(): PendingTelegramAuth | null {
-  let raw: string | null = null;
-  try {
-    raw = sessionStorage.getItem(STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  const raw = readRawPending();
   if (!raw) return null;
 
   const parsed = parsePending(raw);
@@ -49,6 +44,15 @@ export function clearPendingTelegramAuth(): void {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch {
     // e'tiborsiz — o'qishda ham himoyalangan
+  }
+}
+
+/** sessionStorage yopiq bo'lsa (private rejim/kvota) o'qishni null bilan yumshoq tugatadi. */
+function readRawPending(): string | null {
+  try {
+    return sessionStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
   }
 }
 
