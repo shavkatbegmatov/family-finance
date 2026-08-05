@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uz.familyfinance.api.dto.request.BulkCategorizeRequest;
@@ -12,14 +13,17 @@ import uz.familyfinance.api.dto.request.ReverseTransactionRequest;
 import uz.familyfinance.api.dto.request.TransactionRequest;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.dto.response.BulkOperationResponse;
+import uz.familyfinance.api.dto.response.ExpenseSummaryResponse;
 import uz.familyfinance.api.dto.response.PagedResponse;
 import uz.familyfinance.api.dto.response.TransactionResponse;
 import uz.familyfinance.api.enums.TransactionType;
 import uz.familyfinance.api.enums.PermissionCode;
+import uz.familyfinance.api.exception.BadRequestException;
 import uz.familyfinance.api.security.RequiresPermission;
 import uz.familyfinance.api.service.TransactionService;
 
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -28,8 +32,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TransactionController {
 
+    /** expense-summary uchun ruxsat etilgan maksimal davr (kun bo'yicha GROUP BY hajmini chegaralaydi). */
+    private static final int MAX_SUMMARY_RANGE_DAYS = 366;
+
     private final TransactionService transactionService;
 
+    /**
+     * from/to — YYYY-MM-DD (front DateRangePicker shu formatda yuboradi). Avval parametr
+     * LocalDateTime edi va sof sana 400 qaytarardi — sana filtri umuman ishlamasdi;
+     * ReportController naqshiga o'tkazildi: butun tugash kuni ham davrga kiradi.
+     */
     @GetMapping
     @RequiresPermission(PermissionCode.TRANSACTIONS_VIEW)
     public ResponseEntity<ApiResponse<PagedResponse<TransactionResponse>>> getAll(
@@ -39,11 +51,13 @@ public class TransactionController {
             @RequestParam(required = false) Long accountId,
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long memberId,
-            @RequestParam(required = false) LocalDateTime from,
-            @RequestParam(required = false) LocalDateTime to,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String search) {
-        Page<TransactionResponse> result = transactionService.getAll(type, accountId, categoryId, memberId, from, to,
-                search, PageRequest.of(page, size, Sort.by("transactionDate").descending()));
+        LocalDateTime fromDt = from != null ? from.atStartOfDay() : null;
+        LocalDateTime toDt = to != null ? to.atTime(23, 59, 59) : null;
+        Page<TransactionResponse> result = transactionService.getAll(type, accountId, categoryId, memberId, fromDt,
+                toDt, search, PageRequest.of(page, size, Sort.by("transactionDate").descending()));
         return ResponseEntity.ok(ApiResponse.success(PagedResponse.of(result)));
     }
 
@@ -51,6 +65,21 @@ public class TransactionController {
     @RequiresPermission(PermissionCode.TRANSACTIONS_VIEW)
     public ResponseEntity<ApiResponse<List<TransactionResponse>>> getRecent() {
         return ResponseEntity.ok(ApiResponse.success(transactionService.getRecent()));
+    }
+
+    /** Kunlik xarajatlar jurnali: kun/kategoriya/davr kesimida valyutaga ajratilgan jamlar. */
+    @GetMapping("/expense-summary")
+    @RequiresPermission(PermissionCode.TRANSACTIONS_VIEW)
+    public ResponseEntity<ApiResponse<ExpenseSummaryResponse>> getExpenseSummary(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new BadRequestException("Boshlanish sanasi tugash sanasidan keyin bo'lishi mumkin emas");
+        }
+        if (from.plusDays(MAX_SUMMARY_RANGE_DAYS).isBefore(to)) {
+            throw new BadRequestException("Xulosa davri " + MAX_SUMMARY_RANGE_DAYS + " kundan oshmasligi kerak");
+        }
+        return ResponseEntity.ok(ApiResponse.success(transactionService.getExpenseSummary(from, to)));
     }
 
     @GetMapping("/{id}")

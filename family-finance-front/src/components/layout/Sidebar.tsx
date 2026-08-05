@@ -3,6 +3,7 @@ import { NavLink } from 'react-router';
 import {
   LayoutDashboard,
   ArrowLeftRight,
+  CalendarDays,
   Wallet,
   Tags,
   PieChart,
@@ -57,6 +58,7 @@ const menuGroups: MenuGroup[] = [
   {
     section: 'Moliya',
     items: [
+      { path: '/daily-expenses', icon: CalendarDays, label: 'Kunlik xarajatlar', permission: PermissionCode.TRANSACTIONS_VIEW },
       { path: '/transactions', icon: ArrowLeftRight, label: 'Tranzaksiyalar', permission: PermissionCode.TRANSACTIONS_VIEW },
       { path: '/accounts', icon: Wallet, label: 'Hisoblar', permission: PermissionCode.ACCOUNTS_VIEW },
       { path: '/budget', icon: PieChart, label: 'Byudjet', permission: PermissionCode.BUDGETS_VIEW },

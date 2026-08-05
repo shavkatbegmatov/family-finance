@@ -2,6 +2,7 @@ import axiosInstance from './axios';
 import type {
   ApiResponse,
   BulkOperationResponse,
+  ExpenseSummary,
   PagedResponse,
   Transaction,
   TransactionFilters,
@@ -21,6 +22,11 @@ export const transactionsApi = {
     return axiosInstance.get<ApiResponse<PagedResponse<Transaction>>>('/v1/transactions', { params });
   },
   getRecent: () => axiosInstance.get<ApiResponse<Transaction[]>>('/v1/transactions/recent'),
+  /** Kunlik xarajatlar xulosasi — from/to YYYY-MM-DD formatida. */
+  getExpenseSummary: (from: string, to: string) =>
+    axiosInstance.get<ApiResponse<ExpenseSummary>>('/v1/transactions/expense-summary', {
+      params: { from, to },
+    }),
   getById: (id: number) => axiosInstance.get<ApiResponse<Transaction>>(`/v1/transactions/${id}`),
   create: (data: TransactionRequest) => axiosInstance.post<ApiResponse<Transaction>>('/v1/transactions', data),
   update: (id: number, data: TransactionRequest) =>

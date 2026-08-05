@@ -15,6 +15,8 @@ public class TransactionResponse {
     private BigDecimal amount;
     private Long accountId;
     private String accountName;
+    /** Asosiy hisob valyutasi (D7: summa ko'rsatishda valyuta yorlig'i uchun). */
+    private String currency;
     private Long toAccountId;
     private String toAccountName;
     private Long categoryId;

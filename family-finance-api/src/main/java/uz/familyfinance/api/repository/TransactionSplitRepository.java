@@ -45,4 +45,23 @@ public interface TransactionSplitRepository extends JpaRepository<TransactionSpl
                                                         @Param("scopeId") Long scopeId,
                                                         @Param("from") LocalDateTime from,
                                                         @Param("to") LocalDateTime to);
+
+    /**
+     * Kunlik xarajatlar jurnali: split ulushlarining kategoriya + valyuta kesimidagi
+     * jami. Split'li tranzaksiya asosiy so'rovdan chiqarilgani uchun ulushlar shu
+     * yerda o'z kategoriyasida hisoblanadi. scopeId null (SUPER_ADMIN) bo'lsa global;
+     * scope tranzaksiya scope'i orqali (asosiy agregat bilan izchil).
+     */
+    @Query("SELECT c.id, c.name, c.icon, c.color, s.transaction.account.currency, " +
+            "COALESCE(SUM(s.amount), 0), COUNT(s) " +
+            "FROM TransactionSplit s LEFT JOIN s.category c " +
+            "WHERE s.transaction.type = 'EXPENSE' " +
+            "AND s.transaction.status <> 'REVERSED' " +
+            "AND (:scopeId IS NULL OR s.transaction.scope.id = :scopeId) " +
+            "AND s.transaction.transactionDate >= :from " +
+            "AND s.transaction.transactionDate <= :to " +
+            "GROUP BY c.id, c.name, c.icon, c.color, s.transaction.account.currency")
+    List<Object[]> sumExpenseGroupedByCategoryAndCurrency(@Param("scopeId") Long scopeId,
+                                                          @Param("from") LocalDateTime from,
+                                                          @Param("to") LocalDateTime to);
 }

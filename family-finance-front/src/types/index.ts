@@ -470,6 +470,8 @@ export interface Transaction {
   amount: number;
   accountId: number;
   accountName: string;
+  /** Asosiy hisob valyutasi (D7: summa yonida valyuta yorlig'i uchun). */
+  currency?: string;
   toAccountId?: number;
   toAccountName?: string;
   categoryId?: number;
@@ -537,6 +539,38 @@ export interface TransactionFilters {
   from?: string;
   to?: string;
   search?: string;
+}
+
+// Kunlik xarajatlar xulosasi (D7: barcha jamlar valyuta kesimida)
+export interface DailyExpenseTotal {
+  /** YYYY-MM-DD */
+  date: string;
+  currency: string;
+  total: number;
+  count: number;
+}
+
+export interface CategoryExpenseTotal {
+  /** null = kategoriyasiz xarajatlar guruhi. */
+  categoryId?: number | null;
+  categoryName?: string | null;
+  categoryIcon?: string | null;
+  categoryColor?: string | null;
+  currency: string;
+  total: number;
+  count: number;
+}
+
+export interface ExpenseCurrencyTotal {
+  currency: string;
+  total: number;
+  count: number;
+}
+
+export interface ExpenseSummary {
+  dailyTotals: DailyExpenseTotal[];
+  categoryTotals: CategoryExpenseTotal[];
+  periodTotals: ExpenseCurrencyTotal[];
 }
 
 // Budget Types

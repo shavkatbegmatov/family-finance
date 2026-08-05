@@ -19,6 +19,7 @@ import { ChangePasswordPage } from '../pages/auth/ChangePasswordPage';
 // Lazy-loaded main app pages
 const DashboardPage = lazy(() => import('../pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const TransactionsPage = lazy(() => import('../pages/transactions/TransactionsPage').then(m => ({ default: m.TransactionsPage })));
+const DailyExpensesPage = lazy(() => import('../pages/expenses/DailyExpensesPage').then(m => ({ default: m.DailyExpensesPage })));
 const TransactionDetailPage = lazy(() => import('../pages/transactions/TransactionDetailPage').then(m => ({ default: m.TransactionDetailPage })));
 const AccountsPage = lazy(() => import('../pages/accounts/AccountsPage').then(m => ({ default: m.AccountsPage })));
 const AccountDetailPage = lazy(() => import('../pages/accounts/AccountDetailPage').then(m => ({ default: m.AccountDetailPage })));
@@ -62,6 +63,7 @@ const PointsChallengesPage = lazy(() => import('../pages/points/PointsChallenges
 const PointsSettingsPage = lazy(() => import('../pages/points/PointsSettingsPage').then(m => ({ default: m.PointsSettingsPage })));
 
 const fallbackRoutesByPermission: Array<{ path: string; permission: string }> = [
+  { path: '/daily-expenses', permission: PermissionCode.TRANSACTIONS_VIEW },
   { path: '/transactions', permission: PermissionCode.TRANSACTIONS_VIEW },
   { path: '/accounts', permission: PermissionCode.ACCOUNTS_VIEW },
   { path: '/categories', permission: PermissionCode.CATEGORIES_VIEW },
@@ -120,6 +122,15 @@ export const router = createBrowserRouter([
         index: true,
         element: <AuthorizedIndexPage />,
         handle: { title: 'Bosh sahifa' },
+      },
+      {
+        path: 'daily-expenses',
+        element: (
+          <ProtectedRoute permission={PermissionCode.TRANSACTIONS_VIEW}>
+            <LazyRoute><DailyExpensesPage /></LazyRoute>
+          </ProtectedRoute>
+        ),
+        handle: { title: 'Kunlik xarajatlar' },
       },
       {
         path: 'transactions',

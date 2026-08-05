@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router';
 import {
   LayoutDashboard,
   ArrowLeftRight,
+  CalendarDays,
   Wallet,
   BarChart3,
   MoreHorizontal,
@@ -39,6 +40,7 @@ const accountsItem: NavItem = { path: '/accounts', icon: Wallet, label: 'Hisobla
 const reportsItem: NavItem = { path: '/reports', icon: BarChart3, label: 'Hisobot', permission: PermissionCode.REPORTS_VIEW };
 
 const moreItems: NavItem[] = [
+  { path: '/daily-expenses', icon: CalendarDays, label: 'Kunlik xarajat', permission: PermissionCode.TRANSACTIONS_VIEW },
   { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW },
   { path: '/budget', icon: PieChart, label: 'Byudjet', permission: PermissionCode.BUDGETS_VIEW },
   { path: '/savings', icon: Target, label: "Jamg'arma", permission: PermissionCode.SAVINGS_VIEW },

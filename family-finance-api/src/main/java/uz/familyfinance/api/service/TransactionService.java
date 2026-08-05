@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uz.familyfinance.api.dto.request.TransactionRequest;
+import uz.familyfinance.api.dto.response.ExpenseSummaryResponse;
 import uz.familyfinance.api.dto.response.TransactionResponse;
 import uz.familyfinance.api.entity.*;
 import uz.familyfinance.api.enums.TransactionStatus;
@@ -520,6 +521,107 @@ public class TransactionService {
         return transactionRepository.sumByTypeAndDateRange(TransactionType.EXPENSE, from, to);
     }
 
+    /**
+     * Kunlik xarajatlar jurnali uchun agregat xulosa: kun/kategoriya/davr kesimida
+     * valyutaga ajratilgan jamlar. Scope aktiv scope orqali (SUPER_ADMIN — global),
+     * storno qilinganlar chiqarilgan; split ulushlari o'z kategoriyasida hisoblanadi.
+     */
+    @Transactional(readOnly = true)
+    public ExpenseSummaryResponse getExpenseSummary(LocalDate from, LocalDate to) {
+        Long scopeId = resolveActiveScopeIdOrNull();
+        LocalDateTime fromDt = from.atStartOfDay();
+        LocalDateTime toDt = to.atTime(23, 59, 59);
+
+        List<ExpenseSummaryResponse.DailyTotal> dailyTotals =
+                mapDailyTotals(transactionRepository.sumExpenseGroupedByDayAndCurrency(scopeId, fromDt, toDt));
+        List<ExpenseSummaryResponse.CategoryTotal> categoryTotals = mergeCategoryTotals(
+                transactionRepository.sumExpenseGroupedByCategoryAndCurrency(scopeId, fromDt, toDt),
+                transactionSplitRepository.sumExpenseGroupedByCategoryAndCurrency(scopeId, fromDt, toDt));
+
+        return ExpenseSummaryResponse.builder()
+                .dailyTotals(dailyTotals)
+                .categoryTotals(categoryTotals)
+                .periodTotals(buildPeriodTotals(dailyTotals))
+                .build();
+    }
+
+    private List<ExpenseSummaryResponse.DailyTotal> mapDailyTotals(List<Object[]> rows) {
+        return rows.stream()
+                .map(r -> ExpenseSummaryResponse.DailyTotal.builder()
+                        .date(toLocalDate(r[0]))
+                        .currency((String) r[1])
+                        .total((BigDecimal) r[2])
+                        .count(((Number) r[3]).longValue())
+                        .build())
+                .toList();
+    }
+
+    /**
+     * To'g'ridan (split'siz) va split kategoriya jamlarini (categoryId, currency)
+     * kaliti bo'yicha birlashtiradi, natijani summa kamayishi tartibida qaytaradi.
+     */
+    private List<ExpenseSummaryResponse.CategoryTotal> mergeCategoryTotals(List<Object[]> direct,
+                                                                           List<Object[]> splits) {
+        java.util.Map<String, ExpenseSummaryResponse.CategoryTotal> merged = new java.util.LinkedHashMap<>();
+        for (List<Object[]> source : List.of(direct, splits)) {
+            for (Object[] r : source) {
+                Long categoryId = (Long) r[0];
+                String currency = (String) r[4];
+                String key = categoryId + "|" + currency;
+                ExpenseSummaryResponse.CategoryTotal existing = merged.get(key);
+                if (existing == null) {
+                    merged.put(key, ExpenseSummaryResponse.CategoryTotal.builder()
+                            .categoryId(categoryId)
+                            .categoryName((String) r[1])
+                            .categoryIcon((String) r[2])
+                            .categoryColor((String) r[3])
+                            .currency(currency)
+                            .total((BigDecimal) r[5])
+                            .count(((Number) r[6]).longValue())
+                            .build());
+                } else {
+                    existing.setTotal(existing.getTotal().add((BigDecimal) r[5]));
+                    existing.setCount(existing.getCount() + ((Number) r[6]).longValue());
+                }
+            }
+        }
+        return merged.values().stream()
+                .sorted(java.util.Comparator.comparing(ExpenseSummaryResponse.CategoryTotal::getTotal).reversed())
+                .toList();
+    }
+
+    private List<ExpenseSummaryResponse.CurrencyTotal> buildPeriodTotals(
+            List<ExpenseSummaryResponse.DailyTotal> dailyTotals) {
+        java.util.Map<String, ExpenseSummaryResponse.CurrencyTotal> byCurrency = new java.util.LinkedHashMap<>();
+        for (ExpenseSummaryResponse.DailyTotal day : dailyTotals) {
+            byCurrency.merge(day.getCurrency(),
+                    ExpenseSummaryResponse.CurrencyTotal.builder()
+                            .currency(day.getCurrency())
+                            .total(day.getTotal())
+                            .count(day.getCount())
+                            .build(),
+                    (a, b) -> {
+                        a.setTotal(a.getTotal().add(b.getTotal()));
+                        a.setCount(a.getCount() + b.getCount());
+                        return a;
+                    });
+        }
+        return byCurrency.values().stream()
+                .sorted(java.util.Comparator.comparing(ExpenseSummaryResponse.CurrencyTotal::getTotal).reversed())
+                .toList();
+    }
+
+    /** JPQL CAST natijasi drayverga qarab LocalDate yoki java.sql.Date bo'lishi mumkin. */
+    private static LocalDate toLocalDate(Object value) {
+        if (value instanceof LocalDate localDate) {
+            return localDate;
+        }
+        if (value instanceof java.sql.Date sqlDate) {
+            return sqlDate.toLocalDate();
+        }
+        throw new IllegalStateException("Kutilmagan sana turi: " + value.getClass());
+    }
+
     private void reverseAccountBalances(TransactionType type, Account account, Account toAccount, BigDecimal amount) {
         switch (type) {
             case INCOME:
@@ -782,6 +884,7 @@ public class TransactionService {
         if (t.getAccount() != null) {
             r.setAccountId(t.getAccount().getId());
             r.setAccountName(t.getAccount().getName());
+            r.setCurrency(t.getAccount().getCurrency());
         }
         if (t.getToAccount() != null) {
             r.setToAccountId(t.getToAccount().getId());

@@ -8,6 +8,21 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.18.0',
+        date: '2026-08-06 12:00',
+        title: 'Yangi modul: Kunlik xarajatlar jurnali',
+        features: [
+            "\"Kunlik xarajatlar\" sahifasi qo'shildi: har kunlik xarajatlarni kunlar bo'yicha guruhlangan jurnal ko'rinishida yozib borish va kuzatish mumkin.",
+            "Tezkor kiritish paneli — summa, kategoriya, hisob va sanani bir qatorda kiritib, ketma-ket bir necha xarajatni soniyalarda yozish; oxirgi tanlangan hisob/kategoriya eslab qolinadi.",
+            "Oy statistikasi: bugungi xarajat, oy jami, kunlik o'rtacha va eng xarajatli kun kartalari (valyutalar kesimida).",
+            "Kategoriyalar bo'yicha taqsimot paneli — oy xarajatlarining foizli taqsimoti, split tranzaksiya ulushlari ham o'z kategoriyasida hisoblanadi.",
+            "Oylar bo'ylab navigatsiya: o'tgan oylar jurnalini varaqlash va joriy oyga bir bosishda qaytish.",
+        ],
+        fixes: [
+            "Tranzaksiyalar ro'yxatidagi sana filtri tuzatildi: davr tanlanganda server 400 xato qaytarardi (parametr formati nomuvofiq edi), endi tanlangan davr — tugash kuni bilan birga — to'g'ri qo'llanadi.",
+        ],
+    },
+    {
         version: '1.17.0',
         date: '2026-07-27 00:35',
         title: 'Xavfsizlik yangilanishi va asosiy kutubxonalar yangilandi',

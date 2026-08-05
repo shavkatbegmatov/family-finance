@@ -275,4 +275,42 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query("SELECT t FROM Transaction t WHERE t.familyMember.id = :memberId ORDER BY t.transactionDate DESC")
     List<Transaction> findRecentByMember(@Param("memberId") Long memberId, Pageable pageable);
+
+    // ===== Kunlik xarajatlar jurnali agregatlari =====
+
+    /**
+     * Kun + valyuta kesimidagi xarajat jami. type='EXPENSE' REVERSAL kompensatsiya
+     * qatorlarini o'zi istisno qiladi, status filtri storno qilingan asl qatorni
+     * chiqaradi (yuqoridagi storno invariantiga qarang). scopeId null (SUPER_ADMIN)
+     * bo'lsa global.
+     */
+    @Query("SELECT CAST(t.transactionDate AS LocalDate), t.account.currency, " +
+           "COALESCE(SUM(t.amount), 0), COUNT(t) " +
+           "FROM Transaction t WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' " +
+           "AND (:scopeId IS NULL OR t.scope.id = :scopeId) " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "GROUP BY CAST(t.transactionDate AS LocalDate), t.account.currency " +
+           "ORDER BY CAST(t.transactionDate AS LocalDate) DESC")
+    List<Object[]> sumExpenseGroupedByDayAndCurrency(@Param("scopeId") Long scopeId,
+                                                     @Param("from") LocalDateTime from,
+                                                     @Param("to") LocalDateTime to);
+
+    /**
+     * Kategoriya + valyuta kesimidagi xarajat jami (split'siz tranzaksiyalar).
+     * Split'li tranzaksiyalar bu yerdan chiqariladi — ularning ulushlari
+     * {@link TransactionSplitRepository#sumExpenseGroupedByCategoryAndCurrency}
+     * orqali o'z kategoriyasida hisoblanadi (aks holda ikki marta sanaladi).
+     * LEFT JOIN — kategoriyasiz xarajatlar ham (id=null qator) ko'rinsin.
+     */
+    @Query("SELECT c.id, c.name, c.icon, c.color, t.account.currency, " +
+           "COALESCE(SUM(t.amount), 0), COUNT(t) " +
+           "FROM Transaction t LEFT JOIN t.category c " +
+           "WHERE t.type = 'EXPENSE' AND t.status <> 'REVERSED' " +
+           "AND (:scopeId IS NULL OR t.scope.id = :scopeId) " +
+           "AND t.transactionDate >= :from AND t.transactionDate <= :to " +
+           "AND NOT EXISTS (SELECT 1 FROM TransactionSplit s WHERE s.transaction = t) " +
+           "GROUP BY c.id, c.name, c.icon, c.color, t.account.currency")
+    List<Object[]> sumExpenseGroupedByCategoryAndCurrency(@Param("scopeId") Long scopeId,
+                                                          @Param("from") LocalDateTime from,
+                                                          @Param("to") LocalDateTime to);
 }

@@ -6,6 +6,7 @@ import {
   X,
   LayoutDashboard,
   ArrowLeftRight,
+  CalendarDays,
   Wallet,
   Tags,
   PieChart,
@@ -52,6 +53,7 @@ const ICON_MAP: Record<ResultType, LucideIcon> = {
 
 const PAGE_ICONS: Record<string, LucideIcon> = {
   'page-dashboard': LayoutDashboard,
+  'page-daily-expenses': CalendarDays,
   'page-transactions': ArrowLeftRight,
   'page-accounts': Wallet,
   'page-categories': Tags,
@@ -69,6 +71,7 @@ const PAGE_ICONS: Record<string, LucideIcon> = {
 
 const QUICK_ACTIONS: SearchResult[] = [
   { id: 'page-dashboard', type: 'page', title: 'Bosh sahifa', href: '/' },
+  { id: 'page-daily-expenses', type: 'page', title: 'Kunlik xarajatlar', subtitle: 'Har kunlik xarajatlar jurnali', href: '/daily-expenses' },
   { id: 'page-transactions', type: 'page', title: 'Tranzaksiyalar', subtitle: 'Daromad va xarajatlar', href: '/transactions' },
   { id: 'page-accounts', type: 'page', title: 'Hisoblar', subtitle: 'Hisob raqamlar', href: '/accounts' },
   { id: 'page-categories', type: 'page', title: 'Kategoriyalar', subtitle: 'Daromad/Xarajat kategoriyalari', href: '/categories' },
