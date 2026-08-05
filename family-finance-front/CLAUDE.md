@@ -28,15 +28,16 @@ npm run cap:sync  # build + cap sync android   (APK: npm run apk:debug)
 ```
 api/         axios instance (axios.ts) + per-domain modules (*.api.ts) — `ApiResponse<T>`/`PagedResponse<T>` generic
 components/  ui/ (inputs, table)  common/ (modals, gates)  layout/  scope/  family/  points/
-             per-domain (D10 bo'lingan sahifalar): accounts/ transactions/ debts/ savings/ reports/ dashboard/ users/ roles/ household/
+             per-domain (D10 bo'lingan sahifalar): accounts/ transactions/ expenses/ debts/ savings/ reports/ dashboard/ users/ roles/ household/
 pages/       route-level **orchestrator** containers (dashboard/, transactions/, accounts/, family/, scope/, ...)
 router/      index.tsx — react-router v8 createBrowserRouter, lazy pages, ProtectedRoute
              (v8'da `react-router-dom` paketi YO'Q — hamma narsa `react-router` dan import qilinadi)
 store/       Zustand stores
 hooks/       usePermission, useSwitchScope, useScopeChange (`useActiveScopeId`), useFocusTrap;
              **data hooks** (react-query): use<Domain>Data — useAccountsData, useTransactionsData,
-             useDebtsData, useDashboardData, useSavingsData, useUsersData, useRolesData,
-             useReportsData, useMemberDetailData, usePointsParticipantsData, useFamilyMembersData
+             useDailyExpensesData, useDebtsData, useDashboardData, useSavingsData, useUsersData,
+             useRolesData, useReportsData, useMemberDetailData, usePointsParticipantsData,
+             useFamilyMembersData
 services/    websocket.ts (STOMP/SockJS realtime — notificationsStore ishlatadi)
 types/       scope.types, family-tree.types, persons.types, index (`ApiResponse<T>`, `PagedResponse<T>`)
 config/      constants.ts (ACCOUNT_TYPES, GENDERS, MONTHS_UZ, SUPPORT_EMAIL, formatters),
