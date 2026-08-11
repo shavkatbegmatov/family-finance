@@ -38,13 +38,15 @@ export function ExpenseMonthNav({
           {formatMonthLabel(monthCursor)}
         </span>
         {!isCurrentMonth && (
+          // Mobilda ikonka-tugma (label sm+ da) — telefonda ham bir bosishda joriy oyga qaytish
           <button
             type="button"
-            className="btn btn-ghost btn-sm hidden gap-1 text-primary sm:inline-flex"
+            className="btn btn-ghost btn-sm gap-1 text-primary"
             onClick={onToday}
+            aria-label="Joriy oyga qaytish"
           >
             <Undo2 className="h-4 w-4" />
-            Joriy oy
+            <span className="hidden sm:inline">Joriy oy</span>
           </button>
         )}
       </div>

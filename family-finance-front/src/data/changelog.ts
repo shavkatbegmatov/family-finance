@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.18.3',
+        date: '2026-08-11 09:05',
+        title: "Kunlik xarajatlar: mobilda \"Joriy oy\" tugmasi",
+        features: [],
+        fixes: [
+            "O'tgan oylarni ko'rayotganda \"Joriy oy\"ga qaytish tugmasi endi telefonda ham ko'rinadi (ixcham ikonka ko'rinishida) — avval faqat keng ekranlarda chiqib, mobilda joriy oyga qaytish uchun oylarni birma-bir varaqlashga to'g'ri kelardi.",
+        ],
+    },
+    {
         version: '1.18.2',
         date: '2026-08-11 08:40',
         title: "Kunlik xarajatlar: hisob yo'q holat maslahati rolga moslandi",
