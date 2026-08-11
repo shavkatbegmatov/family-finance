@@ -1,4 +1,5 @@
 import { CalendarOff, ChevronDown, Pencil, Receipt, Split, Trash2 } from 'lucide-react';
+import { Link } from 'react-router';
 import clsx from 'clsx';
 
 import { PermissionGate } from '../common/PermissionGate';
@@ -18,10 +19,38 @@ interface ExpenseJournalProps {
   hasMore: boolean;
   loadedCount: number;
   totalElements: number;
+  /** TRANSACTIONS_CREATE bormi — bo'sh holat maslahati shunga qarab tanlanadi. */
+  canCreate: boolean;
+  /** Scope'da yozish mumkin bo'lgan hisob bormi (false FAQAT ro'yxat yuklanib bo'sh chiqqanda). */
+  hasAccounts: boolean;
   onLoadMore: () => void;
   onRowClick: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
+}
+
+/**
+ * Bo'sh jurnal maslahati kontekstga mos bo'lishi shart: hisob yo'q holatda
+ * "Tezkor kiritish"ga yuborish zid (panel o'zi "avval hisob oching" deydi),
+ * huquq yo'q holatda esa panel umuman ko'rinmaydi.
+ */
+function EmptyJournalHint({ canCreate, hasAccounts }: { canCreate: boolean; hasAccounts: boolean }) {
+  if (!canCreate) {
+    return (
+      <>Sizda xarajat kiritish huquqi yo'q — yozuvlarni xonadon egasi yoki hisobchi kiritadi</>
+    );
+  }
+  if (!hasAccounts) {
+    return (
+      <>
+        Xarajat yozish uchun avval{' '}
+        <Link to="/accounts" className="link link-primary font-medium">
+          hisob oching
+        </Link>
+      </>
+    );
+  }
+  return <>Yuqoridagi "Tezkor kiritish" orqali birinchi xarajatingizni yozing</>;
 }
 
 function JournalSkeleton() {
@@ -167,6 +196,8 @@ export function ExpenseJournal({
   hasMore,
   loadedCount,
   totalElements,
+  canCreate,
+  hasAccounts,
   onLoadMore,
   onRowClick,
   onEdit,
@@ -183,7 +214,7 @@ export function ExpenseJournal({
         <div>
           <p className="font-semibold">Bu oyda xarajat yozuvlari yo'q</p>
           <p className="mt-1 text-sm text-base-content/50">
-            Yuqoridagi "Tezkor kiritish" orqali birinchi xarajatingizni yozing
+            <EmptyJournalHint canCreate={canCreate} hasAccounts={hasAccounts} />
           </p>
         </div>
       </div>

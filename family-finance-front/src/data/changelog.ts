@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.18.1',
+        date: '2026-08-08 17:00',
+        title: "Kunlik xarajatlar: bo'sh holat maslahatlari kontekstga moslandi",
+        features: [],
+        fixes: [
+            "Bo'sh jurnal maslahati endi holatga qarab to'g'ri yo'l ko'rsatadi: hisob yo'q bo'lsa — hisob ochish havolasi (avval \"Tezkor kiritish\"ga yuborardi, panel esa o'zi hisob so'rab turardi), xarajat kiritish huquqi bo'lmasa — buni kim kiritishi haqida izoh (avval ko'rinmaydigan panelga ishora qilardi).",
+        ],
+    },
+    {
         version: '1.18.0',
         date: '2026-08-06 12:00',
         title: 'Yangi modul: Kunlik xarajatlar jurnali',

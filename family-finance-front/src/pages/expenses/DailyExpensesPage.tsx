@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PermissionGate } from '../../components/common/PermissionGate';
-import { PermissionCode } from '../../hooks/usePermission';
+import { PermissionCode, usePermission } from '../../hooks/usePermission';
 import { TransactionFormModal } from '../../components/common/TransactionFormModal';
 import { TransactionDeleteConfirmModal } from '../../components/transactions/TransactionDeleteConfirmModal';
 import { ExpenseMonthNav } from '../../components/expenses/ExpenseMonthNav';
@@ -23,6 +23,11 @@ import type { Transaction, TransactionRequest } from '../../types';
 export function DailyExpensesPage() {
   const navigate = useNavigate();
   const data = useDailyExpensesData();
+  const { hasPermission } = usePermission();
+  const canCreate = hasPermission(PermissionCode.TRANSACTIONS_CREATE);
+  // false FAQAT ro'yxat yuklanib bo'sh chiqqanda — yuklanish payti noto'g'ri
+  // "hisob oching" maslahati miltillamasligi uchun
+  const hasAccounts = !data.accountsLoaded || data.accounts.length > 0;
 
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
@@ -88,6 +93,8 @@ export function DailyExpensesPage() {
             hasMore={data.hasMore}
             loadedCount={data.loadedCount}
             totalElements={data.totalElements}
+            canCreate={canCreate}
+            hasAccounts={hasAccounts}
             onLoadMore={data.handleLoadMore}
             onRowClick={(t) => navigate(`/transactions/${t.id}`)}
             onEdit={setEditingTransaction}
