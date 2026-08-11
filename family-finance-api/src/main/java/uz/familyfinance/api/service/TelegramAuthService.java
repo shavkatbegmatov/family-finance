@@ -3,6 +3,7 @@ package uz.familyfinance.api.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,9 +44,18 @@ public class TelegramAuthService {
     private final PasswordEncoder passwordEncoder;
 
     private static final SecureRandom RANDOM = new SecureRandom();
+    /** Deep-link'ni botda bosishni kutish oynasi. */
     private static final int REQUEST_TTL_MINUTES = 5;
+    /**
+     * Tasdiqdan keyin PIN kiritish / ro'yxatdan o'tish formasini to'ldirish oynasi —
+     * {@link #confirm} da muddat AYNAN shu qiymatga uzaytiriladi. Aks holda 5-daqiqaning
+     * oxirida tasdiqlagan foydalanuvchiga PIN terishga bir necha soniya qolardi.
+     */
+    private static final int CONFIRMED_TTL_MINUTES = 10;
     private static final int MAX_PIN_ATTEMPTS = 5;
     private static final int PIN_LOCK_MINUTES = 15;
+    /** Cleanup'da muddatdan keyin qo'shiladigan ehtiyot oynasi (oqim o'rtasini kesmaslik). */
+    private static final int CLEANUP_GRACE_HOURS = 1;
 
     /** Frontend "Telegram orqali kirish" bosganda — yangi PENDING so'rov, requestId qaytaradi. */
     @Transactional
@@ -77,6 +87,8 @@ public class TelegramAuthService {
         req.setTelegramUsername(info.username());
         req.setStatus(TelegramAuthStatus.CONFIRMED);
         req.setConfirmedAt(LocalDateTime.now());
+        // Tasdiqdan keyin PIN/registratsiya uchun yangi cheklangan oyna
+        req.setExpiresAt(LocalDateTime.now().plusMinutes(CONFIRMED_TTL_MINUTES));
         botClient.sendMessage(info.chatId(), "✅ Tasdiqlandi! Ilovaga qayting — kirish avtomatik davom etadi.");
         log.info("Telegram auth confirmed: requestId={}, telegramId={}", requestId, info.telegramId());
     }
@@ -96,6 +108,13 @@ public class TelegramAuthService {
                 return TelegramStatusResponse.pending();
             }
             case CONFIRMED -> {
+                // Tasdiqlangan so'rov ham eskiradi — avval bu shoxda muddat tekshirilmasdi
+                // va CONFIRMED yozuv abadiy yashab, sizib ketgan requestId bilan cheksiz
+                // PIN urinishlari (yoki yangi user uchun complete) mumkin edi.
+                if (req.getExpiresAt().isBefore(LocalDateTime.now())) {
+                    req.setStatus(TelegramAuthStatus.EXPIRED);
+                    return TelegramStatusResponse.expired();
+                }
                 User user = userRepository.findByTelegramId(req.getTelegramId()).orElse(null);
                 if (user == null) {
                     return TelegramStatusResponse.needsRegistration(req.getFirstName(), req.getLastName());
@@ -117,11 +136,7 @@ public class TelegramAuthService {
     /** Yangi Telegram user uchun ro'yxatdan o'tishni yakunlash (jins majburiy) → JWT. */
     @Transactional
     public JwtResponse complete(TelegramCompleteRequest request, String ip, String ua) {
-        TelegramAuthRequest req = requestRepository.findByRequestId(request.getRequestId())
-                .orElseThrow(() -> new ResourceNotFoundException("So'rov topilmadi yoki eskirgan"));
-        if (req.getStatus() != TelegramAuthStatus.CONFIRMED) {
-            throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
-        }
+        TelegramAuthRequest req = requireFreshConfirmed(request.getRequestId());
         if (userRepository.findByTelegramId(req.getTelegramId()).isPresent()) {
             throw new BadRequestException("Bu Telegram akkaunt allaqachon ro'yxatdan o'tgan");
         }
@@ -136,11 +151,7 @@ public class TelegramAuthService {
     /** PIN tekshirish (2-faktor): tasdiqdan keyin to'g'ri PIN → JWT. Lockout User'da saqlanadi. */
     @Transactional
     public JwtResponse verifyPin(TelegramVerifyPinRequest request, String ip, String ua) {
-        TelegramAuthRequest req = requestRepository.findByRequestId(request.getRequestId())
-                .orElseThrow(() -> new ResourceNotFoundException("So'rov topilmadi yoki eskirgan"));
-        if (req.getStatus() != TelegramAuthStatus.CONFIRMED) {
-            throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
-        }
+        TelegramAuthRequest req = requireFreshConfirmed(request.getRequestId());
         User user = userRepository.findByTelegramId(req.getTelegramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
 
@@ -178,11 +189,7 @@ public class TelegramAuthService {
     /** Eski (PIN'siz) Telegram user birinchi kirishda PIN o'rnatadi → JWT. */
     @Transactional
     public JwtResponse setupPin(TelegramVerifyPinRequest request, String ip, String ua) {
-        TelegramAuthRequest req = requestRepository.findByRequestId(request.getRequestId())
-                .orElseThrow(() -> new ResourceNotFoundException("So'rov topilmadi yoki eskirgan"));
-        if (req.getStatus() != TelegramAuthStatus.CONFIRMED) {
-            throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
-        }
+        TelegramAuthRequest req = requireFreshConfirmed(request.getRequestId());
         User user = userRepository.findByTelegramId(req.getTelegramId())
                 .orElseThrow(() -> new ResourceNotFoundException("Foydalanuvchi topilmadi"));
         if (user.getTelegramPinHash() != null) {
@@ -209,6 +216,43 @@ public class TelegramAuthService {
         user.setTelegramPinAttempts(0);
         user.setTelegramPinLockedUntil(null);
         log.info("Telegram PIN set/updated for user {}", user.getUsername());
+    }
+
+    /**
+     * Yakunlovchi oqimlar (complete / verifyPin / setupPin) uchun yagona guard: so'rov bor,
+     * CONFIRMED va muddati o'tmagan bo'lishi shart. Muddat o'tgan bo'lsa yozuv EXPIRED
+     * qilinadi — takror urinish endi statusdan ham o'tmaydi.
+     *
+     * <p><b>Nega muhim:</b> avval faqat status tekshirilardi, muddat esa yo'q. Sizib ketgan
+     * (log/skrinshot/chat) {@code requestId} bilan CONFIRMED so'rov abadiy yashab, cheksiz
+     * vaqt PIN bruteforce (yoki bog'lanmagan Telegram akkaunt uchun begona nomiga
+     * ro'yxatdan o'tish) imkonini berardi.</p>
+     */
+    private TelegramAuthRequest requireFreshConfirmed(String requestId) {
+        TelegramAuthRequest req = requestRepository.findByRequestId(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("So'rov topilmadi yoki eskirgan"));
+        if (req.getStatus() != TelegramAuthStatus.CONFIRMED) {
+            throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
+        }
+        if (req.getExpiresAt().isBefore(LocalDateTime.now())) {
+            req.setStatus(TelegramAuthStatus.EXPIRED);
+            throw new BadRequestException("So'rov muddati tugagan. Telegram orqali qaytadan boshlang.");
+        }
+        return req;
+    }
+
+    /**
+     * Eskirgan tasdiq so'rovlarini kunda bir marta o'chiradi — jadval qisqa muddatli,
+     * yozuvlar tarix uchun saqlanmaydi ({@code SessionService.cleanupExpiredSessions} naqshi).
+     */
+    @Transactional
+    @Scheduled(cron = "0 30 2 * * *")
+    public void cleanupExpiredRequests() {
+        int deleted = requestRepository.deleteExpiredBefore(
+                LocalDateTime.now().minusHours(CLEANUP_GRACE_HOURS));
+        if (deleted > 0) {
+            log.info("Eskirgan Telegram auth so'rovlari o'chirildi: {}", deleted);
+        }
     }
 
     private String generateRequestId() {

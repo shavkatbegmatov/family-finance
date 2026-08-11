@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.18.4',
+        date: '2026-08-12 01:20',
+        title: 'Telegram kirishida xavfsizlik kuchaytirildi',
+        features: [],
+        fixes: [
+            "Telegram orqali kirish/ro'yxatdan o'tishda tasdiqlangan so'rov endi cheklangan vaqt amal qiladi (tasdiqdan keyin 10 daqiqa) — avval u muddatsiz ochiq qolardi. Muddat tugasa, ilova \"qaytadan boshlang\" deb ogohlantiradi va Telegram orqali qayta tasdiqlash so'raladi.",
+            "PIN kiritish oynasi endi tasdiq vaqtidan boshlanadi — havolaning oxirgi soniyalarida tasdiqlangan foydalanuvchi PIN terishga ulgurmay qolmaydi.",
+        ],
+    },
+    {
         version: '1.18.3',
         date: '2026-08-11 09:05',
         title: "Kunlik xarajatlar: mobilda \"Joriy oy\" tugmasi",
