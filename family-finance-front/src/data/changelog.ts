@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.18.2',
+        date: '2026-08-11 08:40',
+        title: "Kunlik xarajatlar: hisob yo'q holat maslahati rolga moslandi",
+        features: [],
+        fixes: [
+            "Hisob ochish huquqi bo'lmagan a'zo endi hisob ocholmaydigan sahifaga yo'naltirilmaydi: \"Kunlik xarajatlar\"dagi hisob yo'q xabari bunday foydalanuvchiga xonadon egasidan hisob ochib berish yoki mavjud hisobga ruxsat so'rashni maslahat beradi.",
+        ],
+    },
+    {
         version: '1.18.1',
         date: '2026-08-08 17:00',
         title: "Kunlik xarajatlar: bo'sh holat maslahatlari kontekstga moslandi",

@@ -25,6 +25,7 @@ export function DailyExpensesPage() {
   const data = useDailyExpensesData();
   const { hasPermission } = usePermission();
   const canCreate = hasPermission(PermissionCode.TRANSACTIONS_CREATE);
+  const canCreateAccounts = hasPermission(PermissionCode.ACCOUNTS_CREATE);
   // false FAQAT ro'yxat yuklanib bo'sh chiqqanda — yuklanish payti noto'g'ri
   // "hisob oching" maslahati miltillamasligi uchun
   const hasAccounts = !data.accountsLoaded || data.accounts.length > 0;
@@ -76,6 +77,7 @@ export function DailyExpensesPage() {
           accounts={data.accounts}
           categories={data.categories}
           accountsLoaded={data.accountsLoaded}
+          canCreateAccounts={canCreateAccounts}
           submitting={data.createMutation.isPending}
           onSubmit={handleQuickAdd}
         />
@@ -95,6 +97,7 @@ export function DailyExpensesPage() {
             totalElements={data.totalElements}
             canCreate={canCreate}
             hasAccounts={hasAccounts}
+            canCreateAccounts={canCreateAccounts}
             onLoadMore={data.handleLoadMore}
             onRowClick={(t) => navigate(`/transactions/${t.id}`)}
             onEdit={setEditingTransaction}

@@ -23,6 +23,8 @@ interface ExpenseJournalProps {
   canCreate: boolean;
   /** Scope'da yozish mumkin bo'lgan hisob bormi (false FAQAT ro'yxat yuklanib bo'sh chiqqanda). */
   hasAccounts: boolean;
+  /** ACCOUNTS_CREATE bormi — hisob yo'q maslahati o'zi ochish yoki egadan so'rashga yo'naltiradi. */
+  canCreateAccounts: boolean;
   onLoadMore: () => void;
   onRowClick: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
@@ -32,15 +34,30 @@ interface ExpenseJournalProps {
 /**
  * Bo'sh jurnal maslahati kontekstga mos bo'lishi shart: hisob yo'q holatda
  * "Tezkor kiritish"ga yuborish zid (panel o'zi "avval hisob oching" deydi),
- * huquq yo'q holatda esa panel umuman ko'rinmaydi.
+ * huquq yo'q holatda esa panel umuman ko'rinmaydi. Hisob yo'q + ACCOUNTS_CREATE
+ * ham yo'q bo'lsa, hisob ocholmaydigan sahifaga havola bermaymiz — yo'l
+ * xonadon egasi orqali.
  */
-function EmptyJournalHint({ canCreate, hasAccounts }: { canCreate: boolean; hasAccounts: boolean }) {
+function EmptyJournalHint({
+  canCreate,
+  hasAccounts,
+  canCreateAccounts,
+}: {
+  canCreate: boolean;
+  hasAccounts: boolean;
+  canCreateAccounts: boolean;
+}) {
   if (!canCreate) {
     return (
       <>Sizda xarajat kiritish huquqi yo'q — yozuvlarni xonadon egasi yoki hisobchi kiritadi</>
     );
   }
   if (!hasAccounts) {
+    if (!canCreateAccounts) {
+      return (
+        <>Xarajat yozish uchun sizga hisob biriktirilishi kerak — xonadon egasiga murojaat qiling</>
+      );
+    }
     return (
       <>
         Xarajat yozish uchun avval{' '}
@@ -198,6 +215,7 @@ export function ExpenseJournal({
   totalElements,
   canCreate,
   hasAccounts,
+  canCreateAccounts,
   onLoadMore,
   onRowClick,
   onEdit,
@@ -214,7 +232,11 @@ export function ExpenseJournal({
         <div>
           <p className="font-semibold">Bu oyda xarajat yozuvlari yo'q</p>
           <p className="mt-1 text-sm text-base-content/50">
-            <EmptyJournalHint canCreate={canCreate} hasAccounts={hasAccounts} />
+            <EmptyJournalHint
+              canCreate={canCreate}
+              hasAccounts={hasAccounts}
+              canCreateAccounts={canCreateAccounts}
+            />
           </p>
         </div>
       </div>

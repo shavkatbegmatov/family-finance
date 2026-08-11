@@ -13,6 +13,8 @@ interface ExpenseQuickAddProps {
   accounts: readonly Account[];
   categories: readonly FinanceCategory[];
   accountsLoaded: boolean;
+  /** ACCOUNTS_CREATE bormi — hisob yo'q holat xabari shunga qarab tanlanadi. */
+  canCreateAccounts: boolean;
   submitting: boolean;
   onSubmit: (payload: TransactionRequest, onDone: () => void) => void;
 }
@@ -50,6 +52,7 @@ export function ExpenseQuickAdd({
   accounts,
   categories,
   accountsLoaded,
+  canCreateAccounts,
   submitting,
   onSubmit,
 }: ExpenseQuickAddProps) {
@@ -66,14 +69,25 @@ export function ExpenseQuickAdd({
   }
 
   if (accounts.length === 0) {
+    // ACCOUNTS_CREATE bo'lmagan a'zoni hisob ocholmaydigan sahifaga yubormaymiz —
+    // uning yo'li xonadon egasi orqali (hisob ochish yoki mavjudiga ruxsat)
     return (
       <PanelShell>
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-base-300 bg-base-200/40 px-3 py-2.5 text-sm text-base-content/60">
-          <Wallet className="h-4 w-4" />
-          Xarajat yozish uchun avval hisob oching —
-          <Link to="/accounts" className="link link-primary font-medium">
-            Hisoblar sahifasi
-          </Link>
+          <Wallet className="h-4 w-4 flex-none" />
+          {canCreateAccounts ? (
+            <>
+              Xarajat yozish uchun avval hisob oching —
+              <Link to="/accounts" className="link link-primary font-medium">
+                Hisoblar sahifasi
+              </Link>
+            </>
+          ) : (
+            <>
+              Sizga biriktirilgan hisob yo'q — xonadon egasidan hisob ochib berishni
+              yoki mavjud hisobga ruxsat berishni so'rang
+            </>
+          )}
         </div>
       </PanelShell>
     );
@@ -96,7 +110,7 @@ function QuickAddForm({
   categories,
   submitting,
   onSubmit,
-}: Omit<ExpenseQuickAddProps, 'accountsLoaded'>) {
+}: Omit<ExpenseQuickAddProps, 'accountsLoaded' | 'canCreateAccounts'>) {
   const refData = useMemo(
     () => ({ accounts: [...accounts], categories: [...categories], members: [] }),
     [accounts, categories]
