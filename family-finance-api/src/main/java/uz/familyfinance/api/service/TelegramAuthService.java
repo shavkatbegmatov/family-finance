@@ -235,7 +235,11 @@ public class TelegramAuthService {
             throw new BadRequestException("So'rov tasdiqlanmagan yoki allaqachon yakunlangan");
         }
         if (req.getExpiresAt().isBefore(LocalDateTime.now())) {
-            req.setStatus(TelegramAuthStatus.EXPIRED);
+            // DIQQAT: bu yerda status'ni EXPIRED qilib qo'yish MA'NOSIZ — exception
+            // tranzaksiyani rollback qiladi va yozuv yo'qoladi (integratsiya testi shuni
+            // ushladi). Guard vaqtga asoslangan, holatga emas: yozuv CONFIRMED qolsa ham
+            // har chaqiruv shu yerda rad etiladi. Terminal EXPIRED holatini status()
+            // o'rnatadi (u normal qaytadi → commit), keraksiz yozuvlarni cleanup o'chiradi.
             throw new BadRequestException("So'rov muddati tugagan. Telegram orqali qaytadan boshlang.");
         }
         return req;

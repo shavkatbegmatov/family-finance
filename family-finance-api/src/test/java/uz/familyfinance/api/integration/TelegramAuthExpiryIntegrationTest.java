@@ -182,9 +182,17 @@ class TelegramAuthExpiryIntegrationTest extends AbstractPostgresIntegrationTest 
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("muddati tugagan");
 
-        // Har ikkisi terminal holatga o'tgan — qayta urinish endi statusdan o'tmaydi
+        // Yozuvlar CONFIRMED qoladi: yakunlovchi oqim exception tashlaydi → tranzaksiya
+        // rollback → status o'zgarishi saqlanmaydi. Guard VAQTGA asoslangan, shuning uchun
+        // bu xavfsizlikni kamaytirmaydi — takror urinish ham xuddi shunday rad etiladi.
+        assertThat(reload(verifyId).getStatus()).isEqualTo(TelegramAuthStatus.CONFIRMED);
+        assertThatThrownBy(() -> service.verifyPin(pinRequest(verifyId, "1234"), IP, UA))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("muddati tugagan");
+
+        // status() esa normal qaytadi → EXPIRED holati commit bo'ladi (terminal)
+        assertThat(service.status(verifyId, IP, UA).getStatus()).isEqualTo("EXPIRED");
         assertThat(reload(verifyId).getStatus()).isEqualTo(TelegramAuthStatus.EXPIRED);
-        assertThat(reload(completeId).getStatus()).isEqualTo(TelegramAuthStatus.EXPIRED);
     }
 
     @Test

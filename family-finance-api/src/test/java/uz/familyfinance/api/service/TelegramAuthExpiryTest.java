@@ -154,18 +154,20 @@ class TelegramAuthExpiryTest {
         }
 
         @Test
-        @DisplayName("muddati o'tgach yozuv EXPIRED bo'ladi — takror urinish ham o'tmaydi")
-        void becomesTerminal() {
+        @DisplayName("takror urinishlar ham rad etiladi (guard vaqtga asoslangan, holatga emas)")
+        void repeatedAttemptsAlsoRejected() {
             TelegramAuthRequest req = expiredConfirmed();
 
-            assertThatThrownBy(() -> service.verifyPin(pinRequest("1234"), "ip", "ua"))
-                    .isInstanceOf(BadRequestException.class);
-            assertThat(req.getStatus()).isEqualTo(TelegramAuthStatus.EXPIRED);
-
-            // Ikkinchi urinish endi "tasdiqlanmagan" guard'iga uriladi
-            assertThatThrownBy(() -> service.verifyPin(pinRequest("1234"), "ip", "ua"))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("tasdiqlanmagan");
+            for (int i = 0; i < 3; i++) {
+                assertThatThrownBy(() -> service.verifyPin(pinRequest("1234"), "ip", "ua"))
+                        .isInstanceOf(BadRequestException.class)
+                        .hasMessageContaining("muddati tugagan");
+            }
+            // Yozuv CONFIRMED qoladi — exception tranzaksiyani rollback qilgani uchun
+            // yakunlovchi oqimda status'ni o'zgartirishga urinish ma'nosiz (integratsiya
+            // testi buni ushlagan). Terminal EXPIRED'ni status() o'rnatadi.
+            assertThat(req.getStatus()).isEqualTo(TelegramAuthStatus.CONFIRMED);
+            verify(passwordEncoder, never()).matches(any(), any());
         }
     }
 
