@@ -8,10 +8,11 @@ import { categoriesApi } from '../api/categories.api';
 import { familyMembersApi } from '../api/family-members.api';
 import { useActiveScopeId } from './useScopeChange';
 import { useQuickEntryStore } from '../store/quickEntryStore';
-import { getTashkentToday } from '../config/constants';
+import { MONTHS_UZ, getTashkentToday } from '../config/constants';
 import { toastApiError } from '../utils/apiError';
 import type {
   Account,
+  CategoryExpenseTotal,
   ExpenseCurrencyTotal,
   ExpenseSummary,
   FamilyMember,
@@ -28,6 +29,25 @@ export interface ExpenseDayGroup {
   /** YYYY-MM-DD */
   date: string;
   items: Transaction[];
+}
+
+/** Grafik uchun oyning bitta kuni (asosiy valyutada). */
+export interface ExpenseChartDay {
+  /** YYYY-MM-DD */
+  date: string;
+  /** Oy kuni (1..31) */
+  day: number;
+  total: number;
+  /** Shu kunda BOSHQA valyutada xarajat bor (tooltip "xarajat yo'q" demasligi uchun). */
+  hasOther: boolean;
+}
+
+/** O'tgan oy bilan taqqoslash (asosiy valyuta, o'tgan kunlar pariteti bilan). */
+export interface MonthTrend {
+  /** Foiz o'zgarish (musbat = ko'proq sarflanyapti). */
+  pct: number;
+  /** O'tgan oyning taqqoslanadigan (shu kunlargacha) jami. */
+  prevTotal: number;
 }
 
 /** 'YYYY-MM' oy kursorini oldinga/orqaga suradi. */
@@ -91,16 +111,25 @@ export function useDailyExpensesData() {
     },
   });
 
+  // ---------- Kategoriya filtri (jurnalga ta'sir qiladi; oy statistikasi umumiy qoladi) ----------
+  const [filterCategoryId, setFilterCategoryId] = useState<number | undefined>(undefined);
+  const toggleCategoryFilter = useCallback(
+    (categoryId: number) =>
+      setFilterCategoryId((current) => (current === categoryId ? undefined : categoryId)),
+    []
+  );
+
   // ---------- Jurnal (faqat EXPENSE, tanlangan oy) ----------
   // lastCreatedAt queryKey ichida: FAB orqali yaratilgan xarajat darhol ko'rinadi
   const journalQuery = useInfiniteQuery({
-    queryKey: ['daily-expenses', activeScopeId, monthCursor, lastCreatedAt],
+    queryKey: ['daily-expenses', activeScopeId, monthCursor, filterCategoryId ?? 'all', lastCreatedAt],
     queryFn: async ({ pageParam }): Promise<PagedResponse<Transaction>> =>
       (
         await transactionsApi.getAll(pageParam, JOURNAL_PAGE_SIZE, {
           type: 'EXPENSE',
           from: fromDate,
           to: toDate,
+          categoryId: filterCategoryId,
         })
       ).data.data,
     initialPageParam: 0,
@@ -121,6 +150,21 @@ export function useDailyExpensesData() {
       (await transactionsApi.getExpenseSummary(fromDate, toDate)).data.data,
   });
   const summary = summaryQuery.data;
+
+  // O'tgan oy xulosasi — trend taqqoslash va bo'sh oyda kategoriya chiplari uchun.
+  // queryKey oilasi joriy xulosa bilan bir xil: o'tgan oyga o'tilganda kesh qayta ishlatiladi.
+  const prevMonthCursor = shiftMonth(monthCursor, -1);
+  const prevSummaryQuery = useQuery({
+    queryKey: ['daily-expenses-summary', activeScopeId, prevMonthCursor, lastCreatedAt],
+    queryFn: async (): Promise<ExpenseSummary> =>
+      (
+        await transactionsApi.getExpenseSummary(
+          `${prevMonthCursor}-01`,
+          `${prevMonthCursor}-${String(lastDayOfMonth(prevMonthCursor)).padStart(2, '0')}`
+        )
+      ).data.data,
+  });
+  const prevSummary = prevSummaryQuery.data;
 
   // ---------- Hosila ma'lumotlar ----------
 
@@ -180,6 +224,78 @@ export function useDailyExpensesData() {
     [periodTotals]
   );
 
+  /**
+   * O'tgan oy bilan taqqoslash — o'tgan kunlar pariteti bilan (joriy oyda faqat
+   * o'tgan oyning shu kunigacha bo'lgan qismi olinadi, aks holda oy boshida trend
+   * doim "kamaydi" ko'rsatib yolg'on tinchlantirardi). Faqat asosiy valyuta.
+   */
+  const monthTrend = useMemo<MonthTrend | null>(() => {
+    if (!primaryCurrency || !prevSummary) return null;
+    const currentTotal = periodTotals[0]?.total ?? 0;
+    // Yopilgan oyda TO'LIQ oy taqqoslanadi (31 = hech qaysi kun filtrlanmaydi) —
+    // aks holda 28-kunlik fevralni ko'rishda yanvarning 29-31 kunlari tushib qolardi
+    const elapsedDays = isCurrentMonth ? Number(today.slice(8, 10)) : 31;
+    const prevComparable = prevSummary.dailyTotals
+      .filter((d) => d.currency === primaryCurrency && Number(d.date.slice(8, 10)) <= elapsedDays)
+      .reduce((sum, d) => sum + d.total, 0);
+    if (prevComparable <= 0) return null;
+    return {
+      pct: Math.round(((currentTotal - prevComparable) / prevComparable) * 100),
+      prevTotal: prevComparable,
+    };
+  }, [primaryCurrency, prevSummary, periodTotals, isCurrentMonth, today]);
+
+  /**
+   * Tezkor kiritish chiplari uchun eng ko'p ishlatilgan EXPENSE kategoriyalar —
+   * joriy + o'tgan oy yozuvlar soni bo'yicha (oy boshida ham bo'sh qolmasin).
+   */
+  const topCategories = useMemo<FinanceCategory[]>(() => {
+    const counts = new Map<number, number>();
+    const addCounts = (list?: CategoryExpenseTotal[]) => {
+      for (const c of list ?? []) {
+        if (c.categoryId == null) continue;
+        counts.set(c.categoryId, (counts.get(c.categoryId) ?? 0) + c.count);
+      }
+    };
+    addCounts(summary?.categoryTotals);
+    addCounts(prevSummary?.categoryTotals);
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => categories.find((c) => c.id === id))
+      .filter((c): c is FinanceCategory => Boolean(c && c.type === 'EXPENSE' && c.isActive))
+      .slice(0, 6);
+  }, [summary, prevSummary, categories]);
+
+  /** Oy grafigi: barcha kunlar (xarajatsiz kunlar 0 bilan), asosiy valyutada. */
+  const chartDays = useMemo<ExpenseChartDay[]>(() => {
+    if (!primaryCurrency) return [];
+    const byDay = new Map<string, number>();
+    const otherDays = new Set<string>();
+    for (const d of summary?.dailyTotals ?? []) {
+      if (d.currency === primaryCurrency) {
+        byDay.set(d.date, d.total);
+      } else {
+        otherDays.add(d.date);
+      }
+    }
+    const days = lastDayOfMonth(monthCursor);
+    return Array.from({ length: days }, (_, i) => {
+      const date = `${monthCursor}-${String(i + 1).padStart(2, '0')}`;
+      return { date, day: i + 1, total: byDay.get(date) ?? 0, hasOther: otherDays.has(date) };
+    });
+  }, [summary, primaryCurrency, monthCursor]);
+
+  /** Izoh autocomplete uchun so'nggi noyob izohlar (yuklangan jurnal sahifalaridan). */
+  const recentDescriptions = useMemo<string[]>(() => {
+    const seen = new Set<string>();
+    for (const t of allItems) {
+      const d = t.description?.trim();
+      if (d && t.status !== 'REVERSED') seen.add(d);
+      if (seen.size >= 15) break;
+    }
+    return [...seen];
+  }, [allItems]);
+
   // ---------- Yangilash / mutation'lar ----------
 
   const invalidateAll = useCallback(() => {
@@ -192,8 +308,20 @@ export function useDailyExpensesData() {
 
   const createMutation = useMutation({
     mutationFn: (payload: TransactionRequest) => transactionsApi.create(payload),
-    onSuccess: () => {
-      toast.success("Xarajat qo'shildi");
+    onSuccess: (_res, variables) => {
+      // Ko'rilayotgan oydan tashqariga saqlansa (oyning 1-kunida "Kecha", custom
+      // sana, o'tgan oy ochiq turganda "Bugun") yozuv ekranda ko'rinmaydi —
+      // jim toast dublikat kiritishga olib borardi; sanani aniq aytamiz.
+      const savedDate = variables.transactionDate.slice(0, 10);
+      if (savedDate.slice(0, 7) !== monthCursor) {
+        const [, m, d] = savedDate.split('-').map(Number);
+        toast.success(
+          `Xarajat ${d}-${(MONTHS_UZ[m - 1] ?? '').toLowerCase()}ga saqlandi (boshqa oy)`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success("Xarajat qo'shildi");
+      }
       invalidateAll();
     },
     onError: (error) => toastApiError(error, 'Xarajatni saqlashda xatolik'),
@@ -239,6 +367,10 @@ export function useDailyExpensesData() {
     loading: journalQuery.isLoading,
     loadingMore: journalQuery.isFetchingNextPage,
     handleLoadMore,
+    // kategoriya filtri
+    filterCategoryId,
+    toggleCategoryFilter,
+    clearCategoryFilter: () => setFilterCategoryId(undefined),
     // xulosa
     summaryLoading: summaryQuery.isLoading,
     categoryTotals: summary?.categoryTotals ?? [],
@@ -248,6 +380,10 @@ export function useDailyExpensesData() {
     avgPerDay,
     maxDay,
     entryCount,
+    monthTrend,
+    topCategories,
+    chartDays,
+    recentDescriptions,
     // mutation'lar
     createMutation,
     reverseMutation,

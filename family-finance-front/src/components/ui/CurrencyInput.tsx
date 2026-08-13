@@ -13,6 +13,8 @@ interface CurrencyInputProps {
   showQuickButtons?: boolean;
   className?: string;
   error?: string;
+  /** Ichki input'ga tashqi ref — dasturiy fokus uchun (masalan, saqlagach summa maydoniga qaytish). */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 // Format number with thousand separators (1 234 567)
@@ -58,16 +60,36 @@ export function CurrencyInput({
   showQuickButtons = false,
   className,
   error,
+  inputRef: externalInputRef,
 }: CurrencyInputProps) {
   const [displayValue, setDisplayValue] = useState(formatNumber(value));
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync display value when external value changes
+  // Ichki ref bilan tashqi ref'ni birga to'ldiruvchi callback ref
+  const assignInputRef = useCallback(
+    (el: HTMLInputElement | null) => {
+      inputRef.current = el;
+      if (externalInputRef) {
+        externalInputRef.current = el;
+      }
+    },
+    [externalInputRef]
+  );
+
+  // Sync display value when external value changes.
+  // Fokus paytida ham dasturiy o'zgarish (masalan, saqlagach setAmount(0) —
+  // Enter'da input blur bo'lmaydi) displayga yetib borishi SHART: aks holda
+  // ekranda eski summa qolib, keyingi terilgan raqamlar unga QO'SHILIB ketadi
+  // (12 000 + "5000" = 120 005 000 xato yozuv). Oddiy terishda invariant
+  // (parseNumber(displayValue) === value) buzilmaydi — bu shox faqat tashqi
+  // o'zgarishda ishlaydi va kursor/tering oqimiga aralashmaydi.
   useEffect(() => {
     if (!isFocused) {
       setDisplayValue(formatNumber(value));
+      return;
     }
+    setDisplayValue((current) => (parseNumber(current) !== value ? formatNumber(value) : current));
   }, [value, isFocused]);
 
   // Clamp value between min and max
@@ -188,7 +210,7 @@ export function CurrencyInput({
         )}
       >
         <input
-          ref={inputRef}
+          ref={assignInputRef}
           type="text"
           inputMode="numeric"
           className={clsx(

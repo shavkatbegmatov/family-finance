@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { PieChart } from 'lucide-react';
+import clsx from 'clsx';
 
 import { getCategoryIcon } from '../../utils/icons';
 import { formatCompactWithCurrency } from './expensesHelpers';
@@ -10,6 +11,8 @@ const MAX_BARS = 8;
 
 interface BreakdownRow {
   key: string;
+  /** null = bosib filtrlash mumkin emas ("Boshqalar" yoki kategoriyasiz guruh). */
+  categoryId: number | null;
   name: string;
   icon?: string | null;
   color?: string | null;
@@ -21,6 +24,10 @@ interface ExpenseCategoryBreakdownProps {
   categoryTotals: CategoryExpenseTotal[];
   primaryCurrency?: string;
   loading: boolean;
+  /** Faol jurnal filtri — mos qator ajratib ko'rsatiladi. */
+  activeCategoryId?: number;
+  /** Qator bosilganda filtrni yoqish/o'chirish (toggle parent'da). */
+  onCategorySelect: (categoryId: number) => void;
 }
 
 /**
@@ -31,6 +38,8 @@ export function ExpenseCategoryBreakdown({
   categoryTotals,
   primaryCurrency,
   loading,
+  activeCategoryId,
+  onCategorySelect,
 }: ExpenseCategoryBreakdownProps) {
   const { rows, otherCurrencies } = useMemo(() => {
     const primary = categoryTotals.filter((c) => c.currency === primaryCurrency);
@@ -42,6 +51,7 @@ export function ExpenseCategoryBreakdown({
 
     const toRow = (c: CategoryExpenseTotal): BreakdownRow => ({
       key: `${c.categoryId ?? 'none'}-${c.currency}`,
+      categoryId: c.categoryId ?? null,
       name: c.categoryName ?? 'Kategoriyasiz',
       icon: c.categoryIcon,
       color: c.categoryColor,
@@ -54,6 +64,7 @@ export function ExpenseCategoryBreakdown({
       const overflowTotal = overflow.reduce((sum, c) => sum + c.total, 0);
       builtRows.push({
         key: 'others',
+        categoryId: null,
         name: `Boshqalar (${overflow.length})`,
         total: overflowTotal,
         percent: grandTotal > 0 ? (overflowTotal / grandTotal) * 100 : 0,
@@ -89,32 +100,57 @@ export function ExpenseCategoryBreakdown({
       )}
 
       {!loading && rows.length > 0 && (
-        <ul className="mt-4 space-y-3.5">
-          {rows.map((row) => (
-            <li key={row.key}>
-              <div className="flex items-center justify-between gap-2 text-sm">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  {getCategoryIcon(row.icon, row.color, 'h-4 w-4 flex-none')}
-                  <span className="truncate font-medium">{row.name}</span>
-                </span>
-                <span className="whitespace-nowrap text-base-content/70">
-                  {formatCompactWithCurrency(row.total, primaryCurrency)}
-                  <span className="ml-1.5 text-xs text-base-content/40">
-                    {row.percent.toFixed(0)}%
+        <ul className="mt-3 space-y-1">
+          {rows.map((row) => {
+            const clickable = row.categoryId !== null;
+            const active = clickable && row.categoryId === activeCategoryId;
+            const inner = (
+              <>
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    {getCategoryIcon(row.icon, row.color, 'h-4 w-4 flex-none')}
+                    <span className="truncate font-medium">{row.name}</span>
                   </span>
-                </span>
-              </div>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-base-200">
-                <div
-                  className={row.color ? 'h-full rounded-full' : 'h-full rounded-full bg-primary'}
-                  style={{
-                    width: `${Math.max(row.percent, 2)}%`,
-                    ...(row.color ? { backgroundColor: row.color } : {}),
-                  }}
-                />
-              </div>
-            </li>
-          ))}
+                  <span className="whitespace-nowrap text-base-content/70">
+                    {formatCompactWithCurrency(row.total, primaryCurrency)}
+                    <span className="ml-1.5 text-xs text-base-content/40">
+                      {row.percent.toFixed(0)}%
+                    </span>
+                  </span>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-base-200">
+                  <div
+                    className={row.color ? 'h-full rounded-full' : 'h-full rounded-full bg-primary'}
+                    style={{
+                      width: `${Math.max(row.percent, 2)}%`,
+                      ...(row.color ? { backgroundColor: row.color } : {}),
+                    }}
+                  />
+                </div>
+              </>
+            );
+            return (
+              <li key={row.key}>
+                {clickable ? (
+                  // Qator = jurnal filtri: bosilsa jurnal shu kategoriyaga toraytiriladi
+                  <button
+                    type="button"
+                    className={clsx(
+                      'w-full rounded-lg px-2 py-1.5 text-left transition',
+                      active ? 'bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-base-200/60'
+                    )}
+                    aria-pressed={active}
+                    title={active ? 'Filtrni bekor qilish' : 'Jurnalni shu kategoriyaga filtrlash'}
+                    onClick={() => onCategorySelect(row.categoryId as number)}
+                  >
+                    {inner}
+                  </button>
+                ) : (
+                  <div className="px-2 py-1.5">{inner}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

@@ -8,6 +8,22 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.0',
+        date: '2026-08-13 10:00',
+        title: "Kunlik xarajatlar: tezroq kiritish va chuqurroq tahlil",
+        features: [
+            "Tez kategoriya chiplari — eng ko'p ishlatiladigan kategoriyalaringiz forma ustida bir bosishda tanlanadi.",
+            "Jurnal qatorida \"Takrorlash\" tugmasi: o'tgan xarajat (summa, kategoriya, hisob, izoh) bir bosishda formaga ko'chadi — faqat \"Qo'shish\"ni bosasiz.",
+            "Sana endi \"Bugun / Kecha\" chiplari bilan tanlanadi (boshqa sana uchun kalendar saqlangan); sana saqlash paytida hisoblanadi — sahifa tunda ochiq qolsa ham eskirmaydi.",
+            "Kunlar kesimida grafik: oy davomidagi xarajat ustunlari, bugungi kun ajratilgan, ustun bosilsa jurnal shu kunga o'tadi.",
+            "\"Oy jami\" kartasida o'tgan oy bilan taqqoslash — o'tgan kunlar pariteti bilan (oy boshida adolatli foiz).",
+            "Kategoriya taqsimotidagi qator bosilsa jurnal shu kategoriyaga filtrlanadi.",
+            "Saqlashdan keyin fokus summa maydoniga qaytadi — ketma-ket kiritish uzluksiz; izoh maydonida so'nggi izohlardan avtoto'ldirish.",
+            "Bitta hisob bo'lsa forma soddalashadi (hisob avtomatik tanlanadi), telefonda \"Kunlik\" endi pastki panel asosiy qatorida.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.18.4',
         date: '2026-08-12 01:20',
         title: 'Telegram kirishida xavfsizlik kuchaytirildi',

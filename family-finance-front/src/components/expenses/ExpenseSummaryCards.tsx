@@ -4,6 +4,7 @@ import clsx from 'clsx';
 
 import { MONTHS_UZ } from '../../config/constants';
 import { formatCompactWithCurrency } from './expensesHelpers';
+import type { MonthTrend } from '../../hooks/useDailyExpensesData';
 import type { ExpenseCurrencyTotal } from '../../types';
 
 type CardColor = 'primary' | 'error' | 'info' | 'warning' | 'secondary';
@@ -23,6 +24,8 @@ interface StatCardDef {
   sub?: string;
   icon: ElementType;
   color: CardColor;
+  /** O'tgan oyga nisbatan foiz (xarajatda o'sish = yomon → error rang). */
+  trendPct?: number;
 }
 
 /** 'YYYY-MM-DD' -> "12-avgust" (eng xarajatli kun yorlig'i). */
@@ -52,6 +55,8 @@ interface ExpenseSummaryCardsProps {
   primaryCurrency?: string;
   maxDay: { date: string; total: number } | null;
   entryCount: number;
+  /** O'tgan oy bilan taqqoslash (o'tgan kunlar pariteti bilan) — bo'lmasa ko'rsatilmaydi. */
+  monthTrend: MonthTrend | null;
 }
 
 /** Oy statistikasi kartalari: Bugun / Oy jami / Kunlik o'rtacha / Eng xarajatli kun. */
@@ -64,6 +69,7 @@ export function ExpenseSummaryCards({
   primaryCurrency,
   maxDay,
   entryCount,
+  monthTrend,
 }: ExpenseSummaryCardsProps) {
   if (loading) {
     return (
@@ -102,6 +108,7 @@ export function ExpenseSummaryCards({
       sub: monthTotal.sub ?? `${entryCount} ta yozuv`,
       icon: Receipt,
       color: 'error',
+      trendPct: monthTrend?.pct,
     },
     {
       key: 'avg',
@@ -150,6 +157,20 @@ export function ExpenseSummaryCards({
               </p>
               {card.sub && (
                 <p className="mt-1 truncate text-xs text-base-content/50">{card.sub}</p>
+              )}
+              {card.trendPct !== undefined && (
+                // Xarajat trendida o'sish = yomon (error), pasayish = yaxshi (success)
+                <p
+                  className={clsx(
+                    'mt-0.5 truncate text-xs font-semibold',
+                    card.trendPct > 0 && 'text-error',
+                    card.trendPct < 0 && 'text-success',
+                    card.trendPct === 0 && 'text-base-content/50'
+                  )}
+                >
+                  {card.trendPct > 0 ? '↑' : card.trendPct < 0 ? '↓' : '→'}{' '}
+                  {Math.abs(card.trendPct)}% o'tgan oyga nisbatan
+                </p>
               )}
             </div>
             <span

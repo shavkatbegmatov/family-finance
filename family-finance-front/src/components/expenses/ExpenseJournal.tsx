@@ -1,4 +1,4 @@
-import { CalendarOff, ChevronDown, Pencil, Receipt, Split, Trash2 } from 'lucide-react';
+import { CalendarOff, ChevronDown, Copy, Pencil, Receipt, Split, Trash2 } from 'lucide-react';
 import { Link } from 'react-router';
 import clsx from 'clsx';
 
@@ -25,10 +25,31 @@ interface ExpenseJournalProps {
   hasAccounts: boolean;
   /** ACCOUNTS_CREATE bormi — hisob yo'q maslahati o'zi ochish yoki egadan so'rashga yo'naltiradi. */
   canCreateAccounts: boolean;
+  /**
+   * Kategoriya filtri faolmi — kun jamlari xulosadan emas, ko'rinayotgan qatorlardan
+   * hisoblanadi (xulosa jamlari filtrlanmagan) va bo'sh holat matni moslashadi.
+   */
+  filtered: boolean;
   onLoadMore: () => void;
   onRowClick: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
+  /** Qatorni formaga ko'chirish (takrorlash) — bugungi sana bilan qayta yozish uchun. */
+  onRepeat: (t: Transaction) => void;
+}
+
+/** Filtr faol bo'lganda kun jami — ko'rinayotgan (REVERSED bo'lmagan) qatorlardan, valyuta kesimida. */
+function totalsFromItems(items: Transaction[]): ExpenseCurrencyTotal[] {
+  const byCurrency = new Map<string, ExpenseCurrencyTotal>();
+  for (const t of items) {
+    if (t.status === 'REVERSED') continue;
+    const key = t.currency ?? 'UZS';
+    const entry = byCurrency.get(key) ?? { currency: key, total: 0, count: 0 };
+    entry.total += t.amount;
+    entry.count += 1;
+    byCurrency.set(key, entry);
+  }
+  return [...byCurrency.values()];
 }
 
 /**
@@ -103,12 +124,14 @@ function ExpenseRow({
   onRowClick,
   onEdit,
   onDelete,
+  onRepeat,
 }: {
   transaction: Transaction;
   category?: FinanceCategory;
   onRowClick: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
+  onRepeat: (t: Transaction) => void;
 }) {
   const isReversed = transaction.status === 'REVERSED';
   const title = transaction.description?.trim() || transaction.categoryName || 'Xarajat';
@@ -125,6 +148,9 @@ function ExpenseRow({
         tabIndex={0}
         onClick={() => onRowClick(transaction)}
         onKeyDown={(e) => {
+          // Ichki tugmalardan (takrorlash/tahrirlash/storno) ko'tarilgan Enter/Space'ni
+          // ushlamaymiz — aks holda preventDefault ularning native click'ini o'ldiradi
+          if (e.target !== e.currentTarget) return;
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             onRowClick(transaction);
@@ -168,11 +194,27 @@ function ExpenseRow({
         </span>
 
         {!isReversed && (
-          <span className="hidden items-center gap-0.5 lg:flex">
+          <span className="flex items-center gap-0.5">
+            {/* Takrorlash — barcha ekranlarda (kunlik siklning asosiy tezlatgichi):
+                qiymatlar formaga ko'chadi, yozish faqat "Qo'shish" bilan (tasodifiy tap xavfsiz) */}
+            <PermissionGate permission={PermissionCode.TRANSACTIONS_CREATE}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-square text-base-content/60"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRepeat(transaction);
+                }}
+                aria-label="Takrorlash — formaga ko'chirish"
+                title="Takrorlash"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
+            </PermissionGate>
             <PermissionGate permission={PermissionCode.TRANSACTIONS_UPDATE}>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm btn-square"
+                className="btn btn-ghost btn-sm btn-square hidden lg:inline-flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit(transaction);
@@ -185,7 +227,7 @@ function ExpenseRow({
             <PermissionGate permission={PermissionCode.TRANSACTIONS_DELETE}>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm btn-square text-error"
+                className="btn btn-ghost btn-sm btn-square hidden text-error lg:inline-flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(transaction);
@@ -216,10 +258,12 @@ export function ExpenseJournal({
   canCreate,
   hasAccounts,
   canCreateAccounts,
+  filtered,
   onLoadMore,
   onRowClick,
   onEdit,
   onDelete,
+  onRepeat,
 }: ExpenseJournalProps) {
   if (loading) return <JournalSkeleton />;
 
@@ -230,13 +274,19 @@ export function ExpenseJournal({
           <CalendarOff className="h-7 w-7" />
         </span>
         <div>
-          <p className="font-semibold">Bu oyda xarajat yozuvlari yo'q</p>
+          <p className="font-semibold">
+            {filtered ? 'Filtrga mos yozuv topilmadi' : "Bu oyda xarajat yozuvlari yo'q"}
+          </p>
           <p className="mt-1 text-sm text-base-content/50">
-            <EmptyJournalHint
-              canCreate={canCreate}
-              hasAccounts={hasAccounts}
-              canCreateAccounts={canCreateAccounts}
-            />
+            {filtered ? (
+              <>Bu oyda tanlangan kategoriya bo'yicha xarajat yo'q — filtrni bekor qiling</>
+            ) : (
+              <EmptyJournalHint
+                canCreate={canCreate}
+                hasAccounts={hasAccounts}
+                canCreateAccounts={canCreateAccounts}
+              />
+            )}
           </p>
         </div>
       </div>
@@ -247,10 +297,22 @@ export function ExpenseJournal({
 
   return (
     <div className="space-y-4">
-      {dayGroups.map((group) => {
-        const totals = dailyTotalsByDate.get(group.date) ?? [];
+      {dayGroups.map((group, groupIndex) => {
+        // Filtr faol bo'lsa xulosa jamlari mos kelmaydi — ko'rinayotgan qatorlardan hisoblanadi.
+        // Oxirgi yuklangan kun sahifa chegarasida kesilgan bo'lishi mumkin (100 talik page) —
+        // qisman (yolg'on kichik) jami ko'rsatmaslik uchun u holda sarlavha jami yashiriladi.
+        const lastGroupMaybePartial = filtered && hasMore && groupIndex === dayGroups.length - 1;
+        const totals = filtered
+          ? lastGroupMaybePartial
+            ? []
+            : totalsFromItems(group.items)
+          : dailyTotalsByDate.get(group.date) ?? [];
         return (
-          <section key={group.date} className="surface-card overflow-hidden p-0">
+          <section
+            key={group.date}
+            id={`day-${group.date}`}
+            className="surface-card scroll-mt-24 overflow-hidden p-0"
+          >
             <header className="flex items-center justify-between gap-3 border-b border-base-200 bg-base-200/40 px-4 py-2.5">
               <h3 className="truncate text-sm font-semibold">
                 {formatDayLabel(group.date, today)}
@@ -270,6 +332,7 @@ export function ExpenseJournal({
                   onRowClick={onRowClick}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  onRepeat={onRepeat}
                 />
               ))}
             </ul>

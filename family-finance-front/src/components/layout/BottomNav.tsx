@@ -34,13 +34,15 @@ interface NavItem {
 }
 
 // Asosiy panel elementlari — markaziy FAB chap/o'ngga 2 tadan taqsimlaydi.
+// Kunlik xarajat asosiy qatorda (har kuni ishlatiladigan sahifa 1 tap bo'lsin),
+// to'liq Tranzaksiyalar ro'yxati esa "Yana" varag'ida.
 const homeItem: NavItem = { path: '/', icon: LayoutDashboard, label: 'Bosh', permission: PermissionCode.DASHBOARD_VIEW };
-const txItem: NavItem = { path: '/transactions', icon: ArrowLeftRight, label: 'Amallar', permission: PermissionCode.TRANSACTIONS_VIEW };
+const dailyItem: NavItem = { path: '/daily-expenses', icon: CalendarDays, label: 'Kunlik', permission: PermissionCode.TRANSACTIONS_VIEW };
 const accountsItem: NavItem = { path: '/accounts', icon: Wallet, label: 'Hisoblar', permission: PermissionCode.ACCOUNTS_VIEW };
 const reportsItem: NavItem = { path: '/reports', icon: BarChart3, label: 'Hisobot', permission: PermissionCode.REPORTS_VIEW };
 
 const moreItems: NavItem[] = [
-  { path: '/daily-expenses', icon: CalendarDays, label: 'Kunlik xarajat', permission: PermissionCode.TRANSACTIONS_VIEW },
+  { path: '/transactions', icon: ArrowLeftRight, label: 'Tranzaksiyalar', permission: PermissionCode.TRANSACTIONS_VIEW },
   { path: '/reports', icon: BarChart3, label: 'Hisobotlar', permission: PermissionCode.REPORTS_VIEW },
   { path: '/budget', icon: PieChart, label: 'Byudjet', permission: PermissionCode.BUDGETS_VIEW },
   { path: '/savings', icon: Target, label: "Jamg'arma", permission: PermissionCode.SAVINGS_VIEW },
@@ -112,7 +114,7 @@ export function BottomNav() {
   const moreTab: NavItem = { path: '#more', icon: MoreHorizontal, label: 'Yana', permission: '' };
 
   // Markaziy FAB bo'lganda: chapda 2, o'ngda 2 element. Aks holda 5 ta oddiy tugma.
-  const leftItems = [homeItem, txItem].filter((i) => has(i.permission));
+  const leftItems = [homeItem, dailyItem].filter((i) => has(i.permission));
   const rightItems = canCreate
     ? [accountsItem].filter((i) => has(i.permission))
     : [accountsItem, reportsItem].filter((i) => has(i.permission));
