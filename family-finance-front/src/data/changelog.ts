@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.2',
+        date: '2026-08-14 11:00',
+        title: "Kategoriya filtri split tranzaksiyalarni ham ko'radi",
+        features: [],
+        fixes: [
+            "Kategoriya bo'yicha filtr (Kunlik xarajatlar va Tranzaksiyalar sahifalarida) endi bir necha kategoriyaga bo'lingan (split) tranzaksiyalarni ham topadi — avval bunday tranzaksiyalar filtrda umuman ko'rinmay, kategoriya taqsimoti jami bilan jurnal jami mos kelmasdi.",
+            "Filtrlangan jurnalda split tranzaksiya to'liq summasi bilan emas, tanlangan kategoriyaga tegishli ulushi bilan ko'rsatiladi (\"ulush\" belgisi bilan; to'liq summa qator ustida ko'rinadi).",
+        ],
+    },
+    {
         version: '1.19.1',
         date: '2026-08-13 20:18',
         title: 'Xavfsizlik yangilanishi va kutubxonalar yangilandi',

@@ -5,7 +5,11 @@ import clsx from 'clsx';
 import { PermissionGate } from '../common/PermissionGate';
 import { PermissionCode } from '../../hooks/usePermission';
 import { getCategoryIcon } from '../../utils/icons';
-import { formatAmountWithCurrency, formatDayLabel } from './expensesHelpers';
+import {
+  expenseAmountForCategory,
+  formatAmountWithCurrency,
+  formatDayLabel,
+} from './expensesHelpers';
 import type { ExpenseDayGroup } from '../../hooks/useDailyExpensesData';
 import type { ExpenseCurrencyTotal, FinanceCategory, Transaction } from '../../types';
 
@@ -30,6 +34,8 @@ interface ExpenseJournalProps {
    * hisoblanadi (xulosa jamlari filtrlanmagan) va bo'sh holat matni moslashadi.
    */
   filtered: boolean;
+  /** Faol filtr kategoriyasi — split'li qatorlarda faqat shu ulush ko'rsatiladi. */
+  filterCategoryId?: number;
   onLoadMore: () => void;
   onRowClick: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
@@ -38,14 +44,18 @@ interface ExpenseJournalProps {
   onRepeat: (t: Transaction) => void;
 }
 
-/** Filtr faol bo'lganda kun jami — ko'rinayotgan (REVERSED bo'lmagan) qatorlardan, valyuta kesimida. */
-function totalsFromItems(items: Transaction[]): ExpenseCurrencyTotal[] {
+/**
+ * Filtr faol bo'lganda kun jami — ko'rinayotgan (REVERSED bo'lmagan) qatorlardan,
+ * valyuta kesimida. Split'li qator to'liq summasi bilan emas, filtr kategoriyasiga
+ * tegishli ulushi bilan qo'shiladi (kategoriya taqsimoti jamiga mos bo'lishi uchun).
+ */
+function totalsFromItems(items: Transaction[], filterCategoryId?: number): ExpenseCurrencyTotal[] {
   const byCurrency = new Map<string, ExpenseCurrencyTotal>();
   for (const t of items) {
     if (t.status === 'REVERSED') continue;
     const key = t.currency ?? 'UZS';
     const entry = byCurrency.get(key) ?? { currency: key, total: 0, count: 0 };
-    entry.total += t.amount;
+    entry.total += expenseAmountForCategory(t, filterCategoryId);
     entry.count += 1;
     byCurrency.set(key, entry);
   }
@@ -121,6 +131,7 @@ function JournalSkeleton() {
 function ExpenseRow({
   transaction,
   category,
+  filterCategoryId,
   onRowClick,
   onEdit,
   onDelete,
@@ -128,6 +139,7 @@ function ExpenseRow({
 }: {
   transaction: Transaction;
   category?: FinanceCategory;
+  filterCategoryId?: number;
   onRowClick: (t: Transaction) => void;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
@@ -135,6 +147,9 @@ function ExpenseRow({
 }) {
   const isReversed = transaction.status === 'REVERSED';
   const title = transaction.description?.trim() || transaction.categoryName || 'Xarajat';
+  // Filtr faol + split'li qator: faqat filtr kategoriyasiga tegishli ulush ko'rsatiladi
+  const displayAmount = expenseAmountForCategory(transaction, filterCategoryId);
+  const isPortion = displayAmount !== transaction.amount;
   const subParts = [
     transaction.categoryName ?? 'Kategoriyasiz',
     transaction.accountName,
@@ -179,7 +194,7 @@ function ExpenseRow({
         {(transaction.splits?.length ?? 0) > 0 && (
           <span className="badge badge-ghost badge-sm hidden gap-1 sm:inline-flex">
             <Split className="h-3 w-3" />
-            {transaction.splits?.length}
+            {isPortion ? 'ulush' : transaction.splits?.length}
           </span>
         )}
         {isReversed && <span className="badge badge-warning badge-sm">Storno</span>}
@@ -189,8 +204,13 @@ function ExpenseRow({
             'whitespace-nowrap text-sm font-semibold',
             isReversed ? 'text-base-content/40 line-through' : 'text-error'
           )}
+          title={
+            isPortion
+              ? `Tranzaksiya jami: ${formatAmountWithCurrency(transaction.amount, transaction.currency)}`
+              : undefined
+          }
         >
-          −{formatAmountWithCurrency(transaction.amount, transaction.currency)}
+          −{formatAmountWithCurrency(displayAmount, transaction.currency)}
         </span>
 
         {!isReversed && (
@@ -259,6 +279,7 @@ export function ExpenseJournal({
   hasAccounts,
   canCreateAccounts,
   filtered,
+  filterCategoryId,
   onLoadMore,
   onRowClick,
   onEdit,
@@ -305,7 +326,7 @@ export function ExpenseJournal({
         const totals = filtered
           ? lastGroupMaybePartial
             ? []
-            : totalsFromItems(group.items)
+            : totalsFromItems(group.items, filterCategoryId)
           : dailyTotalsByDate.get(group.date) ?? [];
         return (
           <section
@@ -329,6 +350,7 @@ export function ExpenseJournal({
                   key={t.id}
                   transaction={t}
                   category={t.categoryId ? categoriesById.get(t.categoryId) : undefined}
+                  filterCategoryId={filterCategoryId}
                   onRowClick={onRowClick}
                   onEdit={onEdit}
                   onDelete={onDelete}

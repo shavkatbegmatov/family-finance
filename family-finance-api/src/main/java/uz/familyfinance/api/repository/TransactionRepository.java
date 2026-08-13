@@ -27,12 +27,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // storno tranzaksiyalari daftарда (ledger) ko'rinib turishi kerak.
     // ------------------------------------------------------------------
 
+    // Kategoriya sharti split'larni ham qamraydi: split'li tranzaksiya categoryId=null
+    // bilan saqlanadi, ulushlari transaction_splits'da — EXISTS'siz kategoriya filtri
+    // bunday tranzaksiyalarni ko'rmay, jurnal jami kategoriya taqsimoti (split ulushlari
+    // bilan hisoblangan) jamiga mos kelmasdi. value va countQuery AYNAN bir xil bo'lishi
+    // shart, aks holda sahifalash totalElements bilan farq qiladi.
     @Query(
             value = "SELECT t FROM Transaction t WHERE " +
                     "(:scopeId IS NULL OR t.scope.id = :scopeId) AND " +
                     "(:type IS NULL OR t.type = :type) AND " +
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
-                    "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
+                    "(:categoryId IS NULL OR t.category.id = :categoryId OR EXISTS " +
+                    "(SELECT 1 FROM TransactionSplit s WHERE s.transaction = t AND s.category.id = :categoryId)) AND " +
                     "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
                     "(:status IS NULL OR t.status = :status) AND " +
                     "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +
@@ -42,7 +48,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                     "(:scopeId IS NULL OR t.scope.id = :scopeId) AND " +
                     "(:type IS NULL OR t.type = :type) AND " +
                     "(:accountId IS NULL OR t.account.id = :accountId) AND " +
-                    "(:categoryId IS NULL OR t.category.id = :categoryId) AND " +
+                    "(:categoryId IS NULL OR t.category.id = :categoryId OR EXISTS " +
+                    "(SELECT 1 FROM TransactionSplit s WHERE s.transaction = t AND s.category.id = :categoryId)) AND " +
                     "(:memberId IS NULL OR t.familyMember.id = :memberId) AND " +
                     "(:status IS NULL OR t.status = :status) AND " +
                     "(CAST(:fromDate AS timestamp) IS NULL OR t.transactionDate >= :fromDate) AND " +

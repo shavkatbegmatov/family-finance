@@ -33,6 +33,31 @@ export const formatMonthLabel = (cursor: string): string => {
   return `${MONTHS_UZ[m - 1] ?? cursor} ${y}`;
 };
 
+interface SplitPortionLike {
+  categoryId: number;
+  amount: number;
+}
+
+/**
+ * Kategoriya filtri faol bo'lganda qator/kun jamida ko'rsatiladigan summa.
+ *
+ * Split'li tranzaksiya filtrga ulushi orqali tushadi — to'liq summasini ko'rsatish
+ * kategoriya taqsimoti jamiga mos kelmay chalg'itardi; shuning uchun faqat shu
+ * kategoriyaga tegishli ulush(lar) yig'indisi qaytariladi. Ulush topilmasa (qator
+ * to'g'ridan kategoriya orqali mos kelgan — splits boshqa kategoriyalarda bo'lgan
+ * nostandart holat) to'liq summa qoladi. Filtrsiz — har doim to'liq summa.
+ */
+export const expenseAmountForCategory = (
+  t: { amount: number; splits?: SplitPortionLike[] | null },
+  categoryId?: number
+): number => {
+  if (categoryId === undefined || !t.splits?.length) return t.amount;
+  const portion = t.splits
+    .filter((s) => s.categoryId === categoryId)
+    .reduce((sum, s) => sum + s.amount, 0);
+  return portion > 0 ? portion : t.amount;
+};
+
 /**
  * Jurnal kun sarlavhasi: "Bugun · 6-avgust, chorshanba" / "Kecha · ..." /
  * "6-avgust, chorshanba" (boshqa yil bo'lsa yil ham qo'shiladi).

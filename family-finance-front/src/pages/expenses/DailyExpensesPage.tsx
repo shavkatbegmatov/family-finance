@@ -197,6 +197,7 @@ export function DailyExpensesPage() {
             hasAccounts={hasAccounts}
             canCreateAccounts={canCreateAccounts}
             filtered={data.filterCategoryId !== undefined}
+            filterCategoryId={data.filterCategoryId}
             onLoadMore={data.handleLoadMore}
             onRowClick={(t) => navigate(`/transactions/${t.id}`)}
             onEdit={setEditingTransaction}
