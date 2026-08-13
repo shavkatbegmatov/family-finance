@@ -8,6 +8,17 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.1',
+        date: '2026-08-13 20:18',
+        title: 'Xavfsizlik yangilanishi va kutubxonalar yangilandi',
+        features: [],
+        fixes: [
+            "Ilova ichida ishlatiladigan uchinchi tomon kutubxonalarida topilgan 4 ta yuqori darajali zaiflik yopildi — barchasi tuzatilgan versiyalarga o'tkazildi.",
+            "Interfeys ikonkalari kutubxonasi va ishlab chiqish/test vositalari so'nggi versiyalarga yangilandi; ilovaning ko'rinishi va ishlashi o'zgarmagan.",
+            "Serverdagi API hujjatlari kutubxonasi (OpenAPI) yangi versiyaga o'tkazildi — foydalanuvchi oqimlariga ta'sir qilmaydi.",
+        ],
+    },
+    {
         version: '1.19.0',
         date: '2026-08-13 10:00',
         title: "Kunlik xarajatlar: tezroq kiritish va chuqurroq tahlil",
