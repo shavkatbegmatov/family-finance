@@ -77,9 +77,10 @@ jobs:
       - run: chmod +x mvnw && ./mvnw clean test -q
 
   # ── CI: Integration testlar (Testcontainers — real PostgreSQL, Docker kerak) ──
-  # ATAYLAB ALOHIDA va (hozircha) GATE-QILMAYDIGAN job: barqarorligini isbotlaguncha
-  # branch-protection required check'lar ro'yxatiga qo'shilmaydi. ubuntu-latest'da
-  # Docker mavjud → Testcontainers ishlaydi.
+  # DEPLOY'NI GATE QILADI (build-and-push needs, 2026-08-12'dan): kuzatuv davrida
+  # barqaror ishladi, Telegram auth muddati tuzatishida esa rollback-semantika xatosini
+  # faqat shu job ushladi — qizil integratsiya testi endi prod'ga chiqmaydi.
+  # ubuntu-latest'da Docker mavjud → Testcontainers ishlaydi.
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -99,7 +100,7 @@ jobs:
   build-and-push:
     name: Build & Push Images
     runs-on: ubuntu-latest
-    needs: [frontend-ci, backend-ci, secret-scan]
+    needs: [frontend-ci, backend-ci, secret-scan, integration-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
