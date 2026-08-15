@@ -276,7 +276,9 @@ export function FamilyMemberModal({ isOpen, onClose, member, onSuccess }: Family
                       <div className="flex gap-2">
                         {[
                           { value: 'MEMBER', label: "A'zo" },
-                          { value: 'ADMIN', label: 'Administrator' },
+                          // "Xonadon admini" — faqat SHU xonadon ichida boshqaruv huquqi
+                          // (ScopeRole.ADMIN). Platforma-keng rol EMAS.
+                          { value: 'ADMIN', label: 'Xonadon admini' },
                         ].map((r) => (
                           <button
                             key={r.value}

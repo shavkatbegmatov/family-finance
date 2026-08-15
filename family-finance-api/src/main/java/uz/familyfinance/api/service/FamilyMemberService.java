@@ -282,11 +282,10 @@ public class FamilyMemberService {
 
         // Avtomatik user account yaratish
         if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
-            String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
-                    ? request.getAccountRole()
-                    : "MEMBER";
+            // Rol tanlovi (default + oq ro'yxat) UserService'da hal qilinadi — yagona darvoza.
             CredentialsInfo credentials = userService.createUserForFamilyMember(
-                    saved, roleCode, request.getAccountPassword(), request.getAccountUsername());
+                    saved, request.getAccountRole(), request.getAccountPassword(),
+                    request.getAccountUsername());
             // Yaratilgan user'ni member'ga biriktirish
             User createdUser = userRepository.findByUsername(credentials.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
@@ -394,11 +393,10 @@ public class FamilyMemberService {
 
         // Akkaunt yaratish (update orqali ham)
         if (Boolean.TRUE.equals(request.getCreateAccount()) && saved.getUser() == null) {
-            String roleCode = request.getAccountRole() != null && !request.getAccountRole().isBlank()
-                    ? request.getAccountRole()
-                    : "MEMBER";
+            // Rol tanlovi (default + oq ro'yxat) UserService'da hal qilinadi — yagona darvoza.
             CredentialsInfo credentials = userService.createUserForFamilyMember(
-                    saved, roleCode, request.getAccountPassword(), request.getAccountUsername());
+                    saved, request.getAccountRole(), request.getAccountPassword(),
+                    request.getAccountUsername());
             User createdUser = userRepository.findByUsername(credentials.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Yaratilgan foydalanuvchi topilmadi"));
             saved.setUser(createdUser);

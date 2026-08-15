@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -76,6 +77,23 @@ public class UserService {
     /** Qo'lda kiritilgan login formati: lotin harf/raqam/nuqta/pastki chiziq, 3-30 belgi. */
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[a-z0-9._]{3,30}$");
 
+    /** Oila a'zosiga login ochilganda beriladigan default GLOBAL RBAC roli. */
+    private static final String DEFAULT_MEMBER_ROLE = "MEMBER";
+
+    /**
+     * UI'dagi "xonadon admini" tanlovi. Bu GLOBAL rol kodi EMAS — faqat
+     * {@link ScopeRole#ADMIN} ga aylantiriladi ({@link #toGlobalRole} ga qarang).
+     */
+    private static final String HOUSEHOLD_ADMIN_CHOICE = "ADMIN";
+
+    /**
+     * Oila a'zosiga login ochishda ruxsat etilgan rol tanlovlari (oq ro'yxat).
+     * Bundan tashqari har qanday kod — 400. Ayniqsa {@code SUPER_ADMIN} hech qachon
+     * bu yo'l bilan berilmasligi kerak (u faqat {@link #grantSuperAdmin} orqali).
+     */
+    private static final Set<String> ALLOWED_ROLE_CHOICES =
+            Set.of(DEFAULT_MEMBER_ROLE, HOUSEHOLD_ADMIN_CHOICE);
+
     private static final String PASSWORD_CHARS_UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final String PASSWORD_CHARS_LOWER = "abcdefghjkmnpqrstuvwxyz";
     private static final String PASSWORD_CHARS_DIGITS = "23456789";
@@ -103,13 +121,19 @@ public class UserService {
      * Oila a'zosiga login (User) ochadi.
      *
      * @param member         login ochiladigan oila a'zosi
-     * @param roleCode       tizim roli kodi ("ADMIN"/"MEMBER")
+     * @param roleCode       tizim roli kodi; faqat {@link #ASSIGNABLE_MEMBER_ROLES} qabul qilinadi
+     *                       (null/bo'sh → {@link #DEFAULT_MEMBER_ROLE})
      * @param customPassword qo'lda kiritilgan parol; null/bo'sh bo'lsa avto-generatsiya
      * @param customUsername qo'lda kiritilgan login; null/bo'sh bo'lsa ism asosida avto-generatsiya
      */
     @Transactional
     public CredentialsInfo createUserForFamilyMember(FamilyMember member, String roleCode,
                                                      String customPassword, String customUsername) {
+        // Rol tanlovi — bu YAGONA darvoza, shu sabab tekshiruv shu yerda
+        // (chaqiruvchilar takrorlamaydi). "ADMIN" tanlovi GLOBAL rol bermaydi.
+        String roleChoice = normalizeRoleChoice(roleCode);
+        String globalRole = toGlobalRole(roleChoice);
+
         // Username: qo'lda kiritilgan bo'lsa tekshirib ishlatamiz, aks holda ism asosida avtomatik
         String username = resolveUsername(customUsername, member.getFullName());
 
@@ -121,8 +145,8 @@ public class UserService {
         String temporaryPassword = isCustomPassword ? customPassword : generateTemporaryPassword();
 
         // Find role
-        RoleEntity role = roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Rol topilmadi: " + roleCode));
+        RoleEntity role = roleRepository.findByCode(globalRole)
+                .orElseThrow(() -> new ResourceNotFoundException("Rol topilmadi: " + globalRole));
 
         // Get current user as creator
         User createdBy = getCurrentUser();
@@ -130,7 +154,7 @@ public class UserService {
         // Create user
         // Foydalanuvchi yaratilganda member.familyGroup ham inherit qilinadi —
         // aks holda yangi user "Siz hech bir guruhga a'zo emassiz" muammosini ko'radi.
-        Role legacyRole = resolveLegacyRole(roleCode);
+        Role legacyRole = resolveLegacyRole(globalRole);
         User user = User.builder()
                 .username(username)
                 .password(passwordEncoder.encode(temporaryPassword))
@@ -152,7 +176,7 @@ public class UserService {
         // a'zo qilamiz va primaryScope'ni o'rnatamiz. Aks holda u login qilganda
         // AuthService.ensureUserHasScope() primaryScope yo'qligini ko'rib, YANGI bo'sh urug'/xonadon
         // yaratadi va user'ni o'z oilasidan uzib qo'yadi — natijada oila a'zolari ko'rinmaydi.
-        linkUserToMemberScopes(user, member, roleCode);
+        linkUserToMemberScopes(user, member, toScopeRole(roleChoice));
 
         // Log the action
         Long creatorId = createdBy != null ? createdBy.getId() : null;
@@ -175,6 +199,45 @@ public class UserService {
                         : "Ushbu parol faqat bir marta ko'rsatiladi. Oila a'zosiga yetkazing!")
                 .mustChangePassword(!isCustomPassword)
                 .build();
+    }
+
+    /**
+     * UI'dan kelgan rol tanlovini normallashtiradi va oq ro'yxatga solishtiradi.
+     *
+     * <p>Ruxsat etilgan tanlovlar: {@code MEMBER} (oddiy a'zo) va {@code ADMIN}
+     * (XONADON admini). Boshqa har qanday qiymat — 400.</p>
+     */
+    private String normalizeRoleChoice(String roleCode) {
+        if (roleCode == null || roleCode.isBlank()) {
+            return DEFAULT_MEMBER_ROLE;
+        }
+        String normalized = roleCode.trim().toUpperCase(Locale.ROOT);
+        if (!ALLOWED_ROLE_CHOICES.contains(normalized)) {
+            throw new BadRequestException(
+                    "Oila a'zosiga faqat \"" + DEFAULT_MEMBER_ROLE + "\" yoki \""
+                    + HOUSEHOLD_ADMIN_CHOICE + "\" roli berilishi mumkin");
+        }
+        return normalized;
+    }
+
+    /**
+     * Tanlovni GLOBAL (platforma-keng) RBAC roliga aylantiradi — u HECH QACHON
+     * {@code ADMIN} bo'lmaydi.
+     *
+     * <p><b>Nima uchun:</b> global {@code ADMIN} roli {@code CustomUserDetails.isAdmin()}
+     * orqali tenant chegarasini bekor qiladi (hisoblar, tranzaksiyalar, oila a'zolari —
+     * barcha oilalar bo'ylab). Avval xonadon admini tayinlash aynan shu global rolni
+     * berardi, ya'ni har bir foydalanuvchi o'ziga platforma-keng kirish yasay olardi.
+     * Endi "xonadon admini" faqat {@link ScopeRole#ADMIN} — o'z xonadoni ichida
+     * boshqaruv, undan tashqarida hech narsa.</p>
+     */
+    private String toGlobalRole(String roleChoice) {
+        return HOUSEHOLD_ADMIN_CHOICE.equals(roleChoice) ? DEFAULT_MEMBER_ROLE : roleChoice;
+    }
+
+    /** Tanlovni xonadon ichidagi rolga aylantiradi — "ADMIN" aynan shu yerda kuchga kiradi. */
+    private ScopeRole toScopeRole(String roleChoice) {
+        return HOUSEHOLD_ADMIN_CHOICE.equals(roleChoice) ? ScopeRole.ADMIN : ScopeRole.MEMBER;
     }
 
     private Role resolveLegacyRole(String roleCode) {
@@ -217,7 +280,7 @@ public class UserService {
      * hamda primaryScope'ni HOUSEHOLD'ga o'rnatadi. Bu login paytida noto'g'ri yangi scope
      * provisioning qilinishining oldini oladi.
      */
-    private void linkUserToMemberScopes(User user, FamilyMember member, String roleCode) {
+    private void linkUserToMemberScopes(User user, FamilyMember member, ScopeRole scopeRole) {
         Scope household = resolveHouseholdScope(member);
         if (household == null) {
             log.warn("Oila a'zosi {} uchun xonadon (HOUSEHOLD) scope topilmadi — "
@@ -225,7 +288,6 @@ public class UserService {
                     member.getId(), user.getUsername());
             return;
         }
-        ScopeRole scopeRole = "ADMIN".equalsIgnoreCase(roleCode) ? ScopeRole.ADMIN : ScopeRole.MEMBER;
         scopeMembershipService.attachToHousehold(household, user, scopeRole);
         user.setPrimaryScope(household);
         userRepository.save(user);

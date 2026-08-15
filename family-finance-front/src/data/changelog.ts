@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.3',
+        date: '2026-08-16 01:30',
+        title: 'Rol berish aniqlashtirildi va cheklandi',
+        features: [],
+        fixes: [
+            "Oila a'zosiga login ochishda \"Administrator\" tanlovi endi \"Xonadon admini\" deb ataladi va aynan shu ma'noni beradi — berilgan huquqlar faqat o'sha xonadon ichida amal qiladi.",
+            "Rol tanlovi qat'iy ro'yxat bilan cheklandi: ro'yxatdan tashqari rol kodi yuborilsa so'rov rad etiladi. Ma'lumotlar izolyatsiyasi kuchaytirildi.",
+        ],
+    },
+    {
         version: '1.19.2',
         date: '2026-08-14 11:00',
         title: "Kategoriya filtri split tranzaksiyalarni ham ko'radi",

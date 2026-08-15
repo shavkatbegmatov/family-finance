@@ -135,7 +135,7 @@ export function CreateAccountModal({
                       className={`btn btn-sm flex-1 ${accountRole === 'ADMIN' ? 'btn-primary' : 'btn-outline'}`}
                       onClick={() => setAccountRole('ADMIN')}
                     >
-                      Admin
+                      Xonadon admini
                     </button>
                   </div>
                 </div>
