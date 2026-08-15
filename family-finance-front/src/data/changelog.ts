@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.5',
+        date: '2026-08-16 02:40',
+        title: "Jamg'armaga hisob bog'lashda tekshiruv",
+        features: [],
+        fixes: [
+            "Jamg'arma maqsadini yaratish va tahrirlashda hisob tanlovi endi tekshiriladi — faqat o'zingizga ko'rinadigan hisobni bog'lash mumkin.",
+        ],
+    },
+    {
         version: '1.19.4',
         date: '2026-08-16 02:10',
         title: 'Shajaraga kirish nazorati kuchaytirildi',

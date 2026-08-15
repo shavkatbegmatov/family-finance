@@ -33,6 +33,22 @@ public class SavingsGoalService {
     private final AccountRepository accountRepository;
     private final StaffNotificationService notificationService;
     private final ScopeContextService scopeContext;
+    /** Hisobga kirish guard'ining yagona manbai (AccountService.checkAccess). */
+    private final AccountService accountService;
+
+    /**
+     * Jamg'armaga bog'lanadigan hisobni yuklaydi va unga kirish huquqini tekshiradi.
+     *
+     * <p>Avval {@code accountId} umuman tekshirilmasdi — begona scope'dagi hisobni
+     * jamg'armaga bog'lash mumkin edi va uning nomi javobda ({@code accountName})
+     * qaytardi, ya'ni cross-scope ma'lumot sizardi.</p>
+     */
+    private Account resolveAccessibleAccount(Long accountId) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
+        accountService.assertCanAccess(account);
+        return account;
+    }
 
     @Transactional(readOnly = true)
     public Page<SavingsGoalResponse> getAll(Pageable pageable) {
@@ -72,9 +88,7 @@ public class SavingsGoalService {
                 .build();
 
         if (request.getAccountId() != null) {
-            Account account = accountRepository.findById(request.getAccountId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
-            goal.setAccount(account);
+            goal.setAccount(resolveAccessibleAccount(request.getAccountId()));
         }
 
         return toResponse(savingsGoalRepository.save(goal));
@@ -97,9 +111,7 @@ public class SavingsGoalService {
         goal.setIsCompleted(cur.compareTo(goal.getTargetAmount()) >= 0);
 
         if (request.getAccountId() != null) {
-            Account account = accountRepository.findById(request.getAccountId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Hisob topilmadi"));
-            goal.setAccount(account);
+            goal.setAccount(resolveAccessibleAccount(request.getAccountId()));
         } else {
             goal.setAccount(null);
         }
