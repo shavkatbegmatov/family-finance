@@ -22,12 +22,28 @@ public class KinshipCalculatorService {
     private final FamilyUnitRepository familyUnitRepository;
     private final FamilyPartnerRepository familyPartnerRepository;
     private final FamilyChildRepository familyChildRepository;
+    /** Genealogik tenant-guard'ning yagona manbai (FamilyMemberService.checkAccess). */
+    private final FamilyMemberService familyMemberService;
+
+    /**
+     * Shaxs joriy foydalanuvchining genealogik tenant'ida ekanini tasdiqlaydi, aks holda 403.
+     *
+     * <p>Bu guard'siz {@code viewer}/{@code target} parametrlariga begona ID berib,
+     * boshqa oilaning qarindoshlik tuzilishini aniqlash mumkin edi (IDOR).</p>
+     */
+    private void assertAccessible(Long personId) {
+        FamilyMember member = familyMemberRepository.findById(personId)
+                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
+        familyMemberService.assertMemberAccessible(member);
+    }
 
     /**
      * Ikki shaxs orasidagi munosabatni hisoblash
      */
     @Transactional(readOnly = true)
     public RelationshipResult calculateRelationship(Long viewerId, Long targetId) {
+        assertAccessible(viewerId);
+        assertAccessible(targetId);
         if (viewerId.equals(targetId)) {
             return RelationshipResult.builder()
                     .viewerId(viewerId)
@@ -116,6 +132,9 @@ public class KinshipCalculatorService {
      */
     @Transactional(readOnly = true)
     public List<LabeledTreePersonDto> getLabeledTree(FamilyTreeV2Response tree, Long viewerId) {
+        // `tree` chaqiruvchida allaqachon guard'dan o'tgan, lekin `viewer` — mustaqil
+        // parametr va o'zi ham tekshirilishi shart.
+        assertAccessible(viewerId);
         return tree.getPersons().stream().map(person -> {
             LabeledTreePersonDto labeled = new LabeledTreePersonDto();
             labeled.setId(person.getId());

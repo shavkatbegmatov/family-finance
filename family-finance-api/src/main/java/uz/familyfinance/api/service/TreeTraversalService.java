@@ -24,6 +24,8 @@ public class TreeTraversalService {
     private final FamilyChildRepository familyChildRepository;
     private final UserRepository userRepository;
     private final FamilyUnitService familyUnitService;
+    /** Genealogik tenant-guard'ning yagona manbai (FamilyMemberService.checkAccess). */
+    private final FamilyMemberService familyMemberService;
 
     /**
      * BFS bilan ikki tomonga kengayish ??? yuqoriga (ota-onalar) va pastga (farzandlar)
@@ -62,18 +64,45 @@ public class TreeTraversalService {
     /**
      * Ildiz shaxsni aniqlaydi: berilgan {@code personId} (faol bo'lsa) yoki joriy
      * foydalanuvchining oila a'zosi (fallback). Berilgan shaxs faol bo'lmasa fallback'ga o'tadi.
+     *
+     * <p>TENANT GUARD: so'ralgan shaxs joriy foydalanuvchining genealogik tenant'iga
+     * tegishli bo'lishi shart. Avval bu tekshiruv YO'Q edi — FAMILY_VIEW ruxsatiga ega
+     * har qanday foydalanuvchi {@code personId} ni almashtirib begona oilaning to'liq
+     * shajarasini (ism, telefon, tug'ilgan sana/joy) ko'chirib olardi (IDOR).</p>
      */
     private Long resolveRoot(Long personId) {
         Long fallbackRootId = resolveFamilyMemberId();
         Long effectiveRootId = personId != null ? personId : fallbackRootId;
 
-        if (!isMemberActive(findMemberOrThrow(effectiveRootId))) {
+        FamilyMember requested = findMemberOrThrow(effectiveRootId);
+        assertAccessible(requested);
+
+        if (!isMemberActive(requested)) {
             effectiveRootId = fallbackRootId;
             if (!isMemberActive(findMemberOrThrow(effectiveRootId))) {
                 throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + effectiveRootId);
             }
         }
         return effectiveRootId;
+    }
+
+    /**
+     * Shaxs joriy foydalanuvchining genealogik tenant'ida ekanini tasdiqlaydi, aks holda 403.
+     * Guard mantiqi {@link FamilyMemberService#assertMemberAccessible} da — bu yerda
+     * takrorlanmaydi (yagona manba).
+     */
+    private void assertAccessible(FamilyMember member) {
+        familyMemberService.assertMemberAccessible(member);
+    }
+
+    /** Shaxsni yuklaydi, tenant guard'idan o'tkazadi va faolligini talab qiladi. */
+    private FamilyMember requireAccessibleActiveMember(Long personId) {
+        FamilyMember member = findMemberOrThrow(personId);
+        assertAccessible(member);
+        if (!isMemberActive(member)) {
+            throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + personId);
+        }
+        return member;
     }
 
     /**
@@ -143,11 +172,7 @@ public class TreeTraversalService {
 
     @Transactional(readOnly = true)
     public FamilyTreeV2Response getAncestors(Long personId) {
-        FamilyMember root = familyMemberRepository.findById(personId)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
-        if (!isMemberActive(root)) {
-            throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + personId);
-        }
+        requireAccessibleActiveMember(personId); // tenant guard + faollik
 
         Set<Long> visitedPersons = new HashSet<>();
         Set<Long> visitedUnits = new HashSet<>();
@@ -197,11 +222,7 @@ public class TreeTraversalService {
 
     @Transactional(readOnly = true)
     public FamilyTreeV2Response getDescendants(Long personId) {
-        FamilyMember root = familyMemberRepository.findById(personId)
-                .orElseThrow(() -> new ResourceNotFoundException("Oila a'zosi topilmadi: " + personId));
-        if (!isMemberActive(root)) {
-            throw new ResourceNotFoundException("Faol oila a'zosi topilmadi: " + personId);
-        }
+        requireAccessibleActiveMember(personId); // tenant guard + faollik
 
         Set<Long> visitedPersons = new HashSet<>();
         Set<Long> visitedUnits = new HashSet<>();

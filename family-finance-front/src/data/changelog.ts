@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.4',
+        date: '2026-08-16 02:10',
+        title: 'Shajaraga kirish nazorati kuchaytirildi',
+        features: [],
+        fixes: [
+            "Shajara daraxti, ajdodlar/avlodlar ro'yxati va qarindoshlik hisoblagichi endi faqat o'z oilangiz doirasida ishlaydi — begona oila a'zosining ma'lumotlari so'ralsa, so'rov rad etiladi.",
+            "Tekshiruv barcha kirish nuqtalarida yagona manbadan bajariladi, shuning uchun ko'rinishlar orasida farq qolmaydi.",
+        ],
+    },
+    {
         version: '1.19.3',
         date: '2026-08-16 01:30',
         title: 'Rol berish aniqlashtirildi va cheklandi',
