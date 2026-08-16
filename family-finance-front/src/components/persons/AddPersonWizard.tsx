@@ -24,6 +24,10 @@ import { usePermission } from '../../hooks/usePermission';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import { personsApi } from '../../api/persons.api';
 import { getApiErrorMessage } from '../../utils/apiError';
+// Parol siyosati — yagona manba (backend PasswordPolicy bilan sinxron).
+// Bu oqimda admin boshqa a'zoga parol qo'yadi, backend esa validateMinLength
+// (faqat uzunlik) ishlatadi — shuning uchun isPasswordStrong EMAS, isPasswordAcceptable.
+import { PASSWORD_MIN_LENGTH, isPasswordAcceptable } from '../../utils/password';
 import type {
   PersonCreateRequest,
   PersonCreateResponse,
@@ -42,7 +46,6 @@ import {
 // =============================================================================
 
 const TOTAL_STEPS = 3;
-const MIN_PASSWORD_LENGTH = 6;
 const FIRST_NAME_MAX = 100;
 const NICKNAME_MAX = 50;
 
@@ -175,7 +178,7 @@ export function AddPersonWizard({
 
     const needsAccount = selectedType === 'ADULT_ACTIVE' || selectedType === 'ADMIN_ONLY';
     if (needsAccount && !usernameValid) return false;
-    if (needsAccount && !form.autoPassword && form.password.length < MIN_PASSWORD_LENGTH) return false;
+    if (needsAccount && !form.autoPassword && !isPasswordAcceptable(form.password)) return false;
 
     return true;
   }, [selectedType, form, usernameValid]);
@@ -634,14 +637,14 @@ function AccountSection({
       {!autoPassword && (
         <PasswordInput
           label="Parol"
-          placeholder={`Kamida ${MIN_PASSWORD_LENGTH} belgi`}
+          placeholder={`Kamida ${PASSWORD_MIN_LENGTH} belgi`}
           value={password}
           onChange={onPasswordChange}
           showStrength
           showGenerate
           error={
-            password.length > 0 && password.length < MIN_PASSWORD_LENGTH
-              ? `Parol kamida ${MIN_PASSWORD_LENGTH} belgi bo'lishi kerak`
+            password.length > 0 && !isPasswordAcceptable(password)
+              ? `Parol kamida ${PASSWORD_MIN_LENGTH} belgi bo'lishi kerak`
               : undefined
           }
         />

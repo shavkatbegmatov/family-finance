@@ -346,7 +346,7 @@ export function FamilyMemberModal({ isOpen, onClose, member, onSuccess }: Family
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < 6) || (form.createAccount && !accountUsernameValid)}
+            disabled={submitting || !form.firstName.trim() || (form.createAccount && !!form.accountPassword && form.accountPassword.length < PASSWORD_MIN_LENGTH) || (form.createAccount && !accountUsernameValid)}
           >
             {submitting && <span className="loading loading-spinner loading-sm" />}
             Saqlash

@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.10',
+        date: '2026-08-17 03:30',
+        title: 'Parol talabi hamma oynada bir xil',
+        features: [],
+        fixes: [
+            "Oila a'zosiga login ochishda parol talabi yagona qoidaga keltirildi — hamma joyda kamida 10 belgi. Avval ba'zi oynalarda qisqaroq parol qabul qilinar, so'ng server uni rad etardi va sabab tushunarsiz qolardi.",
+            "A'zo tahrirlash oynasida xato xabari 10 belgi talab qilar, \"Saqlash\" tugmasi esa 6 belgida ham faol bo'lardi — endi ikkalasi mos.",
+        ],
+    },
+    {
         version: '1.19.9',
         date: '2026-08-17 03:00',
         title: 'Tranzaksiyani boshqa xonadon hisobiga ko\'chirish',
