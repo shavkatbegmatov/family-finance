@@ -318,6 +318,11 @@ public class TransactionService {
         existing.setType(request.getType());
         existing.setAmount(request.getAmount());
         existing.setAccount(account);
+        // Scope hisob bilan BIRGA ko'chadi — CREATE'dagi qoida bilan bir xil
+        // (.scope(account.getHomeScope()), yuqoriga qarang). Avval bu qator yo'q edi:
+        // tranzaksiyani boshqa xonadon hisobiga ko'chirganda scope_id ESKI qolib,
+        // scope-filtrlangan hisobotlar va agregatlar uni noto'g'ri xonadonga sanardi.
+        existing.setScope(account.getHomeScope());
         existing.setTransactionDate(request.getTransactionDate());
         existing.setDescription(request.getDescription());
         existing.setIsRecurring(request.getIsRecurring() != null ? request.getIsRecurring() : false);

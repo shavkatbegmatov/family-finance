@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.9',
+        date: '2026-08-17 03:00',
+        title: 'Tranzaksiyani boshqa xonadon hisobiga ko\'chirish',
+        features: [],
+        fixes: [
+            "Tranzaksiyani boshqa xonadonning hisobiga ko'chirganda u endi yangi xonadonga to'g'ri biriktiriladi — avval hisobotlar va yig'indilar uni eski xonadonda sanashda davom etardi.",
+        ],
+    },
+    {
         version: '1.19.8',
         date: '2026-08-17 02:30',
         title: 'Ball konversiyasi tranzaksiyalar tarixiga tushadi',
