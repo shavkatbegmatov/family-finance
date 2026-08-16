@@ -1,6 +1,7 @@
 package uz.familyfinance.api.integration;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
 
 /**
  * Telegram tasdiq so'rovi muddati — real PostgreSQL 16 ustida (Testcontainers).
@@ -67,6 +69,17 @@ class TelegramAuthExpiryIntegrationTest extends AbstractPostgresIntegrationTest 
 
     /** Test yaratgan yozuvlar (klass @Transactional yo'q → qo'lda tozalanadi). */
     private final List<String> createdRequestIds = new ArrayList<>();
+
+    /**
+     * Bot "yoqilgan" deb ko'rsatiladi: {@code init()} bot o'chiq muhitda so'rov yaratishni
+     * rad etadi (aks holda deep-link boshqa muhitdagi bot tomonidan "Havola yaroqsiz" deb
+     * qaytariladi). Mock default'i {@code false} — bu testning mavzusi muddat mantig'i
+     * bo'lgani uchun bot holatini aniq yoqib qo'yamiz.
+     */
+    @BeforeEach
+    void enableBot() {
+        when(botClient.isEnabled()).thenReturn(true);
+    }
 
     @AfterEach
     void cleanupCreatedRows() {
