@@ -57,9 +57,23 @@ public class TelegramAuthService {
     /** Cleanup'da muddatdan keyin qo'shiladigan ehtiyot oynasi (oqim o'rtasini kesmaslik). */
     private static final int CLEANUP_GRACE_HOURS = 1;
 
-    /** Frontend "Telegram orqali kirish" bosganda — yangi PENDING so'rov, requestId qaytaradi. */
+    /**
+     * Frontend "Telegram orqali kirish" bosganda — yangi PENDING so'rov, requestId qaytaradi.
+     *
+     * <p>Bot o'chiq bo'lsa (token yo'q / {@code TELEGRAM_ENABLED=false}) so'rov UMUMAN
+     * yaratilmaydi. Aks holda oqim jimgina buziladi: front deep-link ochadi, foydalanuvchi
+     * botda {@code /start} bosadi, lekin uni <b>boshqa muhitdagi</b> bot qabul qiladi va
+     * requestId o'z bazasida topilmagani uchun "❌ Havola yaroqsiz" deb javob beradi
+     * ({@link #confirm} ning birinchi shoxi). Ilovada esa spinner cheksiz aylanaveradi.
+     * Bu ayniqsa lokal dev'da tez-tez uchraydi: requestId lokal bazada yaratiladi,
+     * polling esa faqat prod'da yoqilgan.</p>
+     */
     @Transactional
     public String init() {
+        if (!botClient.isEnabled()) {
+            throw new BadRequestException(
+                    "Telegram orqali kirish bu muhitda yoqilmagan. Login va parol bilan kiring.");
+        }
         String requestId = generateRequestId();
         requestRepository.save(TelegramAuthRequest.builder()
                 .requestId(requestId)

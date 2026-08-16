@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.7',
+        date: '2026-08-17 01:45',
+        title: 'Telegram orqali kirish: tushunarsiz kutish tugatildi',
+        features: [],
+        fixes: [
+            "Telegram boti sozlanmagan muhitda \"Telegram orqali kirish\" endi darhol tushunarli xabar beradi — avval oyna cheksiz kutar, botda esa \"Havola yaroqsiz\" degan chalg'ituvchi javob chiqardi.",
+        ],
+    },
+    {
         version: '1.19.6',
         date: '2026-08-17 01:20',
         title: 'Kirish huquqlari xonadon doirasiga qaytarildi',
