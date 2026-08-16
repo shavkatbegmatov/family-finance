@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.6',
+        date: '2026-08-17 01:20',
+        title: 'Kirish huquqlari xonadon doirasiga qaytarildi',
+        features: [],
+        fixes: [
+            "Hisoblar, hisobga kirish huquqlari va oila a'zolariga kirish endi qat'iy o'z xonadon/oila doirasida ishlaydi. Platforma darajasidagi nazorat alohida super-admin profiliga ajratildi.",
+            "Xonadon egasi va admini o'z xonadonining hisobini alohida ruxsatsiz ham tahrirlay oladi — avval bu faqat qo'shimcha huquq berilgan hisoblarda ishlardi.",
+        ],
+    },
+    {
         version: '1.19.5',
         date: '2026-08-16 02:40',
         title: "Jamg'armaga hisob bog'lashda tekshiruv",

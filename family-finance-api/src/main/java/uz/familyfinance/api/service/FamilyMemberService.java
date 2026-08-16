@@ -94,20 +94,20 @@ public class FamilyMemberService {
     public Page<FamilyMemberResponse> getAll(String search, Pageable pageable, CustomUserDetails currentUser) {
         ensureSelfMemberActive();
         Long familyGroupId = resolveActiveFamilyGroupId(currentUser);
-        boolean isAdmin = currentUser.isAdmin();
+        boolean isSuperAdmin = scopeContext.isSuperAdmin();
 
         if (search != null && !search.isBlank()) {
-            return familyMemberRepository.searchWithAccess(search, familyGroupId, isAdmin, pageable)
+            return familyMemberRepository.searchWithAccess(search, familyGroupId, isSuperAdmin, pageable)
                     .map(this::toResponse);
         }
-        return familyMemberRepository.findAccessibleMembers(familyGroupId, isAdmin, pageable).map(this::toResponse);
+        return familyMemberRepository.findAccessibleMembers(familyGroupId, isSuperAdmin, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
     public List<FamilyMemberResponse> getAllActive(CustomUserDetails currentUser) {
         Long familyGroupId = resolveActiveFamilyGroupId(currentUser);
-        boolean isAdmin = currentUser.isAdmin();
-        return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin).stream()
+        boolean isSuperAdmin = scopeContext.isSuperAdmin();
+        return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isSuperAdmin).stream()
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -481,15 +481,15 @@ public class FamilyMemberService {
     @Transactional(readOnly = true)
     public List<FamilyMember> getAllEntities(CustomUserDetails currentUser) {
         Long familyGroupId = resolveActiveFamilyGroupId(currentUser);
-        boolean isAdmin = currentUser.isAdmin();
-        return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isAdmin);
+        boolean isSuperAdmin = scopeContext.isSuperAdmin();
+        return familyMemberRepository.findAccessibleActiveMembers(familyGroupId, isSuperAdmin);
     }
 
     /**
      * Bitta oila a'zosiga (getById/update/delete/financialSummary) kirish nazorati.
      *
      * <p>FAIL-CLOSED: ruxsat AYNAN LIST query'lari bilan bir xil
-     * (findAccessibleMembers: {@code isAdmin OR fm.familyGroup.id = activeFamilyGroupId}).
+     * (findAccessibleMembers: {@code isSuperAdmin OR fm.familyGroup.id = activeFamilyGroupId}).
      * Avval bu metod fail-OPEN edi — a'zoning guruhi null bo'lsa yoki aktiv guruh
      * aniqlanmasa (-1L/null) JIMGINA ruxsat berardi, ya'ni har qanday non-admin
      * istalgan oila a'zosini ko'ra/tahrirlay/o'chira olardi (IDOR). Endi bu
@@ -497,9 +497,13 @@ public class FamilyMemberService {
      *
      * <p>Yagona kengaytma: foydalanuvchi O'Z member yozuviga har doim kira oladi
      * (onboarding/profil paytida guruh hali aniqlanmagan bo'lsa ham o'zini ko'rsin).</p>
+     *
+     * <p>Platforma bypass'i {@code currentUser.isAdmin()} dan {@code isSuperAdmin()} ga
+     * ko'chirildi: birinchisi RBAC {@code ADMIN} roli edi va oila ichida tarqatilardi,
+     * ya'ni istalgan oila admini BARCHA oilalarning a'zolarini ochа olardi.</p>
      */
     private void checkAccess(FamilyMember member, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin())
+        if (scopeContext.isSuperAdmin())
             return;
 
         // O'z member yozuvi — doim ruxsat

@@ -151,8 +151,25 @@ public class CustomUserDetails implements UserDetails {
     }
 
     /**
-     * Check if user has ADMIN role
+     * Foydalanuvchida RBAC {@code ADMIN} roli bormi.
+     *
+     * @deprecated <b>AVTORIZATSIYA UCHUN ISHLATMANG.</b> Bu — oddiy RBAC roli, platforma
+     * darajasi EMAS: u oila ichida {@code accountRole} orqali tarqatilardi, ya'ni istalgan
+     * foydalanuvchi o'ziga "admin" akkaunt yasay olardi. Bu metod avval 9 joyda tenant
+     * chegarasini bekor qiluvchi bypass sifatida ishlatilgan (hisoblar, hisobga kirish
+     * huquqlari, oila a'zolari) — natijada bitta oilaning admini BARCHA oilalarning
+     * moliyaviy va genealogik ma'lumotlarini ko'ra olardi.
+     *
+     * <p>O'rniga:</p>
+     * <ul>
+     *   <li>platforma nazorati (read-only) — {@code ScopeContextService.isSuperAdmin()}</li>
+     *   <li>scope ichida yozish — {@code ScopeContextService.canWriteToScope(scopeId)}</li>
+     *   <li>scope boshqaruvi — {@code ScopeContextService.canManageScope(scopeId)}</li>
+     * </ul>
+     *
+     * <p>Faqat ma'lumot ko'rsatish (masalan rol nishoni) uchun qoldirilgan.</p>
      */
+    @Deprecated(since = "1.19.6")
     public boolean isAdmin() {
         return roleCodes.contains("ADMIN");
     }

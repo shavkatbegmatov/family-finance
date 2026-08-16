@@ -30,6 +30,7 @@ public class AccountAccessService {
     private final AccountAccessRepository accessRepository;
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
+    private final ScopeContextService scopeContext;
 
     @Transactional(readOnly = true)
     public List<AccountAccessResponse> getAccessList(Long accountId) {
@@ -126,14 +127,35 @@ public class AccountAccessService {
         accessRepository.save(access);
     }
 
+    /**
+     * Hisobga kirish huquqlarini TARQATISH nazorati — eng nozik amal.
+     *
+     * <p>Avval bu yerda {@code currentUser.isAdmin()} bypass'i turardi: RBAC
+     * {@code ADMIN} roli (platforma darajasi emas, oila ichida tarqatiladigan)
+     * BEGONA oilalarning hisoblariga ham kirish huquqi bera olardi. Endi faqat
+     * hisob scope'ining egasi/admini yoki hisobning {@code AccountAccess.OWNER}'i.</p>
+     *
+     * <p>Super admin bu yerdan ATAYLAB o'tmaydi ({@code canManageScope} unga
+     * {@code false} qaytaradi) — u read-only platforma profili, huquq tarqatmaydi.</p>
+     */
     private void checkManagePermission(Long accountId, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin()) return;
+        if (hasScopeManageRole(accountId)) {
+            return;
+        }
         AccountAccessRole role = accessRepository
                 .findRoleByAccountIdAndUserId(accountId, currentUser.getId())
                 .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
         if (role != AccountAccessRole.OWNER) {
             throw new AccessDeniedException("Faqat hisob egasi huquqlarni boshqara oladi");
         }
+    }
+
+    /** Joriy foydalanuvchi shu hisob scope'ida OWNER/ADMIN'mi. */
+    private boolean hasScopeManageRole(Long accountId) {
+        return accountRepository.findById(accountId)
+                .map(Account::getHomeScope)
+                .map(scope -> scopeContext.canManageScope(scope.getId()))
+                .orElse(false);
     }
 
     private boolean hasMinimumRole(AccountAccessRole actual, AccountAccessRole minimum) {

@@ -326,9 +326,19 @@ public class AccountService {
         return visible.isEmpty() ? NO_VISIBLE_SCOPES : visible;
     }
 
+    /**
+     * O'qish huquqi.
+     *
+     * <p>Avval bu yerda {@code currentUser.isAdmin()} bypass'i turardi — u RBAC
+     * {@code ADMIN} roli edi, platforma darajasi EMAS, va oila ichida tarqatilardi.
+     * Natijada oddiy oila admini BARCHA oilalarning hisoblarini ko'ra olardi.
+     * Endi platforma nazorati faqat {@code isSuperAdmin()} (read-only, ADR bo'yicha),
+     * qolganlar scope-visibility orqali.</p>
+     */
     private void checkAccess(Account account, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin())
-            return;
+        if (scopeContext.isSuperAdmin()) {
+            return; // platforma nazoratchisi — faqat KO'RISH (yozish quyida rad etiladi)
+        }
         // Scope-aware tekshiruv: FAMILY hisob faqat o'sha hisobning homeScope'i
         // joriy foydalanuvchiga ko'rinadigan scope'lar ichida bo'lsagina ochiladi
         // (cross-tenant ma'lumot oqishining oldini oladi). Boshqa hisoblar esa
@@ -339,9 +349,21 @@ public class AccountService {
         }
     }
 
+    /**
+     * Yozish huquqi: hisob scope'ida yozish roli (OWNER/ADMIN/MEMBER) YOKI hisobda
+     * aniq {@code AccountAccess} grant (VIEWER'dan yuqori).
+     *
+     * <p>Scope-fallback avval faqat {@link #assertCanModify} da bor edi, bu metodning
+     * o'zida yo'q — ya'ni hisobni TAHRIRLASH uchun aniq grant talab qilinardi, unga
+     * TRANZAKSIYA kiritish uchun esa scope roli yetarli edi. Nomuvofiqlikni
+     * {@code isAdmin()} bypass'i yashirib turardi: u olib tashlanganda xonadon egasi
+     * o'z kartasini tahrirlay olmay qolardi (prod'da 10 hisobdan 2 tasi aynan shunday —
+     * scope'da OWNER, lekin AccountAccess yozuvi yo'q).</p>
+     */
     private void checkWriteAccess(Account account, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin())
+        if (hasScopeWriteRole(account)) {
             return;
+        }
         AccountAccessRole role = accountAccessRepository
                 .findRoleByAccountIdAndUserId(account.getId(), currentUser.getId())
                 .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
@@ -350,15 +372,35 @@ public class AccountService {
         }
     }
 
+    /**
+     * Egalik amallari (holat o'zgartirish, o'chirish): hisob scope'ida boshqaruv roli
+     * (OWNER/ADMIN) YOKI hisobda {@code AccountAccess.OWNER}.
+     *
+     * <p>Super admin bu yerdan O'TMAYDI — {@code canManageScope} unga ataylab
+     * {@code false} qaytaradi (read-only platforma profili).</p>
+     */
     private void checkOwnerAccess(Account account, CustomUserDetails currentUser) {
-        if (currentUser.isAdmin())
+        if (hasScopeManageRole(account)) {
             return;
+        }
         AccountAccessRole role = accountAccessRepository
                 .findRoleByAccountIdAndUserId(account.getId(), currentUser.getId())
                 .orElseThrow(() -> new AccessDeniedException("Bu hisobga kirish huquqingiz yo'q"));
         if (role != AccountAccessRole.OWNER) {
             throw new AccessDeniedException("Bu amalni faqat hisob egasi bajara oladi");
         }
+    }
+
+    /** Hisob scope'ida yozish roli bormi (FAMILY hisob uchun asosiy yo'l). */
+    private boolean hasScopeWriteRole(Account account) {
+        return account.getHomeScope() != null
+                && scopeContext.canWriteToScope(account.getHomeScope().getId());
+    }
+
+    /** Hisob scope'ida boshqaruv roli (OWNER/ADMIN) bormi. */
+    private boolean hasScopeManageRole(Account account) {
+        return account.getHomeScope() != null
+                && scopeContext.canManageScope(account.getHomeScope().getId());
     }
 
     // -----------------------------------------------------------------------
@@ -386,17 +428,12 @@ public class AccountService {
      * grant shart emas) — aks holda oddiy oila a'zosi o'z xonadoni hisobiga
      * tranzaksiya kirita olmay qolardi. Boshqa hollarda (PERSONAL hisob yoki
      * maxsus grant) AccountAccess roli bo'yicha tekshiriladi.</p>
+     *
+     * <p>Scope-fallback endi {@link #checkWriteAccess} ning o'zida — shu sabab bu metod
+     * unga to'g'ridan-to'g'ri o'tadi (avval qoida ikki joyda takrorlanardi).</p>
      */
     public void assertCanModify(Account account) {
-        CustomUserDetails currentUser = currentUserOrThrow();
-        if (currentUser.isAdmin()) {
-            return;
-        }
-        if (account.getHomeScope() != null
-                && scopeContext.canWriteToScope(account.getHomeScope().getId())) {
-            return;
-        }
-        checkWriteAccess(account, currentUser);
+        checkWriteAccess(account, currentUserOrThrow());
     }
 
     // -----------------------------------------------------------------------

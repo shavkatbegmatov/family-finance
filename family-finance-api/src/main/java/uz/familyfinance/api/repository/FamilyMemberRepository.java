@@ -58,7 +58,7 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
                      Pageable pageable);
 
        @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
-                     "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId) AND " +
+                     "(:isSuperAdmin = true OR fm.familyGroup.id = :familyGroupId) AND " +
                      "(LOWER(fm.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                      "LOWER(fm.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                      "LOWER(fm.middleName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -66,19 +66,19 @@ public interface FamilyMemberRepository extends JpaRepository<FamilyMember, Long
        Page<FamilyMember> searchWithAccess(
                      @Param("search") String search,
                      @Param("familyGroupId") Long familyGroupId,
-                     @Param("isAdmin") boolean isAdmin,
+                     @Param("isSuperAdmin") boolean isSuperAdmin,
                      Pageable pageable);
 
        @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
-                     "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId)")
+                     "(:isSuperAdmin = true OR fm.familyGroup.id = :familyGroupId)")
        Page<FamilyMember> findAccessibleMembers(
                      @Param("familyGroupId") Long familyGroupId,
-                     @Param("isAdmin") boolean isAdmin,
+                     @Param("isSuperAdmin") boolean isSuperAdmin,
                      Pageable pageable);
 
        @Query("SELECT fm FROM FamilyMember fm WHERE fm.isActive = true AND " +
-                     "(:isAdmin = true OR fm.familyGroup.id = :familyGroupId)")
+                     "(:isSuperAdmin = true OR fm.familyGroup.id = :familyGroupId)")
        List<FamilyMember> findAccessibleActiveMembers(
                      @Param("familyGroupId") Long familyGroupId,
-                     @Param("isAdmin") boolean isAdmin);
+                     @Param("isSuperAdmin") boolean isSuperAdmin);
 }
