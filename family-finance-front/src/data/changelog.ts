@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.19.8',
+        date: '2026-08-17 02:30',
+        title: 'Ball konversiyasi tranzaksiyalar tarixiga tushadi',
+        features: [],
+        fixes: [
+            "Ballarni pulga aylantirish endi to'liq tranzaksiya sifatida yoziladi — hisob balansi va tranzaksiyalar tarixi doim mos keladi. Avval balans jimgina oshar, tarixda esa hech narsa ko'rinmasdi.",
+            "Konversiya faqat o'z xonadoningizdagi va ball valyutasi bilan bir xil hisobga tushadi — mos kelmasa tushunarli xabar beriladi.",
+        ],
+    },
+    {
         version: '1.19.7',
         date: '2026-08-17 01:45',
         title: 'Telegram orqali kirish: tushunarsiz kutish tugatildi',
