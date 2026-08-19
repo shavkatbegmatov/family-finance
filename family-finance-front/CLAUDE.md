@@ -102,6 +102,15 @@ queryKey orqali avtomatik refetch — yangi sahifalar `useScopeChangeEffect` ish
   `isPasswordStrong`, `evaluatePasswordStrength`, `generateStrongPassword`). HIBP k-anonymity
   ogohlantirish: `utils/hibp.ts`. Backend ham `PASSWORD_MIN_LENGTH=10` (`util/PasswordPolicy.java`) — sinxron bo'lishi shart.
 - **Permissions:** `hooks/usePermission.ts` + `PermissionGate`.
+- **i18n (ko'p tillilik) — ULANISH JARAYONDA:** `src/i18n/` (i18next, `uz` default + `ru`).
+  Reja va bosqichlar: `@docs/i18n-plan.md`. **Yangi kod DARHOL `t()` bilan yoziladi**
+  (bosqich navbatini kutmasdan), aks holda qarz o'sadi. Kalit: `<modul>.<blok>.<element>`,
+  kalit inglizcha — qiymat tarjima qilinadi. Takrorlanuvchi matnlar faqat `common.*` da.
+  Satr birlashtirish (`'Jami: ' + x`) YO'Q — interpolatsiya (`t('k', { x })`), chunki so'z
+  tartibi tillarda farq qiladi. Sana/son/valyuta `t()` bilan emas, `Intl` bilan. Ko'plik —
+  i18next `_one`/`_other` suffikslari (ruschada 3 shakl), qo'lda `if` yozilmaydi.
+  `uz.json` va `ru.json` kalitlari **aynan** mos bo'lishi shart — `src/i18n/i18n.test.ts`
+  buni qulflaydi.
 - **Page layout standard (MUST):** page root `space-y-4 lg:space-y-6`; page title ONLY via
   `components/layout/PageHeader` (renders `h1.section-title`, hidden on mobile — the sticky
   Header already shows the route title; never hand-write a second page `<h1>`). Card padding

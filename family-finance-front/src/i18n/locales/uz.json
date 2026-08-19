@@ -9,7 +9,9 @@
     "back": "Orqaga",
     "noData": "Ma'lumot topilmadi",
     "sum": "so'm",
-    "all": "Hammasi"
+    "all": "Hammasi",
+    "completed": "Yakunlangan",
+    "cancelled": "Bekor qilingan"
   },
   "auth": {
     "login": "Kirish",
@@ -41,21 +43,6 @@
     "viewAll": "Hammasini ko'rish",
     "noDebt": "Qarzingiz yo'q",
     "hasDebt": "Sizda qarz mavjud"
-  },
-  "purchases": {
-    "title": "Xaridlar tarixi",
-    "invoiceNumber": "Hisob-faktura",
-    "date": "Sana",
-    "total": "Jami",
-    "paid": "To'langan",
-    "debt": "Qarz",
-    "status": "Holat",
-    "items": "Mahsulotlar",
-    "quantity": "Soni",
-    "price": "Narx",
-    "discount": "Chegirma",
-    "subtotal": "Jami summa",
-    "noPurchases": "Sizda hali xaridlar yo'q"
   },
   "debts": {
     "title": "Qarzlar",
@@ -101,16 +88,6 @@
     "themeLight": "Yorug'",
     "themeDark": "Qorong'i",
     "themeSystem": "Tizim"
-  },
-  "status": {
-    "completed": "Yakunlangan",
-    "cancelled": "Bekor qilingan",
-    "refunded": "Qaytarilgan"
-  },
-  "payment": {
-    "paid": "To'langan",
-    "partial": "Qisman",
-    "unpaid": "To'lanmagan"
   },
   "points": {
     "title": "Ball tizimi",

@@ -9,7 +9,9 @@
     "back": "Назад",
     "noData": "Данные не найдены",
     "sum": "сум",
-    "all": "Все"
+    "all": "Все",
+    "completed": "Завершен",
+    "cancelled": "Отменен"
   },
   "auth": {
     "login": "Вход",
@@ -41,21 +43,6 @@
     "viewAll": "Показать все",
     "noDebt": "У вас нет долга",
     "hasDebt": "У вас есть долг"
-  },
-  "purchases": {
-    "title": "История покупок",
-    "invoiceNumber": "Номер счета",
-    "date": "Дата",
-    "total": "Итого",
-    "paid": "Оплачено",
-    "debt": "Долг",
-    "status": "Статус",
-    "items": "Товары",
-    "quantity": "Кол-во",
-    "price": "Цена",
-    "discount": "Скидка",
-    "subtotal": "Подытог",
-    "noPurchases": "У вас пока нет покупок"
   },
   "debts": {
     "title": "Долги",
@@ -101,16 +88,6 @@
     "themeLight": "Светлая",
     "themeDark": "Тёмная",
     "themeSystem": "Система"
-  },
-  "status": {
-    "completed": "Завершен",
-    "cancelled": "Отменен",
-    "refunded": "Возвращен"
-  },
-  "payment": {
-    "paid": "Оплачен",
-    "partial": "Частично",
-    "unpaid": "Не оплачен"
   },
   "points": {
     "title": "Система баллов",
