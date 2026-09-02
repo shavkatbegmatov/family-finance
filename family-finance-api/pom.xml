@@ -30,6 +30,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- RestClient.Builder (PwnedPasswordService, TelegramBotClient) — Spring Boot 4'da
+             auto-config alohida spring-boot-restclient modulida. Avval u faqat
+             spring-cloud-context 5.0.1 orqali TRANZITIV kelar edi (5.0.2+ olib tashlagan →
+             spring-cloud 2025.1.2+ bilan "bean yo'q"). Ishlatiladigan narsa ochiq e'lon qilinadi. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-restclient</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -192,8 +200,11 @@
         <dependencies>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
-                <!-- 2025.1.2 RestClient.Builder auto-config'ni buzadi (PwnedPasswordService bean
-                     yo'q) — 2025.1.1'da qolamiz (Spring Boot 4 bilan ishlaydi, prod'da tasdiqlangan). -->
+                <!-- 2025.1.2/2025.1.3'da "RestClient.Builder bean yo'q" (PwnedPasswordService) xatosi
+                     chiqardi. Ildiz sabab: spring-boot-restclient auto-config'i classpath'ga faqat
+                     spring-cloud-context 5.0.1 orqali tranzitiv kelar edi, 5.0.2+ uni olib tashladi.
+                     2026-09-03: starter yuqorida ochiq e'lon qilindi — pin endi majburiy emas,
+                     yangi versiya dependabot PR'ida CI (Integration Tests) bilan tekshiriladi. -->
                 <artifactId>spring-cloud-dependencies</artifactId>
                 <version>2025.1.1</version>
                 <type>pom</type>
