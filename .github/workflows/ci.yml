@@ -147,38 +147,81 @@ jobs:
   # Coolify 4.3+ (server 2026-08-28 da yangilangan): /api/v1/deploy va boshqa holat
   # o'zgartiruvchi API endpoint'lar faqat POST qabul qiladi — GET 405 Method Not Allowed
   # qaytaradi (2026-09-02 dagi deploy yiqilishi sababi). Shuning uchun POST.
+  # Webhook javobidagi deployment_uuid'lar verify job'iga output sifatida uzatiladi.
+  # Javob tanasi log'ga chiqarilmaydi: unda resource_uuid (webhook URL'ning bir qismi) bor,
+  # repo esa public.
   deploy:
     name: Deploy to Coolify
     runs-on: ubuntu-latest
     needs: [build-and-push]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      backend_deployment: ${{ steps.trigger.outputs.backend_deployment }}
+      frontend_deployment: ${{ steps.trigger.outputs.frontend_deployment }}
     steps:
-      - name: Deploy backend
+      - name: Trigger backend + frontend deployments
+        id: trigger
+        env:
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          BACKEND_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          FRONTEND_WEBHOOK_URL: ${{ secrets.COOLIFY_FRONTEND_WEBHOOK_URL }}
         run: |
-          curl -f -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
-            --max-time 30
-
-      - name: Deploy frontend
-        run: |
-          curl -f -X POST "${{ secrets.COOLIFY_FRONTEND_WEBHOOK_URL }}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
-            --max-time 30
+          trigger() {
+            local name="$1" url="$2" body uuid message
+            body=$(curl -fsS -X POST "$url" \
+              -H "Authorization: Bearer $COOLIFY_API_TOKEN" \
+              --max-time 30)
+            uuid=$(printf '%s' "$body" | jq -r '.deployments[0].deployment_uuid // empty' 2>/dev/null || true)
+            message=$(printf '%s' "$body" | jq -r '.deployments[0].message // .message // empty' 2>/dev/null || true)
+            echo "$name: ${message:-javob JSON emas} (deployment_uuid=${uuid:-yo'q})"
+            echo "${name}_deployment=$uuid" >> "$GITHUB_OUTPUT"
+          }
+          trigger backend "$BACKEND_WEBHOOK_URL"
+          trigger frontend "$FRONTEND_WEBHOOK_URL"
 
   # ── CD: Deploy'dan keyin prod sog'ligini tekshirish ──
   # Coolify webhook'ni qabul qilishi deploy muvaffaqiyat DEGANI EMAS — konteyner
   # haqiqatda ko'tarilganini bu job tekshiradi. Backend VA frontend ikkalasi ham
   # 200 bo'lishi shart (2026-06-16 frontend 503 jim outage'idan keyin qo'shildi).
+  # 2026-09-03: avval Coolify API'dan har bir deployment `finished` bo'lgunicha kutiladi —
+  # aks holda eski konteyner hali javob berayotganda 200 kelib, tekshiruv yangi versiyani
+  # emas, eskisini tasdiqlab yuborardi. Holatni kuzatib bo'lmasa (token `read` huquqisiz,
+  # uuid kelmagan) — ogohlantirish bilan eski 120s kutishga qaytadi.
   verify:
     name: Verify Deploy
     runs-on: ubuntu-latest
     needs: [deploy]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
+      - uses: actions/checkout@v7
+
+      - name: Wait for Coolify deployments to finish
+        env:
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          BACKEND_DEPLOYMENT: ${{ needs.deploy.outputs.backend_deployment }}
+          FRONTEND_DEPLOYMENT: ${{ needs.deploy.outputs.frontend_deployment }}
+        run: |
+          fallback=0
+          for pair in "backend:$BACKEND_DEPLOYMENT" "frontend:$FRONTEND_DEPLOYMENT"; do
+            name="${pair%%:*}"; uuid="${pair#*:}"
+            echo "== $name =="
+            rc=0
+            bash .github/scripts/wait-coolify-deployment.sh \
+              "$COOLIFY_WEBHOOK_URL" "$COOLIFY_API_TOKEN" "$uuid" || rc=$?
+            if [ "$rc" = "2" ]; then
+              fallback=1
+            elif [ "$rc" != "0" ]; then
+              exit "$rc"
+            fi
+          done
+          if [ "$fallback" = "1" ]; then
+            echo "Coolify holatini kuzatib bo'lmadi — rollout uchun 120s kutish (vaqtga asoslangan usul)"
+            sleep 120
+          fi
+
       - name: Health-check backend + frontend
         run: |
-          echo "Coolify rollout uchun kutish (120s)..."
-          sleep 120
           api=000; front=000
           for i in $(seq 1 24); do
             api=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.family-finance.uz/api/actuator/health || echo 000)
