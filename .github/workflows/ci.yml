@@ -173,7 +173,9 @@ jobs:
               --max-time 30)
             uuid=$(printf '%s' "$body" | jq -r '.deployments[0].deployment_uuid // empty' 2>/dev/null || true)
             message=$(printf '%s' "$body" | jq -r '.deployments[0].message // .message // empty' 2>/dev/null || true)
-            echo "$name: ${message:-javob JSON emas} (deployment_uuid=${uuid:-yo'q})"
+            # Diqqat: ${var:-...} ichida apostrof ISHLATMA — bash uni qo'shtirnoq deb o'qib,
+            # yopuvchi } ni topolmaydi (sintaksis xatosi, exit 2 — 2026-09-03 run #33689143902).
+            echo "$name: ${message:-javob JSON emas} (deployment_uuid=${uuid:-topilmadi})"
             echo "${name}_deployment=$uuid" >> "$GITHUB_OUTPUT"
           }
           trigger backend "$BACKEND_WEBHOOK_URL"
