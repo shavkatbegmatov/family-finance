@@ -144,6 +144,9 @@ jobs:
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
 
   # ── CD: Trigger Coolify deploy ──
+  # Coolify 4.3+ (server 2026-08-28 da yangilangan): /api/v1/deploy va boshqa holat
+  # o'zgartiruvchi API endpoint'lar faqat POST qabul qiladi — GET 405 Method Not Allowed
+  # qaytaradi (2026-09-02 dagi deploy yiqilishi sababi). Shuning uchun POST.
   deploy:
     name: Deploy to Coolify
     runs-on: ubuntu-latest
@@ -152,13 +155,13 @@ jobs:
     steps:
       - name: Deploy backend
         run: |
-          curl -f -X GET "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+          curl -f -X POST "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
             --max-time 30
 
       - name: Deploy frontend
         run: |
-          curl -f -X GET "${{ secrets.COOLIFY_FRONTEND_WEBHOOK_URL }}" \
+          curl -f -X POST "${{ secrets.COOLIFY_FRONTEND_WEBHOOK_URL }}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" \
             --max-time 30
 
