@@ -9,6 +9,12 @@ updates:
     labels: ["dependencies", "backend"]
     commit-message:
       prefix: "deps(api)"
+    # Minor/patch bump'lar bitta PR bo'lib keladi — 2026-09-03'da 9 ta alohida PR yig'ilib
+    # qolgan edi, har biri alohida CI + deploy tsikli. Major'lar ataylab alohida qoladi.
+    groups:
+      backend-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # Frontend — npm
   - package-ecosystem: "npm"
@@ -19,6 +25,10 @@ updates:
     labels: ["dependencies", "frontend"]
     commit-message:
       prefix: "deps(front)"
+    groups:
+      frontend-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
     ignore:
       # TS 6 major: typescript-eslint peer talabi <6.0.0 — ekotizim qo'llagach olib tashlansin
       - dependency-name: "typescript"
@@ -55,3 +65,6 @@ updates:
     labels: ["dependencies", "ci"]
     commit-message:
       prefix: "deps(ci)"
+    groups:
+      ci-actions:
+        patterns: ["*"]

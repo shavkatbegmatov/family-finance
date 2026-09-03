@@ -116,6 +116,19 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
+      # Versiya tag'lari MANBADAN olinadi. Avval ikkalasi ham `v1.7.21` deb qotirilgan edi —
+      # backend uchun to'g'ri, frontend uchun esa NOTO'G'RI (u 1.21.0) va har push o'sha bitta
+      # tag'ni qayta yozib, versiya bo'yicha rollback nuqtasini yo'q qilardi (2026-09-03).
+      - name: Versiyalarni manbadan o'qish
+        id: versions
+        run: |
+          api=$(grep -A1 '<artifactId>family-finance-api</artifactId>' family-finance-api/pom.xml \
+                | grep -m1 '<version>' | sed -E 's:.*<version>(.*)</version>.*:\1:')
+          front=$(node -p "require('./family-finance-front/package.json').version")
+          echo "api=$api"     >> "$GITHUB_OUTPUT"
+          echo "front=$front" >> "$GITHUB_OUTPUT"
+          echo "api=$api front=$front"
+
       - name: Build & push backend
         uses: docker/build-push-action@v7
         with:
@@ -124,7 +137,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}-api:latest
             ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-api:v1.7.21
+            ${{ env.IMAGE_PREFIX }}-api:v${{ steps.versions.outputs.api }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -136,7 +149,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}-front:latest
             ${{ env.IMAGE_PREFIX }}-front:${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}-front:v1.7.21
+            ${{ env.IMAGE_PREFIX }}-front:v${{ steps.versions.outputs.front }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
           build-args: |

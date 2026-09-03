@@ -107,6 +107,10 @@ queryKey orqali avtomatik refetch — yangi sahifalar `useScopeChangeEffect` ish
 ## Conventions
 
 - PascalCase components/pages, camelCase stores.
+- **Lint ceiling (ratchet):** `npm run lint` runs `eslint . --max-warnings 116` — the current
+  debt (95 × `react-hooks/set-state-in-effect` across 74 files, plus a few other React-Compiler
+  rules). New warnings therefore break CI. When you fix some, **lower the number** in
+  `package.json`; never raise it. Zero errors is already enforced.
 - **Styling:** Tailwind v3.4 + daisyUI v4 themes `family` (light) / `family-dark`, defined in
   `tailwind.config.js`. **daisyUI colors are `oklch`** — for WebGL/three.js use hard-coded hex,
   never parse theme color via `getComputedStyle` (V1.6.5 bug; see `graph3d/color/useGraphTheme`).
