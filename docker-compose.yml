@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:16-alpine
+    # Prod (Coolify) PostgreSQL 18.x — lokal ham shu major'da. Eski 16 volume bilan
+    # ishlamaydi: `docker compose down -v` (yoki pg_dump → restore) qilib qayta ko'taring.
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME:-family_finance_db}

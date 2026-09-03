@@ -23,12 +23,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * run'dan `*IntegrationTest` exclude qilingan).
  */
 @Testcontainers
-@DisplayName("Flyway migratsiyalari (real PostgreSQL 16)")
+@DisplayName("Flyway migratsiyalari (real PostgreSQL 18)")
 class FlywayMigrationIntegrationTest {
 
+    // Prod (Coolify) PostgreSQL 18.x — test image prod bilan bir major versiyada tursin.
     @Container
     static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:16-alpine");
+            new PostgreSQLContainer<>("postgres:18-alpine");
 
     @Test
     @DisplayName("barcha V* migratsiyalar toza bazada xatosiz va idempotent qo'llanadi")

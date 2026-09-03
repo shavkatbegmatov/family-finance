@@ -19,7 +19,8 @@ Spring Boot API + React/Vite SPA.
 | Backend | `family-finance-api/` | Spring Boot 4.1.0, Java 21, pkg `uz.familyfinance.api` | `:8098` (context `/api`) |
 | Frontend | `family-finance-front/` | React 19, Vite, TypeScript, Tailwind+daisyUI | `:5178` |
 
-DB: PostgreSQL 16 (`family_finance_db`), Flyway migrations, Hibernate `ddl-auto=validate`.
+DB: PostgreSQL 18 (prod 18.x; Testcontainers/compose `postgres:18-alpine`), lokal baza
+`family_finance_db`, Flyway migrations, Hibernate `ddl-auto=validate`.
 
 ## Run / build / verify
 

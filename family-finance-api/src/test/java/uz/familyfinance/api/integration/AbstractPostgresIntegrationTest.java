@@ -21,8 +21,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
  */
 public abstract class AbstractPostgresIntegrationTest {
 
+    // Prod (Coolify) PostgreSQL 18.x — test image prod bilan bir major versiyada tursin.
     static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:16-alpine");
+            new PostgreSQLContainer<>("postgres:18-alpine");
 
     static {
         POSTGRES.start();
