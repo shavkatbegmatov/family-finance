@@ -140,7 +140,6 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
           build-args: |
-            VITE_IMGBB_API_KEY=${{ secrets.VITE_IMGBB_API_KEY }}
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
 
   # ── CD: Trigger Coolify deploy ──

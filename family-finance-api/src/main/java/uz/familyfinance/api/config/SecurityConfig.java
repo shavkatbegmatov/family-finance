@@ -56,6 +56,10 @@ public class SecurityConfig {
                         // Taklif kodi preview — login qilmagan user (registratsiya) ham
                         // ko'ra oladi; faqat nom + turi qaytadi, sezgir narsa yo'q
                         .requestMatchers(HttpMethod.GET, "/v1/scopes/lookup").permitAll()
+                        // Saqlangan rasmlar (avatar, G10): <img src> Authorization yubora olmaydi;
+                        // URL taxmin qilib bo'lmaydigan UUID (avvalgi ImgBB havolalari kabi ochiq).
+                        // Yuklash (POST) esa autentifikatsiya + @RequiresPermission talab qiladi.
+                        .requestMatchers(HttpMethod.GET, "/v1/files/**").permitAll()
 
                         // All other requests require authentication
                         // Permissions checked at method level via @RequiresPermission

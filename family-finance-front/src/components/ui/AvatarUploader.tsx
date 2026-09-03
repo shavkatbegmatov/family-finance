@@ -13,6 +13,8 @@ import {
     Loader,
     Link,
 } from 'lucide-react';
+import { filesApi } from '../../api/files.api';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 interface AvatarUploaderProps {
     value: string;
@@ -68,31 +70,14 @@ async function getCroppedImage(
     });
 }
 
-async function uploadToImgBB(blob: Blob): Promise<string> {
-    const apiKey = import.meta.env.VITE_IMGBB_API_KEY;
-    if (!apiKey || apiKey === 'your_imgbb_api_key_here') {
-        throw new Error('ImgBB API kaliti sozlanmagan (.env.local faylida VITE_IMGBB_API_KEY o\'rnating)');
-    }
-
-    const formData = new FormData();
-    formData.append('image', blob, 'avatar.jpg');
-
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-        method: 'POST',
-        body: formData,
-    });
-
-    if (!res.ok) {
-        throw new Error(`ImgBB yuklashda xatolik: ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (!data.success) {
-        throw new Error(data?.error?.message || 'ImgBB xatolik qaytardi');
-    }
-
-    // Use the display_url which is direct
-    return data.data.display_url || data.data.url;
+/**
+ * Kesilgan rasmni ilovaning o'z backend'iga yuklaydi (G10). Avval ImgBB'ga brauzerdan
+ * to'g'ridan-to'g'ri yuklanar edi — API kaliti bundle'da ochiq turar va rasmlar uchinchi
+ * tomonda saqlanardi. Qaytgan absolyut URL `avatar` maydoniga yoziladi.
+ */
+async function uploadAvatar(blob: Blob): Promise<string> {
+    const stored = await filesApi.uploadAvatar(blob);
+    return stored.url;
 }
 
 type UploadStep = 'idle' | 'crop' | 'uploading' | 'done' | 'error';
@@ -143,12 +128,12 @@ export function AvatarUploader({ value, onChange, label = 'Rasm' }: AvatarUpload
         setError(null);
         try {
             const blob = await getCroppedImage(rawImage, croppedArea, rotation);
-            const url = await uploadToImgBB(blob);
+            const url = await uploadAvatar(blob);
             onChange(url);
             setStep('done');
             setRawImage(null);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Noma\'lum xatolik');
+            setError(getApiErrorMessage(err, 'Rasm yuklashda xatolik'));
             setStep('error');
         }
     }, [rawImage, croppedArea, rotation, onChange]);
@@ -351,7 +336,7 @@ export function AvatarUploader({ value, onChange, label = 'Rasm' }: AvatarUpload
                             <input
                                 type="url"
                                 className="input input-sm input-bordered flex-1 text-[13px]"
-                                placeholder="https://i.ibb.co/..."
+                                placeholder="https://..."
                                 value={urlInput}
                                 onChange={(e) => setUrlInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleUrlSubmit()}

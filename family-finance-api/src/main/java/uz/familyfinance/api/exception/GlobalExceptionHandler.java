@@ -14,6 +14,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import uz.familyfinance.api.dto.response.ApiResponse;
 import uz.familyfinance.api.enums.ErrorCode;
 
@@ -23,6 +25,28 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    /**
+     * Multipart limiti (spring.servlet.multipart.max-file-size) servlet qatlamida ishlaydi —
+     * controller'gacha yetmaydi; handler'siz 500 bo'lardi. Avatar (G10) uchun tushunarli 400.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        log.warn("Upload too large: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Fayl hajmi 2 MB dan oshmasligi kerak", ErrorCode.VALIDATION));
+    }
+
+    /** Noto'g'ri Content-Type (masalan multipart o'rniga JSON) — mijoz xatosi, 500 emas 415. */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        log.warn("Unsupported media type: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(ApiResponse.error("Qo'llab-quvvatlanmaydigan Content-Type: " + ex.getContentType(),
+                        ErrorCode.VALIDATION));
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {

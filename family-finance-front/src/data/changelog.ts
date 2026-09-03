@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.21.0',
+        date: '2026-09-03 08:00',
+        title: 'Rasmlar endi ilovaning o\'z serverida saqlanadi',
+        features: [
+            "Oila a'zosi rasmi (avatar) endi tashqi rasm xizmatiga emas, ilovaning o'z serveriga yuklanadi va zaxira nusxa bilan birga saqlanadi. Avvalgi rasmlar o'zgarishsiz ishlayveradi.",
+            "Faqat JPEG, PNG va WebP rasm, 2 MB gacha qabul qilinadi; noto'g'ri fayl uchun tushunarli xabar chiqadi.",
+        ],
+        fixes: [],
+    },
+    {
         version: '1.20.0',
         date: '2026-09-03 07:00',
         title: 'Xavfsizroq sessiya: tokenlar brauzer xotirasida saqlanmaydi',

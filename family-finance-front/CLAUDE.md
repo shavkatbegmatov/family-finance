@@ -95,7 +95,8 @@ queryKey orqali avtomatik refetch — yangi sahifalar `useScopeChangeEffect` ish
 ## Reusable UI
 
 - `components/ui/`: `DataTable`, `Select`, `ComboBox`, `CurrencyInput`, `NumberInput`,
-  `DatePicker`, `SearchInput`, `PersonSelect`, `CreditCardInput`, `AvatarUploader`,
+  `DatePicker`, `SearchInput`, `PersonSelect`, `CreditCardInput`, `AvatarUploader` (crop →
+  `filesApi.uploadAvatar` → backend `/v1/files/avatar`, ImgBB EMAS — G10),
   **`PasswordInput`** (eye + generate + strength), `PasswordStrengthMeter`,
   **`UsernameInput`** (live availability via `GET /v1/users/check-username`).
 - `components/common/`: `BrandLogo`/`BrandMark`, `PermissionGate`/`RoleGate`, `Modal`/portal,

@@ -67,7 +67,9 @@ config/  scheduler/  util/  annotation/  exception/
   `LoginAttempt`.
 - **Points (gamification):** `Point*` (Config, Balance, Task, Transaction, Challenge,
   Achievement, Conversion, Shop, ...).
-- **Other:** `AuditLog`, `StaffNotification`, `AppSetting`, `Bank`/`BankBin`.
+- **Other:** `AuditLog`, `StaffNotification`, `AppSetting`, `Bank`/`BankBin`,
+  `StoredFile` (V62 — avatar rasmlari `bytea`da; `GET /v1/files/{uuid}` ochiq, `POST /v1/files/avatar`
+  FAMILY_CREATE|UPDATE; tur magic-bytes bilan JPEG/PNG/WebP, 2 MB).
 - **Core services:** `AuthService`, `ScopeContextService`, `ScopeService`,
   `ScopeMembershipService`, `SessionService`,
-  `PermissionService`, `AuditLogService`, `Excel/PdfExportService`.
+  `PermissionService`, `AuditLogService`, `Excel/PdfExportService`, `FileStorageService`.
