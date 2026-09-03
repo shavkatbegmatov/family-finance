@@ -1,0 +1,113 @@
+name: Prod Uptime
+
+# Prod'ni deploy'dan tashqari vaqtda ham kuzatish. Sabab: Coolify 4.3 yangilanishi
+# deploy'ni buzgani ikki hafta sezilmadi (2026-09-02) — sog'liq faqat deploy paytida
+# tekshirilar edi. Bu workflow har 15 daqiqada front + API + Coolify API'ni tekshiradi;
+# muammoda `prod-down` label'li issue ochadi (egasiga assign — email keladi), tiklanganda
+# yopadi. Deploy ketayotgan paytdagi qisqa 503 uchun signal bermaydi.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+concurrency:
+  group: prod-uptime
+  cancel-in-progress: false
+
+env:
+  FRONT_URL: https://family-finance.uz/
+  API_HEALTH_URL: https://api.family-finance.uz/api/actuator/health
+  ISSUE_LABEL: prod-down
+  ISSUE_ASSIGNEE: shavkatbegmatov
+
+jobs:
+  check:
+    name: Health check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe front + API (3 urinish, 20s oraliq)
+        id: probe
+        run: |
+          probe() {
+            curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$1" || echo 000
+          }
+          front=000; api=000
+          for attempt in 1 2 3; do
+            front=$(probe "$FRONT_URL")
+            api=$(probe "$API_HEALTH_URL")
+            echo "urinish $attempt: front=$front api=$api"
+            if [ "$front" = "200" ] && [ "$api" = "200" ]; then
+              break
+            fi
+            sleep 20
+          done
+          echo "front=$front" >> "$GITHUB_OUTPUT"
+          echo "api=$api" >> "$GITHUB_OUTPUT"
+
+      - name: Probe Coolify API (deploy tokeni bilan)
+        id: coolify
+        env:
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+        run: |
+          base="${COOLIFY_WEBHOOK_URL%%/api/v1/deploy*}"
+          echo "::add-mask::$base"
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 \
+            -H "Authorization: Bearer $COOLIFY_API_TOKEN" "$base/api/v1/version" || echo 000)
+          echo "coolify api: HTTP $code"
+          echo "coolify=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy ketayotganini aniqlash
+        id: deploying
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          n=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "CI/CD" --branch main \
+                --status in_progress --json databaseId --jq 'length')
+          echo "in_progress=$n" >> "$GITHUB_OUTPUT"
+          echo "CI/CD in_progress run'lar: $n"
+
+      - name: Issue ochish / yopish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FRONT: ${{ steps.probe.outputs.front }}
+          API: ${{ steps.probe.outputs.api }}
+          COOLIFY: ${{ steps.coolify.outputs.coolify }}
+          DEPLOYING: ${{ steps.deploying.outputs.in_progress }}
+        run: |
+          healthy=1
+          [ "$FRONT" = "200" ] && [ "$API" = "200" ] && [ "$COOLIFY" = "200" ] || healthy=0
+          open_issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --label "$ISSUE_LABEL" \
+                         --state open --json number --jq '.[0].number // empty')
+          now=$(date -u +%Y-%m-%dT%H:%MZ)
+          summary="front=$FRONT api=$API coolify=$COOLIFY ($now UTC)"
+
+          if [ "$healthy" = "1" ]; then
+            echo "Prod sog'lom: $summary"
+            if [ -n "$open_issue" ]; then
+              gh issue comment "$open_issue" --repo "$GITHUB_REPOSITORY" --body "Tiklandi: $summary"
+              gh issue close "$open_issue" --repo "$GITHUB_REPOSITORY" --reason completed
+            fi
+            exit 0
+          fi
+
+          if [ "${DEPLOYING:-0}" != "0" ]; then
+            echo "::notice::Nosog'lom ($summary), lekin deploy ketmoqda — signal berilmaydi"
+            exit 0
+          fi
+
+          echo "::error::Prod nosog'lom: $summary"
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$GITHUB_REPOSITORY" --body "Hali nosog'lom: $summary"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "Prod nosog'lom: $summary" \
+              --label "$ISSUE_LABEL" --assignee "$ISSUE_ASSIGNEE" \
+              --body "$(printf 'Prod Uptime workflow prod nosog\x27lomligini aniqladi.\n\n- front: %s\n- api health: %s\n- coolify api: %s\n\nRun: %s/%s/actions/runs/%s\n\nTiklanganda workflow bu issue\x27ni o\x27zi yopadi.' "$FRONT" "$API" "$COOLIFY" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          fi
+          exit 1
