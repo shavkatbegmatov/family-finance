@@ -22,6 +22,11 @@ const isSignedOutAuthStorage = (value: string | null) => {
  * and synchronizes the logout across all tabs.
  *
  * Uses browser's storage event API to listen for localStorage changes.
+ *
+ * D12-PR5: tokenlar endi localStorage'da emas (access token xotirada, refresh token httpOnly
+ * cookie'da) — logout/login holati faqat persist qilingan `auth-storage` (isAuthenticated,
+ * user) orqali sinxronlanadi; access tokenning o'zi tablar orasida `authSession`
+ * (BroadcastChannel) bilan bo'lishiladi.
  */
 export function useCrossTabSync() {
   const { logoutWithRedirect, isAuthenticated } = useAuthStore();
@@ -35,15 +40,6 @@ export function useCrossTabSync() {
       // Only handle storage events from other tabs (event.storageArea is not null)
       if (!event.storageArea) {
         return;
-      }
-
-      // Case 1: Access token removed (logout in another tab)
-      if (event.key === 'accessToken' && event.oldValue && !event.newValue) {
-        toast.error('Siz boshqa tabda chiqib ketdingiz', {
-          duration: 3000,
-          icon: '🔒',
-        });
-        logoutWithRedirect(500);
       }
 
       // Case 2: auth store changed in another tab
@@ -74,11 +70,6 @@ export function useCrossTabSync() {
         });
         logoutWithRedirect(500);
       }
-
-      // Case 4: accessToken o'zgardi. Bu ko'pincha boshqa tabdagi ODDIY soatlik refresh
-      // (o'sha user) — hech qanday xabar shart emas (avval har refreshda chalg'ituvchi
-      // "Boshqa tabda yangi session boshlandi" toast chiqardi). Haqiqiy boshqa-user
-      // login holati Case 2'da (auth-storage id o'zgarishi) qayta-yuklash bilan hal qilinadi.
     };
 
     window.addEventListener('storage', handleStorageChange);

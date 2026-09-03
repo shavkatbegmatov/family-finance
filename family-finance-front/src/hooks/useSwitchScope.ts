@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/authStore';
+import { tokenStore } from '../auth/tokenStore';
 import { useScopeStore } from '../store/scopeStore';
 import { useNotificationsStore } from '../store/notificationsStore';
 import { scopesApi } from '../api/scopes.api';
@@ -33,7 +34,6 @@ interface SwitchScopeResult {
 export function useSwitchScope(): SwitchScopeResult {
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const refreshToken = useAuthStore((s) => s.refreshToken);
   const permissions = useAuthStore((s) => s.permissions);
   const roles = useAuthStore((s) => s.roles);
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -50,7 +50,7 @@ export function useSwitchScope(): SwitchScopeResult {
   const switchScope = useCallback(
     async (target: Scope) => {
       if (!target || target.id === activeScope?.id || switchingId !== null) return;
-      if (!user || !accessToken || !refreshToken) return;
+      if (!user || !accessToken) return;
 
       setSwitchingId(target.id);
       try {
@@ -61,14 +61,9 @@ export function useSwitchScope(): SwitchScopeResult {
         }
         const newAccessToken = data.accessToken;
 
-        // axios silent refresh yangi (rotatsiyalangan) refresh tokenni FAQAT localStorage'ga
-        // yozadi, Zustand store'ni emas — shu sabab store'dagi refreshToken eskirgan bo'lishi
-        // mumkin. Tirik tokenni localStorage'dan olamiz; aks holda setAuth uni o'lik token
-        // bilan ustiga yozib, keyingi refresh'da "Sessiya tugadi" majburiy logout bo'lardi.
-        const liveRefreshToken = localStorage.getItem('refreshToken') ?? refreshToken;
-
-        // 1) authStore — yangi JWT (axios darhol yangi tokenni ishlatadi)
-        setAuth(user, newAccessToken, liveRefreshToken, Array.from(permissions), Array.from(roles));
+        // 1) authStore — yangi JWT (axios darhol yangi tokenni ishlatadi). Refresh token
+        // web'da httpOnly cookie'da (o'zgarmaydi), native'da tokenStore'dagi tirik nusxa.
+        setAuth(user, newAccessToken, tokenStore.getStoredRefreshToken(), Array.from(permissions), Array.from(roles));
         // 2) aktiv scope
         setActiveScope(target);
         // 3) WebSocket'ni yangi token bilan qayta ulash
@@ -95,7 +90,6 @@ export function useSwitchScope(): SwitchScopeResult {
       switchingId,
       user,
       accessToken,
-      refreshToken,
       permissions,
       roles,
       setAuth,

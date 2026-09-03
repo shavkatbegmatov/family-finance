@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type AxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
-import { API_BASE_URL } from '../config/constants';
+import { authSession } from '../auth/authSession';
+import { getAccessToken } from '../auth/tokenStore';
 import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
@@ -9,35 +10,18 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // D12-PR5: refresh token httpOnly cookie'da (Path=/api/v1/auth). Prod'da API alohida
+  // subdomen (cross-origin, same-site) — cookie faqat withCredentials bilan yuboriladi/qabul
+  // qilinadi. Backend CORS allowCredentials=true + aniq origin ro'yxati bilan javob beradi.
+  withCredentials: true,
 });
 
 type RetryRequestConfig = AxiosRequestConfig & { _retry?: boolean };
-
-interface RefreshResponsePayload {
-  data: {
-    accessToken: string;
-    refreshToken: string;
-  };
-}
 
 const AUTH_ENDPOINTS_WITHOUT_REFRESH = [
   '/v1/auth/login',
   '/v1/auth/register',
 ];
-
-let isRefreshing = false;
-let failedQueue: { resolve: (token: string) => void; reject: (err: unknown) => void }[] = [];
-
-const processQueue = (error: unknown, token: string | null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
-    if (token) {
-      resolve(token);
-      return;
-    }
-    reject(error);
-  });
-  failedQueue = [];
-};
 
 const isRefreshRequest = (url?: string) => {
   return Boolean(url && url.includes('/v1/auth/refresh-token'));
@@ -59,15 +43,12 @@ const clearAuthAndRedirect = () => {
 
 api.interceptors.request.use(
   (config) => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      } else if (config.headers?.Authorization) {
-        delete config.headers.Authorization;
-      }
-    } catch {
-      // localStorage may be unavailable
+    // D12-PR5: access token faqat xotirada (tokenStore), localStorage'da emas
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else if (config.headers?.Authorization) {
+      delete config.headers.Authorization;
     }
     return config;
   },
@@ -95,67 +76,19 @@ api.interceptors.response.use(
 
       originalRequest._retry = true;
 
-      let refreshToken: string | null = null;
       try {
-        refreshToken = localStorage.getItem('refreshToken');
-      } catch {
-        // localStorage may be unavailable
-      }
-
-      if (!refreshToken) {
-        clearAuthAndRedirect();
-        return Promise.reject(error);
-      }
-
-      if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((newToken) => {
-          originalRequest.headers = {
-            ...originalRequest.headers,
-            Authorization: `Bearer ${newToken}`,
-          };
-          return api(originalRequest);
-        });
-      }
-
-      isRefreshing = true;
-
-      try {
-        const refreshResponse = await axios.post<RefreshResponsePayload>(
-          `${API_BASE_URL}/v1/auth/refresh-token`,
-          null,
-          { params: { refreshToken } }
-        );
-
-        const accessToken = refreshResponse.data?.data?.accessToken;
-        const newRefreshToken = refreshResponse.data?.data?.refreshToken;
-
-        if (!accessToken || !newRefreshToken) {
-          throw new Error('Invalid refresh token response');
-        }
-
-        try {
-          localStorage.setItem('accessToken', accessToken);
-          localStorage.setItem('refreshToken', newRefreshToken);
-        } catch {
-          // localStorage may be unavailable
-        }
-
-        api.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
-        processQueue(null, accessToken);
-
+        // 401 bergan token "eski" deb uzatiladi: boshqa tab allaqachon yangilagan bo'lsa,
+        // HTTP refresh o'rniga o'sha token olinadi. Parallel 401'lar bitta promise'ni kutadi.
+        const staleToken = getAccessToken();
+        const accessToken = await authSession.refreshAccessToken(staleToken);
         originalRequest.headers = {
           ...originalRequest.headers,
           Authorization: `Bearer ${accessToken}`,
         };
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
         clearAuthAndRedirect();
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     }
 

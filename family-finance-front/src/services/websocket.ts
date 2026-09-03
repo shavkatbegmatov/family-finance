@@ -1,5 +1,6 @@
 import SockJS from 'sockjs-client';
 import { Client, IMessage } from '@stomp/stompjs';
+import { getAccessToken } from '../auth/tokenStore';
 
 // Backend'dan kelayotgan notification response turi
 export interface WebSocketNotification {
@@ -80,11 +81,11 @@ class WebSocketService {
         Authorization: `Bearer ${token}`,
       },
 
-      // Har (qayta)ulanishdan oldin tokenni localStorage'dan yangilaymiz. reconnectDelay
-      // bilan avtomatik qayta-ulanish mount vaqtidagi (1 soatdan keyin eskirgan) tokenni
-      // ishlatib, realtime'ni jimgina o'ldirardi (bildirishnoma/permission-update yo'q).
+      // Har (qayta)ulanishdan oldin tokenni xotiradagi tokenStore'dan yangilaymiz (D12-PR5).
+      // reconnectDelay bilan avtomatik qayta-ulanish mount vaqtidagi (1 soatdan keyin eskirgan)
+      // tokenni ishlatib, realtime'ni jimgina o'ldirardi (bildirishnoma/permission-update yo'q).
       beforeConnect: () => {
-        const fresh = localStorage.getItem('accessToken') ?? token;
+        const fresh = getAccessToken() ?? token;
         if (this.client) {
           this.client.connectHeaders = { Authorization: `Bearer ${fresh}` };
         }

@@ -23,6 +23,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { useNotificationsStore, type Notification } from '../../store/notificationsStore';
 import { authApi } from '../../api/auth.api';
+import { getAccessToken } from '../../auth/tokenStore';
 import { ROLES } from '../../config/constants';
 import { clearIntendedPath } from '../../utils/sessionNavigation';
 import { SearchCommand } from '../common/SearchCommand';
@@ -139,8 +140,8 @@ export function Header() {
       // Dastlabki bildirishnomalarni yuklash
       fetchNotifications();
 
-      // WebSocket ulanishini boshlash (localStorage'dan token olish)
-      const token = localStorage.getItem('accessToken');
+      // WebSocket ulanishini boshlash (D12-PR5: token xotirada — App boot'da tiklangan)
+      const token = getAccessToken();
       if (token) {
         connectWebSocket(token);
       }
@@ -193,9 +194,10 @@ export function Header() {
       // Logout API xatoligi — baribir logout davom etadi
       // Continue with logout even if API call fails (network issues, etc.)
     } finally {
-      // Clear frontend state and redirect
+      // Clear frontend state and redirect (server sessiyasi yuqorida authApi.logout bilan
+      // bekor qilingan — qayta so'rov yuborilmaydi)
       clearIntendedPath();
-      logout();
+      logout({ revokeServerSession: false });
       navigate('/login');
     }
   };

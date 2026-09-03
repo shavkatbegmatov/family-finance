@@ -47,8 +47,16 @@ data/        changelog.ts          utils/  password.ts, hibp.ts, apiError.ts, ..
 
 ## State (Zustand) & auth
 
-- `authStore` — user, accessToken, refreshToken, permissions(Set), roles(Set); persisted to
-  localStorage; tokens also kept in localStorage for the axios interceptor. `hasPermission`.
+- `authStore` — user, permissions(Set), roles(Set), isAuthenticated persisted to localStorage
+  (`auth-storage`). **Tokens are NOT in localStorage (D12-PR5):** access token lives only in
+  memory (`auth/tokenStore.ts`, mirrored into `authStore.accessToken`), refresh token is an
+  httpOnly `refresh_token` cookie (`Path=/api/v1/auth`, SameSite=Strict) the JS never sees.
+  `auth/authSession.ts` restores the session on page load (`bootstrapSession`, gated by
+  `AuthBootstrap` in `App.tsx`), shares the token across tabs (BroadcastChannel) and serialises
+  refreshes (Web Locks) so refresh-token rotation never races. Capacitor (APK) is the exception:
+  the WebView origin is not same-site, so native keeps the refresh token in its own storage and
+  sends the legacy `?refreshToken=` param. `logout()` revokes the server session best-effort
+  (pass `{ revokeServerSession: false }` when `authApi.logout()` was already awaited).
 - `scopeStore` — `activeScope`, `myScopes` (multi-scope source of truth).
 - `familyTreeStore` — tree view state (`viewMode` person|household, `visualMode` 2d|3d,
   `node3dRenderer` galaxy|avatars|hybrid, `colorBy`).
@@ -56,9 +64,12 @@ data/        changelog.ts          utils/  password.ts, hibp.ts, apiError.ts, ..
 
 ## API layer (`api/axios.ts`)
 
-- Request interceptor: `Authorization: Bearer <token>` from localStorage.
-- Response interceptor: **401 → `/v1/auth/refresh-token`**, queue in-flight requests, retry;
-  **403 → toast**. Scope context travels inside the JWT (no `X-Active-Scope-Id` header).
+- `withCredentials: true` (refresh cookie; prod API is a separate same-site subdomain, backend
+  CORS has `allowCredentials=true` + explicit origins).
+- Request interceptor: `Authorization: Bearer <token>` from the in-memory `tokenStore`.
+- Response interceptor: **401 → `authSession.refreshAccessToken(staleToken)`** (single in-flight
+  promise, cookie-based, cross-tab aware), retry; **403 → toast**. Scope context travels inside
+  the JWT (no `X-Active-Scope-Id` header).
 - Domain modules: `scopes.api`, `accounts.api`, `transactions.api`, `family-unit.api`,
   `budgets.api`, `users.api`, `roles.api`, `points.api`, ... — barchasi `ApiResponse<T>` generic.
 

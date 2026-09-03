@@ -17,14 +17,7 @@ export const authApi = {
     return response.data.data;
   },
 
-  refreshToken: async (refreshToken: string): Promise<JwtResponse> => {
-    const response = await api.post<ApiResponse<JwtResponse>>(
-      '/v1/auth/refresh-token',
-      null,
-      { params: { refreshToken } }
-    );
-    return response.data.data;
-  },
+  // refresh-token: `auth/authSession.ts` (cookie + cross-tab koordinatsiya) — bu yerda emas.
 
   logout: async (): Promise<void> => {
     await api.post<ApiResponse<void>>('/v1/auth/logout');

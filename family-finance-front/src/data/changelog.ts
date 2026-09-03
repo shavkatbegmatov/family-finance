@@ -8,6 +8,19 @@ export interface ChangelogEntry {
 
 export const changelogData: ChangelogEntry[] = [
     {
+        version: '1.20.0',
+        date: '2026-09-03 07:00',
+        title: 'Xavfsizroq sessiya: tokenlar brauzer xotirasida saqlanmaydi',
+        features: [
+            "Kirish sessiyasi endi brauzerning umumiy xotirasida (localStorage) saqlanmaydi: yangilash tokeni faqat serverdan o'qiladigan himoyalangan cookie'da, kirish tokeni esa sahifa xotirasida turadi. Sahifa yangilanganda sessiya jimgina tiklanadi.",
+            "Yangilanishdan keyin bir marta qayta kirish so'raladi — bu kutilgan holat.",
+        ],
+        fixes: [
+            "Bir nechta tab bir vaqtda ochilganda sessiya yangilanishi to'qnashib, ba'zi tablar chiqarib yuborilishi mumkin edi — endi tablar tokenni o'zaro bo'lishadi va yangilash navbat bilan bo'ladi.",
+            "Harakatsizlik yoki boshqa qurilmadan tugatilgan sessiya endi serverda ham darhol bekor qilinadi.",
+        ],
+    },
+    {
         version: '1.19.10',
         date: '2026-08-17 03:30',
         title: 'Parol talabi hamma oynada bir xil',
