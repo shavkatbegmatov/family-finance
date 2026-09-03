@@ -9,7 +9,10 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-family_finance_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # PG 18+ image: PGDATA=/var/lib/postgresql/18/docker, VOLUME=/var/lib/postgresql (ota
+      # katalog). Eski `/var/lib/postgresql/data` ga ulash konteynerni restart siklida qoldiradi
+      # (2026-09-03 Playwright CI'da ko'rildi).
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-family_finance_user} -d ${DB_NAME:-family_finance_db}"]
       interval: 10s
