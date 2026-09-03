@@ -107,10 +107,13 @@ queryKey orqali avtomatik refetch — yangi sahifalar `useScopeChangeEffect` ish
 ## Conventions
 
 - PascalCase components/pages, camelCase stores.
-- **Lint ceiling (ratchet):** `npm run lint` runs `eslint . --max-warnings 116` — the current
-  debt (95 × `react-hooks/set-state-in-effect` across 74 files, plus a few other React-Compiler
+- **Lint ceiling (ratchet):** `npm run lint` runs `eslint . --max-warnings 114` — the current
+  debt (93 × `react-hooks/set-state-in-effect` across 73 files, plus a few other React-Compiler
   rules). New warnings therefore break CI. When you fix some, **lower the number** in
   `package.json`; never raise it. Zero errors is already enforced.
+  *Fixing `set-state-in-effect`:* the effect is almost always "reset/derive state when something
+  changes". Move the `setState` into the event handler that caused the change (see `ComboBox`'s
+  `closeDropdown` / `handleSearchChange`), not into an effect that watches the result.
 - **Styling:** Tailwind v3.4 + daisyUI v4 themes `family` (light) / `family-dark`, defined in
   `tailwind.config.js`. **daisyUI colors are `oklch`** — for WebGL/three.js use hard-coded hex,
   never parse theme color via `getComputedStyle` (V1.6.5 bug; see `graph3d/color/useGraphTheme`).

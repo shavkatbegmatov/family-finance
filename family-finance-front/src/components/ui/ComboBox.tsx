@@ -111,6 +111,17 @@ export function ComboBox({
     });
   }, []);
 
+  /**
+   * Yopilishning YAGONA yo'li: qidiruv matni va tanlangan qator ham shu yerda tozalanadi.
+   * Avval bu tozalash `isOpen` o'zgarishini kuzatuvchi effektda edi — React Compiler uni
+   * optimallashtira olmasdi (`set-state-in-effect`) va tozalash yopish sababidan uzilgan edi.
+   */
+  const closeDropdown = useCallback(() => {
+    setIsOpen(false);
+    setSearch('');
+    setHighlightIndex(-1);
+  }, []);
+
   // Close on outside click
   useEffect(() => {
     if (!isOpen) return;
@@ -121,13 +132,13 @@ export function ComboBox({
         containerRef.current && !containerRef.current.contains(target) &&
         listRef.current && !listRef.current.contains(target)
       ) {
-        setIsOpen(false);
+        closeDropdown();
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, closeDropdown]);
 
   // Update position when open
   useEffect(() => {
@@ -149,18 +160,15 @@ export function ComboBox({
 
   // Focus search input when dropdown opens
   useEffect(() => {
-    if (isOpen) {
-      requestAnimationFrame(() => searchInputRef.current?.focus());
-    } else {
-      setSearch('');
-      setHighlightIndex(-1);
-    }
+    if (!isOpen) return;
+    requestAnimationFrame(() => searchInputRef.current?.focus());
   }, [isOpen]);
 
-  // Reset highlight when search changes
-  useEffect(() => {
+  /** Qidiruv matni o'zgarsa tanlangan qator tiklanadi (avval alohida effekt qilardi). */
+  const handleSearchChange = (text: string) => {
+    setSearch(text);
     setHighlightIndex(-1);
-  }, [search]);
+  };
 
   // Scroll highlighted item into view
   useEffect(() => {
@@ -171,7 +179,7 @@ export function ComboBox({
 
   const handleSelect = (optionValue: string | number) => {
     onChange(optionValue);
-    setIsOpen(false);
+    closeDropdown();
   };
 
   const handleClear = (e: React.MouseEvent) => {
@@ -180,7 +188,12 @@ export function ComboBox({
   };
 
   const handleTriggerClick = () => {
-    if (!disabled) setIsOpen(!isOpen);
+    if (disabled) return;
+    if (isOpen) {
+      closeDropdown();
+    } else {
+      setIsOpen(true);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -198,7 +211,7 @@ export function ComboBox({
         break;
       case 'Escape':
         e.preventDefault();
-        setIsOpen(false);
+        closeDropdown();
         triggerRef.current?.focus();
         break;
       case 'ArrowDown':
@@ -311,7 +324,7 @@ export function ComboBox({
                 className="w-full h-8 pl-8 pr-3 text-sm rounded-lg bg-base-200/50 border border-base-300/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 placeholder:text-base-content/30"
                 placeholder={searchPlaceholder}
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 onKeyDown={handleKeyDown}
               />
             </div>
