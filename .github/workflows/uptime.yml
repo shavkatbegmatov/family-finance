@@ -7,7 +7,12 @@ name: Prod Uptime
 # yopadi. Deploy ketayotgan paytdagi qisqa 503 uchun signal bermaydi.
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Har 15 daqiqada, lekin soat CHEGARALARIDAN siljitilgan. `*/15` :00 ga tushar edi —
+    # GitHub hujjati aynan shuni ogohlantiradi: "The schedule event can be delayed during
+    # periods of high loads... High load times include the start of every hour. To decrease
+    # the chance of delay, schedule your workflow to run at a different time of the hour."
+    # (2026-09-03: `*/15` bilan 3 soat davomida birorta ham jadval run'i ishlamadi.)
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
 
 permissions:
